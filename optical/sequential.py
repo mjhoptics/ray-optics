@@ -61,47 +61,54 @@ class SequentialModel:
             print(self.sg.node[gp[0]]['s'])
         print(self.sg.node[gp[1]]['s'])
 
-    def trace(self, p0, d0, wl, eps=1.0e-12):
+    def trace(self, pt0, dir0, wl, eps=1.0e-12):
         path = nx.dfs_edges(self.sg)
         ray = []
         # trace object surface
         obj = next(path)
-        srf = self.sg.node[obj[0]]['s']
-        t, p = srf.profile.intersect(p0, d0)
-        ray.append([p, d0])
+        srf_obj = self.sg.node[obj[0]]['s']
+        gap_obj = self.sg.get_edge_data(*obj)['g']
+        op_delta, pt = srf_obj.profile.intersect(pt0, dir0)
+        ray.append([pt, dir0, op_delta])
+        op_delta *= gap_obj.medium.rindex(wl)
 
         before = obj
-        before_p = p
-        before_d = d0
+        before_pt = pt
+        before_dir = dir0
 
         # loop of remaining surfaces in path
         while True:
             try:
                 after = next(path)
-                before_gap = self.sg.get_edge_data(*before)['g']
-                # t = before_gap.thi
-                x = before_p - np.array([0, 0, before_gap.thi])
-                # s = (before_p[2] - t)/before_d[2]
-                eecd = -x.dot(before_d)
-                # p_before = before_p + s*before_d
-                before_eecp = x + eecd*before_d
-                n_before = before_gap.medium.rindex(wl)
+
+                gap_before = self.sg.get_edge_data(*before)['g']
+                b4_pt_cur_coord = before_pt - np.array([0, 0, gap_before.thi])
+
+                eic_dst = -b4_pt_cur_coord.dot(before_dir)
+
+                eic_pt_before = b4_pt_cur_coord + eic_dst*before_dir
+
+                n_before = gap_before.medium.rindex(wl)
                 srf = self.sg.node[before[1]]['s']
-                after_gap = self.sg.get_edge_data(*after)['g']
-                n_after = after_gap.medium.rindex(wl)
-                # p, s = srf.profile.intersect(p_before, before_d)
-                before_eecd, p = srf.profile.intersect(before_eecp, before_d)
-                normal = srf.profile.normal(p)
-                after_d = srf.profile.bend(before_d, normal, n_before, n_after)
+                gap_after = self.sg.get_edge_data(*after)['g']
+                n_after = gap_after.medium.rindex(wl)
 
-                after_eecd = -p.dot(after_d)
-                ray.append([p, after_d])
+                eic_dst_before, pt = srf.profile.intersect(eic_pt_before,
+                                                           before_dir)
+                normal = srf.profile.normal(pt)
+                after_dir = srf.profile.bend(before_dir, normal,
+                                             n_before, n_after)
 
-                before_p = p
-                before_d = after_d
+                eic_dst_after = -pt.dot(after_dir)
+                op_delta += (n_after*eic_dst_after - n_before*eic_dst_before)
+                dst_before = eic_dst + eic_dst_before
+                ray.append([pt, after_dir, dst_before])
+
+                before_pt = pt
+                before_dir = after_dir
                 before = after
-                print(before_eecd, after_eecd)
+                print(eic_dst_before, eic_dst_after)
             except StopIteration:
                 break
 
-        return ray
+        return ray, op_delta
