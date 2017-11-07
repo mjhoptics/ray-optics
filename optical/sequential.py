@@ -84,30 +84,34 @@ class SequentialModel:
                 gap_before = self.sg.get_edge_data(*before)['g']
                 b4_pt_cur_coord = before_pt - np.array([0, 0, gap_before.thi])
 
-                eic_dst = -b4_pt_cur_coord.dot(before_dir)
+                pp_dst = -b4_pt_cur_coord.dot(before_dir)
 
-                eic_pt_before = b4_pt_cur_coord + eic_dst*before_dir
+                pp_pt_before = b4_pt_cur_coord + pp_dst*before_dir
 
                 n_before = gap_before.medium.rindex(wl)
                 srf = self.sg.node[before[1]]['s']
                 gap_after = self.sg.get_edge_data(*after)['g']
                 n_after = gap_after.medium.rindex(wl)
 
-                eic_dst_before, pt = srf.profile.intersect(eic_pt_before,
-                                                           before_dir)
+                pp_dst_intrsct, pt = srf.profile.intersect(pp_pt_before,
+                                                           before_dir, eps)
+                eic_dst_before = ((pt.dot(before_dir) + pt[2]) /
+                                  (1 + before_dir[2]))
                 normal = srf.profile.normal(pt)
                 after_dir = srf.profile.bend(before_dir, normal,
                                              n_before, n_after)
 
-                eic_dst_after = -pt.dot(after_dir)
+                eic_dst_after = ((pt.dot(after_dir) + pt[2]) /
+                                 (1 + after_dir[2]))
+
                 op_delta += (n_after*eic_dst_after - n_before*eic_dst_before)
-                dst_before = eic_dst + eic_dst_before
+                dst_before = pp_dst + pp_dst_intrsct
                 ray.append([pt, after_dir, dst_before])
 
                 before_pt = pt
                 before_dir = after_dir
                 before = after
-                print(eic_dst_before, eic_dst_after)
+                # print(eic_dst_before, eic_dst_after)
             except StopIteration:
                 break
 
