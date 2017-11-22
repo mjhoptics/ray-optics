@@ -24,7 +24,8 @@ class RayTraceTestCase(unittest.TestCase):
         dblg.ag_dblgauss[-2][1] += dblg.ag_dblgauss[-1][1]
         dblg.ag_dblgauss[-1][1] = 0
 
-        self.ldm.sg.edge[0][1]['g'].thi = dblg.ag_dblgauss[0][1]
+        # self.ldm.sg.edge[0][1]['g'].thi = dblg.ag_dblgauss[0][1]
+        self.ldm.sg.edges[0, 1]['g'].thi = dblg.ag_dblgauss[0][1]
         for s in dblg.ag_dblgauss[1:]:
             self.ldm.add_surface(s)
 

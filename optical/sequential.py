@@ -32,6 +32,12 @@ class SequentialModel:
     def add_surface(self, surf):
         """ add a surface where surf is a list that contains:
             [curvature, thickness, refractive_index, v-number] """
+
+        self.insert(*self.create_surface_and_gap(surf))
+
+    def create_surface_and_gap(self, surf):
+        """ create a surface and gap where surf is a list that contains:
+            [curvature, thickness, refractive_index, v-number] """
         s = srf.Surface()
         s.profile.cv = surf[0]
 
@@ -44,7 +50,7 @@ class SequentialModel:
             mat = m.Glass(surf[2], surf[3], '')
 
         g = gap.Gap(surf[1], mat)
-        self.insert(s, g)
+        return s, g
 
     def list_model(self):
         for gp in list(nx.dfs_edges(self.sg)):
@@ -70,7 +76,9 @@ class SequentialModel:
         gap_obj = self.sg.get_edge_data(*obj)['g']
         op_delta, pt = srf_obj.profile.intersect(pt0, dir0)
         ray.append([pt, dir0, op_delta])
-        op_delta *= gap_obj.medium.rindex(wl)
+        n_before = gap_obj.medium.rindex(wl)
+        print(obj, n_before, op_delta)
+        op_delta *= n_before
 
         before = obj
         before_pt = pt
@@ -104,15 +112,20 @@ class SequentialModel:
                 eic_dst_after = ((pt.dot(after_dir) + pt[2]) /
                                  (1 + after_dir[2]))
 
-                op_delta += (n_after*eic_dst_after - n_before*eic_dst_before)
+                dW = n_after*eic_dst_after - n_before*eic_dst_before
+                op_delta += dW
                 dst_before = pp_dst + pp_dst_intrsct
                 ray.append([pt, after_dir, dst_before])
 
                 before_pt = pt
                 before_dir = after_dir
                 before = after
-                # print(eic_dst_before, eic_dst_after)
+                print(before, n_before, eic_dst_before, n_after, eic_dst_after,
+                      dW)
             except StopIteration:
+                dW = -n_before*eic_dst_before
+                op_delta += dW
+                print(n_before, eic_dst_before, dW)
                 break
 
         return ray, op_delta
