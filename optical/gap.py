@@ -7,7 +7,7 @@ Created on Fri Sep 15 17:06:17 2017
 """
 
 
-import medium as m
+from . import medium as m
 
 
 class Gap:

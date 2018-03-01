@@ -1,0 +1,18 @@
+len
+tit 'dar test'
+dim m
+rdm n
+so 0 10
+s 0 10
+s 0 10
+ade 45
+dar
+yde 1
+s 0 10
+ade 45
+yde 1
+dar
+s 0 10
+si 0 0
+epd 10; wl 550
+yan 0 .05

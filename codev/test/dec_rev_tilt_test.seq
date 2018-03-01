@@ -1,0 +1,23 @@
+len
+tit 'dec/rev/tilt test'
+dim m
+rdm n
+so 0. 1e+11
+s 0 3
+s 0 2.82842712
+yde 2
+ade 45
+s 0 3
+rev
+ade 45
+s 0 2.82842712
+ade -45
+s 0 0
+rev
+ade -45
+yde 2
+s 0 3
+s 0 1
+si 0 0
+epd 100; wl 550
+yan 0 .05

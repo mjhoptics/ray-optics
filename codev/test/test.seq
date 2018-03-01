@@ -1,0 +1,14 @@
+tit 'this is a title'
+! a comment
+dim m
+so 0. 1e+11
+s 0.1 1 bk7  ! first surf
+s -.05 &
+2
+s -.07 .25 f2 ! second element
+s &
+.07 10
+s &
+ 0 .001
+epd 2.5; wl 650 550 450 ! wavelengths; yan 0 5 7.07
+vuy 0 .02 .05; vly 0 0.02 0.05 !vignetting
