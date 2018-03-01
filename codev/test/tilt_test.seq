@@ -1,0 +1,16 @@
+len
+tit 'tilt test'
+dim m
+rdm n
+so 0. 1e+11
+s 0 100
+s 0 100
+ade 45
+!ade 30
+s 0 100
+ade 45
+!ade 60
+s 0 100
+si 0 0
+epd 100; wl 550
+yan 0 .05

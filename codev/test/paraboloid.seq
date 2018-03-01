@@ -1,0 +1,12 @@
+len
+tit 'f/1.0 paraboloid'
+dim m
+rdm y
+so 0. 1e+11
+s -200 -50 refl
+con
+k -1
+s 0 -50
+si 0 0
+epd 100; wl 550
+yan 0 .05
