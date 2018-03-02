@@ -203,19 +203,26 @@ class SequentialModel:
         return rayset
 
     def shift_start_of_rayset(self, rayset, start_offset):
+        """ start_offset is positive if to left of first surface """
         s1 = self.surfs[1]
         s0 = self.surfs[0]
         g0 = gap.Gap(start_offset, self.gaps[0].medium)
         r, t = trns.reverse_transform(s1, g0, s0)
-#        print(r, t)
         for fi, f in enumerate(rayset):
-#            print("field", fi)
             for ri, ray in enumerate(f):
-#                print("ray", ri, ray[0][1][0], ray[0][0][1])
                 b4_pt = r.dot(ray[0][1][0]) + t
                 b4_dir = r.dot(ray[0][0][1])
-                dst = b4_pt[2]/b4_dir[2]
+                if ri == 0:
+                    # For the chief ray, use the input offset.
+                    dst = -start_offset
+                else:
+                    pt0 = f[0][0][0][0]
+                    dir0 = f[0][0][0][1]
+                    # Calculate distance along ray to plane perpendicular to
+                    #  the chief ray.
+                    dst = -(b4_pt - pt0).dot(dir0)/b4_dir.dot(dir0)
                 pt = b4_pt + dst*b4_dir
+#                print("fld:", fi, "ray:", ri, dst, pt)
                 ray[0][0][0] = pt
                 ray[0][0][1] = b4_dir
         return r, t

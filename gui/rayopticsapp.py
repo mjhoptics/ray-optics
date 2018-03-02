@@ -54,7 +54,8 @@ class MainWindow(QMainWindow):
         wnd.triggered[QAction].connect(self.window_action)
         self.setWindowTitle("Ray Optics")
         self.show()
-        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/codev/test/ag_dblgauss.seq")
+        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
+                       "codev/test/ag_dblgauss.seq")
 
     def file_action(self, q):
         if q.text() == "New":
@@ -215,7 +216,7 @@ class MainWindow(QMainWindow):
         tfrms = self.seq_model.compute_global_coords(start_surf)
         rayset = self.seq_model.trace_boundary_rays()
 
-        start_offset = 0.1*gscene.sceneRect().width()
+        start_offset = 0.05*gscene.sceneRect().width()
         if abs(tfrms[0][1][2]) > start_offset:
             tfrms[0] = self.seq_model.shift_start_of_rayset(rayset,
                                                             start_offset)
