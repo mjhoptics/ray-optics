@@ -21,6 +21,7 @@ from PyQt5.QtWidgets import (QApplication, QAction, QMainWindow, QMdiArea,
 import codev.cmdproc as cvp
 import optical.sequential as seq
 import optical.elements as ele
+import gui.plotcanvas as plotter
 import gui.rgbtable as rgbt
 import numpy as np
 
@@ -35,6 +36,14 @@ class MainWindow(QMainWindow):
         self.mdi = QMdiArea()
         self.setCentralWidget(self.mdi)
 
+        self.left = 100
+        self.top = 50
+        self.offset_x = 100
+        self.offset_y = 25
+        self.width = 1200
+        self.height = 800
+        self.setGeometry(self.left, self.top, self.width, self.height)
+
         bar = self.menuBar()
 
         file = bar.addMenu("File")
@@ -47,6 +56,8 @@ class MainWindow(QMainWindow):
         view = bar.addMenu("View")
         view.addAction("Table")
         view.addAction("Lens View")
+        view.addSeparator()
+        view.addAction("Ray Fans")
         view.triggered[QAction].connect(self.view_action)
         wnd = bar.addMenu("Window")
         wnd.addAction("Cascade")
@@ -89,12 +100,13 @@ class MainWindow(QMainWindow):
         print("view triggered")
 
         if q.text() == "Table":
-            MainWindow.count = MainWindow.count+1
             self.create_lens_table()
 
         if q.text() == "Lens View":
-            MainWindow.count = MainWindow.count+1
             self.create_2D_lens_view()
+
+        if q.text() == "Ray Fans":
+            self.create_ray_fan_view()
 
     def window_action(self, q):
         print("window triggered")
@@ -134,6 +146,7 @@ class MainWindow(QMainWindow):
                                   tableView.horizontalHeader().height())
 #                                  The following line should work but returns 0
 #                                  tableView.verticalHeader().width())
+        MainWindow.count += 1
         sub.show()
 
     def create_2D_lens_view(self):
@@ -159,7 +172,9 @@ class MainWindow(QMainWindow):
         view_width = 600
         view_ht = 400
         view_ratio = view_width/view_ht
-        sub.setGeometry(100, 50, view_width, view_ht)
+        orig_x = MainWindow.count*self.offset_x
+        orig_y = MainWindow.count*self.offset_y
+        sub.setGeometry(orig_x, orig_y, view_width, view_ht)
 
         self.gview2d = QGraphicsView(self.scene2d)
 #        self.gview2d.setGeometry(100, 50, view_width, view_ht)
@@ -177,6 +192,30 @@ class MainWindow(QMainWindow):
         self.gview2d.scale(view_scale, view_scale)
         layout.addWidget(self.gview2d)
 
+        MainWindow.count += 1
+        sub.show()
+
+    def create_ray_fan_view(self):
+        # construct the top level widget
+        widget = QWidget()
+        # construct the top level layout
+        layout = QVBoxLayout(widget)
+
+        # set the layout on the widget
+        widget.setLayout(layout)
+
+        sub = self.mdi.addSubWindow(widget)
+        sub.setWindowTitle("Ray Fan View")
+        view_width = 600
+        view_ht = 600
+        orig_x = MainWindow.count*self.offset_x
+        orig_y = MainWindow.count*self.offset_y
+        sub.setGeometry(orig_x, orig_y, view_width, view_ht)
+
+        pc = plotter.PlotCanvas(self, self.seq_model, width=5, height=4)
+        layout.addWidget(pc)
+
+        MainWindow.count += 1
         sub.show()
 
     def createSurfaceModel(self, parent):

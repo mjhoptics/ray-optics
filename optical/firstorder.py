@@ -114,6 +114,7 @@ def paraxial_trace(path, start, start_yu, start_yu_bar, wl):
 
 
 def compute_first_order(ldm, stop, wl):
+    """ Returns paraxial axial and chief rays, plus first order data. """
     path = itertools.zip_longest(ldm.surfs, ldm.gaps)
     p_ray, q_ray = paraxial_trace(path, 1, [1., 0.], [0., 1.], wl)
 

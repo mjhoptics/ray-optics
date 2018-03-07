@@ -202,6 +202,31 @@ class SequentialModel:
             rayset.append(rim_rays)
         return rayset
 
+    def trace_fan(self, fi, xy, num_rays=21):
+        """ xy determines whether x (=0) or y (=1) fan """
+        chief_ray, _ = self.global_spec.trace(self, [0., 0.], fi)
+        central_coord = chief_ray[-1][0]
+        wvls = self.global_spec.spectral_region
+        fans_x = []
+        fans_y = []
+        fan_start = np.array([0., 0.])
+        fan_stop = np.array([0., 0.])
+        fan_start[xy] = -1.0
+        fan_stop[xy] = 1.0
+        fan_def = [fan_start, fan_stop, num_rays]
+        for wi, w in enumerate(wvls.wavelengths):
+            fan = self.global_spec.trace_fan(self, fan_def, fi, True, wi)
+            f_x = []
+            f_y = []
+            for p, r in fan:
+                f_x.append(p[xy])
+                f_y.append(r[xy]-central_coord[xy])
+            fans_x.append(f_x)
+            fans_y.append(f_y)
+        fans_x = np.array(fans_x).transpose()
+        fans_y = np.array(fans_y).transpose()
+        return fans_x, fans_y
+
     def shift_start_of_rayset(self, rayset, start_offset):
         """ start_offset is positive if to left of first surface """
         s1 = self.surfs[1]
