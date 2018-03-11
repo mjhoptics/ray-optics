@@ -10,7 +10,7 @@ import sys
 
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QHBoxLayout,
                              QVBoxLayout, QSizePolicy, QGroupBox, QCheckBox,
-                             QTableWidget, QTableWidgetItem)
+                             QTableWidget, QTableWidgetItem, QRadioButton)
 from PyQt5.QtCore import Qt as qt
 
 from matplotlib.backends.backend_qt5agg \
@@ -22,12 +22,10 @@ from matplotlib.figure import Figure
 
 # import numpy as np
 
-import glass.hoya as h
-import glass.ohara as o
-import glass.schott as s
+import glass.glassfactory as gf
 
-Hoya, Ohara, Schott = range(3)
-pickTableHeader = ["Catalog", "Glass", "Nd", "Vd"]
+pickTableHeader = ["Catalog", "Glass", "Nd", "Vd", "P C,d"]
+pickTableFormat = ["s", "s", "7.5f", "5.2f", "6.4f"]
 
 
 class GlassMapViewer(QMainWindow):
@@ -38,8 +36,9 @@ class GlassMapViewer(QMainWindow):
         self.top = 150
         self.width = 1100
         self.height = 650
-        self.dataSets = GlassMapModel()
+        self.dataSets = gf.GlassMapModel()
         self.displayDataSets = [True, True, True]
+        self.display_ref_index = True
         self.initUI()
 
     def initUI(self):
@@ -59,10 +58,45 @@ class GlassMapViewer(QMainWindow):
         rightBar = QVBoxLayout()
         layout.addLayout(rightBar)
 
+        plotTypeGroup = self.createPlotTypeBox()
+        rightBar.addWidget(plotTypeGroup)
+
         catalogGroup = self.createCatalogGroupBox()
         rightBar.addWidget(catalogGroup)
 
         rightBar.addWidget(self.gmt)
+
+    def createPlotTypeBox(self):
+        groupBox = QGroupBox("Plot Type", self)
+
+        index_btn = QRadioButton("Refractive Index")
+        index_btn.setChecked(True)
+        index_btn.toggled.connect(lambda:
+                                  self.on_plot_type_toggled(index_btn))
+        partial_btn = QRadioButton("Partial Dispersion")
+        partial_btn.toggled.connect(lambda:
+                                    self.on_plot_type_toggled(partial_btn))
+
+        vbox = QVBoxLayout()
+        vbox.addWidget(index_btn)
+        vbox.addWidget(partial_btn)
+
+        groupBox.setLayout(vbox)
+
+        return groupBox
+
+    def on_plot_type_toggled(self, button):
+        if button.text() == "Refractive Index":
+            if button.isChecked() is True:
+                self.display_ref_index = True
+
+        if button.text() == "Partial Dispersion":
+            if button.isChecked() is True:
+                self.display_ref_index = False
+
+        self.gm.display_ref_index = self.display_ref_index
+        self.gm.update_data()
+        self.gm.plot()
 
     def createCatalogGroupBox(self):
         groupBox = QGroupBox("Glass Catalogs", self)
@@ -92,46 +126,30 @@ class GlassMapViewer(QMainWindow):
 
     def hoya_check(self, state):
         checked = state == qt.Checked
-        self.gm.displayDataSets[Hoya] = checked
-        self.gm.updateVisibility(Hoya, checked)
+        self.gm.displayDataSets[gf.Hoya] = checked
+        self.gm.updateVisibility(gf.Hoya, checked)
 
     def ohara_check(self, state):
         checked = state == qt.Checked
-        self.gm.displayDataSets[Ohara] = checked
-        self.gm.updateVisibility(Ohara, checked)
+        self.gm.displayDataSets[gf.Ohara] = checked
+        self.gm.updateVisibility(gf.Ohara, checked)
 
     def schott_check(self, state):
         checked = state == qt.Checked
-        self.gm.displayDataSets[Schott] = checked
-        self.gm.updateVisibility(Schott, checked)
-
-
-class GlassMapModel():
-
-    def __init__(self):
-        self.dataSetList = []
-        self.dataSetList.append((h.HoyaCatalog(), 'Hoya'))
-        self.dataSetList.append((o.OharaCatalog(), 'Ohara'))
-        self.dataSetList.append((s.SchottCatalog(), 'Schott'))
-        self.hoyaCat = h.HoyaCatalog()
-
-    def get_data_at(self, i):
-        return self.dataSetList[i][0].glass_map_data()
-
-    def get_data_set_label_at(self, i):
-        return self.dataSetList[i][1]
+        self.gm.displayDataSets[gf.Schott] = checked
+        self.gm.updateVisibility(gf.Schott, checked)
 
 
 class PickTable(QTableWidget):
     def __init__(self):
-        super().__init__(16, 4)
+        super().__init__(16, len(pickTableHeader))
         self.rowFill = 16
         self.setHorizontalHeaderLabels(pickTableHeader)
-        for i, w in enumerate([52, 96, 61, 48]):
+        for i, w in enumerate([52, 96, 61, 48, 60]):
             self.setColumnWidth(i, w)
         self.setAlternatingRowColors(True)
-        self.setMinimumWidth(225)
-        self.setMaximumWidth(275)
+        self.setMinimumWidth(285)
+        self.setMaximumWidth(335)
 
     def setRowCount(self, count):
         if count > self.rowFill:
@@ -159,14 +177,11 @@ class PlotCanvas(FigureCanvas):
         self.data = parent.dataSets
         self.displayDataSets = parent.displayDataSets
         self.pickTable = parent.gmt
+        self.display_ref_index = parent.display_ref_index
         self.needsClear = True
         self.pickRow = 0
 
-        for i, display in enumerate(self.displayDataSets):
-            if display:
-                x, y, lbl = self.data.get_data_at(i)
-                dsLabel = self.data.get_data_set_label_at(i)
-                self.rawData.append([dsLabel, (x, y, lbl)])
+        self.update_data()
 
         super().__init__(fig)
         self.setParent(parent)
@@ -178,14 +193,32 @@ class PlotCanvas(FigureCanvas):
         FigureCanvas.updateGeometry(self)
         self.plot()
 
-    def plot(self):
-        self.axes.set_title('Glass Map')
+    def get_display_label(self):
+        if self.display_ref_index is True:
+            return 'Glass Map'
+        else:
+            return 'Partial Dispersion'
+
+    def update_data(self):
+        self.rawData = []
         for i, display in enumerate(self.displayDataSets):
-            if display:
-                self.axes.plot(self.rawData[i][1][0], self.rawData[i][1][1],
-                               linestyle='None', marker='o', markersize=5,
-                               color=self.dsc[i], alpha=0.5, gid=i,
-                               label=self.rawData[i][0], picker=5)
+            n, v, p, lbl = self.data.get_data_at(i)
+            dsLabel = self.data.get_data_set_label_at(i)
+            self.rawData.append([dsLabel, (n, v, p, lbl)])
+
+    def plot(self):
+        self.axes.cla()
+        xi = 1
+        if self.display_ref_index is True:
+            yi = 0
+        else:
+            yi = 2
+        self.axes.set_title(self.get_display_label())
+        for i, display in enumerate(self.displayDataSets):
+            self.axes.plot(self.rawData[i][1][xi], self.rawData[i][1][yi],
+                           linestyle='None', marker='o', markersize=5,
+                           color=self.dsc[i], alpha=0.5, gid=i, picker=5,
+                           label=self.rawData[i][0], visible=display)
 
         self.figure.canvas.mpl_connect('pick_event', self.on_pick)
         self.figure.canvas.mpl_connect('button_press_event', self.on_press)
@@ -218,12 +251,13 @@ class PlotCanvas(FigureCanvas):
         if self.displayDataSets[id]:
             ind = event.ind
             dsLabel = self.rawData[id][0]
-            x, y, lbl = self.rawData[id][1]
+            n, v, p, lbl = self.rawData[id][1]
             self.pickTable.setRowCount(self.pickRow+len(ind))
             for k in ind:
-                glass = (dsLabel, lbl[k], y[k], x[k])
-                for j in range(4):
-                    item = QTableWidgetItem(str(glass[j]))
+                glass = (dsLabel, lbl[k], n[k], v[k], p[k])
+                for j in range(len(pickTableHeader)):
+                    item = QTableWidgetItem(format(glass[j],
+                                                   pickTableFormat[j]))
                     self.pickTable.setItem(self.pickRow, j, item)
                 self.pickRow += 1
 

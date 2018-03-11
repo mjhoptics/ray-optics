@@ -65,8 +65,8 @@ class MainWindow(QMainWindow):
         wnd.triggered[QAction].connect(self.window_action)
         self.setWindowTitle("Ray Optics")
         self.show()
-        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
-                       "codev/test/ag_dblgauss.seq")
+#        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
+#                       "codev/test/ag_dblgauss.seq")
 
     def file_action(self, q):
         if q.text() == "New":

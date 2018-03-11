@@ -40,9 +40,9 @@ class Air(Medium):
 
 
 class Glass(Medium):
-    def __init__(self, nd=1.5168, vd=64.17, mat='NBK7'):
+    def __init__(self, nd=1.5168, vd=64.17, mat='N-BK7'):
         self.label = mat
-        if mat == 'NBK7':
+        if mat == 'N-BK7':
             self.n = 1.5168
             self.v = 64.17
         else:
@@ -51,3 +51,6 @@ class Glass(Medium):
 
     def __repr__(self):
         return 'Glass ' + self.label + ': ' + glass_encode(self.n, self.v)
+
+    def rindex(self, wv_nm):
+        return self.n
