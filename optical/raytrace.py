@@ -49,6 +49,7 @@ def trace(path, pt0, dir0, wl, eps=1.0e-12):
     before = obj
     before_pt = pt
     before_dir = dir0
+    z_dir_before = copysign(1.0, before[Gap].thi)
 
     # loop of remaining surfaces in path
     while True:
@@ -69,14 +70,16 @@ def trace(path, pt0, dir0, wl, eps=1.0e-12):
             srf = after[Surf]
             if after[Gap]:
                 n_after = after[Gap].medium.rindex(wl)
+                z_dir_after = copysign(1.0, after[Gap].thi)
             else:
                 n_after = n_before
+                z_dir_after = z_dir_before
 
             # intersect ray with profile
             pp_dst_intrsct, pt = srf.profile.intersect(pp_pt_before,
                                                        b4_dir, eps)
             eic_dst_before = ((pt.dot(b4_dir) + pt[2]) /
-                              (1 + b4_dir[2]))
+                              (z_dir_before + b4_dir[2]))
             normal = srf.profile.normal(pt)
 
             # refract or reflect ray at interface
@@ -86,7 +89,7 @@ def trace(path, pt0, dir0, wl, eps=1.0e-12):
                 after_dir = bend(b4_dir, normal, n_before, n_after)
 
             eic_dst_after = ((pt.dot(after_dir) + pt[2]) /
-                             (1 + after_dir[2]))
+                             (z_dir_after + after_dir[2]))
 
             dW = n_after*eic_dst_after - n_before*eic_dst_before
             op_delta += dW
@@ -96,6 +99,7 @@ def trace(path, pt0, dir0, wl, eps=1.0e-12):
 
             before_pt = pt
             before_dir = after_dir
+            z_dir_before = z_dir_after
             before = after
 #            print(n_before, eic_dst_before, n_after, eic_dst_after, dW)
         except StopIteration:
