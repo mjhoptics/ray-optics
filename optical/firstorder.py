@@ -183,9 +183,14 @@ def compute_first_order(ldm, stop, wl):
     fod.opt_inv = opt_inv
     fod.obj_dist = ldm.gaps[0].thi
     fod.img_dist = ldm.gaps[-1].thi
-    fod.efl = -1.0/ck1
-    fod.pp1 = (dk1 - 1.0)*(n_0/ck1)
-    fod.ppk = (p_ray[-2][ht] - 1.0)*(n_k/ck1)
+    if ck1 == 0.0:
+        fod.efl = 0.0
+        fod.pp1 = 0.0
+        fod.ppk = 0.0
+    else:
+        fod.efl = -1.0/ck1
+        fod.pp1 = (dk1 - 1.0)*(n_0/ck1)
+        fod.ppk = (p_ray[-2][ht] - 1.0)*(n_k/ck1)
     fod.ffl = fod.pp1 - fod.efl
     fod.bfl = fod.efl - fod.ppk
     fod.fno = -1.0/(2.0*ax_ray[-1][slp])
