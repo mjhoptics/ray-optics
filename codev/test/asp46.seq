@@ -1,0 +1,22 @@
+RDM N
+LEN
+TITLE 'Polynomial asphere'
+EPD   2.0
+DIM   M
+WL    587.6
+XAN   0.0 0.0
+YAN   0.0 1.0
+SO    0.0 1.0E+10
+S     0.0 1. 500.700
+  CIR EDG 0.55
+  STO
+  ASP
+  K   0.0
+  A   -0.1
+  B 0.1
+  C 0.0
+  D 0.0
+S     0.0 2.
+  CIR EDG 0.55
+SI    0.0 0.0
+GO 

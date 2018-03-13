@@ -26,6 +26,9 @@ class SurfaceProfile:
     def __repr__(self):
         return "Profile(%r)" % self.type
 
+    def update(self):
+        pass
+
     def f(self, p):
         pass
 
@@ -39,9 +42,6 @@ class SurfaceProfile:
         pass
 
     def intersect(self, p0, d, eps=1.0e-12):
-        # s0 = -p0[2]/d[2]
-        # p1 = np.array([p0[0]+s0*d[0], p0[1]+s0*d[1], 0.0])
-        # p1 = p0
         p = p1 = p0
         s1 = -self.f(p1)/np.dot(d, self.normal(p1))
         delta = abs(s1)
@@ -145,13 +145,37 @@ class Conic(SurfaceProfile):
                                    p[1]*p[1] +
                                    (self.cc+1.0)*p[2]*p[2])
 
+    def sag(self, x, y):
+        r2 = x*x + y*y
+        z = self.cv*r2/(1. + sqrt(1. - (self.cc+1.0)*self.cv*self.cv*r2))
+        return z
+
+    def profile(self, sd, dir=1, steps=6):
+        prf = []
+        if self.cv != 0.0:
+            delta = dir*sd/steps
+            y = -dir*sd
+            z = self.sag(0., y)
+            prf.append([z, y])
+            for i in range(2*steps):
+                y += delta
+                z = self.sag(0., y)
+                prf.append([z, y])
+                # print(i, z, y)
+        else:
+            prf.append([0, -dir*sd])
+            prf.append([0, dir*sd])
+        return prf
+
 
 class EvenPolynomial(SurfaceProfile):
     def __init__(self, c=0.0):
         self.type = 'EvenPolynomial'
         self.cv = c
         self.cc = 0.0
-        coefs = []
+        self.coefs = []
+        self.max_nonzero_coef = 0
+        self.coef2 = 0.0
         self.coef4 = 0.0
         self.coef6 = 0.0
         self.coef8 = 0.0
@@ -168,6 +192,7 @@ class EvenPolynomial(SurfaceProfile):
     def copyDataFrom(self, other):
         self.cv = other.cv
         self.cc = other.cc
+        self.coef2 = other.coef2
         self.coef4 = other.coef4
         self.coef6 = other.coef6
         self.coef8 = other.coef8
@@ -177,6 +202,81 @@ class EvenPolynomial(SurfaceProfile):
         self.coef16 = other.coef16
         self.coef18 = other.coef18
         self.coef20 = other.coef20
+
+    def gen_coef_list(self):
+        self.coefs = []
+        self.coefs.append(self.coef2)
+        self.coefs.append(self.coef4)
+        self.coefs.append(self.coef6)
+        self.coefs.append(self.coef8)
+        self.coefs.append(self.coef10)
+        self.coefs.append(self.coef12)
+        self.coefs.append(self.coef14)
+        self.coefs.append(self.coef16)
+        self.coefs.append(self.coef18)
+        self.coefs.append(self.coef20)
+        self.max_nonzero_coef = -1
+        for i, c in enumerate(self.coefs):
+            if c != 0.0:
+                self.max_nonzero_coef = i
+        self.max_nonzero_coef += 1
+
+    def update(self):
+        self.gen_coef_list()
+
+    def normal(self, p):
+        # sphere + conic contribution
+        r2 = p[0]*p[0] + p[1]*p[1]
+        e = self.cv/sqrt(1. - (self.cc+1.0)*self.cv*self.cv*r2)
+
+        # polynomial asphere contribution
+        e_asp = 0.0
+        r_pow = 1.0
+        c_coef = 2.0
+        for i in range(self.max_nonzero_coef):
+            e_asp += c_coef*self.coefs[i]*r_pow
+            c_coef += 2.0
+            r_pow *= r2
+
+        e_tot = e + e_asp
+        return normalize(np.array([-e_tot*p[0], -e_tot*p[1], 1.0]))
+
+    def sag(self, x, y):
+        r2 = x*x + y*y
+        # sphere + conic contribution
+        z = self.cv*r2/(1. + sqrt(1. - (self.cc+1.0)*self.cv*self.cv*r2))
+
+        # polynomial asphere contribution
+        z_asp = 0.0
+        r_pow = r2
+        for i in range(self.max_nonzero_coef):
+            z_asp += self.coefs[i]*r_pow
+            r_pow *= r2
+
+        z_tot = z + z_asp
+        return z_tot
+
+    def f(self, p):
+        return p[2] - self.sag(p[0], p[1])
+
+    def profile(self, sd, dir=1, steps=21):
+        if steps < 21:
+            steps = 21
+        prf = []
+        if self.max_nonzero_coef > 0 or self.cv != 0.0:
+            delta = dir*sd/steps
+            y = -dir*sd
+            z = self.sag(0., y)
+            prf.append([z, y])
+            for i in range(2*steps):
+                y += delta
+                z = self.sag(0., y)
+                prf.append([z, y])
+                # print(i, z, y)
+        else:
+            prf.append([0, -dir*sd])
+            prf.append([0, dir*sd])
+        return prf
 
 
 dispatch = {
