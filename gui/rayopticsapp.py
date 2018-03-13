@@ -9,21 +9,18 @@ Created on Mon Feb 12 09:24:01 2018
 import sys
 import logging
 
-from PyQt5.QtCore import Qt, QPointF, QRectF
-from PyQt5.QtGui import (QBrush, QPen, QColor, QStandardItemModel,
-                         QStandardItem, QPolygonF)
+from PyQt5.QtCore import Qt, QPointF
+from PyQt5.QtGui import (QPen, QColor, QStandardItemModel, QStandardItem,
+                         QPolygonF)
 from PyQt5.QtWidgets import (QApplication, QAction, QMainWindow, QMdiArea,
                              QMdiSubWindow, QTextEdit, QFileDialog, QTableView,
                              QVBoxLayout, QWidget, QGraphicsView,
-                             QGraphicsScene, QGraphicsPolygonItem,
-                             QGraphicsRectItem)
+                             QGraphicsScene, QGraphicsPolygonItem)
 
 import codev.cmdproc as cvp
 import optical.sequential as seq
 import optical.elements as ele
 import gui.plotcanvas as plotter
-import gui.rgbtable as rgbt
-import numpy as np
 
 
 class MainWindow(QMainWindow):
@@ -59,14 +56,13 @@ class MainWindow(QMainWindow):
         view.addSeparator()
         view.addAction("Ray Fans")
         view.triggered[QAction].connect(self.view_action)
+        view.addSeparator()
         wnd = bar.addMenu("Window")
         wnd.addAction("Cascade")
         wnd.addAction("Tiled")
         wnd.triggered[QAction].connect(self.window_action)
         self.setWindowTitle("Ray Optics")
         self.show()
-#        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
-#                       "codev/test/ag_dblgauss.seq")
 
     def file_action(self, q):
         if q.text() == "New":
@@ -155,9 +151,9 @@ class MainWindow(QMainWindow):
         self.create_ray_model(self.scene2d)
         self.scene2d.setBackgroundBrush(QColor(237, 243, 254))  # light blue
         sceneRect2d = self.scene2d.sceneRect()
-        print("Scene rect1:", sceneRect2d.width()/sceneRect2d.height(),
-              sceneRect2d.x(), sceneRect2d.y(),
-              sceneRect2d.width(), sceneRect2d.height())
+#        print("Scene rect1:", sceneRect2d.width()/sceneRect2d.height(),
+#              sceneRect2d.x(), sceneRect2d.y(),
+#              sceneRect2d.width(), sceneRect2d.height())
 
         # construct the top level widget
         widget = QWidget()
@@ -185,10 +181,10 @@ class MainWindow(QMainWindow):
         else:
             view_scale = view_ht/(oversize_fraction*sceneRect2d.height())
 
-        print(view_ratio, scene_ratio, view_scale)
+#        print(view_ratio, scene_ratio, view_scale)
         frame_before = self.gview2d.frameGeometry()
-        print("Frame before:", frame_before.x(), frame_before.y(),
-              frame_before.width(), frame_before.height())
+#        print("Frame before:", frame_before.x(), frame_before.y(),
+#              frame_before.width(), frame_before.height())
         self.gview2d.scale(view_scale, view_scale)
         layout.addWidget(self.gview2d)
 
@@ -227,8 +223,6 @@ class MainWindow(QMainWindow):
         return model
 
     def create_element_model(self, gscene):
-        clut = rgbt.RGBTable(filename='gui/red_blue64.csv',
-                             data_range=[10.0, 100.])
         ele_model = ele.ElementModel()
         ele_model.elements_from_sequence(self.seq_model)
         pen = QPen()
@@ -240,11 +234,7 @@ class MainWindow(QMainWindow):
                 polygon.append(QPointF(p[0], p[1]))
             gpoly = QGraphicsPolygonItem()
             gpoly.setPolygon(polygon)
-            # set element color based on V-number
-            gc = float(e.medium.glass_code())
-            vnbr = round(100.0*(gc - int(gc)), 3)
-            ergb = clut.get_color(vnbr)
-            gpoly.setBrush(QColor(*ergb))
+            gpoly.setBrush(QColor(*e.render_color))
             gpoly.setPen(pen)
 
             t = e.tfrm[1]
@@ -255,7 +245,8 @@ class MainWindow(QMainWindow):
         tfrms = self.seq_model.compute_global_coords(start_surf)
         rayset = self.seq_model.trace_boundary_rays()
 
-        start_offset = 0.05*gscene.sceneRect().width()
+        img_dist = abs(self.seq_model.global_spec.parax_data[2].img_dist)
+        start_offset = 0.05*(gscene.sceneRect().width() + img_dist)
         if abs(tfrms[0][1][2]) > start_offset:
             tfrms[0] = self.seq_model.shift_start_of_rayset(rayset,
                                                             start_offset)

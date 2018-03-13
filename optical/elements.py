@@ -6,8 +6,13 @@ Created on Sun Jan 28 16:27:01 2018
 @author: Mike
 """
 
+import util.rgbtable as rgbt
+
 
 class Element():
+    clut = rgbt.RGBTable(filename='util/red_blue64.csv',
+                         data_range=[10.0, 100.])
+
     def __init__(self, tfrm, s1, g, s2, sd):
         self.tfrm = tfrm
         self.s1 = s1
@@ -17,10 +22,40 @@ class Element():
         self.sd = sd
         self.flat1 = None
         self.flat2 = None
+        try:
+            gc = float(self.medium.glass_code())
+        except AttributeError:
+            self.render_color = (255, 255, 255)  # white
+        else:
+            # set element color based on V-number
+            vnbr = round(100.0*(gc - int(gc)), 3)
+            self.render_color = Element.clut.get_color(vnbr)
 
     def shape(self):
         poly = self.s1.full_profile(self.sd, self.flat1)
         poly2 = self.s2.full_profile(self.sd, self.flat2, -1)
+        for p in poly2:
+            p[0] += self.thi
+        poly += poly2
+        poly.append(poly[0])
+        return poly
+
+
+class Mirror():
+    def __init__(self, tfrm, s, sd, thi=None):
+        self.render_color = (192, 192, 192)
+        self.tfrm = tfrm
+        self.s = s
+        self.sd = sd
+        self.flat = None
+        if thi is None:
+            self.thi = 0.05*self.sd
+        else:
+            self.thi = thi
+
+    def shape(self):
+        poly = self.s.full_profile(self.sd, self.flat)
+        poly2 = self.s.full_profile(self.sd, self.flat, -1)
         for p in poly2:
             p[0] += self.thi
         poly += poly2
@@ -45,7 +80,7 @@ class ElementModel:
                 if s2.refract_mode is 'REFL':
                     tfrm = tfrms[i+1]
                     sd = s2.surface_od()
-                    self.elements.append(Element(tfrm, None, g, s2, sd))
+                    self.elements.append(Mirror(tfrm, s2, sd))
             else:
                 tfrm = tfrms[i]
                 s1 = seq_model.surfs[i]

@@ -28,6 +28,11 @@ class Surface:
         else:
             return "Surface(%r)" % (self.profile)
 
+    def update(self):
+        self.profile.update()
+        if self.decenter is not None:
+            self.decenter.update()
+
     def full_profile(self, sd, flat_id=None, dir=1, steps=6):
         if flat_id is None:
             return self.profile.profile(sd, dir, steps)

@@ -1,4 +1,5 @@
 import itertools
+import logging
 from . import globalspec
 from . import surface as srf
 from . import profiles as pr
@@ -7,9 +8,20 @@ from . import medium as m
 from . import raytrace as rt
 from . import transform as trns
 from glass import glassfactory as gfact
+from glass import glasserror as ge
 import numpy as np
 import transforms3d as t3d
 from math import sqrt
+
+
+def isanumber(a):
+    try:
+        float(a)
+        bool_a = True
+    except ValueError:
+        bool_a = False
+
+    return bool_a
 
 
 class SequentialModel:
@@ -66,6 +78,8 @@ class SequentialModel:
         self.insert(*self.create_surface_and_gap(surf))
 
     def update_model(self):
+        for s in self.surfs:
+            s.update()
         self.global_spec.update_model(self)
         self.set_clear_apertures()
 
@@ -96,14 +110,21 @@ class SequentialModel:
             elif dlist[2].upper() == 'REFL':
                 s.refract_mode = 'REFL'
                 g.medium = self.gaps[self.cur_surface-1].medium
-            elif dlist[2].isnumeric():
-                n, v = m.glass_decode(dlist[2])
+            elif isanumber(dlist[2]):
+                n, v = m.glass_decode(float(dlist[2]))
                 g.medium = m.Glass(n, v, '')
             else:
                 name, cat = dlist[2].split('_')
                 if cat.upper() == 'SCHOTT' and name[:1].upper() == 'N':
                     name = name[:1]+'-'+name[1:]
-                g.medium = gfact.create_glass(cat, name)
+                try:
+                    g.medium = gfact.create_glass(cat, name)
+                except ge.GlassNotFoundError as gerr:
+                    logging.info('%s glass data type %s not found',
+                                 gerr.catalog,
+                                 gerr.name)
+                    logging.info('Replacing material with air.')
+                    g.medium = m.Air()
         else:
             # at image surface, apply defocus to previous thickness
             self.gaps[idx-1].thi += dlist[1]
