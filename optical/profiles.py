@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
+# Copyright © 2017 Michael J. Hayford
+""" Module for different surface profile shapes
+
 Created on Tue Aug  1 13:18:57 2017
 
-@author: Mike
+@author: Michael J. Hayford
 """
 
 import numpy as np
@@ -55,6 +57,7 @@ class SurfaceProfile:
 
 
 class Spherical(SurfaceProfile):
+    """ Spherical surface profile parameterized by curvature. """
     def __init__(self, c=0.0):
         self.type = 'Sphere'
         self.cv = c
@@ -116,6 +119,15 @@ class Spherical(SurfaceProfile):
 
 
 class Conic(SurfaceProfile):
+    """ Conic surface profile parameterized by curvature and conic constant.
+
+    Conics produced for conic constant values:
+        cc > 0.0: oblate spheroid
+        cc = 0.0: sphere
+        cc < 0.0 and > -1.0: ellipsoid
+        cc = -1.0: paraboloid
+        cc < -1.0: hyperboloid
+    """
     def __init__(self, c=0.0):
         self.type = 'Conic'
         self.cv = c
@@ -169,6 +181,7 @@ class Conic(SurfaceProfile):
 
 
 class EvenPolynomial(SurfaceProfile):
+    """ Even Polynomial asphere up to 20th order, on base conic. """
     def __init__(self, c=0.0):
         self.type = 'EvenPolynomial'
         self.cv = c

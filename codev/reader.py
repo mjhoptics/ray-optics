@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# Copyright © 2017 Michael J. Hayford
+""" Support for reading CODE V .seq files
 
+@author: Michael J. Hayford
+"""
 
 import re
 

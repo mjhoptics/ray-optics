@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Useful transforms for processing sequential models
+# Copyright © 2018 Michael J. Hayford
+""" Useful transforms for processing sequential models
 
 Created on Fri Feb  9 10:09:58 2018
 
-@author: Mike Hayford
+@author: Michael J. Hayford
 """
 
 import numpy as np

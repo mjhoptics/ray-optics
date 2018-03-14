@@ -1,9 +1,28 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
+# Copyright © 2017 Michael J. Hayford
+""" Module for optical surface related classes
+
+Surface:
+    Container of profile, extent, position and orientation information of the
+    surface
+DecenterData
+    Maintains data and actions to support 4 types of position and orientation
+    changes.
+        DEC: pos and orientation applied prior to surface
+        REV: pos and orientation applied following surface in reverse
+        DAR: pos and orientation applied prior to surface and then returned to
+             initial frame
+        BEN: used for fold mirrors, orientation apllied before and after
+             surface
+Aperture
+    Circular
+    Rectangular
+    Elliptical
+
 Created on Sat Sep 16 09:22:05 2017
 
-@author: Mike
+@author: Michael J. Hayford
 """
 
 
@@ -60,6 +79,15 @@ class Surface:
 
 
 class DecenterData():
+    """ Maintains data and actions to support 4 types of position and orientation
+    changes.
+        DEC: pos and orientation applied prior to surface
+        REV: pos and orientation applied following surface in reverse
+        DAR: pos and orientation applied prior to surface and then returned to
+             initial frame
+        BEN: used for fold mirrors, orientation applied before and after
+             surface
+    """
     def __init__(self):
         self.type = 'DEC'
         # x, y, z vertex decenter

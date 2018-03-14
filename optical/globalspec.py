@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
+# Copyright © 2018 Michael J. Hayford
+""" Container class for optical usage information
+
 Created on Thu Jan 25 11:01:04 2018
 
-@author: Mike
+@author: Michael J. Hayford
 """
 
 import math
@@ -15,6 +17,14 @@ from . import raytrace as rt
 
 
 class GlobalData:
+    """ Container class for optical usage information
+
+    Contains optical usage information to specify the aperture, field of view
+    and spectrum. It also supports model ray tracing in terms of relative
+    aperture and field.
+
+    It maintains a repository of paraxial data.
+    """
     def __init__(self):
         self.spectral_region = WvlSpec()
         self.pupil = PupilSpec()

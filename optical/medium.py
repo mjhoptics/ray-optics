@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
+# Copyright © 2017 Michael J. Hayford
+""" Module for simple optical media definitions
+
 Created on Fri Sep 15 17:06:17 2017
 
-@author: Mike
+@author: Michael J. Hayford
 """
 
 
@@ -16,6 +18,7 @@ def glass_decode(gc):
 
 
 class Medium:
+    """ Constant refractive index medium. """
     def __init__(self, nd, lbl):
         self.label = lbl
         self.n = nd
@@ -31,6 +34,7 @@ class Medium:
 
 
 class Air(Medium):
+    """ Optical definition for air (low fidelity definition) """
     def __init__(self):
         self.label = 'air'
         self.n = 1.0
@@ -40,6 +44,7 @@ class Air(Medium):
 
 
 class Glass(Medium):
+    """ Optical medium defined by a glass code, i.e. index - V number pair """
     def __init__(self, nd=1.5168, vd=64.17, mat='N-BK7'):
         self.label = mat
         if mat == 'N-BK7':

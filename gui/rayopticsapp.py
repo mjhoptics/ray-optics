@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
+# Copyright © 2018 Michael J. Hayford
+""" Ray Optics GUI Application
+
+Relies on PyQt5
+
 Created on Mon Feb 12 09:24:01 2018
 
-@author: Mike
+@author: Michael J. Hayford
 """
 
 import sys
@@ -63,6 +67,16 @@ class MainWindow(QMainWindow):
         wnd.triggered[QAction].connect(self.window_action)
         self.setWindowTitle("Ray Optics")
         self.show()
+#        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
+#                       "codev/test/asp46.seq")
+#        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
+#                       "codev/test/paraboloid.seq")
+#        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
+#                       "codev/test/schmidt.seq")
+#        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
+#                       "codev/test/schmidt_sph.seq")
+        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
+                       "codev/test/ag_dblgauss.seq")
 
     def file_action(self, q):
         if q.text() == "New":

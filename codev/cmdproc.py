@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
+# Copyright © 2018 Michael J. Hayford
+""" Functions to read a CODE V .seq file and populate a sequential model
+
 Created on Tue Jan 16 10:14:12 2018
 
-@author: Mike
+@author: Michael J. Hayford
 """
 import logging
 

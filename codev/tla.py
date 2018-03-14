@@ -1,15 +1,23 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# Copyright © 2018 Michael J. Hayford
+""" Support for CODE V TLAs
+
+@author: Michael J. Hayford
+"""
 import csv
 import os
 
 
 class MapTLA:
+    """ Create and maintain a dictionary of CODE V 3 letter commands """
     _d = {}
 
     def __init__(self):
         TLA, CmdFct, IndxQuals, DataType, Quals = range(5)
-        if len(self._d) == 0:
-            print('initialize dictionary')
+        if len(MapTLA._d) == 0:
             """
+            print('initialize dictionary')
             cwd = os.getcwd()
             print(cwd)
             os.chdir(cwd+"/codev")
@@ -21,10 +29,10 @@ class MapTLA:
                     if row[TLA] is not '':
                         if row[Quals] is not '':
                             row[Quals] = row[Quals].split(',')
-                        self._d[row[TLA]] = row[CmdFct:]
+                        MapTLA._d[row[TLA]] = row[CmdFct:]
 
     def find(self, tla):
         try:
-            return self._d[tla]
+            return MapTLA._d[tla]
         except KeyError:
             return None

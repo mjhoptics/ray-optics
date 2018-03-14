@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
+# Copyright © 2018 Michael J. Hayford
+""" Functions to support ray tracing a sequential optical model
+
 Created on Thu Jan 25 11:01:04 2018
 
-@author: Mike
+@author: Michael J. Hayford
 """
 
 import numpy as np

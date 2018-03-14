@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
+# Copyright © 2018 Michael J. Hayford
+""" Module for element modeling
+
 Created on Sun Jan 28 16:27:01 2018
 
-@author: Mike
+@author: Michael J. Hayford
 """
 
 import util.rgbtable as rgbt

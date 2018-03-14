@@ -1,3 +1,11 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# Copyright © 2018 Michael J. Hayford
+""" Manager class for a sequential optical model
+
+@author: Michael J. Hayford
+"""
+
 import itertools
 import logging
 from . import globalspec
@@ -25,6 +33,28 @@ def isanumber(a):
 
 
 class SequentialModel:
+    """ Manager class for a sequential optical model
+
+    A sequential optical model is a sequence of surfaces and gaps. It includes
+    optical usage information to specify the aperture, field of view and
+    spectrum.
+
+    The sequential model has this structure:
+        SObj   S1    S2    S3 ... Si-1      SImg
+           \  /  \  /  \  /           \    /
+           GObj   G1    G2             Gi-1
+    where:
+        S is a Surface instance
+        G is a Gap instance
+
+    There are N surfaces and N-1 gaps. The initial configuration has an object
+    and image surface and an object gap.
+
+    The Surface class maintains the profile and extent of the interface. The
+    Gap class maintains a simple separation (z translation) and the medium
+    filling the gap. More complex coordinate transformations are handled
+    through the Surface.
+    """
 
     def __init__(self):
         self.radius_mode = False

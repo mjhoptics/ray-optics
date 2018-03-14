@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
+# Copyright © 2018 Michael J. Hayford
+""" Functions to support paraxial ray tracing a sequential optical model
+
 Created on Tue Feb 13 10:48:19 2018
 
-@author: Mike
+@author: Michael J. Hayford
 """
 import itertools
 import math
