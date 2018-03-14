@@ -115,12 +115,12 @@ def paraxial_trace(path, start, start_yu, start_yu_bar, wl):
     return p_ray, p_ray_bar
 
 
-def compute_first_order(ldm, stop, wl):
+def compute_first_order(seq_model, stop, wl):
     """ Returns paraxial axial and chief rays, plus first order data. """
-    path = itertools.zip_longest(ldm.surfs, ldm.gaps)
+    path = itertools.zip_longest(seq_model.surfs, seq_model.gaps)
     p_ray, q_ray = paraxial_trace(path, 1, [1., 0.], [0., 1.], wl)
 
-    n_k = ldm.gaps[-1].medium.rindex(wl)
+    n_k = seq_model.gaps[-1].medium.rindex(wl)
     ak1 = p_ray[-1][ht]
     bk1 = q_ray[-1][ht]
     ck1 = n_k*p_ray[-1][slp]
@@ -129,7 +129,7 @@ def compute_first_order(ldm, stop, wl):
 #    print(p_ray[-2][ht], q_ray[-2][ht], n_k*p_ray[-2][slp], n_k*q_ray[-2][slp])
 #    print(ak1, bk1, ck1, dk1)
 
-    n_s = ldm.gaps[stop].medium.rindex(wl)
+    n_s = seq_model.gaps[stop].medium.rindex(wl)
     as1 = p_ray[stop][ht]
     bs1 = q_ray[stop][ht]
     cs1 = n_s*p_ray[stop][slp]
@@ -138,16 +138,16 @@ def compute_first_order(ldm, stop, wl):
     # find entrance pupil location w.r.t. first surface
     ybar1 = -bs1
     ubar1 = as1
-    n_0 = ldm.gaps[0].medium.rindex(wl)
+    n_0 = seq_model.gaps[0].medium.rindex(wl)
     enp_dist = -ybar1/(n_0*ubar1)
 
-    thi0 = ldm.gaps[0].thi
+    thi0 = seq_model.gaps[0].thi
 
     red = dk1 + thi0*ck1
     obj2enp_dist = thi0 + enp_dist
 
     yu = [0., 1.]
-    pupil = ldm.global_spec.pupil
+    pupil = seq_model.optical_spec.pupil
     if pupil.type == 'EPD':
         slp0 = 0.5*pupil.value/obj2enp_dist
     if pupil.type == 'NAO':
@@ -161,7 +161,7 @@ def compute_first_order(ldm, stop, wl):
     yu = [0., slp0]
 
     yu_bar = [1., 0.]
-    fov = ldm.global_spec.field_of_view
+    fov = seq_model.optical_spec.field_of_view
     max_fld, fn = fov.max_field()
     if fov.type == 'OBJ_ANG':
         ang = math.radians(max_fld)
@@ -175,16 +175,16 @@ def compute_first_order(ldm, stop, wl):
         slpbar0 = ybar0/obj2enp_dist
     yu_bar = [ybar0, slpbar0]
 
-    path = itertools.zip_longest(ldm.surfs, ldm.gaps)
+    path = itertools.zip_longest(seq_model.surfs, seq_model.gaps)
     ax_ray, pr_ray = paraxial_trace(path, 0, yu, yu_bar, wl)
 
-    n_1 = ldm.gaps[1].medium.rindex(wl)
+    n_1 = seq_model.gaps[1].medium.rindex(wl)
     opt_inv = n_1*(ax_ray[1][ht]*pr_ray[1][slp] - pr_ray[1][ht]*ax_ray[1][slp])
 
     fod = FirstOrderData()
     fod.opt_inv = opt_inv
-    fod.obj_dist = ldm.gaps[0].thi
-    fod.img_dist = ldm.gaps[-1].thi
+    fod.obj_dist = seq_model.gaps[0].thi
+    fod.img_dist = seq_model.gaps[-1].thi
     if ck1 == 0.0:
         fod.efl = 0.0
         fod.pp1 = 0.0

@@ -34,7 +34,7 @@ class PlotCanvas(FigureCanvas):
 
     def plot(self):
         num_plot = 1
-        num_flds = len(self.seq_model.global_spec.field_of_view.fields)
+        num_flds = len(self.seq_model.optical_spec.field_of_view.fields)
         for fi in reversed(range(num_flds)):
             for xy in reversed(range(2)):
                 fans_x, fans_y = self.seq_model.trace_fan(fi, xy)

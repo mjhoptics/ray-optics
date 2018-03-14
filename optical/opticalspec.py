@@ -16,7 +16,7 @@ from . import firstorder as fo
 from . import raytrace as rt
 
 
-class GlobalData:
+class OpticalSpecs:
     """ Container class for optical usage information
 
     Contains optical usage information to specify the aperture, field of view
@@ -29,13 +29,12 @@ class GlobalData:
         self.spectral_region = WvlSpec()
         self.pupil = PupilSpec()
         self.field_of_view = FieldSpec()
-        self.specs = SystemSpec()
         self.parax_data = None
 
-    def update_model(self, ldm):
-        stop = ldm.stop_surface
+    def update_model(self, seq_model):
+        stop = seq_model.stop_surface
         wl = self.spectral_region.central_wvl()
-        self.parax_data = fo.compute_first_order(ldm, stop, wl)
+        self.parax_data = fo.compute_first_order(seq_model, stop, wl)
 
     def trace(self, sm, pupil, fld, wl=None, eps=1.0e-12):
         if wl is None:
@@ -191,15 +190,3 @@ class Field:
             if self.vuy != 0.0:
                 pupil[1] *= (1.0 - self.vuy)
         return pupil
-
-
-class SystemSpec:
-    dims = ('M', 'C', 'I')
-
-    def __init__(self):
-        self.title = ''
-        self.initials = ''
-        self.dimensions = 'M'
-        self.aperture_override = ''
-        self.temperature = 20.0
-        self.pressure = 760.0

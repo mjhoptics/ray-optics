@@ -8,7 +8,7 @@
 
 import itertools
 import logging
-from . import globalspec
+from . import opticalspec
 from . import surface as srf
 from . import profiles as pr
 from . import gap
@@ -56,21 +56,19 @@ class SequentialModel:
     through the Surface.
     """
 
-    def __init__(self):
-        self.radius_mode = False
-        self.global_spec = globalspec.GlobalData()
+    def __init__(self, opt_model):
+        self.parent = opt_model
         self.surfs = []
         self.gaps = []
         self.stop_surface = 1
         self.cur_surface = 0
+        self.optical_spec = opticalspec.OpticalSpecs()
         self.surfs.append(srf.Surface('Obj'))
         self.surfs.append(srf.Surface('Img'))
         self.gaps.append(gap.Gap())
 
     def reset(self):
-        rdm = self.radius_mode
         self.__init__()
-        self.radius_mode = rdm
 
     def get_num_surfaces(self):
         return len(self.surfs)
@@ -110,7 +108,7 @@ class SequentialModel:
     def update_model(self):
         for s in self.surfs:
             s.update()
-        self.global_spec.update_model(self)
+        self.optical_spec.update_model(self)
         self.set_clear_apertures()
 
     def insert_surface_and_gap(self):
@@ -125,7 +123,7 @@ class SequentialModel:
         else:
             s, g = self.insert_surface_and_gap()
 
-        if self.radius_mode:
+        if self.parent.radius_mode:
             if dlist[0] != 0.0:
                 s.profile.cv = 1.0/dlist[0]
             else:
@@ -210,7 +208,7 @@ class SequentialModel:
     def list_surface_and_gap(self, i):
         s = self.surfs[i]
         cvr = s.profile.cv
-        if self.radius_mode:
+        if self.parent.radius_mode:
             if cvr != 0.0:
                 cvr = 1.0/cvr
         sd = s.surface_od()
@@ -244,20 +242,20 @@ class SequentialModel:
     def trace_boundary_rays(self):
         pupil_rays = [[0., 0.], [1., 0.], [-1., 0.], [0., 1.], [0., -1.]]
         rayset = []
-        fov = self.global_spec.field_of_view
+        fov = self.optical_spec.field_of_view
         for fi, f in enumerate(fov.fields):
             rim_rays = []
             for r in pupil_rays:
-                ray, op = self.global_spec.trace(self, r, fi)
+                ray, op = self.optical_spec.trace(self, r, fi)
                 rim_rays.append([ray, op])
             rayset.append(rim_rays)
         return rayset
 
     def trace_fan(self, fi, xy, num_rays=21):
         """ xy determines whether x (=0) or y (=1) fan """
-        chief_ray, _ = self.global_spec.trace(self, [0., 0.], fi)
+        chief_ray, _ = self.optical_spec.trace(self, [0., 0.], fi)
         central_coord = chief_ray[-1][0]
-        wvls = self.global_spec.spectral_region
+        wvls = self.optical_spec.spectral_region
         fans_x = []
         fans_y = []
         fan_start = np.array([0., 0.])
@@ -266,7 +264,7 @@ class SequentialModel:
         fan_stop[xy] = 1.0
         fan_def = [fan_start, fan_stop, num_rays]
         for wi, w in enumerate(wvls.wavelengths):
-            fan = self.global_spec.trace_fan(self, fan_def, fi, True, wi)
+            fan = self.optical_spec.trace_fan(self, fan_def, fi, True, wi)
             f_x = []
             f_y = []
             for p, r in fan:

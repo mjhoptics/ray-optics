@@ -22,6 +22,7 @@ from PyQt5.QtWidgets import (QApplication, QAction, QMainWindow, QMdiArea,
                              QGraphicsScene, QGraphicsPolygonItem)
 
 import codev.cmdproc as cvp
+import optical.opticalmodel as optm
 import optical.sequential as seq
 import optical.elements as ele
 import gui.plotcanvas as plotter
@@ -33,7 +34,7 @@ class MainWindow(QMainWindow):
 
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
-        self.seq_model = seq.SequentialModel()
+        self.opt_model = optm.OpticalModel()
         self.mdi = QMdiArea()
         self.setCentralWidget(self.mdi)
 
@@ -102,7 +103,7 @@ class MainWindow(QMainWindow):
     def open_file(self, file_name):
         self.cur_filename = file_name
         self.is_changed = True
-        cvp.read_lens(self.seq_model, file_name)
+        cvp.read_lens(self.opt_model, file_name)
         self.create_lens_table()
         self.create_2D_lens_view()
 
@@ -149,8 +150,9 @@ class MainWindow(QMainWindow):
 
         model = self.createSurfaceModel(self)
         tableView.setModel(model)
-        for s in range(len(self.seq_model.surfs)):
-            self.addSurface(model, self.seq_model.list_surface_and_gap(s))
+        seq_model = self.opt_model.seq_model
+        for s in range(len(seq_model.surfs)):
+            self.addSurface(model, seq_model.list_surface_and_gap(s))
 
         tableView.setMinimumWidth(tableView.horizontalHeader().length() +
                                   tableView.horizontalHeader().height())
@@ -222,7 +224,8 @@ class MainWindow(QMainWindow):
         orig_y = MainWindow.count*self.offset_y
         sub.setGeometry(orig_x, orig_y, view_width, view_ht)
 
-        pc = plotter.PlotCanvas(self, self.seq_model, width=5, height=4)
+        seq_model = self.opt_model.seq_model
+        pc = plotter.PlotCanvas(self, seq_model, width=5, height=4)
         layout.addWidget(pc)
 
         MainWindow.count += 1
@@ -237,8 +240,8 @@ class MainWindow(QMainWindow):
         return model
 
     def create_element_model(self, gscene):
-        ele_model = ele.ElementModel()
-        ele_model.elements_from_sequence(self.seq_model)
+        ele_model = self.opt_model.ele_model
+        ele_model.elements_from_sequence(self.opt_model.seq_model)
         pen = QPen()
         pen.setCosmetic(True)
         for e in ele_model.elements:
@@ -256,14 +259,14 @@ class MainWindow(QMainWindow):
             gscene.addItem(gpoly)
 
     def create_ray_model(self, gscene, start_surf=1):
-        tfrms = self.seq_model.compute_global_coords(start_surf)
-        rayset = self.seq_model.trace_boundary_rays()
+        seq_model = self.opt_model.seq_model
+        tfrms = seq_model.compute_global_coords(start_surf)
+        rayset = seq_model.trace_boundary_rays()
 
-        img_dist = abs(self.seq_model.global_spec.parax_data[2].img_dist)
+        img_dist = abs(seq_model.optical_spec.parax_data[2].img_dist)
         start_offset = 0.05*(gscene.sceneRect().width() + img_dist)
         if abs(tfrms[0][1][2]) > start_offset:
-            tfrms[0] = self.seq_model.shift_start_of_rayset(rayset,
-                                                            start_offset)
+            tfrms[0] = seq_model.shift_start_of_rayset(rayset, start_offset)
 
         pen = QPen()
         pen.setCosmetic(True)

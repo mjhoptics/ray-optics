@@ -67,7 +67,8 @@ class Mirror():
 
 class ElementModel:
 
-    def __init__(self):
+    def __init__(self, opt_model):
+        self.parent = opt_model
         self.elements = []
 
     def reset(self):
