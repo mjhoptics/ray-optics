@@ -20,7 +20,7 @@ import marginal_ray as f1r2
 
 class RayTraceTestCase(unittest.TestCase):
     def setUp(self):
-        self.ldm = seq.SequentialModel()
+        self.ldm = seq.SequentialModel(None)
         # lump defocus into back focal distance
         dblg.ag_dblgauss[-2][1] += dblg.ag_dblgauss[-1][1]
         dblg.ag_dblgauss[-1][1] = 0.
