@@ -121,7 +121,14 @@ def spec_data(seqm, tla, qlist, dlist):
     elif tla == "INI":
         optm.system_spec.initials = dlist[0]
     elif tla == "DIM":
-        optm.system_spec.dimensions = dlist[0]
+        dim = dlist[0].upper()
+        if dim == 'M':
+            dim = 'MM'
+        elif dim == 'C':
+            dim = 'CM'
+        elif dim == 'I':
+            dim == 'IN'
+        optm.system_spec.dimensions = dim
     elif tla == "CA":
         optm.system_spec.aperture_override = ''
     elif tla == "TEM":

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Copyright © 2018 Michael J. Hayford
-"""
+""" Top level model classes
+
 Created on Wed Mar 14 11:08:28 2018
 
 @author: Michael J. Hayford
@@ -12,12 +13,12 @@ from . import elements as ele
 
 
 class SystemSpec:
-    dims = ('M', 'C', 'I')
+    dims = ('M', 'CM', 'MM', 'IN', 'FT')
 
     def __init__(self):
         self.title = ''
         self.initials = ''
-        self.dimensions = 'M'
+        self.dimensions = 'MM'
         self.aperture_override = ''
         self.temperature = 20.0
         self.pressure = 760.0
