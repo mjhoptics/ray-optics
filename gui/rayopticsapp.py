@@ -26,6 +26,7 @@ import optical.opticalmodel as optm
 import optical.sequential as seq
 import optical.elements as ele
 import gui.plotcanvas as plotter
+import gui.pytablemodel as tbl
 
 
 class MainWindow(QMainWindow):
@@ -56,12 +57,13 @@ class MainWindow(QMainWindow):
         file.addAction("Save As...")
         file.triggered[QAction].connect(self.file_action)
         view = bar.addMenu("View")
-        view.addAction("Table")
+        view.addAction("Lens Table")
         view.addAction("Lens View")
         view.addSeparator()
         view.addAction("Ray Fans")
-        view.triggered[QAction].connect(self.view_action)
+        view.addAction("Ray Table")
         view.addSeparator()
+        view.triggered[QAction].connect(self.view_action)
         wnd = bar.addMenu("Window")
         wnd.addAction("Cascade")
         wnd.addAction("Tiled")
@@ -108,16 +110,38 @@ class MainWindow(QMainWindow):
         self.create_2D_lens_view()
 
     def view_action(self, q):
-        print("view triggered")
-
-        if q.text() == "Table":
-            self.create_lens_table()
+        if q.text() == "Lens Table":
+            seq_model = self.opt_model.seq_model
+            colEvalStr = ['.surfs[{}].profile.type', '.surfs[{}].profile.cv',
+                          '.surfs[{}].surface_od()', '.gaps[{}].thi',
+                          '.gaps[{}].medium.name()', '.surfs[{}].refract_mode']
+            rowHeaders = seq_model.surface_label_list()
+            colHeaders = ['type', 'cv', 'sd', 'thi', 'medium', 'mode']
+            colFormats = ['{:s}', '{:12.7g}', '{:12.5g}', '{:12.5g}',
+                          '{:s}', '{:s}']
+            model = tbl.PyTableModel(seq_model, colEvalStr, rowHeaders,
+                                     colHeaders, colFormats)
+            self.create_table_view(model, "Lens Table")
 
         if q.text() == "Lens View":
             self.create_2D_lens_view()
 
         if q.text() == "Ray Fans":
             self.create_ray_fan_view()
+
+        if q.text() == "Ray Table":
+            seq_model = self.opt_model.seq_model
+            r2f1, _ = seq_model.optical_spec.trace(seq_model, [0., 1.], 0)
+            colEvalStr = ['[{}][0][0]', '[{}][0][1]', '[{}][0][2]',
+                          '[{}][1][0]', '[{}][1][1]', '[{}][1][2]',
+                          '[{}][2]']
+            rowHeaders = seq_model.surface_label_list()
+            colHeaders = ['x', 'y', 'z', 'l', 'm', 'n', 'length']
+            colFormats = ['{:12.5g}', '{:12.5g}', '{:12.5g}', '{:9.6f}',
+                          '{:9.6f}', '{:9.6f}', '{:12.5g}']
+            model = tbl.PyTableModel(r2f1, colEvalStr, rowHeaders,
+                                     colHeaders, colFormats)
+            self.create_table_view(model, "Ray Table")
 
     def window_action(self, q):
         print("window triggered")
@@ -228,6 +252,35 @@ class MainWindow(QMainWindow):
         pc = plotter.PlotCanvas(self, seq_model, width=5, height=4)
         layout.addWidget(pc)
 
+        MainWindow.count += 1
+        sub.show()
+
+    def create_table_view(self, table_model, table_title):
+        # construct the top level widget
+        widget = QWidget()
+        # construct the top level layout
+        layout = QVBoxLayout(widget)
+
+        tableView = QTableView()
+        tableView.setAlternatingRowColors(True)
+        # table selection change
+#        self.tableView.doubleClicked.connect(self.on_click)
+
+        # Add table to box layout
+        layout.addWidget(tableView)
+
+        # set the layout on the widget
+        widget.setLayout(layout)
+
+        sub = self.mdi.addSubWindow(widget)
+        sub.setWindowTitle(table_title)
+
+        tableView.setModel(table_model)
+
+        tableView.setMinimumWidth(tableView.horizontalHeader().length() +
+                                  tableView.horizontalHeader().height())
+#                                  The following line should work but returns 0
+#                                  tableView.verticalHeader().width())
         MainWindow.count += 1
         sub.show()
 

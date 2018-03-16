@@ -189,6 +189,16 @@ class SequentialModel:
         g = gap.Gap(surf[1], mat)
         return s, g
 
+    def surface_label_list(self):
+        """ list of surface labels or surface number, if no label """
+        labels = []
+        for i, s in enumerate(self.surfs):
+            if len(s.label) == 0:
+                labels.append(str(i))
+            else:
+                labels.append(s.label)
+        return labels
+
     def list_model(self):
         for i, sg in enumerate(itertools.zip_longest(self.surfs, self.gaps)):
             if sg[1]:
