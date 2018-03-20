@@ -20,6 +20,7 @@ from PyQt5.QtWidgets import (QApplication, QAction, QMainWindow, QMdiArea,
                              QMdiSubWindow, QTextEdit, QFileDialog, QTableView,
                              QVBoxLayout, QWidget, QGraphicsView,
                              QGraphicsScene, QGraphicsPolygonItem)
+from PyQt5.QtCore import pyqtSlot
 
 import codev.cmdproc as cvp
 import optical.opticalmodel as optm
@@ -120,7 +121,7 @@ class MainWindow(QMainWindow):
             colFormats = ['{:s}', '{:12.7g}', '{:12.5g}', '{:12.5g}',
                           '{:s}', '{:s}']
             model = tbl.PyTableModel(seq_model, colEvalStr, rowHeaders,
-                                     colHeaders, colFormats)
+                                     colHeaders, colFormats, True)
             self.create_table_view(model, "Lens Table")
 
         if q.text() == "Lens View":
@@ -140,7 +141,7 @@ class MainWindow(QMainWindow):
             colFormats = ['{:12.5g}', '{:12.5g}', '{:12.5g}', '{:9.6f}',
                           '{:9.6f}', '{:9.6f}', '{:12.5g}']
             model = tbl.PyTableModel(r2f1, colEvalStr, rowHeaders,
-                                     colHeaders, colFormats)
+                                     colHeaders, colFormats, False)
             self.create_table_view(model, "Ray Table")
 
     def window_action(self, q):
@@ -263,8 +264,6 @@ class MainWindow(QMainWindow):
 
         tableView = QTableView()
         tableView.setAlternatingRowColors(True)
-        # table selection change
-#        self.tableView.doubleClicked.connect(self.on_click)
 
         # Add table to box layout
         layout.addWidget(tableView)
@@ -281,8 +280,17 @@ class MainWindow(QMainWindow):
                                   tableView.horizontalHeader().height())
 #                                  The following line should work but returns 0
 #                                  tableView.verticalHeader().width())
+
+        # table data updated successfully
+        table_model.update.connect(self.on_data_changed)
+
         MainWindow.count += 1
         sub.show()
+
+    @pyqtSlot(object, int)
+    def on_data_changed(self, rootObj, index):
+        print("on_data_changed - index:", index)
+        self.opt_model.update_model()
 
     def createSurfaceModel(self, parent):
         model = QStandardItemModel(0, 4, parent)

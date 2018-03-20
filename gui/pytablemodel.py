@@ -9,12 +9,16 @@ Created on Wed Mar 14 21:59:43 2018
 """
 
 from PyQt5.QtCore import Qt, QAbstractTableModel
+from PyQt5.QtCore import pyqtSignal
 
 
 class PyTableModel(QAbstractTableModel):
+
+    update = pyqtSignal(object, int)
+
     """ Model interface for table view of list structures """
     def __init__(self, rootObj, colEvalStr, rowHeaders, colHeaders,
-                 colFormats):
+                 colFormats, is_editable=False):
         """ Table model supporting data content via python eval() fct
 
         Initialization arguments:
@@ -28,6 +32,7 @@ class PyTableModel(QAbstractTableModel):
             colHeaders: list of strings, length defines number of columns in
                         the table
             colFormats: format strings to be used to format data in each column
+            is_editable: if true, items are editable
         """
         super(PyTableModel, self).__init__()
         self.root = rootObj
@@ -35,6 +40,7 @@ class PyTableModel(QAbstractTableModel):
         self.rowHeaders = rowHeaders
         self.colHeaders = colHeaders
         self.colFormats = colFormats
+        self.is_editable = is_editable
 
     def rowCount(self, index):
         return len(self.rowHeaders)
@@ -51,8 +57,15 @@ class PyTableModel(QAbstractTableModel):
         else:
             return None
 
+    def flags(self, index):
+        base_flag = Qt.ItemIsEnabled | Qt.ItemIsSelectable
+        if self.is_editable:
+            return base_flag | Qt.ItemIsEditable
+        else:
+            return base_flag
+
     def data(self, index, role):
-        if role == Qt.DisplayRole:
+        if role == Qt.DisplayRole or role == Qt.EditRole:
             r = index.row()
             c = index.column()
             eval_str = ('self.root' + self.colEvalStr[c]).format(r)
@@ -64,3 +77,18 @@ class PyTableModel(QAbstractTableModel):
                 return ''
         else:
             return None
+
+    def setData(self, index, value, role):
+        if role == Qt.EditRole:
+            r = index.row()
+            c = index.column()
+            exec_str = ('self.root' + self.colEvalStr[c]).format(r)
+            exec_str = exec_str + '=' + value
+            try:
+                exec(exec_str)
+                self.update.emit(self.root, r)
+                return True
+            except IndexError:
+                return False
+        else:
+            return False
