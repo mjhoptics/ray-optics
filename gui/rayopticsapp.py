@@ -14,7 +14,7 @@ import sys
 import logging
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import (QColor, QStandardItemModel, QStandardItem)
+from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (QApplication, QAction, QMainWindow, QMdiArea,
                              QMdiSubWindow, QTextEdit, QFileDialog, QTableView,
                              QVBoxLayout, QWidget, QGraphicsView,
@@ -36,14 +36,15 @@ class MainWindow(QMainWindow):
 
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
-        self.opt_model = optm.OpticalModel()
+        self.opt_model = None
         self.mdi = QMdiArea()
         self.setCentralWidget(self.mdi)
 
+        self.wnd_dict = {}
+        self.mdi.subWindowActivated.connect(self.on_subwindow_activated)
+
         self.left = 100
         self.top = 50
-        self.offset_x = 100
-        self.offset_y = 25
         self.width = 1200
         self.height = 800
         self.setGeometry(self.left, self.top, self.width, self.height)
@@ -82,13 +83,30 @@ class MainWindow(QMainWindow):
         self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
                        "codev/test/ag_dblgauss.seq")
 
+    def add_subwindow(self, widget, model_info):
+            sub_wind = self.mdi.addSubWindow(widget)
+            self.wnd_dict[sub_wind] = model_info
+            MainWindow.count += 1
+            return sub_wind
+
+    def delete_subwindow(self, sub_wind):
+            self.mdi.removeSubWindow(sub_wind)
+            del self.wnd_dict[sub_wind]
+            MainWindow.count -= 1
+
+    def initial_window_offset(self):
+        offset_x = 50
+        offset_y = 25
+        orig_x = (MainWindow.count - 1)*offset_x
+        orig_y = (MainWindow.count - 1)*offset_y
+        return orig_x, orig_y
+
     def file_action(self, q):
         if q.text() == "New":
-            MainWindow.count = MainWindow.count+1
-            sub = QMdiSubWindow()
-            sub.setWidget(QTextEdit())
+            self.opt_model = optm.OpticalModel()
+            sub = self.add_subwindow(QTextEdit(),
+                                     (self.opt_model, ))
             sub.setWindowTitle("subwindow"+str(MainWindow.count))
-            self.mdi.addSubWindow(sub)
             sub.show()
 
         if q.text() == "Open...":
@@ -104,6 +122,7 @@ class MainWindow(QMainWindow):
                 self.open_file(fileName)
 
     def open_file(self, file_name):
+        self.opt_model = optm.OpticalModel()
         self.cur_filename = file_name
         self.is_changed = True
         cvp.read_lens(self.opt_model, file_name)
@@ -112,17 +131,7 @@ class MainWindow(QMainWindow):
 
     def view_action(self, q):
         if q.text() == "Lens Table":
-            seq_model = self.opt_model.seq_model
-            colEvalStr = ['.surfs[{}].profile.type', '.surfs[{}].profile.cv',
-                          '.surfs[{}].surface_od()', '.gaps[{}].thi',
-                          '.gaps[{}].medium.name()', '.surfs[{}].refract_mode']
-            rowHeaders = seq_model.surface_label_list()
-            colHeaders = ['type', 'cv', 'sd', 'thi', 'medium', 'mode']
-            colFormats = ['{:s}', '{:12.7g}', '{:12.5g}', '{:12.5g}',
-                          '{:s}', '{:s}']
-            model = tbl.PyTableModel(seq_model, colEvalStr, rowHeaders,
-                                     colHeaders, colFormats, True)
-            self.create_table_view(model, "Lens Table")
+            self.create_lens_table()
 
         if q.text() == "Lens View":
             self.create_2D_lens_view()
@@ -145,8 +154,6 @@ class MainWindow(QMainWindow):
             self.create_table_view(model, "Ray Table")
 
     def window_action(self, q):
-        print("window triggered")
-
         if q.text() == "Cascade":
             self.mdi.cascadeSubWindows()
 
@@ -154,47 +161,24 @@ class MainWindow(QMainWindow):
             self.mdi.tileSubWindows()
 
     def create_lens_table(self):
-        # construct the top level widget
-        widget = QWidget()
-        # construct the top level layout
-        layout = QVBoxLayout(widget)
-
-        tableView = QTableView()
-        tableView.setAlternatingRowColors(True)
-        # table selection change
-#        self.tableView.doubleClicked.connect(self.on_click)
-
-        # Add table to box layout
-        layout.addWidget(tableView)
-
-        # set the layout on the widget
-        widget.setLayout(layout)
-
-        sub = self.mdi.addSubWindow(widget)
-        sub.setWindowTitle("Surface Data Table")
-
-        model = self.createSurfaceModel(self)
-        tableView.setModel(model)
         seq_model = self.opt_model.seq_model
-        for s in range(len(seq_model.surfs)):
-            self.addSurface(model, seq_model.list_surface_and_gap(s))
-
-        tableView.setMinimumWidth(tableView.horizontalHeader().length() +
-                                  tableView.horizontalHeader().height())
-#                                  The following line should work but returns 0
-#                                  tableView.verticalHeader().width())
-        MainWindow.count += 1
-        sub.show()
+        colEvalStr = ['.surfs[{}].profile.type', '.surfs[{}].profile.cv',
+                      '.surfs[{}].surface_od()', '.gaps[{}].thi',
+                      '.gaps[{}].medium.name()', '.surfs[{}].refract_mode']
+        rowHeaders = seq_model.surface_label_list()
+        colHeaders = ['type', 'cv', 'sd', 'thi', 'medium', 'mode']
+        colFormats = ['{:s}', '{:12.7g}', '{:12.5g}', '{:12.5g}',
+                      '{:s}', '{:s}']
+        model = tbl.PyTableModel(seq_model, colEvalStr, rowHeaders,
+                                 colHeaders, colFormats, True)
+        self.create_table_view(model, "Surface Data Table")
 
     def create_2D_lens_view(self):
-        self.scene2d = QGraphicsScene()
-        self.create_element_model(self.scene2d)
-        self.create_ray_model(self.scene2d)
-        self.scene2d.setBackgroundBrush(QColor(237, 243, 254))  # light blue
-        sceneRect2d = self.scene2d.sceneRect()
-#        print("Scene rect1:", sceneRect2d.width()/sceneRect2d.height(),
-#              sceneRect2d.x(), sceneRect2d.y(),
-#              sceneRect2d.width(), sceneRect2d.height())
+        scene2d = QGraphicsScene()
+        self.create_element_model(scene2d)
+        self.create_ray_model(scene2d)
+        scene2d.setBackgroundBrush(QColor(237, 243, 254))  # light blue
+        sceneRect2d = scene2d.sceneRect()
 
         # construct the top level widget
         widget = QWidget()
@@ -204,17 +188,17 @@ class MainWindow(QMainWindow):
         # set the layout on the widget
         widget.setLayout(layout)
 
-        sub = self.mdi.addSubWindow(widget)
+        sub = self.add_subwindow(widget, (self.opt_model,
+                                          MainWindow.update_2D_lens_view,
+                                          scene2d))
         sub.setWindowTitle("2D Lens View")
-        view_width = 600
-        view_ht = 400
+        view_width = 660
+        view_ht = 440
         view_ratio = view_width/view_ht
-        orig_x = MainWindow.count*self.offset_x
-        orig_y = MainWindow.count*self.offset_y
+        orig_x, orig_y = self.initial_window_offset()
         sub.setGeometry(orig_x, orig_y, view_width, view_ht)
 
-        self.gview2d = QGraphicsView(self.scene2d)
-#        self.gview2d.setGeometry(100, 50, view_width, view_ht)
+        self.gview2d = QGraphicsView(scene2d)
         scene_ratio = sceneRect2d.width()/sceneRect2d.height()
         oversize_fraction = 1.2
         if scene_ratio > view_ratio:
@@ -222,89 +206,15 @@ class MainWindow(QMainWindow):
         else:
             view_scale = view_ht/(oversize_fraction*sceneRect2d.height())
 
-#        print(view_ratio, scene_ratio, view_scale)
-        frame_before = self.gview2d.frameGeometry()
-#        print("Frame before:", frame_before.x(), frame_before.y(),
-#              frame_before.width(), frame_before.height())
         self.gview2d.scale(view_scale, view_scale)
         layout.addWidget(self.gview2d)
 
-        MainWindow.count += 1
         sub.show()
 
-    def update_2D_lens_view(self):
-        for gi in self.scene2d.items():
+    def update_2D_lens_view(scene2d):
+        for gi in scene2d.items():
             gi.prepareGeometryChange()
             gi.update_shape()
-
-    def create_ray_fan_view(self):
-        # construct the top level widget
-        widget = QWidget()
-        # construct the top level layout
-        layout = QVBoxLayout(widget)
-
-        # set the layout on the widget
-        widget.setLayout(layout)
-
-        sub = self.mdi.addSubWindow(widget)
-        sub.setWindowTitle("Ray Fan View")
-        view_width = 600
-        view_ht = 600
-        orig_x = MainWindow.count*self.offset_x
-        orig_y = MainWindow.count*self.offset_y
-        sub.setGeometry(orig_x, orig_y, view_width, view_ht)
-
-        seq_model = self.opt_model.seq_model
-        pc = plotter.PlotCanvas(self, seq_model, width=5, height=4)
-        layout.addWidget(pc)
-
-        MainWindow.count += 1
-        sub.show()
-
-    def create_table_view(self, table_model, table_title):
-        # construct the top level widget
-        widget = QWidget()
-        # construct the top level layout
-        layout = QVBoxLayout(widget)
-
-        tableView = QTableView()
-        tableView.setAlternatingRowColors(True)
-
-        # Add table to box layout
-        layout.addWidget(tableView)
-
-        # set the layout on the widget
-        widget.setLayout(layout)
-
-        sub = self.mdi.addSubWindow(widget)
-        sub.setWindowTitle(table_title)
-
-        tableView.setModel(table_model)
-
-        tableView.setMinimumWidth(tableView.horizontalHeader().length() +
-                                  tableView.horizontalHeader().height())
-#                                  The following line should work but returns 0
-#                                  tableView.verticalHeader().width())
-
-        # table data updated successfully
-        table_model.update.connect(self.on_data_changed)
-
-        MainWindow.count += 1
-        sub.show()
-
-    @pyqtSlot(object, int)
-    def on_data_changed(self, rootObj, index):
-#        print("on_data_changed - index:", index)
-        self.opt_model.update_model()
-        self.update_2D_lens_view()
-
-    def createSurfaceModel(self, parent):
-        model = QStandardItemModel(0, 4, parent)
-        model.setHeaderData(self.CURVATURE, Qt.Horizontal, "Curvature")
-        model.setHeaderData(self.THICKNESS, Qt.Horizontal, "Thickness")
-        model.setHeaderData(self.MATERIAL, Qt.Horizontal, "Material")
-        model.setHeaderData(self.SEMIDIAM, Qt.Horizontal, "Semi-Diameter")
-        return model
 
     def create_element_model(self, gscene):
         ele_model = self.opt_model.ele_model
@@ -324,13 +234,95 @@ class MainWindow(QMainWindow):
             rb = gitm.RayBundle(seq_model, fi, start_offset)
             gscene.addItem(rb)
 
-    def addSurface(self, model, surf_gap):
-        itemList = []
-        for i in range(4):
-            item = QStandardItem()
-            item.setData(surf_gap[i], Qt.DisplayRole)
-            itemList.append(item)
-        model.appendRow(itemList)
+    def create_ray_fan_view(self):
+        seq_model = self.opt_model.seq_model
+        pc = plotter.PlotCanvas(self, seq_model, width=5, height=4)
+        # construct the top level widget
+        widget = QWidget()
+        # construct the top level layout
+        layout = QVBoxLayout(widget)
+
+        # set the layout on the widget
+        widget.setLayout(layout)
+
+        sub = self.add_subwindow(widget, (self.opt_model,
+                                          MainWindow.update_ray_fan_view, pc))
+        sub.setWindowTitle("Ray Fan View")
+        view_width = 600
+        view_ht = 600
+        orig_x, orig_y = self.initial_window_offset()
+        sub.setGeometry(orig_x, orig_y, view_width, view_ht)
+
+        layout.addWidget(pc)
+
+        sub.show()
+
+    def update_ray_fan_view(plotCanvas):
+        plotCanvas.plot()
+
+    def create_table_view(self, table_model, table_title):
+        # construct the top level widget
+        widget = QWidget()
+        # construct the top level layout
+        layout = QVBoxLayout(widget)
+
+        tableView = QTableView()
+        tableView.setAlternatingRowColors(True)
+
+        # Add table to box layout
+        layout.addWidget(tableView)
+
+        # set the layout on the widget
+        widget.setLayout(layout)
+
+        sub = self.add_subwindow(widget, (self.opt_model, ))
+        sub.setWindowTitle(table_title)
+
+        tableView.setModel(table_model)
+
+        tableView.setMinimumWidth(tableView.horizontalHeader().length() +
+                                  tableView.horizontalHeader().height())
+#                                  The following line should work but returns 0
+#                                  tableView.verticalHeader().width())
+
+        view_width = tableView.width()
+        view_ht = tableView.height()
+        orig_x, orig_y = self.initial_window_offset()
+        sub.setGeometry(orig_x, orig_y, view_width, view_ht)
+
+        # table data updated successfully
+        table_model.update.connect(self.on_data_changed)
+
+        sub.show()
+
+    @pyqtSlot(object, int)
+    def on_data_changed(self, rootObj, index):
+        self.opt_model.update_model()
+        for model_info in self.wnd_dict.values():
+            if model_info[0] == self.opt_model:
+                num_items = len(model_info)
+                if num_items == 2:
+                    model_info[1]()
+                elif num_items == 3:
+                    model_info[1](model_info[2])
+
+    @pyqtSlot(QMdiSubWindow)
+    def on_subwindow_activated(self, window):
+        if window is not None:
+            try:
+                model_info = self.wnd_dict[window]
+            except KeyError:
+                logging.debug('Window "%s" not in wnd_dict',
+                              window.windowTitle())
+            else:
+                opt_model = model_info[0]
+                logging.debug("on_subwindow_activated: %s, %s" %
+                              (opt_model.system_spec.title,
+                               window.windowTitle()))
+                if opt_model and opt_model != self.opt_model:
+                    self.opt_model = opt_model
+                    logging.debug("switch opt_model to",
+                                  opt_model.system_spec.title)
 
 
 if __name__ == '__main__':

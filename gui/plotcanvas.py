@@ -33,6 +33,7 @@ class PlotCanvas(FigureCanvas):
         self.plot()
 
     def plot(self):
+        self.fig.clf()
         num_plot = 1
         num_flds = len(self.seq_model.optical_spec.field_of_view.fields)
         for fi in reversed(range(num_flds)):
