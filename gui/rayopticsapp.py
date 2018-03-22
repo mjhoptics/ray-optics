@@ -13,13 +13,12 @@ Created on Mon Feb 12 09:24:01 2018
 import sys
 import logging
 
-from PyQt5.QtCore import Qt, QPointF
-from PyQt5.QtGui import (QPen, QColor, QStandardItemModel, QStandardItem,
-                         QPolygonF)
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import (QColor, QStandardItemModel, QStandardItem)
 from PyQt5.QtWidgets import (QApplication, QAction, QMainWindow, QMdiArea,
                              QMdiSubWindow, QTextEdit, QFileDialog, QTableView,
                              QVBoxLayout, QWidget, QGraphicsView,
-                             QGraphicsScene, QGraphicsPolygonItem)
+                             QGraphicsScene)
 from PyQt5.QtCore import pyqtSlot
 
 import codev.cmdproc as cvp
@@ -28,6 +27,7 @@ import optical.sequential as seq
 import optical.elements as ele
 import gui.plotcanvas as plotter
 import gui.pytablemodel as tbl
+import gui.graphicsitems as gitm
 
 
 class MainWindow(QMainWindow):
@@ -232,6 +232,11 @@ class MainWindow(QMainWindow):
         MainWindow.count += 1
         sub.show()
 
+    def update_2D_lens_view(self):
+        for gi in self.scene2d.items():
+            gi.prepareGeometryChange()
+            gi.update_shape()
+
     def create_ray_fan_view(self):
         # construct the top level widget
         widget = QWidget()
@@ -289,8 +294,9 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot(object, int)
     def on_data_changed(self, rootObj, index):
-        print("on_data_changed - index:", index)
+#        print("on_data_changed - index:", index)
         self.opt_model.update_model()
+        self.update_2D_lens_view()
 
     def createSurfaceModel(self, parent):
         model = QStandardItemModel(0, 4, parent)
@@ -303,59 +309,20 @@ class MainWindow(QMainWindow):
     def create_element_model(self, gscene):
         ele_model = self.opt_model.ele_model
         ele_model.elements_from_sequence(self.opt_model.seq_model)
-        pen = QPen()
-        pen.setCosmetic(True)
         for e in ele_model.elements:
-            poly = e.shape()
-            polygon = QPolygonF()
-            for p in poly:
-                polygon.append(QPointF(p[0], p[1]))
-            gpoly = QGraphicsPolygonItem()
-            gpoly.setPolygon(polygon)
-            gpoly.setBrush(QColor(*e.render_color))
-            gpoly.setPen(pen)
-
-            t = e.tfrm[1]
-            gpoly.setPos(QPointF(t[2], -t[1]))
-            gscene.addItem(gpoly)
+            ge = gitm.OpticalElement(e)
+            gscene.addItem(ge)
 
     def create_ray_model(self, gscene, start_surf=1):
         seq_model = self.opt_model.seq_model
-        tfrms = seq_model.compute_global_coords(start_surf)
-        rayset = seq_model.trace_boundary_rays()
 
         img_dist = abs(seq_model.optical_spec.parax_data[2].img_dist)
         start_offset = 0.05*(gscene.sceneRect().width() + img_dist)
-        if abs(tfrms[0][1][2]) > start_offset:
-            tfrms[0] = seq_model.shift_start_of_rayset(rayset, start_offset)
 
-        pen = QPen()
-        pen.setCosmetic(True)
-        for rays in rayset:
-            poly1 = []
-            for i, r in enumerate(rays[3][0][0:]):
-                rot, trns = tfrms[i]
-                p = rot.dot(r[0]) + trns
-#                print(i, r[0], rot, trns, p)
-                poly1.append(QPointF(p[2], -p[1]))
-
-            poly2 = []
-            for i, r in enumerate(rays[4][0][0:]):
-                rot, trns = tfrms[i]
-                p = rot.dot(r[0]) + trns
-#                print(i, r[0], rot, trns, p)
-                poly2.append(QPointF(p[2], -p[1]))
-
-            poly2.reverse()
-            poly1.extend(poly2)
-            polygon = QPolygonF()
-            for p in poly1:
-                polygon.append(p)
-            gpoly = QGraphicsPolygonItem()
-            gpoly.setPolygon(polygon)
-            gpoly.setBrush(QColor(254, 197, 254, 64))  # magenta, 25%
-            gpoly.setPen(pen)
-            gscene.addItem(gpoly)
+        fov = seq_model.optical_spec.field_of_view
+        for fi, f in enumerate(fov.fields):
+            rb = gitm.RayBundle(seq_model, fi, start_offset)
+            gscene.addItem(rb)
 
     def addSurface(self, model, surf_gap):
         itemList = []

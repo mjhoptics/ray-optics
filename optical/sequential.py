@@ -60,6 +60,7 @@ class SequentialModel:
         self.parent = opt_model
         self.surfs = []
         self.gaps = []
+        self.transforms = []
         self.stop_surface = 1
         self.cur_surface = 0
         self.optical_spec = opticalspec.OpticalSpecs()
@@ -108,6 +109,7 @@ class SequentialModel:
     def update_model(self):
         for s in self.surfs:
             s.update()
+        self.transforms = self.compute_global_coords()
         self.optical_spec.update_model(self)
         self.set_clear_apertures()
 
@@ -249,15 +251,19 @@ class SequentialModel:
                       self.surfs[i+1].profile,
                       gp)
 
-    def trace_boundary_rays(self):
+    def trace_boundary_rays_at_field(self, fi):
         pupil_rays = [[0., 0.], [1., 0.], [-1., 0.], [0., 1.], [0., -1.]]
+        rim_rays = []
+        for r in pupil_rays:
+            ray, op = self.optical_spec.trace(self, r, fi)
+            rim_rays.append([ray, op])
+        return rim_rays
+
+    def trace_boundary_rays(self):
         rayset = []
         fov = self.optical_spec.field_of_view
         for fi, f in enumerate(fov.fields):
-            rim_rays = []
-            for r in pupil_rays:
-                ray, op = self.optical_spec.trace(self, r, fi)
-                rim_rays.append([ray, op])
+            rim_rays = self.trace_boundary_rays_at_field(fi)
             rayset.append(rim_rays)
         return rayset
 
@@ -286,29 +292,55 @@ class SequentialModel:
         fans_y = np.array(fans_y).transpose()
         return fans_x, fans_y
 
-    def shift_start_of_rayset(self, rayset, start_offset):
-        """ start_offset is positive if to left of first surface """
+    def shift_start_of_ray_bundle(self, rayset, start_offset, r, t):
+        """ modify rayset so that rays begin "start_offset" from 1st surface
+
+        rayset: list of rays in a bundle, i.e. all for one field. rayset[0]
+                is assumed to be the chief ray
+        start_offset: z distance rays should start wrt first surface.
+                      positive if to left of first surface
+        r, t: transformation rotation and translation
+        """
+        for ri, ray in enumerate(rayset):
+            b4_pt = r.dot(ray[0][1][0]) + t
+            b4_dir = r.dot(ray[0][0][1])
+            if ri == 0:
+                # For the chief ray, use the input offset.
+                dst = -start_offset
+            else:
+                pt0 = rayset[0][0][0][0]
+                dir0 = rayset[0][0][0][1]
+                # Calculate distance along ray to plane perpendicular to
+                #  the chief ray.
+                dst = -(b4_pt - pt0).dot(dir0)/b4_dir.dot(dir0)
+            pt = b4_pt + dst*b4_dir
+            ray[0][0][0] = pt
+            ray[0][0][1] = b4_dir
+
+    def setup_shift_of_ray_bundle(self, start_offset):
+        """ compute transformation for rays "start_offset" from 1st surface
+
+        start_offset: z distance rays should start wrt first surface.
+                      positive if to left of first surface
+        return: transformation rotation and translation
+        """
         s1 = self.surfs[1]
         s0 = self.surfs[0]
         g0 = gap.Gap(start_offset, self.gaps[0].medium)
         r, t = trns.reverse_transform(s1, g0, s0)
-        for fi, f in enumerate(rayset):
-            for ri, ray in enumerate(f):
-                b4_pt = r.dot(ray[0][1][0]) + t
-                b4_dir = r.dot(ray[0][0][1])
-                if ri == 0:
-                    # For the chief ray, use the input offset.
-                    dst = -start_offset
-                else:
-                    pt0 = f[0][0][0][0]
-                    dir0 = f[0][0][0][1]
-                    # Calculate distance along ray to plane perpendicular to
-                    #  the chief ray.
-                    dst = -(b4_pt - pt0).dot(dir0)/b4_dir.dot(dir0)
-                pt = b4_pt + dst*b4_dir
-#                print("fld:", fi, "ray:", ri, dst, pt)
-                ray[0][0][0] = pt
-                ray[0][0][1] = b4_dir
+        return r, t
+
+    def shift_start_of_rayset(self, rayset, start_offset):
+        """ modify rayset so that rays begin "start_offset" from 1st surface
+
+        rayset: list of ray bundles, i.e. for a list of fields
+        start_offset: z distance rays should start wrt first surface.
+                      positive if to left of first surface
+        return: transformation rotation and translation
+        """
+        r, t = self.setup_shift_of_ray_bundle(start_offset)
+        for ray_bundle in rayset:
+            self.shift_start_of_ray_bundle(ray_bundle, start_offset, r, t)
         return r, t
 
     def set_clear_apertures(self):
