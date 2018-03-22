@@ -7,6 +7,7 @@ Created on Wed Mar 14 21:59:43 2018
 
 @author: Michael J. Hayford
 """
+import logging
 
 from PyQt5.QtCore import Qt, QAbstractTableModel
 from PyQt5.QtCore import pyqtSignal
@@ -89,6 +90,9 @@ class PyTableModel(QAbstractTableModel):
                 self.update.emit(self.root, r)
                 return True
             except IndexError:
+                return False
+            except SyntaxError:
+                logging.info('Syntax error: "%s"', value)
                 return False
         else:
             return False
