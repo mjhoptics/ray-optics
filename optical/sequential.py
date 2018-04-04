@@ -196,7 +196,10 @@ class SequentialModel:
         labels = []
         for i, s in enumerate(self.surfs):
             if len(s.label) == 0:
-                labels.append(str(i))
+                if i == self.stop_surface:
+                    labels.append('Stop')
+                else:
+                    labels.append(str(i))
             else:
                 labels.append(s.label)
         return labels
