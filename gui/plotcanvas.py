@@ -43,6 +43,8 @@ class PlotCanvas(FigureCanvas):
                 ax.plot(fans_x, fans_y)
                 ax.grid(True)
                 ax.set_xlim(-1., 1.)
+                ax.axvline(0, c='black', lw=1)
+                ax.axhline(0, c='black', lw=1)
                 num_plot += 1
 
 #        self.axes.set_title('Ray Fan Plot')
