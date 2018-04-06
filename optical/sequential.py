@@ -19,7 +19,9 @@ from glass import glassfactory as gfact
 from glass import glasserror as ge
 import numpy as np
 import transforms3d as t3d
-from math import sqrt
+from math import sqrt, copysign
+
+Surf, Gap = range(2)
 
 
 def isanumber(a):
@@ -204,13 +206,64 @@ class SequentialModel:
                 labels.append(s.label)
         return labels
 
+    def seq_model_to_paraxial_lens(self):
+        """ returns lists of power, reduced thickness, signed index and refract mode
+        """
+        wl = self.optical_spec.spectral_region.central_wvl()
+        n_before = self.gaps[0].medium.rindex(wl)
+        pwr = []
+        tau = []
+        indx = []
+        rmd = []
+        for sg in itertools.zip_longest(self.surfs, self.gaps):
+            if sg[Gap]:
+                n_after = copysign(sg[Gap].medium.rindex(wl), n_before)
+                rmode = sg[Surf].refract_mode
+                if rmode == 'REFL':
+                    n_after = -n_after
+
+                tau.append(sg[Gap].thi/n_after)
+                indx.append(n_after)
+                rmd.append(rmode)
+
+                cv = sg[Surf].profile.cv
+                pwr.append((n_after - n_before)*cv)
+
+                n_before = n_after
+            else:
+                tau.append(0.0)
+                indx.append(n_before)
+                rmd.append(rmode)
+                pwr.append(0.0)
+        return [pwr, tau, indx, rmd]
+
+    def paraxial_lens_to_seq_model(self, lens):
+        """ Applies a paraxial lens spec (power, reduced distance) to the model data
+
+        lens: list of power, reduced thickness, signed index and refract mode
+        """
+        pwr = lens[0]
+        tau = lens[1]
+        indx = lens[2]
+        n_before = indx[0]
+        for i, sg in enumerate(itertools.zip_longest(self.surfs, self.gaps)):
+            if sg[Gap]:
+                n_after = indx[i]
+                sg[Gap].thi = n_after*tau[i]
+
+                delta_n = n_after - n_before
+                if delta_n != 0.0:
+                    sg[Surf].profile.cv = pwr[i]/delta_n
+
+                n_before = n_after
+
     def list_model(self):
         for i, sg in enumerate(itertools.zip_longest(self.surfs, self.gaps)):
-            if sg[1]:
-                print(i, sg[0])
-                print('    ', sg[1])
+            if sg[Gap]:
+                print(i, sg[Surf])
+                print('    ', sg[Gap])
             else:
-                print(i, sg[0])
+                print(i, sg[Surf])
 
     def list_gaps(self):
         for i, gp in enumerate(self.gaps):
@@ -239,13 +292,13 @@ class SequentialModel:
 
     def list_decenters(self):
         for i, sg in enumerate(itertools.zip_longest(self.surfs, self.gaps)):
-            if sg[1]:
-                print(i, sg[1])
-                if sg[0].decenter is not None:
-                    print(' ', repr(sg[0].decenter))
+            if sg[Gap]:
+                print(i, sg[Gap])
+                if sg[Surf].decenter is not None:
+                    print(' ', repr(sg[Surf].decenter))
             else:
-                if sg[0].decenter is not None:
-                    print(i, repr(sg[0].decenter))
+                if sg[Surf].decenter is not None:
+                    print(i, repr(sg[Surf].decenter))
 
     def list_elements(self):
         for i, gp in enumerate(self.gaps):
@@ -384,8 +437,8 @@ class SequentialModel:
                 try:
                     before = next(path)
                     go -= 1
-                    r, t = trns.reverse_transform(before[0], after[1],
-                                                  after[0])
+                    r, t = trns.reverse_transform(before[Surf], after[Gap],
+                                                  after[Surf])
                     t = prev[0].dot(t) + prev[1]
                     r = prev[0].dot(r)
 #                    print(go, t,
@@ -405,7 +458,8 @@ class SequentialModel:
             try:
                 after = next(path)
                 go += 1
-                r, t = trns.forward_transform(before[0], before[1], after[0])
+                r, t = trns.forward_transform(before[Surf], before[Gap],
+                                              after[Surf])
                 t = prev[0].dot(t) + prev[1]
                 r = prev[0].dot(r)
 #                print(go, t,

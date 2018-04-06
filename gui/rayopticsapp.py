@@ -26,6 +26,7 @@ import optical.opticalmodel as optm
 import optical.sequential as seq
 import optical.elements as ele
 import gui.plotcanvas as plotter
+import gui.paraxdgncanvas as pdc
 import gui.pytablemodel as tbl
 import gui.graphicsitems as gitm
 
@@ -63,6 +64,8 @@ class MainWindow(QMainWindow):
         view.addAction("Lens View")
         view.addSeparator()
         view.addAction("Ray Fans")
+        view.addAction("Paraxial Design View")
+        view.addAction("Paraxial Ray Table")
         view.addAction("Ray Table")
         view.addSeparator()
         view.triggered[QAction].connect(self.view_action)
@@ -138,6 +141,21 @@ class MainWindow(QMainWindow):
 
         if q.text() == "Ray Fans":
             self.create_ray_fan_view()
+
+        if q.text() == "Paraxial Design View":
+            self.create_paraxial_design_view()
+
+        if q.text() == "Paraxial Ray Table":
+            parax_data = self.opt_model.seq_model.optical_spec.parax_data
+            colEvalStr = ['[0][{}][0]', '[0][{}][1]', '[0][{}][2]',
+                          '[1][{}][0]', '[1][{}][1]', '[1][{}][2]']
+            rowHeaders = self.opt_model.seq_model.surface_label_list()
+            colHeaders = ['y', 'u', 'i', 'y-bar', 'u-bar', 'i-bar']
+            colFormats = ['{:12.5g}', '{:9.6f}', '{:9.6f}', '{:12.5g}',
+                          '{:9.6f}', '{:9.6f}']
+            model = tbl.PyTableModel(parax_data, colEvalStr, rowHeaders,
+                                     colHeaders, colFormats, False)
+            self.create_table_view(model, "Paraxial Ray Table")
 
         if q.text() == "Ray Table":
             seq_model = self.opt_model.seq_model
@@ -233,6 +251,33 @@ class MainWindow(QMainWindow):
         for fi, f in enumerate(fov.fields):
             rb = gitm.RayBundle(seq_model, fi, start_offset)
             gscene.addItem(rb)
+
+    def create_paraxial_design_view(self):
+        seq_model = self.opt_model.seq_model
+        pc = pdc.ParaxialDesignCanvas(self, seq_model, width=5, height=4)
+        # construct the top level widget
+        widget = QWidget()
+        # construct the top level layout
+        layout = QVBoxLayout(widget)
+
+        # set the layout on the widget
+        widget.setLayout(layout)
+
+        sub = self.add_subwindow(widget,
+                                 (self.opt_model,
+                                  MainWindow.update_paraxial_design_view, pc))
+        sub.setWindowTitle("Paraxial Design View")
+        view_width = 500
+        view_ht = 500
+        orig_x, orig_y = self.initial_window_offset()
+        sub.setGeometry(orig_x, orig_y, view_width, view_ht)
+
+        layout.addWidget(pc)
+
+        sub.show()
+
+    def update_paraxial_design_view(plotCanvas):
+        plotCanvas.update_plot()
 
     def create_ray_fan_view(self):
         seq_model = self.opt_model.seq_model
