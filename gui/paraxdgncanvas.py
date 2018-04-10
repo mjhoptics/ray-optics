@@ -143,11 +143,14 @@ class ParaxialDesignCanvas(FigureCanvas):
 
         ax_ht = self.lens[pd.ax][pd.ht][1:]
         pr_ht = self.lens[pd.pr][pd.ht][1:]
-        self.line, = self.axes.plot(pr_ht, ax_ht, marker='s', picker=5)
-
+        self.line, = self.axes.plot(pr_ht, ax_ht, marker='s', picker=6)
+        self.axes.set_xlabel(r'$\overline{y}$')
+        self.axes.set_ylabel('y')
 #        ax_nu = self.lens[pd.ax][pd.slp][:-1]
 #        pr_nu = self.lens[pd.pr][pd.slp][:-1]
 #        self.line, = self.axes.plot(pr_nu, ax_nu, marker='s', picker=5)
+#        self.axes.set_xlabel(r'$\overline{\omega}$')
+#        self.axes.set_ylabel(r'$\omega$')
 
         self.eline = EditableLine(self.line)
         self.eline.connect()
