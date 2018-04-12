@@ -33,7 +33,6 @@ import gui.graphicsitems as gitm
 
 
 class MainWindow(QMainWindow):
-    CURVATURE, THICKNESS, MATERIAL, SEMIDIAM = range(4)
     count = 0
 
     def __init__(self, parent=None):
