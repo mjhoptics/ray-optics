@@ -17,8 +17,9 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (QApplication, QAction, QMainWindow, QMdiArea,
                              QMdiSubWindow, QTextEdit, QFileDialog, QTableView,
-                             QVBoxLayout, QWidget, QGraphicsView,
-                             QGraphicsScene)
+                             QHBoxLayout, QVBoxLayout, QWidget, QGraphicsView,
+                             QLineEdit, QGraphicsScene, QRadioButton,
+                             QGroupBox)
 from PyQt5.QtCore import pyqtSlot
 
 import codev.cmdproc as cvp
@@ -282,6 +283,7 @@ class MainWindow(QMainWindow):
     def create_ray_fan_view(self):
         seq_model = self.opt_model.seq_model
         pc = plotter.PlotCanvas(self, seq_model, width=5, height=4)
+        psp = self.create_plot_scale_panel(pc)
         # construct the top level widget
         widget = QWidget()
         # construct the top level layout
@@ -289,6 +291,8 @@ class MainWindow(QMainWindow):
 
         # set the layout on the widget
         widget.setLayout(layout)
+
+        layout.addWidget(psp)
 
         sub = self.add_subwindow(widget, (self.opt_model,
                                           MainWindow.update_ray_fan_view, pc))
@@ -302,7 +306,64 @@ class MainWindow(QMainWindow):
 
         sub.show()
 
+    def create_plot_scale_panel(self, pc):
+        groupBox = QGroupBox("Plot Scale", self)
+
+        user_scale_wdgt = QLineEdit()
+        user_scale_wdgt.setReadOnly(True)
+        cntxt = pc, user_scale_wdgt
+        user_scale_wdgt.editingFinished.connect(lambda:
+                                  self.on_plot_scale_changed(cntxt))
+        fit_all_btn = QRadioButton("Fit All")
+        fit_all_btn.setChecked(True)
+        fit_all_btn.toggled.connect(lambda:
+                                    self.on_plot_scale_toggled(cntxt,
+                                                               plotter.Fit_All))
+        fit_all_same_btn = QRadioButton("Fit All Same")
+        fit_all_same_btn.setChecked(False)
+        fit_all_same_btn.toggled.connect(lambda:
+                                  self.on_plot_scale_toggled(cntxt,
+                                                             plotter.Fit_All_Same))
+        user_scale_btn = QRadioButton("User Scale")
+        user_scale_btn.setChecked(False)
+        user_scale_btn.toggled.connect(lambda:
+                                  self.on_plot_scale_toggled(cntxt,
+                                                             plotter.User_Scale))
+        box = QHBoxLayout()
+        box.addWidget(fit_all_btn)
+        box.addWidget(fit_all_same_btn)
+        box.addWidget(user_scale_btn)
+        box.addWidget(user_scale_wdgt)
+
+        groupBox.setLayout(box)
+
+        return groupBox
+
+    def on_plot_scale_toggled(self, cntxt, scale_type):
+        plotCanvas, scale_wdgt = cntxt
+        plotCanvas.scale_type = scale_type
+        if scale_type == plotter.User_Scale:
+            scale_wdgt.setReadOnly(False)
+            scale_wdgt.setText('{:7.4f}'.format(plotCanvas.user_scale_value))
+        else:
+            scale_wdgt.setReadOnly(True)
+
+        plotCanvas.plot()
+
+    def on_plot_scale_changed(self, cntxt):
+        plotCanvas, scale_wdgt = cntxt
+        eval_str = scale_wdgt.text()
+        try:
+            val = eval(eval_str)
+            plotCanvas.user_scale_value = val
+            scale_wdgt.setText('{:7.4f}'.format(val))
+        except IndexError:
+            return ''
+
+        plotCanvas.plot()
+
     def update_ray_fan_view(plotCanvas):
+        plotCanvas.update_data()
         plotCanvas.plot()
 
     def create_table_view(self, table_model, table_title):

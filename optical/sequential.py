@@ -335,18 +335,22 @@ class SequentialModel:
         fan_start[xy] = -1.0
         fan_stop[xy] = 1.0
         fan_def = [fan_start, fan_stop, num_rays]
+        max_y_val = 0.0
         for wi, w in enumerate(wvls.wavelengths):
             fan = self.optical_spec.trace_fan(self, fan_def, fi, True, wi)
             f_x = []
             f_y = []
             for p, r in fan:
                 f_x.append(p[xy])
-                f_y.append(r[xy]-central_coord[xy])
+                y_val = r[xy] - central_coord[xy]
+                f_y.append(y_val)
+                if abs(y_val) > max_y_val:
+                    max_y_val = abs(y_val)
             fans_x.append(f_x)
             fans_y.append(f_y)
         fans_x = np.array(fans_x).transpose()
         fans_y = np.array(fans_y).transpose()
-        return fans_x, fans_y
+        return fans_x, fans_y, max_y_val
 
     def shift_start_of_ray_bundle(self, rayset, start_offset, r, t):
         """ modify rayset so that rays begin "start_offset" from 1st surface
