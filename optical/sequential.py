@@ -348,8 +348,8 @@ class SequentialModel:
                     max_y_val = abs(y_val)
             fans_x.append(f_x)
             fans_y.append(f_y)
-        fans_x = np.array(fans_x).transpose()
-        fans_y = np.array(fans_y).transpose()
+        fans_x = np.array(fans_x)
+        fans_y = np.array(fans_y)
         return fans_x, fans_y, max_y_val
 
     def shift_start_of_ray_bundle(self, rayset, start_offset, r, t):

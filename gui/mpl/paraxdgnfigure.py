@@ -7,11 +7,6 @@ Created on Mon Apr  2 19:20:27 2018
 @author: Michael J. Hayford
 """
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QSizePolicy
-
-from matplotlib.backends.backend_qt5agg \
-     import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
 import optical.paraxialdesign as pd
@@ -73,9 +68,11 @@ class EditableLine:
         contains, attrd = self.line.contains(event)
         if not contains:
             return
-#        print('event contains', self.line.xy)
-        x0, y0 = self.line.xy
-        self.press = x0, y0, event.xdata, event.ydata
+
+        hit_list = attrd['ind']
+        xd, yd, mkr = self.process_hit_location(event, hit_list)
+
+        self.press = xd, yd, event.xdata, event.ydata
 
     def on_motion(self, event):
         'on motion we will highlight a vertex of edge if the mouse is over it '
@@ -108,56 +105,41 @@ class EditableLine:
         self.line.figure.canvas.mpl_disconnect(self.cidmotion)
 
 
-class ParaxialDesignCanvas(FigureCanvas):
+class ParaxialDesignFigure(Figure):
 
-    def __init__(self, parent, seq_model, width=5, height=4, dpi=100):
+    def __init__(self, parent, seq_model, **kwargs):
         self.seq_model = seq_model
+
+        Figure.__init__(self, **kwargs)
+
         self.lens = pd.build_lens(self.seq_model)
 
-        self.fig = Figure(figsize=(width, height), dpi=dpi)
-
-        FigureCanvas.__init__(self, self.fig)
-        self.setParent(parent)
-
-        # Next 2 lines are needed so that key press events are correctly
-        #  passed with mouse events
-        # https://github.com/matplotlib/matplotlib/issues/707/
-        self.setFocusPolicy(Qt.ClickFocus)
-        self.setFocus()
-
-        FigureCanvas.setSizePolicy(self,
-                                   QSizePolicy.Expanding,
-                                   QSizePolicy.Expanding)
-        FigureCanvas.updateGeometry(self)
-        self.plot()
-
-    def update_plot(self):
+    def update_data(self):
         self.lens = pd.build_lens(self.seq_model)
-        self.plot()
 
     def plot(self):
-        self.fig.clf()
-        self.axes = self.fig.add_subplot(1, 1, 1)
-        self.axes.axvline(0, c='black', lw=1)
-        self.axes.axhline(0, c='black', lw=1)
+        self.clf()
+        self.ax = self.add_subplot(1, 1, 1)
+        self.ax.axvline(0, c='black', lw=1)
+        self.ax.axhline(0, c='black', lw=1)
 
         ax_ht = self.lens[pd.ax][pd.ht][1:]
         pr_ht = self.lens[pd.pr][pd.ht][1:]
-        self.line, = self.axes.plot(pr_ht, ax_ht, marker='s', picker=6)
-        self.axes.set_xlabel(r'$\overline{y}$')
-        self.axes.set_ylabel('y')
+        self.line, = self.ax.plot(pr_ht, ax_ht, marker='s', picker=6)
+        self.ax.set_xlabel(r'$\overline{y}$')
+        self.ax.set_ylabel('y')
 #        ax_nu = self.lens[pd.ax][pd.slp][:-1]
 #        pr_nu = self.lens[pd.pr][pd.slp][:-1]
-#        self.line, = self.axes.plot(pr_nu, ax_nu, marker='s', picker=5)
-#        self.axes.set_xlabel(r'$\overline{\omega}$')
-#        self.axes.set_ylabel(r'$\omega$')
+#        self.line, = self.ax.plot(pr_nu, ax_nu, marker='s', picker=5)
+#        self.ax.set_xlabel(r'$\overline{\omega}$')
+#        self.ax.set_ylabel(r'$\omega$')
 
         self.eline = EditableLine(self.line)
         self.eline.connect()
-        self.fig.canvas.mpl_connect('pick_event', self.on_pick)
-        self.fig.canvas.mpl_connect('button_press_event', self.on_press)
+        self.canvas.mpl_connect('pick_event', self.on_pick)
+        self.canvas.mpl_connect('button_press_event', self.on_press)
 
-        self.draw()
+        self.canvas.draw()
 
     def on_press(self, event):
         hit, props = self.line.contains(event)
@@ -167,7 +149,7 @@ class ParaxialDesignCanvas(FigureCanvas):
             ax_ht = self.lens[pd.ax][pd.ht][1:]
             pr_ht = self.lens[pd.pr][pd.ht][1:]
             line_hits = [[pr_ht[i], ax_ht[i]] for i in hit_list]
-            dsp_hits = self.axes.transData.transform(line_hits)
+            dsp_hits = self.ax.transData.transform(line_hits)
             hit_pt = [event.x, event.y]
             pick_radius_sqr = self.line.get_pickradius()**2
             hit_vertex = None

@@ -27,7 +27,8 @@ import optical.opticalmodel as optm
 import optical.sequential as seq
 import optical.elements as ele
 import gui.plotcanvas as plotter
-import gui.paraxdgncanvas as pdc
+import gui.mpl.axisarrayfigure as aaf
+import gui.mpl.paraxdgnfigure as pdf
 import gui.pytablemodel as tbl
 import gui.graphicsitems as gitm
 
@@ -73,6 +74,7 @@ class MainWindow(QMainWindow):
         wnd.addAction("Cascade")
         wnd.addAction("Tiled")
         wnd.triggered[QAction].connect(self.window_action)
+
         self.setWindowTitle("Ray Optics")
         self.show()
 #        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
@@ -254,7 +256,8 @@ class MainWindow(QMainWindow):
 
     def create_paraxial_design_view(self):
         seq_model = self.opt_model.seq_model
-        pc = pdc.ParaxialDesignCanvas(self, seq_model, width=5, height=4)
+        fig = pdf.ParaxialDesignFigure(self, seq_model, figsize=(5, 4))
+        pc = plotter.PlotCanvas(self, fig)
         # construct the top level widget
         widget = QWidget()
         # construct the top level layout
@@ -265,7 +268,7 @@ class MainWindow(QMainWindow):
 
         sub = self.add_subwindow(widget,
                                  (self.opt_model,
-                                  MainWindow.update_paraxial_design_view, pc))
+                                  MainWindow.update_paraxial_design_view, fig))
         sub.setWindowTitle("Paraxial Design View")
         view_width = 500
         view_ht = 500
@@ -276,12 +279,15 @@ class MainWindow(QMainWindow):
 
         sub.show()
 
-    def update_paraxial_design_view(plotCanvas):
-        plotCanvas.update_plot()
+    def update_paraxial_design_view(plotFigure):
+        plotFigure.update_data()
+        plotFigure.plot()
 
     def create_ray_fan_view(self):
         seq_model = self.opt_model.seq_model
-        pc = plotter.PlotCanvas(self, seq_model, width=5, height=4)
+        fig = aaf.AxisArrayFigure(seq_model, aaf.Fit_All_Same,
+                                  figsize=(5, 4), dpi=100)
+        pc = plotter.PlotCanvas(self, fig)
         psp = self.create_plot_scale_panel(pc)
         # construct the top level widget
         widget = QWidget()
@@ -310,24 +316,22 @@ class MainWindow(QMainWindow):
 
         user_scale_wdgt = QLineEdit()
         user_scale_wdgt.setReadOnly(True)
-        cntxt = pc, user_scale_wdgt
-        user_scale_wdgt.editingFinished.connect(lambda:
-                                  self.on_plot_scale_changed(cntxt))
+        pf = pc.figure
+        cntxt = pf, user_scale_wdgt
+        user_scale_wdgt.editingFinished.connect(lambda: self.
+                                                on_plot_scale_changed(cntxt))
         fit_all_btn = QRadioButton("Fit All")
-        fit_all_btn.setChecked(True)
-        fit_all_btn.toggled.connect(lambda:
-                                    self.on_plot_scale_toggled(cntxt,
-                                                               plotter.Fit_All))
+        fit_all_btn.setChecked(pf.scale_type == aaf.Fit_All)
+        fit_all_btn.toggled.connect(lambda: self.
+                                    on_plot_scale_toggled(cntxt, aaf.Fit_All))
         fit_all_same_btn = QRadioButton("Fit All Same")
-        fit_all_same_btn.setChecked(False)
-        fit_all_same_btn.toggled.connect(lambda:
-                                  self.on_plot_scale_toggled(cntxt,
-                                                             plotter.Fit_All_Same))
+        fit_all_same_btn.setChecked(pf.scale_type == aaf.Fit_All_Same)
+        fit_all_same_btn.toggled.connect(lambda: self.on_plot_scale_toggled(
+                                                 cntxt, aaf.Fit_All_Same))
         user_scale_btn = QRadioButton("User Scale")
-        user_scale_btn.setChecked(False)
-        user_scale_btn.toggled.connect(lambda:
-                                  self.on_plot_scale_toggled(cntxt,
-                                                             plotter.User_Scale))
+        user_scale_btn.setChecked(pf.scale_type == aaf.User_Scale)
+        user_scale_btn.toggled.connect(lambda: self.on_plot_scale_toggled(
+                                       cntxt, aaf.User_Scale))
         box = QHBoxLayout()
         box.addWidget(fit_all_btn)
         box.addWidget(fit_all_same_btn)
@@ -339,31 +343,31 @@ class MainWindow(QMainWindow):
         return groupBox
 
     def on_plot_scale_toggled(self, cntxt, scale_type):
-        plotCanvas, scale_wdgt = cntxt
-        plotCanvas.scale_type = scale_type
-        if scale_type == plotter.User_Scale:
+        plotFigure, scale_wdgt = cntxt
+        plotFigure.scale_type = scale_type
+        if scale_type == aaf.User_Scale:
             scale_wdgt.setReadOnly(False)
-            scale_wdgt.setText('{:7.4f}'.format(plotCanvas.user_scale_value))
+            scale_wdgt.setText('{:7.4f}'.format(plotFigure.user_scale_value))
         else:
             scale_wdgt.setReadOnly(True)
 
-        plotCanvas.plot()
+        plotFigure.plot()
 
     def on_plot_scale_changed(self, cntxt):
-        plotCanvas, scale_wdgt = cntxt
+        plotFigure, scale_wdgt = cntxt
         eval_str = scale_wdgt.text()
         try:
             val = eval(eval_str)
-            plotCanvas.user_scale_value = val
+            plotFigure.user_scale_value = val
             scale_wdgt.setText('{:7.4f}'.format(val))
         except IndexError:
             return ''
 
-        plotCanvas.plot()
+        plotFigure.plot()
 
-    def update_ray_fan_view(plotCanvas):
-        plotCanvas.update_data()
-        plotCanvas.plot()
+    def update_ray_fan_view(plotFigure):
+        plotFigure.update_data()
+        plotFigure.plot()
 
     def create_table_view(self, table_model, table_title):
         # construct the top level widget
