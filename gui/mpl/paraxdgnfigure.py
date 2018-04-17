@@ -107,12 +107,12 @@ class EditableLine:
 
 class ParaxialDesignFigure(Figure):
 
-    def __init__(self, parent, seq_model, **kwargs):
+    def __init__(self, seq_model, **kwargs):
         self.seq_model = seq_model
 
         Figure.__init__(self, **kwargs)
 
-        self.lens = pd.build_lens(self.seq_model)
+        self.update_data()
 
     def update_data(self):
         self.lens = pd.build_lens(self.seq_model)
@@ -140,6 +140,8 @@ class ParaxialDesignFigure(Figure):
         self.canvas.mpl_connect('button_press_event', self.on_press)
 
         self.canvas.draw()
+
+        return self
 
     def on_press(self, event):
         hit, props = self.line.contains(event)

@@ -256,7 +256,7 @@ class MainWindow(QMainWindow):
 
     def create_paraxial_design_view(self):
         seq_model = self.opt_model.seq_model
-        fig = pdf.ParaxialDesignFigure(self, seq_model, figsize=(5, 4))
+        fig = pdf.ParaxialDesignFigure(seq_model, figsize=(5, 4))
         pc = plotter.PlotCanvas(self, fig)
         # construct the top level widget
         widget = QWidget()

@@ -29,7 +29,6 @@ class AxisArrayFigure(Figure):
 
         self.num_rows = len(self.seq_model.optical_spec.field_of_view.fields)
         self.num_cols = 2
-
         self.update_data()
 
     def eval_axis_data(self, i, j):
@@ -105,3 +104,5 @@ class AxisArrayFigure(Figure):
             [[ax.set_ylim(-us, us) for ax in r] for r in self.ax_arr]
 
         self.canvas.draw()
+
+        return self
