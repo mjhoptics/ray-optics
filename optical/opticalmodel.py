@@ -39,3 +39,4 @@ class OpticalModel:
 
     def update_model(self):
         self.seq_model.update_model()
+        self.ele_model.update_model()

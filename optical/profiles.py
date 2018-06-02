@@ -9,16 +9,8 @@ Created on Tue Aug  1 13:18:57 2017
 """
 
 import numpy as np
-from numpy.linalg import norm
 from math import sqrt, copysign, sin, atan2
-
-
-def normalize(v):
-    length = norm(v)
-    if length == 0.0:
-        return v
-    else:
-        return v/length
+from util.misc_math import normalize
 
 
 class SurfaceProfile:

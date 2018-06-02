@@ -9,9 +9,8 @@ Created on Tue Feb 13 10:48:19 2018
 """
 import itertools
 import math
-
-Surf, Gap = range(2)
-ht, slp = range(2)
+from optical.model_constants import Surf, Gap
+from optical.model_constants import ht, slp
 
 
 class FirstOrderData:
@@ -34,6 +33,24 @@ class FirstOrderData:
         self.enp_radius = None
         self.exp_dist = None
         self.exp_radius = None
+
+    def list_first_order_data(self):
+        print("efl", self.efl)
+        print("pp1, ppk:", self.pp1, self.ppk)
+        print("ffl", self.ffl)
+        print("bfl", self.bfl)
+        print("f/#", self.fno)
+        print("red", self.red)
+        print("n obj, n img:", self.n_obj, self.n_img)
+        print("obj_dist", self.obj_dist)
+        print("img_dist", self.img_dist)
+        print("obj_ang", self.obj_ang)
+        print("img_ht", self.img_ht)
+        print("enp_dist", self.enp_dist)
+        print("enp_radius", self.enp_radius)
+        print("exp_dist", self.exp_dist)
+        print("exp_radius", self.exp_radius)
+        print("optical invariant", self.opt_inv)
 
 
 # paraxial_trace() - This routine performs a paraxial raytrace from object
@@ -71,7 +88,7 @@ def paraxial_trace(path, start, start_yu, start_yu_bar, wl):
         try:
             after = next(path)
             if after[Gap]:
-                n_after = after[Gap].medium.rindex(wl)
+                n_after = math.copysign(after[Gap].medium.rindex(wl), n_before)
             else:
                 n_after = n_before
 
@@ -84,18 +101,33 @@ def paraxial_trace(path, start, start_yu, start_yu_bar, wl):
             srf = after[Surf]
             if srf.refract_mode == 'REFL':
                 k = -1.0
+                n_after = -n_after
             else:
                 k = n_before/n_after
 
-            cv = srf.profile.cv
-#            print(cv, t, srf.refract_mode, n_before, n_after)
+#            cv = srf.profile.cv
+##            print(cv, t, srf.refract_mode, n_before, n_after)
+#
+#            # calculate angle of incidence (aoi)
+#            aoi = b4_yui[slp] + cur_ht * cv
+#            aoi_bar = b4_yui_bar[slp] + cur_htb * cv
+#            # calculate slope after refraction/reflection
+#            cur_slp = b4_yui[slp] + (k - 1.0)*aoi
+#            cur_slpb = b4_yui_bar[slp] + (k - 1.0)*aoi_bar
+
+            # calculate slope after refraction/reflection
+            pwr = srf.optical_power
+            cur_slp = k * b4_yui[slp] - cur_ht * pwr/n_after
+            cur_slpb = k * b4_yui_bar[slp] - cur_htb * pwr/n_after
 
             # calculate angle of incidence (aoi)
-            aoi = b4_yui[slp] + cur_ht * cv
-            aoi_bar = b4_yui_bar[slp] + cur_htb * cv
-            # calculate slope after refraction/reflection
-            cur_slp = b4_yui[slp] + (k - 1.0)*aoi
-            cur_slpb = b4_yui_bar[slp] + (k - 1.0)*aoi_bar
+            delta_n = n_after - n_before
+            if delta_n == 0.0:
+                aoi = cur_slp
+                aoi_bar = cur_slpb
+            else:
+                aoi = cur_ht * pwr/delta_n + cur_slp
+                aoi_bar = cur_htb * pwr/delta_n + cur_slpb
 
             yu = [cur_ht, cur_slp, aoi]
             yu_bar = [cur_htb, cur_slpb, aoi_bar]
@@ -163,6 +195,8 @@ def compute_first_order(seq_model, stop, wl):
     yu_bar = [1., 0.]
     fov = seq_model.optical_spec.field_of_view
     max_fld, fn = fov.max_field()
+    if max_fld == 0.0:
+        max_fld = 1.0
     if fov.type == 'OBJ_ANG':
         ang = math.radians(max_fld)
         slpbar0 = math.tan(ang)
@@ -178,8 +212,8 @@ def compute_first_order(seq_model, stop, wl):
     path = itertools.zip_longest(seq_model.surfs, seq_model.gaps)
     ax_ray, pr_ray = paraxial_trace(path, 0, yu, yu_bar, wl)
 
-    n_1 = seq_model.gaps[1].medium.rindex(wl)
-    opt_inv = n_1*(ax_ray[1][ht]*pr_ray[1][slp] - pr_ray[1][ht]*ax_ray[1][slp])
+    n_0 = seq_model.gaps[0].medium.rindex(wl)
+    opt_inv = n_0*(ax_ray[1][ht]*pr_ray[0][slp] - pr_ray[1][ht]*ax_ray[0][slp])
 
     fod = FirstOrderData()
     fod.opt_inv = opt_inv

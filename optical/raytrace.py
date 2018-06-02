@@ -12,8 +12,7 @@ import numpy as np
 from numpy.linalg import norm
 from math import sqrt, copysign
 from . import transform as trns
-
-Surf, Gap = range(2)
+from optical.model_constants import Surf, Gap
 
 
 def bend(d_in, normal, n_in, n_out):
@@ -35,13 +34,19 @@ def reflect(d_in, normal):
     return d_out
 
 
+def phase(intrfc, pt, d_in, normal, wl, n_in, n_out):
+    """ apply phase shift to incoming direction, d_in, about normal """
+    d_out, dW = intrfc.phase(pt, d_in, normal, wl)
+    return d_out, dW
+
+
 def trace(path, pt0, dir0, wl, eps=1.0e-12):
     ray = []
     # trace object surface
     obj = next(path)
     srf_obj = obj[Surf]
     gap_obj = obj[Gap]
-    op_delta, pt = srf_obj.profile.intersect(pt0, dir0)
+    op_delta, pt = srf_obj.intersect(pt0, dir0)
     ray.append([pt, dir0, op_delta])
 #    print("obj:", pt, dir0)
     n_before = gap_obj.medium.rindex(wl)
@@ -78,15 +83,18 @@ def trace(path, pt0, dir0, wl, eps=1.0e-12):
                 z_dir_after = z_dir_before
 
             # intersect ray with profile
-            pp_dst_intrsct, pt = srf.profile.intersect(pp_pt_before,
-                                                       b4_dir, eps)
+            pp_dst_intrsct, pt = srf.intersect(pp_pt_before, b4_dir, eps)
             eic_dst_before = ((pt.dot(b4_dir) + pt[2]) /
                               (z_dir_before + b4_dir[2]))
-            normal = srf.profile.normal(pt)
+            normal = srf.normal(pt)
 
             # refract or reflect ray at interface
             if srf.refract_mode == 'REFL':
                 after_dir = reflect(b4_dir, normal)
+            elif srf.refract_mode == 'PHASE':
+                after_dir, dW = phase(srf, pt, b4_dir, normal, wl, n_before,
+                                      n_after)
+                op_delta += dW
             else:
                 after_dir = bend(b4_dir, normal, n_before, n_after)
 

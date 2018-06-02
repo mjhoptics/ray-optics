@@ -15,6 +15,20 @@ import numpy as np
 Fit_All, Fit_All_Same, User_Scale = range(3)
 
 
+def clip_to_range(rgb_list, lower, upper):
+    rgbc_list = []
+    for rgb in rgb_list:
+        rgbc = []
+        for i, clr in enumerate(rgb):
+            rgbc.append(clr)
+            if clr < lower:
+                rgbc[i] = lower
+            if upper < clr:
+                rgbc[i] = upper
+        rgbc_list.append(rgbc)
+    return rgbc
+
+
 class AxisArrayFigure(Figure):
 
     def __init__(self, seq_model,
@@ -64,12 +78,13 @@ class AxisArrayFigure(Figure):
             for j in reversed(range(self.num_cols)):
                 x_smooth = []
                 y_smooth = []
-                x_data, y_data, max_value = self.eval_axis_data(i, j)
+                x_data, y_data, max_value, rc = self.eval_axis_data(i, j)
+#                rc = clip_to_range(rc, 0.0, 1.0)
                 for k in range(len(x_data)):
                     x_smooth.append(np.linspace(x_data[k].min(),
                                                 x_data[k].max(), 100))
                     y_smooth.append(spline(x_data[k], y_data[k], x_smooth[k]))
-                row.append((x_smooth, y_smooth, max_value))
+                row.append((x_smooth, y_smooth, max_value, rc))
             self.axis_data_array.append(row)
 
     def plot(self):
@@ -82,10 +97,10 @@ class AxisArrayFigure(Figure):
         self.max_value_all = 0.0
         for i in reversed(range(self.num_rows)):
             for j in reversed(range(self.num_cols)):
-                x_data, y_data, max_value = self.axis_data_array[m-i][n-j]
+                x_data, y_data, max_value, rc = self.axis_data_array[m-i][n-j]
                 ax = self.ax_arr[m-i][n-j]
                 for k in range(len(x_data)):
-                    ax.plot(x_data[k], y_data[k])
+                    ax.plot(x_data[k], y_data[k], c=rc[k])
 
                 if max_value > self.max_value_all:
                     self.max_value_all = max_value

@@ -32,12 +32,43 @@ import numpy as np
 import transforms3d as t3d
 
 
-class Surface:
-    def __init__(self, lbl=''):
+class Interface:
+    def __init__(self, refract_mode='', delta_n=0.0, decenter=None):
+        self.refract_mode = refract_mode
+        self.delta_n = delta_n
+        self.decenter = decenter
+
+    def update(self):
+        if self.decenter is not None:
+            self.decenter.update()
+
+    def set_optical_power(self, pwr, n_before, n_after):
+        pass
+
+    def surface_od(self):
+        pass
+
+    def set_max_aperture(self, max_ap):
+        pass
+
+    def intersect(self, p0, d, eps=1.0e-12):
+        pass
+
+    def normal(self, p):
+        pass
+
+    def phase(self, pt, d_in, normal, wl):
+        pass
+
+
+class Surface(Interface):
+    def __init__(self, lbl='', **kwargs):
+        super(Surface, self).__init__(**kwargs)
         self.label = lbl
-        self.refract_mode = ''
+#        self.refract_mode = ''
+#        self.delta_n = 0.0
         self.profile = profiles.Spherical()
-        self.decenter = None
+#        self.decenter = None
         self.clear_apertures = []
         self.edge_apertures = []
 
@@ -48,9 +79,8 @@ class Surface:
             return "Surface(%r)" % (self.profile)
 
     def update(self):
+        super(Surface, self).update()
         self.profile.update()
-        if self.decenter is not None:
-            self.decenter.update()
 
     def full_profile(self, sd, flat_id=None, dir=1, steps=6):
         if flat_id is None:
@@ -62,6 +92,21 @@ class Surface:
             prf += self.profile.profile(flat_id, dir, steps)
             prf.append([sag, dir*sd])
             return prf
+
+    @property
+    def optical_power(self):
+        return self.delta_n * self.profile.cv
+
+    @optical_power.setter
+    def optical_power(self, pwr):
+        self.profile.cv = pwr/self.delta_n if self.delta_n != 0.0 else 0.0
+
+    def set_optical_power(self, pwr, n_before, n_after):
+        self.delta_n = n_after - n_before
+        self.optical_power = pwr
+
+    def from_first_order(self, nu_before, nu_after, y):
+        pass
 
     def surface_od(self):
         od = 0
@@ -76,6 +121,23 @@ class Surface:
                 if ap > od:
                     od = ap
         return od
+
+    def set_max_aperture(self, max_ap):
+        """ max_ap is the max aperture radius """
+        cir_ap = Circular(max_ap)
+        if len(self.clear_apertures):
+            self.clear_apertures[0] = cir_ap
+        else:
+            self.clear_apertures.append(cir_ap)
+
+    def intersect(self, p0, d, eps=1.0e-12):
+        return self.profile.intersect(p0, d, eps)
+
+    def normal(self, p):
+        return self.profile.normal(p)
+
+    def phase(self, pt, d_in, normal, wl):
+        pass
 
 
 class DecenterData():

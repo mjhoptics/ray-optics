@@ -10,10 +10,12 @@ Created on Mon Apr  2 19:20:27 2018
 from matplotlib.figure import Figure
 
 import optical.paraxialdesign as pd
+from optical.model_constants import ax, pr, lns
+from optical.model_constants import ht, slp, aoi
+from optical.model_constants import pwr, tau, indx, rmd
+from util.misc_math import distance_sqr_2d
 
-
-def distance_sqr(pt0, pt1):
-    return (pt0[0] - pt1[0])**2 + (pt0[1] - pt1[1])**2
+ht_dgm, slp_dgm = range(2)
 
 
 class EditableLine:
@@ -42,7 +44,7 @@ class EditableLine:
         hit_vertex = None
         min_hit_dist = 1e10
         for i, pt in enumerate(dsp_hits):
-            hit_dist = distance_sqr(pt, hit_pt)
+            hit_dist = distance_sqr_2d(pt, hit_pt)
             if hit_dist < min_hit_dist:
                 min_hit_dist = hit_dist
                 if hit_dist < self.pick_radius_sqr:
@@ -107,12 +109,29 @@ class EditableLine:
 
 class ParaxialDesignFigure(Figure):
 
-    def __init__(self, seq_model, **kwargs):
+    def __init__(self, seq_model, refresh_gui, dgm_type, **kwargs):
         self.seq_model = seq_model
+        self.refresh_gui = refresh_gui
+        self.setup_dgm_type(dgm_type)
 
         Figure.__init__(self, **kwargs)
 
+        self.vertex = None
         self.update_data()
+
+    def setup_dgm_type(self, dgm_type):
+        if dgm_type == ht_dgm:
+            self.type_sel = ht
+            self.data_slice = slice(1, None)
+            self.x_label = r'$\overline{y}$'
+            self.y_label = 'y'
+            self.apply_data = pd.ht_to_slope
+        elif dgm_type == slp_dgm:
+            self.type_sel = slp
+            self.data_slice = slice(0, -1)
+            self.x_label = r'$\overline{\omega}$'
+            self.y_label = r'$\omega$'
+            self.apply_data = pd.slope_to_ht
 
     def update_data(self):
         self.lens = pd.build_lens(self.seq_model)
@@ -123,21 +142,17 @@ class ParaxialDesignFigure(Figure):
         self.ax.axvline(0, c='black', lw=1)
         self.ax.axhline(0, c='black', lw=1)
 
-        ax_ht = self.lens[pd.ax][pd.ht][1:]
-        pr_ht = self.lens[pd.pr][pd.ht][1:]
-        self.line, = self.ax.plot(pr_ht, ax_ht, marker='s', picker=6)
-        self.ax.set_xlabel(r'$\overline{y}$')
-        self.ax.set_ylabel('y')
-#        ax_nu = self.lens[pd.ax][pd.slp][:-1]
-#        pr_nu = self.lens[pd.pr][pd.slp][:-1]
-#        self.line, = self.ax.plot(pr_nu, ax_nu, marker='s', picker=5)
-#        self.ax.set_xlabel(r'$\overline{\omega}$')
-#        self.ax.set_ylabel(r'$\omega$')
+        x_data = self.lens[pr][self.type_sel][self.data_slice]
+        y_data = self.lens[ax][self.type_sel][self.data_slice]
+        self.line, = self.ax.plot(x_data, y_data, marker='s', picker=6)
+        self.ax.set_xlabel(self.x_label)
+        self.ax.set_ylabel(self.y_label)
 
         self.eline = EditableLine(self.line)
         self.eline.connect()
         self.canvas.mpl_connect('pick_event', self.on_pick)
         self.canvas.mpl_connect('button_press_event', self.on_press)
+        self.canvas.mpl_connect('button_release_event', self.on_release)
 
         self.canvas.draw()
 
@@ -147,28 +162,42 @@ class ParaxialDesignFigure(Figure):
         hit, props = self.line.contains(event)
         if hit:
             hit_list = props['ind']
-            print("event.inaxes", event.inaxes)
-            ax_ht = self.lens[pd.ax][pd.ht][1:]
-            pr_ht = self.lens[pd.pr][pd.ht][1:]
-            line_hits = [[pr_ht[i], ax_ht[i]] for i in hit_list]
+#            print("event.inaxes", event.inaxes)
+            x_data = self.lens[pr][self.type_sel][self.data_slice]
+            y_data = self.lens[ax][self.type_sel][self.data_slice]
+            line_hits = [[x_data[i], y_data[i]] for i in hit_list]
             dsp_hits = self.ax.transData.transform(line_hits)
             hit_pt = [event.x, event.y]
             pick_radius_sqr = self.line.get_pickradius()**2
             hit_vertex = None
             min_hit_dist = 1e10
             for i, pt in enumerate(dsp_hits):
-                hit_dist = distance_sqr(pt, hit_pt)
+                hit_dist = distance_sqr_2d(pt, hit_pt)
 #                print("distance_sqr", hit_list[i], hit_dist)
                 if hit_dist < min_hit_dist:
                     min_hit_dist = hit_dist
                     if hit_dist < pick_radius_sqr:
                         hit_vertex = hit_list[i]
             if hit_vertex is None:
-                print("edge selected", hit_list, min_hit_dist)
+                pass
+#                print("edge selected", hit_list, min_hit_dist)
             else:
-                print("vertex selected", hit_vertex, min_hit_dist)
+                self.vertex = hit_vertex + self.data_slice.start
+#                print("vertex selected", hit_vertex, min_hit_dist)
 #            print('on_press', event.button, event.x, event.y,
 #                  event.xdata, event.ydata, event.key, len(hit_list), hit_list)
+
+    def on_release(self, event):
+        'on release we reset the press data'
+        if self.vertex:
+            self.lens[pr][self.type_sel][self.vertex] = event.xdata
+            self.lens[ax][self.type_sel][self.vertex] = event.ydata
+            opt_inv = self.seq_model.optical_spec.parax_data[2].opt_inv
+#            print("on_release", self.vertex, opt_inv, event.xdata, event.ydata)
+            self.apply_data(self.lens, self.vertex, opt_inv)
+            self.seq_model.paraxial_lens_to_seq_model(self.lens)
+            self.refresh_gui()
+            self.vertex = None
 
     def on_pick(self, event):
         line = event.artist

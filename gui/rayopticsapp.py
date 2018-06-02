@@ -65,7 +65,8 @@ class MainWindow(QMainWindow):
         view.addAction("Lens View")
         view.addSeparator()
         view.addAction("Ray Fans")
-        view.addAction("Paraxial Design View")
+        view.addAction("Paraxial Height View")
+        view.addAction("Paraxial Slope View")
         view.addAction("Paraxial Ray Table")
         view.addAction("Ray Table")
         view.addSeparator()
@@ -84,9 +85,11 @@ class MainWindow(QMainWindow):
 #        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
 #                       "codev/test/schmidt.seq")
 #        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
-#                       "codev/test/schmidt_sph.seq")
+#                       "codev/test/questar35.seq")
         self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
-                       "codev/test/ag_dblgauss.seq")
+                       "codev/test/rc_f16.seq")
+#        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
+#                       "codev/test/ag_dblgauss.seq")
 
     def add_subwindow(self, widget, model_info):
             sub_wind = self.mdi.addSubWindow(widget)
@@ -144,18 +147,22 @@ class MainWindow(QMainWindow):
         if q.text() == "Ray Fans":
             self.create_ray_fan_view()
 
-        if q.text() == "Paraxial Design View":
-            self.create_paraxial_design_view()
+        if q.text() == "Paraxial Height View":
+            self.create_paraxial_design_view(pdf.ht_dgm)
+
+        if q.text() == "Paraxial Slope View":
+            self.create_paraxial_design_view(pdf.slp_dgm)
 
         if q.text() == "Paraxial Ray Table":
-            parax_data = self.opt_model.seq_model.optical_spec.parax_data
+            root = self.opt_model
+            rootEvalStr = ".seq_model.optical_spec.parax_data"
             colEvalStr = ['[0][{}][0]', '[0][{}][1]', '[0][{}][2]',
                           '[1][{}][0]', '[1][{}][1]', '[1][{}][2]']
             rowHeaders = self.opt_model.seq_model.surface_label_list()
             colHeaders = ['y', 'u', 'i', 'y-bar', 'u-bar', 'i-bar']
             colFormats = ['{:12.5g}', '{:9.6f}', '{:9.6f}', '{:12.5g}',
                           '{:9.6f}', '{:9.6f}']
-            model = tbl.PyTableModel(parax_data, colEvalStr, rowHeaders,
+            model = tbl.PyTableModel(root, rootEvalStr, colEvalStr, rowHeaders,
                                      colHeaders, colFormats, False)
             self.create_table_view(model, "Paraxial Ray Table")
 
@@ -169,7 +176,7 @@ class MainWindow(QMainWindow):
             colHeaders = ['x', 'y', 'z', 'l', 'm', 'n', 'length']
             colFormats = ['{:12.5g}', '{:12.5g}', '{:12.5g}', '{:9.6f}',
                           '{:9.6f}', '{:9.6f}', '{:12.5g}']
-            model = tbl.PyTableModel(r2f1, colEvalStr, rowHeaders,
+            model = tbl.PyTableModel(r2f1, '', colEvalStr, rowHeaders,
                                      colHeaders, colFormats, False)
             self.create_table_view(model, "Ray Table")
 
@@ -189,7 +196,7 @@ class MainWindow(QMainWindow):
         colHeaders = ['type', 'cv', 'sd', 'thi', 'medium', 'mode']
         colFormats = ['{:s}', '{:12.7g}', '{:12.5g}', '{:12.5g}',
                       '{:s}', '{:s}']
-        model = tbl.PyTableModel(seq_model, colEvalStr, rowHeaders,
+        model = tbl.PyTableModel(seq_model, '', colEvalStr, rowHeaders,
                                  colHeaders, colFormats, True)
         self.create_table_view(model, "Surface Data Table")
 
@@ -254,9 +261,10 @@ class MainWindow(QMainWindow):
             rb = gitm.RayBundle(seq_model, fi, start_offset)
             gscene.addItem(rb)
 
-    def create_paraxial_design_view(self):
+    def create_paraxial_design_view(self, dgm_type):
         seq_model = self.opt_model.seq_model
-        fig = pdf.ParaxialDesignFigure(seq_model, figsize=(5, 4))
+        fig = pdf.ParaxialDesignFigure(seq_model, self.refresh_gui, dgm_type,
+                                       figsize=(5, 4))
         pc = plotter.PlotCanvas(self, fig)
         # construct the top level widget
         widget = QWidget()
@@ -300,7 +308,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(psp)
 
         sub = self.add_subwindow(widget, (self.opt_model,
-                                          MainWindow.update_ray_fan_view, pc))
+                                          MainWindow.update_ray_fan_view, fig))
         sub.setWindowTitle("Ray Fan View")
         view_width = 600
         view_ht = 600
@@ -365,9 +373,9 @@ class MainWindow(QMainWindow):
 
         plotFigure.plot()
 
-    def update_ray_fan_view(plotFigure):
-        plotFigure.update_data()
-        plotFigure.plot()
+    def update_ray_fan_view(axis_array_figure):
+        axis_array_figure.update_data()
+        axis_array_figure.plot()
 
     def create_table_view(self, table_model, table_title):
         # construct the top level widget
@@ -384,7 +392,9 @@ class MainWindow(QMainWindow):
         # set the layout on the widget
         widget.setLayout(layout)
 
-        sub = self.add_subwindow(widget, (self.opt_model, ))
+        sub = self.add_subwindow(widget, (self.opt_model,
+                                          MainWindow.update_table_view,
+                                          tableView))
         sub.setWindowTitle(table_title)
 
         tableView.setModel(table_model)
@@ -404,8 +414,11 @@ class MainWindow(QMainWindow):
 
         sub.show()
 
-    @pyqtSlot(object, int)
-    def on_data_changed(self, rootObj, index):
+    def update_table_view(table_view):
+        table_model = table_view.model()
+        table_model.endResetModel()
+
+    def refresh_gui(self):
         self.opt_model.update_model()
         for model_info in self.wnd_dict.values():
             if model_info[0] == self.opt_model:
@@ -414,6 +427,10 @@ class MainWindow(QMainWindow):
                     model_info[1]()
                 elif num_items == 3:
                     model_info[1](model_info[2])
+
+    @pyqtSlot(object, int)
+    def on_data_changed(self, rootObj, index):
+        self.refresh_gui()
 
     @pyqtSlot(QMdiSubWindow)
     def on_subwindow_activated(self, window):

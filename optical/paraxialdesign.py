@@ -8,9 +8,9 @@ Created on Sat Mar 31 21:14:42 2018
 @author: Michael J. Hayford
 """
 
-ax, pr, ln = range(3)
-ht, slp, aoi = range(3)
-pwr, tau, indx, rmd = range(4)
+from optical.model_constants import ax, pr, lns
+from optical.model_constants import ht, slp, aoi
+from optical.model_constants import pwr, tau, indx, rmd
 
 
 def build_lens(seq_model):
@@ -39,7 +39,7 @@ def ht_to_slope(lens, surf, opt_inv=1.0):
     """ This routine calculates all data dependent on the input
         height coordinates (y,ybar) at surface surf.
     """
-    sys = lens[ln]
+    sys = lens[lns]
     ax_ray = lens[ax]
     pr_ray = lens[pr]
 
@@ -85,7 +85,7 @@ def slope_to_ht(lens, surf, opt_inv=1.0):
     """ This routine calculates all data dependent on the input
         slope coordinates (nu,nubar) at surface surf.
     """
-    sys = lens[ln]
+    sys = lens[lns]
     ax_ray = lens[ax]
     pr_ray = lens[pr]
 
@@ -121,7 +121,7 @@ def slope_to_ht(lens, surf, opt_inv=1.0):
 #                transfer to the image surface.
 def paraxial_trace(lens):
 
-    sys = lens[ln]
+    sys = lens[lns]
     ax_ray = lens[ax]
     pr_ray = lens[pr]
 
@@ -147,3 +147,22 @@ def paraxial_trace(lens):
             s += 1
             ax_ray[ht][s] = ax_ray[ht][c] + sys[tau][c]*ax_ray[slp][c]
             pr_ray[ht][s] = pr_ray[ht][c] + sys[tau][c]*pr_ray[slp][c]
+
+
+def list_lens(lens):
+    sys = lens[lns]
+    ax_ray = lens[ax]
+    pr_ray = lens[pr]
+
+    print("ax_ray[ht] ax_ray[slp]")
+    for i in range(0, len(ax_ray[ht])):
+        print("{}: {} {}".format(i, ax_ray[ht][i], ax_ray[slp][i]))
+
+    print("pr_ray[ht] pr_ray[slp]")
+    for i in range(0, len(pr_ray[ht])):
+        print("{}: {} {}".format(i, pr_ray[ht][i], pr_ray[slp][i]))
+
+    print("sys[pwr] sys[tau] sys[indx] sys[rmd]")
+    for i in range(0, len(sys[pwr])):
+        print("{}: {} {} {} {}".format(i, sys[pwr][i], sys[tau][i],
+              sys[indx][i], sys[rmd][i]))

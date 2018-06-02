@@ -9,29 +9,22 @@
 import itertools
 import logging
 from . import opticalspec
-from . import surface as srf
-from . import profiles as pr
+from . import surface
+from . import profiles
 from . import gap
 from . import medium as m
 from . import raytrace as rt
 from . import transform as trns
+from optical.model_constants import Surf, Gap
+from optical.model_constants import ax, pr, lns
+from optical.model_constants import ht, slp, aoi
+from optical.model_constants import pwr, tau, indx, rmd
 from glass import glassfactory as gfact
 from glass import glasserror as ge
 import numpy as np
 import transforms3d as t3d
 from math import sqrt, copysign
-
-Surf, Gap = range(2)
-
-
-def isanumber(a):
-    try:
-        float(a)
-        bool_a = True
-    except ValueError:
-        bool_a = False
-
-    return bool_a
+from util.misc_math import euler2opt, isanumber
 
 
 class SequentialModel:
@@ -66,8 +59,8 @@ class SequentialModel:
         self.stop_surface = 1
         self.cur_surface = 0
         self.optical_spec = opticalspec.OpticalSpecs()
-        self.surfs.append(srf.Surface('Obj'))
-        self.surfs.append(srf.Surface('Img'))
+        self.surfs.append(surface.Surface('Obj'))
+        self.surfs.append(surface.Surface('Img'))
         self.gaps.append(gap.Gap())
 
     def reset(self):
@@ -89,6 +82,13 @@ class SequentialModel:
     def set_cur_surface(self, s):
         self.cur_surface = s
 
+    def __iadd__(self, node):
+        if isinstance(node, gap.Gap):
+            self.gaps.append(node)
+        else:
+            self.surfs.insert(len(self.surfs)-1, node)
+        return self
+
     def insert(self, surf, gap):
         """ insert surf and gap at the cur_gap edge of the sequential model
             graph """
@@ -109,14 +109,29 @@ class SequentialModel:
         self.insert(*self.create_surface_and_gap(surf))
 
     def update_model(self):
-        for s in self.surfs:
-            s.update()
+        # delta n across each surface interface must be set to some
+        #  reasonable default value. use the index at the central wavelength
+        wl = self.optical_spec.spectral_region.central_wvl()
+        n_before = self.gaps[0].medium.rindex(wl)
+
+        for sg in itertools.zip_longest(self.surfs, self.gaps):
+            if sg[Gap]:
+                n_after = copysign(sg[Gap].medium.rindex(wl), n_before)
+                if sg[Surf].refract_mode == 'REFL':
+                    n_after = -n_after
+                sg[Surf].delta_n = n_after - n_before
+                n_before = n_after
+            else:
+                sg[Surf].delta_n = 0.0
+            # call update() on the surface interface
+            sg[Surf].update()
+
         self.transforms = self.compute_global_coords()
         self.optical_spec.update_model(self)
         self.set_clear_apertures()
 
     def insert_surface_and_gap(self):
-        s = srf.Surface()
+        s = surface.Surface()
         g = gap.Gap()
         self.insert(s, g)
         return s, g
@@ -165,7 +180,7 @@ class SequentialModel:
         if not isinstance(idx, int):
             idx = self.cur_surface
         cur_profile = self.surfs[idx].profile
-        new_profile = pr.mutate_profile(cur_profile, profile_type)
+        new_profile = profiles.mutate_profile(cur_profile, profile_type)
         self.surfs[idx].profile = new_profile
         return self.surfs[idx].profile
 
@@ -173,13 +188,13 @@ class SequentialModel:
         if not isinstance(idx, int):
             idx = self.cur_surface
         if not self.surfs[idx].decenter:
-            self.surfs[idx].decenter = srf.DecenterData()
+            self.surfs[idx].decenter = surface.DecenterData()
         return self.surfs[idx].decenter
 
     def create_surface_and_gap(self, surf):
         """ create a surface and gap where surf is a list that contains:
             [curvature, thickness, refractive_index, v-number] """
-        s = srf.Surface()
+        s = surface.Surface()
         s.profile.cv = surf[0]
 
         if surf[3] == 0.0:
@@ -226,8 +241,8 @@ class SequentialModel:
                 indx.append(n_after)
                 rmd.append(rmode)
 
-                cv = sg[Surf].profile.cv
-                pwr.append((n_after - n_before)*cv)
+                power = sg[Surf].optical_power
+                pwr.append(power)
 
                 n_before = n_after
             else:
@@ -240,22 +255,24 @@ class SequentialModel:
     def paraxial_lens_to_seq_model(self, lens):
         """ Applies a paraxial lens spec (power, reduced distance) to the model data
 
-        lens: list of power, reduced thickness, signed index and refract mode
+        lens: list of paraxia axial, chief and lens data
         """
-        pwr = lens[0]
-        tau = lens[1]
-        indx = lens[2]
-        n_before = indx[0]
+        power = lens[lns][pwr]
+        rindx = lens[lns][indx]
+        n_before = rindx[0]
+        slp_before = lens[ax][slp][0]
         for i, sg in enumerate(itertools.zip_longest(self.surfs, self.gaps)):
             if sg[Gap]:
-                n_after = indx[i]
-                sg[Gap].thi = n_after*tau[i]
+                n_after = rindx[i]
+                slp_after = lens[ax][slp][i]
+                sg[Gap].thi = n_after*lens[lns][tau][i]
 
-                delta_n = n_after - n_before
-                if delta_n != 0.0:
-                    sg[Surf].profile.cv = pwr[i]/delta_n
+                sg[Surf].set_optical_power(power[i], n_before, n_after)
+                sg[Surf].from_first_order(slp_before, slp_after,
+                                          lens[ax][ht][i])
 
                 n_before = n_after
+                slp_before = slp_after
 
     def list_model(self):
         for i, sg in enumerate(itertools.zip_longest(self.surfs, self.gaps)):
@@ -336,7 +353,9 @@ class SequentialModel:
         fan_stop[xy] = 1.0
         fan_def = [fan_start, fan_stop, num_rays]
         max_y_val = 0.0
+        rc = []
         for wi, w in enumerate(wvls.wavelengths):
+            rc.append(wvls.render_colors[wi])
             fan = self.optical_spec.trace_fan(self, fan_def, fi, True, wi)
             f_x = []
             f_y = []
@@ -350,7 +369,7 @@ class SequentialModel:
             fans_y.append(f_y)
         fans_x = np.array(fans_x)
         fans_y = np.array(fans_y)
-        return fans_x, fans_y, max_y_val
+        return fans_x, fans_y, max_y_val, rc
 
     def shift_start_of_ray_bundle(self, rayset, start_offset, r, t):
         """ modify rayset so that rays begin "start_offset" from 1st surface
@@ -412,11 +431,7 @@ class SequentialModel:
                     ap = sqrt(p[0][i][0][0]**2 + p[0][i][0][1]**2)
                     if ap > max_ap:
                         max_ap = ap
-            cir_ap = srf.Circular(max_ap)
-            if len(s.clear_apertures):
-                s.clear_apertures[0] = cir_ap
-            else:
-                s.clear_apertures.append(cir_ap)
+            s.set_max_aperture(max_ap)
 
     def trace(self, pt0, dir0, wl, eps=1.0e-12):
         path = itertools.zip_longest(self.surfs, self.gaps)
@@ -446,7 +461,7 @@ class SequentialModel:
                     t = prev[0].dot(t) + prev[1]
                     r = prev[0].dot(r)
 #                    print(go, t,
-#                          *np.rad2deg(trns.euler2opt(t3d.euler.mat2euler(r))))
+#                          *np.rad2deg(euler2opt(t3d.euler.mat2euler(r))))
                     prev = r, t
                     tfrms.append(prev)
                     after = before
@@ -467,7 +482,7 @@ class SequentialModel:
                 t = prev[0].dot(t) + prev[1]
                 r = prev[0].dot(r)
 #                print(go, t,
-#                      *np.rad2deg(trns.euler2opt(t3d.euler.mat2euler(r))))
+#                      *np.rad2deg(euler2opt(t3d.euler.mat2euler(r))))
                 prev = r, t
                 tfrms.append(prev)
                 before = after
