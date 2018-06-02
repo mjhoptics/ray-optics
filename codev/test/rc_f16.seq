@@ -1,0 +1,16 @@
+len
+tit 'f/16 Ritchey-Chretien'
+dim m
+rdm y
+so 0. 1e+11
+s -21335.137 -7490.46 refl
+con
+k -1.0961
+s -9576.712 9441.833 refl
+con
+k -5.1628
+si 0 0
+!epd 3962.40
+epd 7924.80
+wl 550
+yan 0 .333
