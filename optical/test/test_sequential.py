@@ -12,7 +12,7 @@ import numpy as np
 import numpy.testing as npt
 from math import log10, pow
 import optical.sequential as seq
-import optical.profiles as prof
+from util.misc_math import normalize
 
 import ag_dblgauss_s as dblg
 import marginal_ray as f1r2
@@ -34,7 +34,7 @@ class RayTraceTestCase(unittest.TestCase):
         self.p0 = np.array([0., 0., 0.])
         self.p1 = np.array([0., 0., dblg.ag_dblgauss[0][1]])
         self.epd = np.array([25., 0., 0.])
-        self.d0 = prof.normalize((self.p1 + self.epd) - self.p0)
+        self.d0 = normalize((self.p1 + self.epd) - self.p0)
 
     def test_dbgauss_axial_ray(self):
         ray, op_delta = self.ldm.trace(self.p0, self.d0, 587.6)

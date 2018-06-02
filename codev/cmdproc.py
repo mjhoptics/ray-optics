@@ -87,6 +87,7 @@ def log_cmd(label, tla, qlist, dlist):
 def wvl_spec_data(seqm, tla, qlist, dlist):
     if tla == "WL":
         seqm.optical_spec.spectral_region.wavelengths = dlist
+        seqm.optical_spec.spectral_region.calc_colors()
     elif tla == "WTW":
         seqm.optical_spec.spectral_region.spectral_wts = dlist
     elif tla == "REF":

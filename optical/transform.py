@@ -9,14 +9,6 @@ Created on Fri Feb  9 10:09:58 2018
 """
 
 import numpy as np
-# import transforms3d as t3d
-
-
-def euler2opt(e):
-    """ convert right-handed euler angles to optical design convention,
-        i.e. alpha and beta are left-handed
-    """
-    return np.array([-e[0], -e[1], e[2]])
 
 
 def forward_transform(s1, g1, s2):

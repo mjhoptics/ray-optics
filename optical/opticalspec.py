@@ -14,6 +14,8 @@ from numpy.linalg import norm
 import itertools
 from . import firstorder as fo
 from . import raytrace as rt
+import util.colour_system as cs
+srgb = cs.cs_srgb
 
 
 class OpticalSpecs:
@@ -30,6 +32,11 @@ class OpticalSpecs:
         self.pupil = PupilSpec()
         self.field_of_view = FieldSpec()
         self.parax_data = None
+
+    def set_from_list(self, dl):
+        self.spectral_region = dl[0]
+        self.pupil = dl[1]
+        self.field_of_view = dl[2]
 
     def update_model(self, seq_model):
         stop = seq_model.stop_surface
@@ -104,35 +111,73 @@ class OpticalSpecs:
 
 
 class WvlSpec:
-    def __init__(self):
-        self.wavelengths = []
-        self.spectral_wts = []
+    def __init__(self, wlwts=[(550., 1.)]):
+        self.set_from_list(wlwts)
         self.reference_wvl = 0
         self.coating_wvl = 550.0
 
     def central_wvl(self):
         return self.wavelengths[self.reference_wvl]
 
+    def set_from_list(self, wlwts):
+        self.wavelengths = []
+        self.spectral_wts = []
+        for wlwt in wlwts:
+            self.wavelengths.append(wlwt[0])
+            self.spectral_wts.append(wlwt[1])
+        self.calc_colors()
+
     def add(self, wl, wt):
-        self.spectrum.append([wl, wt])
+        self.wavelengths.append(wl)
+        self.spectral_wts.append(wt)
         self.spectrum.sort(key=lambda w: w[0], reverse=True)
+
+    def calc_colors(self):
+        self.render_colors = []
+        num_wvls = len(self.wavelengths)
+        if num_wvls == 1:
+            self.render_colors.append('black')
+        elif num_wvls == 2:
+            self.render_colors.append('blue')
+            self.render_colors.append('red')
+        elif num_wvls == 3:
+            self.render_colors.append('blue')
+            self.render_colors.append('green')
+            self.render_colors.append('red')
+        else:
+            for w in self.wavelengths:
+                print("calc_colors", w)
+                rgb = srgb.wvl_to_rgb(w)
+                print("rgb", rgb)
+                self.render_colors.append(rgb)
 
 
 class PupilSpec:
     types = ('EPD', 'NA', 'NAO', 'FNO')
 
-    def __init__(self):
-        self.type = 'EPD'
-        self.value = 1.0
+    def __init__(self, type='EPD', value=1.0):
+        self.type = type
+        self.value = value
+
+    def set_from_list(self, ppl_spec):
+        self.type = ppl_spec[0]
+        self.value = ppl_spec[1]
 
 
 class FieldSpec:
     types = ('OBJ_ANG', 'OBJ_HT', 'IMG_HT')
 
-    def __init__(self):
-        self.fields = []
-        self.type = 'OBJ_ANG'
-        self.wide_angle = False
+    def __init__(self, type='OBJ_ANG', flds=[0.], wide_angle=False):
+        self.type = type
+        self.fields = [Field() for f in range(len(flds))]
+        for i, f in enumerate(self.fields):
+            f.y = flds[i]
+        self.wide_angle = wide_angle
+
+    def set_from_list(self, flds):
+        self.fields = [Field() for f in range(len(flds))]
+        for i, f in enumerate(self.fields):
+            f.y = flds[i]
 
     def update_fields_cv_input(self, tla, dlist):
         if tla == 'XOB' or tla == 'YOB':
@@ -142,7 +187,7 @@ class FieldSpec:
         elif tla == 'XIM' or tla == 'YIM':
             self.type = 'IMG_HT'
 
-        if len(self.fields) == 0:
+        if len(self.fields) != len(dlist):
             self.fields = [Field() for f in range(len(dlist))]
 
         if tla[0] == 'V':
@@ -167,14 +212,14 @@ class FieldSpec:
 
 
 class Field:
-    def __init__(self):
-        self.x = 0.0
-        self.y = 0.0
+    def __init__(self, x=0., y=0., wt=1.):
+        self.x = x
+        self.y = y
         self.vux = 0.0
         self.vuy = 0.0
         self.vlx = 0.0
         self.vly = 0.0
-        self.wt = 1.0
+        self.wt = wt
 
     def apply_vignetting(self, pupil):
         if pupil[0] < 0.0:

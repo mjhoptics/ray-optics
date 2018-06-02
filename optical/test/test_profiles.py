@@ -8,7 +8,8 @@ Created on Wed Oct 18 10:59:29 2017
 
 
 import unittest
-import optical.profiles as p
+import optical.profile as p
+from util.misc_math import normalize
 import numpy as np
 import numpy.testing as npt
 from math import sqrt
@@ -21,10 +22,10 @@ class SphericalProfileTestCase(unittest.TestCase):
         self.p1 = np.array([0., 1., -1.])
 
     def test_normalize(self):
-        v0 = p.normalize(np.array([0., 0., 0.]))
+        v0 = normalize(np.array([0., 0., 0.]))
         npt.assert_array_equal(v0, np.array([0., 0., 0.]))
 
-        v1 = p.normalize(np.array([1., 1., 1.]))
+        v1 = normalize(np.array([1., 1., 1.]))
         sqrRt3 = sqrt(3)/3
         npt.assert_allclose(v1, np.array([sqrRt3, sqrRt3, sqrRt3]),
                             rtol=1e-14)
@@ -56,7 +57,7 @@ class SphericalProfileTestCase(unittest.TestCase):
         npt.assert_allclose(p1s2[1], p1s2_truth, rtol=1e-14)
 
         dir_p1s2 = s2.normal(p1s2[1])
-        dir_p1s2_truth = -p.normalize(p1s2_truth - np.array([0, 0, r2]))
+        dir_p1s2_truth = -normalize(p1s2_truth - np.array([0, 0, r2]))
         npt.assert_allclose(dir_p1s2, dir_p1s2_truth, rtol=1e-14)
 
     def test_concave_sphere(self):
@@ -75,7 +76,7 @@ class SphericalProfileTestCase(unittest.TestCase):
         npt.assert_allclose(p1s3[1], p1s3_truth, rtol=1e-14)
 
         dir_p1s3 = s3.normal(p1s3[1])
-        dir_p1s3_truth = p.normalize(p1s3_truth - np.array([0, 0, -r3]))
+        dir_p1s3_truth = normalize(p1s3_truth - np.array([0, 0, -r3]))
         npt.assert_allclose(dir_p1s3, dir_p1s3_truth, rtol=1e-14)
 
     def test_dbgauss_s1(self):
@@ -97,7 +98,7 @@ class SphericalProfileTestCase(unittest.TestCase):
         npt.assert_allclose(p1s1[1], p1s1_truth, rtol=1e-14)
 
         dir_p1s1 = s1.normal(p1s1[1])
-        dir_p1s1_truth = -p.normalize(p1s1_truth - np.array([0, 0, r1]))
+        dir_p1s1_truth = -normalize(p1s1_truth - np.array([0, 0, r1]))
         npt.assert_allclose(dir_p1s1, dir_p1s1_truth, rtol=1e-14)
 
 
