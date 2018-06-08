@@ -42,6 +42,12 @@ class Interface:
         if self.decenter is not None:
             self.decenter.update()
 
+    def interface_type(self):
+        return self.__class__.__name__
+
+    def profile_cv(self):
+        return 0.0
+
     def set_optical_power(self, pwr, n_before, n_after):
         pass
 
@@ -65,10 +71,7 @@ class Surface(Interface):
     def __init__(self, lbl='', **kwargs):
         super(Surface, self).__init__(**kwargs)
         self.label = lbl
-#        self.refract_mode = ''
-#        self.delta_n = 0.0
         self.profile = profiles.Spherical()
-#        self.decenter = None
         self.clear_apertures = []
         self.edge_apertures = []
 
@@ -78,9 +81,15 @@ class Surface(Interface):
         else:
             return "Surface(%r)" % (self.profile)
 
+    def interface_type(self):
+        return self.profile.__class__.__name__
+
     def update(self):
         super(Surface, self).update()
         self.profile.update()
+
+    def profile_cv(self):
+        return self.profile.cv
 
     def full_profile(self, sd, flat_id=None, dir=1, steps=6):
         if flat_id is None:
@@ -189,7 +198,6 @@ class DecenterData():
 
 class Aperture():
     def __init__(self):
-        self.type = ''
         self.x_offset = 0.0
         self.y_offset = 0.0
         self.rotation = 0.0
@@ -207,7 +215,6 @@ class Aperture():
 
 class Circular(Aperture):
     def __init__(self, r_=1.0):
-        self.type = 'Circular'
         self.radius = r_
 
     def dimension(self):
@@ -222,7 +229,6 @@ class Circular(Aperture):
 
 class Rectangular(Aperture):
     def __init__(self, x_=1.0, y_=1.0):
-        self.type = 'Rectangular'
         self.x_half_width = x_
         self.y_half_width = y_
 
@@ -236,7 +242,6 @@ class Rectangular(Aperture):
 
 class Elliptical(Aperture):
     def __init__(self, x_=1.0, y_=1.0):
-        self.type = 'Elliptical'
         self.x_half_width = x_
         self.y_half_width = y_
 

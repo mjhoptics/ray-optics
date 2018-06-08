@@ -14,11 +14,8 @@ from util.misc_math import normalize
 
 
 class SurfaceProfile:
-    def __init__(self):
-        self.type = ''
-
     def __repr__(self):
-        return "Profile(%r)" % self.type
+        return "Profile(%r)" % self.__class__.__name__
 
     def update(self):
         pass
@@ -51,14 +48,13 @@ class SurfaceProfile:
 class Spherical(SurfaceProfile):
     """ Spherical surface profile parameterized by curvature. """
     def __init__(self, c=0.0):
-        self.type = 'Sphere'
         self.cv = c
 
     def __str__(self):
-        return self.type + " " + str(self.cv)
+        return self.__class__.__name__ + " " + str(self.cv)
 
     def __repr__(self):
-        return "Profile(Spherical: c=%r)" % self.cv
+        return "Profile({}: c={}".format(self.__class__.__name__, self.cv)
 
     def copyFrom(self, other):
         dispatch[self.__class__, other.__class__](self, other)
@@ -121,15 +117,16 @@ class Conic(SurfaceProfile):
         cc < -1.0: hyperboloid
     """
     def __init__(self, c=0.0):
-        self.type = 'Conic'
         self.cv = c
         self.cc = 0.0
 
     def __str__(self):
-        return self.type + " " + str(self.cv) + " " + str(self.cc)
+        return self.__class__.__name__ + " " + str(self.cv) + " " + \
+                                               str(self.cc)
 
     def __repr__(self):
-        return "Profile(Conic: c=%r, cc=%r)" % (self.cv, self.cc)
+        return "Profile({}: c={}, cc={}".format(self.__class__.__name__,
+                                                self.cv, self.cc)
 
     def copyFrom(self, other):
         dispatch[self.__class__, other.__class__](self, other)
@@ -175,7 +172,6 @@ class Conic(SurfaceProfile):
 class EvenPolynomial(SurfaceProfile):
     """ Even Polynomial asphere up to 20th order, on base conic. """
     def __init__(self, c=0.0):
-        self.type = 'EvenPolynomial'
         self.cv = c
         self.cc = 0.0
         self.coefs = []
@@ -190,6 +186,14 @@ class EvenPolynomial(SurfaceProfile):
         self.coef16 = 0.0
         self.coef18 = 0.0
         self.coef20 = 0.0
+
+    def __str__(self):
+        return self.__class__.__name__ + " " + str(self.cv) + " " + \
+                                               str(self.cc)
+
+    def __repr__(self):
+        return "Profile({}: c={}, cc={}".format(self.__class__.__name__,
+                                                self.cv, self.cc)
 
     def copyFrom(self, other):
         dispatch[self.__class__, other.__class__](self, other)

@@ -92,6 +92,9 @@ class PyTableModel(QAbstractTableModel):
                 return valStr
             except IndexError:
                 return ''
+            except TypeError:
+                print('Data type error: ', eval_str, val)
+                return ''
         else:
             return None
 

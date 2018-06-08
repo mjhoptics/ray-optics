@@ -33,6 +33,11 @@ class OpticalSpecs:
         self.field_of_view = FieldSpec()
         self.parax_data = None
 
+    def __json_encode__(self):
+        attrs = dict(self.__dict__)
+        del attrs['parax_data']
+        return attrs
+
     def set_from_list(self, dl):
         self.spectral_region = dl[0]
         self.pupil = dl[1]

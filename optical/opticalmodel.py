@@ -37,6 +37,11 @@ class OpticalModel:
         self.__init__()
         self.radius_mode = rdm
 
+    def sync_to_restore(self):
+        self.seq_model.sync_to_restore(self)
+        self.ele_model.sync_to_restore(self)
+        self.update_model()
+
     def update_model(self):
         self.seq_model.update_model()
         self.ele_model.update_model()

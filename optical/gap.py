@@ -18,7 +18,7 @@ class Gap:
     The gap class represents the space between 2 surfaces. It contains the
     media definition for the space and a (z) displacement between the
     adjacent surfaces.
-    
+
     The most common use case is an optical system with surfaces centered on a
     common axis. The Gap structure implements this case in the simplest manner.
     More complicated transformations between surfaces are implemented using
@@ -30,3 +30,7 @@ class Gap:
 
     def __repr__(self):
         return "Gap(t=%r, medium=%r)" % (self.thi, self.medium)
+
+    def sync_to_restore(self, seq_model):
+        if hasattr(self.medium, 'sync_to_restore'):
+            self.medium.sync_to_restore(seq_model)

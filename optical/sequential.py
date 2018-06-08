@@ -63,6 +63,12 @@ class SequentialModel:
         self.surfs.append(surface.Surface('Img'))
         self.gaps.append(gap.Gap())
 
+    def __json_encode__(self):
+        attrs = dict(self.__dict__)
+        del attrs['parent']
+        del attrs['transforms']
+        return attrs
+
     def reset(self):
         self.__init__()
 
@@ -107,6 +113,15 @@ class SequentialModel:
             [curvature, thickness, refractive_index, v-number] """
 
         self.insert(*self.create_surface_and_gap(surf))
+
+    def sync_to_restore(self, opt_model):
+        self.parent = opt_model
+        for sg in itertools.zip_longest(self.surfs, self.gaps):
+            if hasattr(sg[Surf], 'sync_to_restore'):
+                sg[Surf].sync_to_restore(self)
+            if sg[Gap]:
+                if hasattr(sg[Gap], 'sync_to_restore'):
+                    sg[Gap].sync_to_restore(self)
 
     def update_model(self):
         # delta n across each surface interface must be set to some
