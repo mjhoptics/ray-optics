@@ -15,7 +15,7 @@ from util.misc_math import normalize
 
 class SurfaceProfile:
     def __repr__(self):
-        return "Profile(%r)" % self.__class__.__name__
+        return "{!s}()".format(type(self).__name__)
 
     def update(self):
         pass
@@ -51,13 +51,13 @@ class Spherical(SurfaceProfile):
         self.cv = c
 
     def __str__(self):
-        return self.__class__.__name__ + " " + str(self.cv)
+        return type(self).__name__ + " " + str(self.cv)
 
     def __repr__(self):
-        return "Profile({}: c={}".format(self.__class__.__name__, self.cv)
+        return "{!s}(c={})".format(type(self).__name__, self.cv)
 
     def copyFrom(self, other):
-        dispatch[self.__class__, other.__class__](self, other)
+        dispatch[type(self), type(other)](self, other)
 
     def copyDataFrom(self, other):
         self.cv = other.cv
@@ -116,20 +116,20 @@ class Conic(SurfaceProfile):
         cc = -1.0: paraboloid
         cc < -1.0: hyperboloid
     """
-    def __init__(self, c=0.0):
+    def __init__(self, c=0.0, cc=0.0):
         self.cv = c
-        self.cc = 0.0
+        self.cc = cc
 
     def __str__(self):
-        return self.__class__.__name__ + " " + str(self.cv) + " " + \
-                                               str(self.cc)
+        return type(self).__name__ + " " + str(self.cv) + " " + \
+                                           str(self.cc)
 
     def __repr__(self):
-        return "Profile({}: c={}, cc={}".format(self.__class__.__name__,
-                                                self.cv, self.cc)
+        return "{!s}(c={}, cc={})".format(type(self).__name__,
+                                          self.cv, self.cc)
 
     def copyFrom(self, other):
-        dispatch[self.__class__, other.__class__](self, other)
+        dispatch[type(self), type(other)](self, other)
 
     def copyDataFrom(self, other):
         self.cv = other.cv
@@ -188,15 +188,15 @@ class EvenPolynomial(SurfaceProfile):
         self.coef20 = 0.0
 
     def __str__(self):
-        return self.__class__.__name__ + " " + str(self.cv) + " " + \
-                                               str(self.cc)
+        return type(self).__name__ + " " + str(self.cv) + " " + \
+                                           str(self.cc)
 
     def __repr__(self):
-        return "Profile({}: c={}, cc={}".format(self.__class__.__name__,
+        return "Profile({}: c={}, cc={}".format(type(self).__name__,
                                                 self.cv, self.cc)
 
     def copyFrom(self, other):
-        dispatch[self.__class__, other.__class__](self, other)
+        dispatch[type(self), type(other)](self, other)
 
     def copyDataFrom(self, other):
         self.cv = other.cv

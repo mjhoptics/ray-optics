@@ -43,7 +43,7 @@ class Interface:
             self.decenter.update()
 
     def interface_type(self):
-        return self.__class__.__name__
+        return type(self).__name__
 
     def profile_cv(self):
         return 0.0
@@ -68,21 +68,27 @@ class Interface:
 
 
 class Surface(Interface):
-    def __init__(self, lbl='', **kwargs):
+    def __init__(self, lbl='', profile=None, **kwargs):
         super(Surface, self).__init__(**kwargs)
         self.label = lbl
-        self.profile = profiles.Spherical()
+        if profile:
+            self.profile = profile
+        else:
+            self.profile = profiles.Spherical()
         self.clear_apertures = []
         self.edge_apertures = []
 
     def __repr__(self):
         if len(self.label) > 0:
-            return "Surface(%r: %r)" % (self.label, self.profile)
+            return "{!s}(lbl={!r}, profile={!r})".format(type(self).__name__,
+                                                         self.label,
+                                                         self.profile)
         else:
-            return "Surface(%r)" % (self.profile)
+            return "{!s}(profile={!r})".format(type(self).__name__,
+                                               self.profile)
 
     def interface_type(self):
-        return self.profile.__class__.__name__
+        return type(self.profile).__name__
 
     def update(self):
         super(Surface, self).update()
