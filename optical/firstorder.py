@@ -7,7 +7,6 @@ Created on Tue Feb 13 10:48:19 2018
 
 @author: Michael J. Hayford
 """
-import itertools
 import math
 from optical.model_constants import Surf, Gap
 from optical.model_constants import ht, slp
@@ -35,22 +34,24 @@ class FirstOrderData:
         self.exp_radius = None
 
     def list_first_order_data(self):
-        print("efl", self.efl)
-        print("pp1, ppk:", self.pp1, self.ppk)
-        print("ffl", self.ffl)
-        print("bfl", self.bfl)
-        print("f/#", self.fno)
-        print("red", self.red)
-        print("n obj, n img:", self.n_obj, self.n_img)
-        print("obj_dist", self.obj_dist)
-        print("img_dist", self.img_dist)
-        print("obj_ang", self.obj_ang)
-        print("img_ht", self.img_ht)
-        print("enp_dist", self.enp_dist)
-        print("enp_radius", self.enp_radius)
-        print("exp_dist", self.exp_dist)
-        print("exp_radius", self.exp_radius)
-        print("optical invariant", self.opt_inv)
+        print("efl        {:12.4g}".format(self.efl))
+        print("ffl        {:12.4g}".format(self.ffl))
+        print("pp1        {:12.4g}".format(self.pp1))
+        print("bfl        {:12.4g}".format(self.bfl))
+        print("ppk        {:12.4g}".format(self.ppk))
+        print("f/#        {:12.4g}".format(self.fno))
+        print("red        {:12.4g}".format(self.red))
+        print("obj_dist   {:12.4g}".format(self.obj_dist))
+        print("obj_ang    {:12.4g}".format(self.obj_ang))
+        print("enp_dist   {:12.4g}".format(self.enp_dist))
+        print("enp_radius {:12.4g}".format(self.enp_radius))
+        print("n obj      {:12.4g}".format(self.n_obj))
+        print("img_dist   {:12.4g}".format(self.img_dist))
+        print("img_ht     {:12.4g}".format(self.img_ht))
+        print("exp_dist   {:12.4g}".format(self.exp_dist))
+        print("exp_radius {:12.4g}".format(self.exp_radius))
+        print("n img      {:12.4g}".format(self.n_img))
+        print("optical invariant {:12.4g}".format(self.opt_inv))
 
 
 # paraxial_trace() - This routine performs a paraxial raytrace from object
@@ -149,8 +150,7 @@ def paraxial_trace(path, start, start_yu, start_yu_bar, wl):
 
 def compute_first_order(seq_model, stop, wl):
     """ Returns paraxial axial and chief rays, plus first order data. """
-    path = itertools.zip_longest(seq_model.surfs, seq_model.gaps)
-    p_ray, q_ray = paraxial_trace(path, 1, [1., 0.], [0., 1.], wl)
+    p_ray, q_ray = paraxial_trace(seq_model.path(), 1, [1., 0.], [0., 1.], wl)
 
     n_k = seq_model.gaps[-1].medium.rindex(wl)
     ak1 = p_ray[-1][ht]
@@ -202,15 +202,14 @@ def compute_first_order(seq_model, stop, wl):
         slpbar0 = math.tan(ang)
         ybar0 = -slpbar0*obj2enp_dist
     elif fov.type == 'IMG_HT':
-        ybar0 = -red*max_fld
-        slpbar0 = ybar0/obj2enp_dist
+        ybar0 = red*max_fld
+        slpbar0 = -ybar0/obj2enp_dist
     else:
         ybar0 = -max_fld
-        slpbar0 = ybar0/obj2enp_dist
+        slpbar0 = -ybar0/obj2enp_dist
     yu_bar = [ybar0, slpbar0]
 
-    path = itertools.zip_longest(seq_model.surfs, seq_model.gaps)
-    ax_ray, pr_ray = paraxial_trace(path, 0, yu, yu_bar, wl)
+    ax_ray, pr_ray = paraxial_trace(seq_model.path(), 0, yu, yu_bar, wl)
 
     n_0 = seq_model.gaps[0].medium.rindex(wl)
     opt_inv = n_0*(ax_ray[1][ht]*pr_ray[0][slp] - pr_ray[1][ht]*ax_ray[0][slp])
