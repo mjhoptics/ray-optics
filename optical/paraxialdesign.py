@@ -154,15 +154,17 @@ def list_lens(lens):
     ax_ray = lens[ax]
     pr_ray = lens[pr]
 
-    print("ax_ray[ht] ax_ray[slp]")
+    print("      ax_ray_ht    ax_ray_slp")
     for i in range(0, len(ax_ray[ht])):
-        print("{}: {} {}".format(i, ax_ray[ht][i], ax_ray[slp][i]))
+        print("{}: {:12.5g}  {:12.6g}".format(i, ax_ray[ht][i],
+              ax_ray[slp][i]))
 
-    print("pr_ray[ht] pr_ray[slp]")
+    print("\n      pr_ray_ht    pr_ray_slp")
     for i in range(0, len(pr_ray[ht])):
-        print("{}: {} {}".format(i, pr_ray[ht][i], pr_ray[slp][i]))
+        print("{}: {:12.5g}  {:12.6g}".format(i, pr_ray[ht][i],
+              pr_ray[slp][i]))
 
-    print("sys[pwr] sys[tau] sys[indx] sys[rmd]")
+    print("\n          power           tau        index    type")
     for i in range(0, len(sys[pwr])):
-        print("{}: {} {} {} {}".format(i, sys[pwr][i], sys[tau][i],
-              sys[indx][i], sys[rmd][i]))
+        print("{}: {:12.7g}  {:12.5g} {:12.5f}    {}".format(i, sys[pwr][i],
+              sys[tau][i], sys[indx][i], sys[rmd][i]))

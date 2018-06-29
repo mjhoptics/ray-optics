@@ -15,6 +15,16 @@ from . import transform as trns
 from optical.model_constants import Surf, Gap
 
 
+def list_ray(ray):
+    print("          X            Y            Z           L"
+          "            M            N               Len")
+    for i, r in enumerate(ray):
+        print("{}: {:12.5f} {:12.5f} {:12.5f} {:12.6f} {:12.6f} "
+              "{:12.6f} {:12.5g}".format(i,
+                                         r[0][0], r[0][1], r[0][2],
+                                         r[1][0], r[1][1], r[1][2], r[2]))
+
+
 def bend(d_in, normal, n_in, n_out):
     """ refract incoming direction, d_in, about normal """
     normal_len = norm(normal)
