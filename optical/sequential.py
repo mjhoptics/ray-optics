@@ -35,36 +35,39 @@ class SequentialModel:
     spectrum.
 
     The sequential model has this structure:
-        SObj   S1    S2    S3 ... Si-1      SImg
-           \  /  \  /  \  /           \    /
-           GObj   G1    G2             Gi-1
+        IfcObj  Ifc1  Ifc2  Ifc3 ... Ifci-1   IfcImg
+             \  /  \  /  \  /             \   /
+             GObj   G1    G2              Gi-1
     where:
-        S is a Surface instance
-        G is a Gap instance
+        Ifc is a Interface instance
+        G   is a Gap instance
 
-    There are N surfaces and N-1 gaps. The initial configuration has an object
-    and image surface and an object gap.
+    There are N interfaces and N-1 gaps. The initial configuration has an
+    object and image Surface and an object gap.
 
-    The Surface class maintains the profile and extent of the interface. The
-    Gap class maintains a simple separation (z translation) and the medium
+    The Interface API supports implementation of an optical action, such as
+    refraction, reflection, scatter, diffraction, etc. The Interface may be
+    realized as a physical profile separating the adjacent gaps or an idealized
+    object, such as a thin lens or 2 point HOE.
+    The Gap class maintains a simple separation (z translation) and the medium
     filling the gap. More complex coordinate transformations are handled
-    through the Surface.
+    through the Interface API.
     """
 
     def __init__(self, opt_model):
         self.parent = opt_model
-        self.surfs = []
+        self.ifcs = []
         self.gaps = []
         self.transforms = []
         self.stop_surface = 1
         self.cur_surface = 0
         self.optical_spec = opticalspec.OpticalSpecs()
-        self.surfs.append(surface.Surface('Obj'))
-        self.surfs.append(surface.Surface('Img'))
+        self.ifcs.append(surface.Surface('Obj'))
+        self.ifcs.append(surface.Surface('Img'))
         self.gaps.append(gap.Gap())
 
     def __json_encode__(self):
-        attrs = dict(self.__dict__)
+        attrs = dict(vars(self))
         del attrs['parent']
         del attrs['transforms']
         return attrs
@@ -73,12 +76,15 @@ class SequentialModel:
         self.__init__()
 
     def get_num_surfaces(self):
-        return len(self.surfs)
+        return len(self.ifcs)
+
+    def path(self):
+        return itertools.zip_longest(self.ifcs, self.gaps)
 
     def get_surface_and_gap(self, srf=None):
         if not srf:
             srf = self.cur_surface
-        s = self.surfs[srf]
+        s = self.ifcs[srf]
         if srf == len(self.gaps):
             g = None
         else:
@@ -92,14 +98,14 @@ class SequentialModel:
         if isinstance(node, gap.Gap):
             self.gaps.append(node)
         else:
-            self.surfs.insert(len(self.surfs)-1, node)
+            self.ifcs.insert(len(self.ifcs)-1, node)
         return self
 
     def insert(self, surf, gap):
         """ insert surf and gap at the cur_gap edge of the sequential model
             graph """
         self.cur_surface += 1
-        self.surfs.insert(self.cur_surface, surf)
+        self.ifcs.insert(self.cur_surface, surf)
         self.gaps.insert(self.cur_surface, gap)
 
     def add_surface(self, surf):
@@ -116,7 +122,7 @@ class SequentialModel:
 
     def sync_to_restore(self, opt_model):
         self.parent = opt_model
-        for sg in itertools.zip_longest(self.surfs, self.gaps):
+        for sg in self.path():
             if hasattr(sg[Surf], 'sync_to_restore'):
                 sg[Surf].sync_to_restore(self)
             if sg[Gap]:
@@ -129,7 +135,7 @@ class SequentialModel:
         wl = self.optical_spec.spectral_region.central_wvl()
         n_before = self.gaps[0].medium.rindex(wl)
 
-        for sg in itertools.zip_longest(self.surfs, self.gaps):
+        for sg in self.path():
             if sg[Gap]:
                 n_after = copysign(sg[Gap].medium.rindex(wl), n_before)
                 if sg[Surf].refract_mode == 'REFL':
@@ -194,17 +200,17 @@ class SequentialModel:
     def update_surface_profile_cv_input(self, profile_type, idx=None):
         if not isinstance(idx, int):
             idx = self.cur_surface
-        cur_profile = self.surfs[idx].profile
+        cur_profile = self.ifcs[idx].profile
         new_profile = profiles.mutate_profile(cur_profile, profile_type)
-        self.surfs[idx].profile = new_profile
-        return self.surfs[idx].profile
+        self.ifcs[idx].profile = new_profile
+        return self.ifcs[idx].profile
 
     def update_surface_decenter_cv_input(self, idx=None):
         if not isinstance(idx, int):
             idx = self.cur_surface
-        if not self.surfs[idx].decenter:
-            self.surfs[idx].decenter = surface.DecenterData()
-        return self.surfs[idx].decenter
+        if not self.ifcs[idx].decenter:
+            self.ifcs[idx].decenter = surface.DecenterData()
+        return self.ifcs[idx].decenter
 
     def create_surface_and_gap(self, surf):
         """ create a surface and gap where surf is a list that contains:
@@ -226,7 +232,7 @@ class SequentialModel:
     def surface_label_list(self):
         """ list of surface labels or surface number, if no label """
         labels = []
-        for i, s in enumerate(self.surfs):
+        for i, s in enumerate(self.ifcs):
             if len(s.label) == 0:
                 if i == self.stop_surface:
                     labels.append('Stop')
@@ -245,7 +251,7 @@ class SequentialModel:
         tau = []
         indx = []
         rmd = []
-        for sg in itertools.zip_longest(self.surfs, self.gaps):
+        for sg in self.path():
             if sg[Gap]:
                 n_after = copysign(sg[Gap].medium.rindex(wl), n_before)
                 rmode = sg[Surf].refract_mode
@@ -270,13 +276,13 @@ class SequentialModel:
     def paraxial_lens_to_seq_model(self, lens):
         """ Applies a paraxial lens spec (power, reduced distance) to the model data
 
-        lens: list of paraxia axial, chief and lens data
+        lens: list of paraxial axial, chief and lens data
         """
         power = lens[lns][pwr]
         rindx = lens[lns][indx]
         n_before = rindx[0]
         slp_before = lens[ax][slp][0]
-        for i, sg in enumerate(itertools.zip_longest(self.surfs, self.gaps)):
+        for i, sg in enumerate(self.path()):
             if sg[Gap]:
                 n_after = rindx[i]
                 slp_after = lens[ax][slp][i]
@@ -290,7 +296,7 @@ class SequentialModel:
                 slp_before = slp_after
 
     def list_model(self):
-        for i, sg in enumerate(itertools.zip_longest(self.surfs, self.gaps)):
+        for i, sg in enumerate(self.path()):
             if sg[Gap]:
                 print(i, sg[Surf])
                 print('    ', sg[Gap])
@@ -302,11 +308,11 @@ class SequentialModel:
             print(i, gp)
 
     def list_surfaces(self):
-        for i, s in enumerate(self.surfs):
+        for i, s in enumerate(self.ifcs):
             print(i, s)
 
     def list_surface_and_gap(self, i):
-        s = self.surfs[i]
+        s = self.ifcs[i]
         cvr = s.profile.cv
         if self.parent.radius_mode:
             if cvr != 0.0:
@@ -323,7 +329,7 @@ class SequentialModel:
         return [cvr, thi, med, sd]
 
     def list_decenters(self):
-        for i, sg in enumerate(itertools.zip_longest(self.surfs, self.gaps)):
+        for i, sg in enumerate(self.path()):
             if sg[Gap]:
                 print(i, sg[Gap])
                 if sg[Surf].decenter is not None:
@@ -335,8 +341,8 @@ class SequentialModel:
     def list_elements(self):
         for i, gp in enumerate(self.gaps):
             if gp.medium.label.lower() != 'air':
-                print(self.surfs[i].profile,
-                      self.surfs[i+1].profile,
+                print(self.ifcs[i].profile,
+                      self.ifcs[i+1].profile,
                       gp)
 
     def trace_boundary_rays_at_field(self, fi):
@@ -418,8 +424,8 @@ class SequentialModel:
                       positive if to left of first surface
         return: transformation rotation and translation
         """
-        s1 = self.surfs[1]
-        s0 = self.surfs[0]
+        s1 = self.ifcs[1]
+        s0 = self.ifcs[0]
         g0 = gap.Gap(start_offset, self.gaps[0].medium)
         r, t = trns.reverse_transform(s1, g0, s0)
         return r, t
@@ -439,7 +445,7 @@ class SequentialModel:
 
     def set_clear_apertures(self):
         rayset = self.trace_boundary_rays()
-        for i, s in enumerate(self.surfs):
+        for i, s in enumerate(self.ifcs):
             max_ap = -1.0e+10
             for f in rayset:
                 for p in f:
@@ -449,8 +455,7 @@ class SequentialModel:
             s.set_max_aperture(max_ap)
 
     def trace(self, pt0, dir0, wl, eps=1.0e-12):
-        path = itertools.zip_longest(self.surfs, self.gaps)
-        return rt.trace(path, pt0, dir0, wl, eps)
+        return rt.trace(self.path(), pt0, dir0, wl, eps)
 
     def compute_global_coords(self, glo=1):
         """ Return global surface coordinates (rot, t) wrt surface glo. """
@@ -463,7 +468,7 @@ class SequentialModel:
             # iterate in reverse over the segments before the
             #  global reference surface
             go = glo
-            path = itertools.zip_longest(self.surfs[glo::-1],
+            path = itertools.zip_longest(self.ifcs[glo::-1],
                                          self.gaps[glo-1::-1])
             after = next(path)
             # loop of remaining surfaces in path
@@ -483,7 +488,7 @@ class SequentialModel:
                 except StopIteration:
                     break
             tfrms.reverse()
-        path = itertools.zip_longest(self.surfs[glo:], self.gaps[glo:])
+        path = itertools.zip_longest(self.ifcs[glo:], self.gaps[glo:])
         before = next(path)
         prev = np.identity(3), np.array([0., 0., 0.])
         go = glo

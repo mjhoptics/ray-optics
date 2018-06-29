@@ -8,7 +8,6 @@ Created on Sun Jan 28 16:27:01 2018
 @author: Michael J. Hayford
 """
 
-import itertools
 import util.rgbtable as rgbt
 from optical.model_constants import Surf, Gap
 import optical.thinlens
@@ -39,7 +38,7 @@ class Element():
             self.render_color = Element.clut.get_color(vnbr)
 
     def __json_encode__(self):
-        attrs = dict(self.__dict__)
+        attrs = dict(vars(self))
         del attrs['tfrm']
         del attrs['s1']
         del attrs['s2']
@@ -85,7 +84,7 @@ class Mirror():
             self.thi = thi
 
     def __json_encode__(self):
-        attrs = dict(self.__dict__)
+        attrs = dict(vars(self))
         del attrs['tfrm']
         del attrs['s']
         return attrs
@@ -123,7 +122,7 @@ class ThinElement():
         self.sd = intrfc.od
 
     def __json_encode__(self):
-        attrs = dict(self.__dict__)
+        attrs = dict(vars(self))
         del attrs['tfrm']
         del attrs['intrfc']
         return attrs
@@ -157,36 +156,36 @@ class ElementModel:
         self.__init__()
 
     def __json_encode__(self):
-        attrs = dict(self.__dict__)
+        attrs = dict(vars(self))
         del attrs['parent']
         return attrs
 
     def elements_from_sequence(self, seq_model):
         tfrms = seq_model.compute_global_coords(1)
         for i, g in enumerate(seq_model.gaps):
-            if isinstance(seq_model.surfs[i], optical.thinlens.ThinLens):
-                te = ThinElement(tfrms[i], seq_model.surfs[i], i)
+            if isinstance(seq_model.ifcs[i], optical.thinlens.ThinLens):
+                te = ThinElement(tfrms[i], seq_model.ifcs[i], i)
                 self.elements.append(te)
                 return
 
             if g.medium.name().lower() == 'air':
                 # close off element
-                s2 = seq_model.surfs[i+1]
+                s2 = seq_model.ifcs[i+1]
                 if s2.refract_mode is 'REFL':
                     tfrm = tfrms[i+1]
                     sd = s2.surface_od()
                     self.elements.append(Mirror(tfrm, s2, i+1, sd))
             else:
                 tfrm = tfrms[i]
-                s1 = seq_model.surfs[i]
-                s2 = seq_model.surfs[i+1]
+                s1 = seq_model.ifcs[i]
+                s2 = seq_model.ifcs[i+1]
                 sd = max(s1.surface_od(), s2.surface_od())
                 self.elements.append(Element(tfrm, s1, i, g, s2, i+1, sd))
 
     def sync_to_restore(self, opt_model):
         self.parent = opt_model
         seq_model = opt_model.seq_model
-        surfs = seq_model.surfs
+        surfs = seq_model.ifcs
         tfrms = seq_model.compute_global_coords(1)
         for e in self.elements:
             e.sync_to_restore(surfs, tfrms)
@@ -196,10 +195,10 @@ class ElementModel:
         tfrms = seq_model.compute_global_coords(1)
         for e in self.elements:
             e.update_size()
-            e.sync_to_update(seq_model.surfs)
+            e.sync_to_update(seq_model.ifcs)
             intrfc = e.reference_interface()
             try:
-                i = seq_model.surfs.index(intrfc)
+                i = seq_model.ifcs.index(intrfc)
             except ValueError:
                 print("Interface {} not found".format(intrfc.lbl))
             else:

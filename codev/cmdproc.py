@@ -190,39 +190,39 @@ def profile_data(seqm, tla, qlist, dlist):
     if not idx:
         idx = seqm.cur_surface
     if tla == 'CUX':
-        seqm.surfs[idx].profile.cv = dlist[0]
+        seqm.ifcs[idx].profile.cv = dlist[0]
     elif tla == 'CUY':
-        seqm.surfs[idx].profile.cv = dlist[0]
+        seqm.ifcs[idx].profile.cv = dlist[0]
     elif tla == 'RDX':
         if dlist[0] != 0.0:
-            seqm.surfs[idx].profile.cv = 1.0/dlist[0]
+            seqm.ifcs[idx].profile.cv = 1.0/dlist[0]
         else:
-            seqm.surfs[idx].profile.cv = 0.0
+            seqm.ifcs[idx].profile.cv = 0.0
     elif tla == 'RDY':
         if dlist[0] != 0.0:
-            seqm.surfs[idx].profile.cv = 1.0/dlist[0]
+            seqm.ifcs[idx].profile.cv = 1.0/dlist[0]
         else:
-            seqm.surfs[idx].profile.cv = 0.0
+            seqm.ifcs[idx].profile.cv = 0.0
     elif tla == 'K':
-        seqm.surfs[idx].profile.cc = dlist[0]
+        seqm.ifcs[idx].profile.cc = dlist[0]
     elif tla == 'A':
-        seqm.surfs[idx].profile.coef4 = dlist[0]
+        seqm.ifcs[idx].profile.coef4 = dlist[0]
     elif tla == 'B':
-        seqm.surfs[idx].profile.coef6 = dlist[0]
+        seqm.ifcs[idx].profile.coef6 = dlist[0]
     elif tla == 'C':
-        seqm.surfs[idx].profile.coef8 = dlist[0]
+        seqm.ifcs[idx].profile.coef8 = dlist[0]
     elif tla == 'D':
-        seqm.surfs[idx].profile.coef10 = dlist[0]
+        seqm.ifcs[idx].profile.coef10 = dlist[0]
     elif tla == 'E':
-        seqm.surfs[idx].profile.coef12 = dlist[0]
+        seqm.ifcs[idx].profile.coef12 = dlist[0]
     elif tla == 'F':
-        seqm.surfs[idx].profile.coef14 = dlist[0]
+        seqm.ifcs[idx].profile.coef14 = dlist[0]
     elif tla == 'G':
-        seqm.surfs[idx].profile.coef16 = dlist[0]
+        seqm.ifcs[idx].profile.coef16 = dlist[0]
     elif tla == 'H':
-        seqm.surfs[idx].profile.coef18 = dlist[0]
+        seqm.ifcs[idx].profile.coef18 = dlist[0]
     elif tla == 'J':
-        seqm.surfs[idx].profile.coef20 = dlist[0]
+        seqm.ifcs[idx].profile.coef20 = dlist[0]
     log_cmd("profile_data", tla, qlist, dlist)
 
 

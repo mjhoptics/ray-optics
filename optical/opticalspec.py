@@ -11,8 +11,7 @@ Created on Thu Jan 25 11:01:04 2018
 import math
 import numpy as np
 from numpy.linalg import norm
-import itertools
-from . import firstorder as fo
+from optical.firstorder import compute_first_order
 from . import raytrace as rt
 import util.colour_system as cs
 srgb = cs.cs_srgb
@@ -34,7 +33,7 @@ class OpticalSpecs:
         self.parax_data = None
 
     def __json_encode__(self):
-        attrs = dict(self.__dict__)
+        attrs = dict(vars(self))
         del attrs['parax_data']
         return attrs
 
@@ -46,7 +45,7 @@ class OpticalSpecs:
     def update_model(self, seq_model):
         stop = seq_model.stop_surface
         wl = self.spectral_region.central_wvl()
-        self.parax_data = fo.compute_first_order(seq_model, stop, wl)
+        self.parax_data = compute_first_order(seq_model, stop, wl)
 
     def trace(self, sm, pupil, fld, wl=None, eps=1.0e-12):
         if wl is None:
@@ -64,8 +63,7 @@ class OpticalSpecs:
         dir0 = pt1 - pt0
         length = norm(dir0)
         dir0 = dir0/length
-        path = itertools.zip_longest(sm.surfs, sm.gaps)
-        return rt.trace(path, pt0, dir0, wvl, eps)
+        return rt.trace(sm.path(), pt0, dir0, wvl, eps)
 
     def trace_fan(self, sm, fan_rng, fld, img_only=True, wl=None, eps=1.0e-12):
         if wl is None:
@@ -90,8 +88,7 @@ class OpticalSpecs:
             dir0 = pt1 - pt0
             length = norm(dir0)
             dir0 = dir0/length
-            path = itertools.zip_longest(sm.surfs, sm.gaps)
-            ray, op = rt.trace(path, pt0, dir0, wvl, eps)
+            ray, op = rt.trace(sm.path(), pt0, dir0, wvl, eps)
             if img_only:
                 fan.append([pupil, ray[-1][0]])
             else:
