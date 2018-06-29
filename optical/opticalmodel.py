@@ -8,8 +8,27 @@ Created on Wed Mar 14 11:08:28 2018
 @author: Michael J. Hayford
 """
 
+import os.path
+import json_tricks
+import codev.cmdproc as cvp
+
 from . import sequential as seq
 from . import elements as ele
+
+
+def open_model(file_name):
+    file_extension = os.path.splitext(file_name)[1]
+    opm = None
+    if file_extension == '.seq':
+        opm = OpticalModel()
+        cvp.read_lens(opm, file_name)
+    elif file_extension == '.roa':
+        with open(file_name, 'r') as f:
+            obj_dict = json_tricks.load(f)
+            if 'optical_model' in obj_dict:
+                opm = obj_dict['optical_model']
+                opm.sync_to_restore()
+    return opm
 
 
 class SystemSpec:
@@ -36,6 +55,13 @@ class OpticalModel:
         rdm = self.radius_mode
         self.__init__()
         self.radius_mode = rdm
+
+    def save_model(self, file_name):
+        fs_dict = {}
+        fs_dict['optical_model'] = self
+        with open(file_name, 'w') as f:
+            json_tricks.dump(fs_dict, f, indent=1,
+                             separators=(',', ':'))
 
     def sync_to_restore(self):
         self.seq_model.sync_to_restore(self)

@@ -12,7 +12,6 @@ Created on Mon Feb 12 09:24:01 2018
 
 import sys
 import logging
-import os.path
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
@@ -32,7 +31,6 @@ import gui.mpl.axisarrayfigure as aaf
 import gui.mpl.paraxdgnfigure as pdf
 import gui.pytablemodel as tbl
 import gui.graphicsitems as gitm
-import json_tricks
 
 
 class MainWindow(QMainWindow):
@@ -88,10 +86,10 @@ class MainWindow(QMainWindow):
 #                       "codev/test/schmidt.seq")
 #        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
 #                       "codev/test/questar35.seq")
-        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
-                       "codev/test/rc_f16.seq")
 #        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
-#                       "codev/test/ag_dblgauss.seq")
+#                       "codev/test/rc_f16.seq")
+        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
+                       "codev/test/ag_dblgauss.seq")
 
     def add_subwindow(self, widget, model_info):
             sub_wind = self.mdi.addSubWindow(widget)
@@ -145,26 +143,13 @@ class MainWindow(QMainWindow):
 
     def open_file(self, file_name):
         self.cur_filename = file_name
-        file_extension = os.path.splitext(file_name)[1]
-        if file_extension == '.seq':
-            self.opt_model = optm.OpticalModel()
-            cvp.read_lens(self.opt_model, file_name)
-        elif file_extension == '.roa':
-            with open(file_name, 'r') as f:
-                obj_dict = json_tricks.load(f)
-                if 'optical_model' in obj_dict:
-                    self.opt_model = obj_dict['optical_model']
-                    self.opt_model.sync_to_restore()
+        self.opt_model = optm.open_model(file_name)
         self.is_changed = True
         self.create_lens_table()
         self.create_2D_lens_view()
 
     def save_file(self, file_name):
-        fs_dict = {}
-        fs_dict['optical_model'] = self.opt_model
-        with open(file_name, 'w') as f:
-            json_tricks.dump(fs_dict, f, indent=1,
-                             separators=(',', ':'))
+        self.opt_model.save_model(file_name)
         self.cur_filename = file_name
         self.is_changed = False
 
@@ -220,10 +205,10 @@ class MainWindow(QMainWindow):
 
     def create_lens_table(self):
         seq_model = self.opt_model.seq_model
-        colEvalStr = ['.surfs[{}].interface_type()',
-                      '.surfs[{}].profile_cv()',
-                      '.surfs[{}].surface_od()', '.gaps[{}].thi',
-                      '.gaps[{}].medium.name()', '.surfs[{}].refract_mode']
+        colEvalStr = ['.ifcs[{}].interface_type()',
+                      '.ifcs[{}].profile_cv()',
+                      '.ifcs[{}].surface_od()', '.gaps[{}].thi',
+                      '.gaps[{}].medium.name()', '.ifcs[{}].refract_mode']
         rowHeaders = seq_model.surface_label_list()
         colHeaders = ['type', 'cv', 'sd', 'thi', 'medium', 'mode']
         colFormats = ['{:s}', '{:12.7g}', '{:12.5g}', '{:12.5g}',
