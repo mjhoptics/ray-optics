@@ -57,9 +57,11 @@ class OpticalModel:
         self.radius_mode = rdm
 
     def save_model(self, file_name):
+        file_extension = os.path.splitext(file_name)[1]
+        filename = file_name if len(file_extension) > 0 else file_name+'.roa'
         fs_dict = {}
         fs_dict['optical_model'] = self
-        with open(file_name, 'w') as f:
+        with open(filename, 'w') as f:
             json_tricks.dump(fs_dict, f, indent=1,
                              separators=(',', ':'))
 
