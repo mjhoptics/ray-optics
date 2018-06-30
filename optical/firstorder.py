@@ -175,6 +175,7 @@ def compute_first_order(seq_model, stop, wl):
 
     thi0 = seq_model.gaps[0].thi
 
+    # calculate reduction ratio for given object distance
     red = dk1 + thi0*ck1
     obj2enp_dist = thi0 + enp_dist
 
@@ -185,11 +186,11 @@ def compute_first_order(seq_model, stop, wl):
     if pupil.type == 'NAO':
         slp0 = n_0*math.tan(math.asin(pupil.value/n_0))
     if pupil.type == 'FNO':
-        slpk = 0.5*pupil.value/obj2enp_dist
-        slp0 = red*slpk
+        slpk = -1./(2.0*pupil.value)
+        slp0 = slpk/red
     if pupil.type == 'NA':
         slpk = n_k*math.tan(math.asin(pupil.value/n_k))
-        slp0 = red*slpk
+        slp0 = slpk/red
     yu = [0., slp0]
 
     yu_bar = [1., 0.]
