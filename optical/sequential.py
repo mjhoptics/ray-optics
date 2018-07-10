@@ -62,6 +62,7 @@ class SequentialModel:
         self.stop_surface = 1
         self.cur_surface = 0
         self.optical_spec = opticalspec.OpticalSpecs()
+        self.rndx = []
         self.ifcs.append(surface.Surface('Obj'))
         self.ifcs.append(surface.Surface('Img'))
         self.gaps.append(gap.Gap())
@@ -80,6 +81,24 @@ class SequentialModel:
 
     def path(self):
         return itertools.zip_longest(self.ifcs, self.gaps)
+
+    def calc_ref_indices_for_spectrum(self, wvls):
+        indices = []
+        for g in self.gaps:
+            ri = []
+            mat = g.medium
+            for w in wvls:
+                ri.append(mat.rindex(w))
+            indices.append(ri)
+        indices.append(indices[-1])
+        return indices
+
+    def central_wavelength(self):
+        return self.optical_spec.spectral_region.central_wvl()
+
+    def central_rndx(self, i):
+        wl = self.optical_spec.spectral_region.reference_wvl
+        return self.rndx[i][wl]
 
     def get_surface_and_gap(self, srf=None):
         if not srf:
@@ -132,23 +151,28 @@ class SequentialModel:
     def update_model(self):
         # delta n across each surface interface must be set to some
         #  reasonable default value. use the index at the central wavelength
-        wl = self.optical_spec.spectral_region.central_wvl()
-        n_before = self.gaps[0].medium.rindex(wl)
+        wl = self.optical_spec.spectral_region.reference_wvl
 
-        for sg in self.path():
-            if sg[Gap]:
-                n_after = copysign(sg[Gap].medium.rindex(wl), n_before)
-                if sg[Surf].refract_mode == 'REFL':
-                    n_after = -n_after
-                sg[Surf].delta_n = n_after - n_before
-                n_before = n_after
-            else:
-                sg[Surf].delta_n = 0.0
+        wvlns = self.optical_spec.spectral_region.wavelengths
+        self.rndx = self.calc_ref_indices_for_spectrum(wvlns)
+        n_before = self.rndx[0]
+        num_wvls = len(wvlns)
+
+        for i, s in enumerate(self.ifcs):
+            n_after = [copysign(self.rndx[i][k], n_before[k])
+                       for k in range(num_wvls)]
+            if s.refract_mode == 'REFL':
+                n_after = [-n_after[k] for k in range(num_wvls)]
+
+            s.delta_n = n_after[wl] - n_before[wl]
+            n_before = n_after
+            self.rndx[i] = n_after
             # call update() on the surface interface
-            sg[Surf].update()
+            s.update()
 
         self.transforms = self.compute_global_coords()
         self.optical_spec.update_model(self)
+
         self.set_clear_apertures()
 
     def insert_surface_and_gap(self):
@@ -186,7 +210,7 @@ class SequentialModel:
                 if cat.upper() == 'SCHOTT' and name[:1].upper() == 'N':
                     name = name[:1]+'-'+name[1:]
                 try:
-                    g.medium = gfact.create_glass(cat, name)
+                    g.medium = gfact.create_glass(name, cat)
                 except ge.GlassNotFoundError as gerr:
                     logging.info('%s glass data type %s not found',
                                  gerr.catalog,
@@ -212,21 +236,48 @@ class SequentialModel:
             self.ifcs[idx].decenter = surface.DecenterData()
         return self.ifcs[idx].decenter
 
-    def create_surface_and_gap(self, surf):
-        """ create a surface and gap where surf is a list that contains:
+    def create_surface_and_gap(self, surf_data):
+        """ create a surface and gap where surf_data is a list that contains:
             [curvature, thickness, refractive_index, v-number] """
         s = surface.Surface()
-        s.profile.cv = surf[0]
 
-        if surf[3] == 0.0:
-            if surf[2] == 1.0:
-                mat = m.Air()
+        if self.parent.radius_mode:
+            if surf_data[0] != 0.0:
+                s.profile.cv = 1.0/surf_data[0]
             else:
-                mat = m.Medium(surf[2])
+                s.profile.cv = 0.0
         else:
-            mat = m.Glass(surf[2], surf[3], '')
+            s.profile.cv = surf_data[0]
 
-        g = gap.Gap(surf[1], mat)
+        if len(surf_data) > 2:
+            if isanumber(surf_data[2]):
+                if len(surf_data) < 3:
+                    if surf_data[2] == 1.0:
+                        mat = m.Air()
+                    else:
+                        mat = m.Medium(surf_data[2])
+                else:
+                    mat = m.Glass(surf_data[2], surf_data[3], '')
+
+            else:
+                if surf_data[2].upper() == 'REFL':
+                    s.refract_mode = 'REFL'
+                    mat = self.gaps[self.cur_surface-1].medium
+                else:
+                    name, cat = surf_data[2], surf_data[3]
+                    try:
+                        mat = gfact.create_glass(name, cat)
+                    except ge.GlassNotFoundError as gerr:
+                        logging.info('%s glass data type %s not found',
+                                     gerr.catalog,
+                                     gerr.name)
+                        logging.info('Replacing material with air.')
+                        mat = m.Air()
+
+        else:  # only curvature and thickness entered, set material to air
+            mat = m.Air()
+
+        g = gap.Gap(surf_data[1], mat)
         return s, g
 
     def surface_label_list(self):
@@ -245,22 +296,20 @@ class SequentialModel:
     def seq_model_to_paraxial_lens(self):
         """ returns lists of power, reduced thickness, signed index and refract mode
         """
-        wl = self.optical_spec.spectral_region.central_wvl()
-        n_before = self.gaps[0].medium.rindex(wl)
+        wl = self.optical_spec.spectral_region.reference_wvl
+        n_before = self.rndx[0][wl]
         pwr = []
         tau = []
         indx = []
-        rmd = []
-        for sg in self.path():
+        ref_mode = []
+        for i, sg in enumerate(self.path()):
             if sg[Gap]:
-                n_after = copysign(sg[Gap].medium.rindex(wl), n_before)
+                n_after = self.rndx[i][wl]
                 rmode = sg[Surf].refract_mode
-                if rmode == 'REFL':
-                    n_after = -n_after
 
                 tau.append(sg[Gap].thi/n_after)
                 indx.append(n_after)
-                rmd.append(rmode)
+                ref_mode.append(rmode)
 
                 power = sg[Surf].optical_power
                 pwr.append(power)
@@ -269,9 +318,9 @@ class SequentialModel:
             else:
                 tau.append(0.0)
                 indx.append(n_before)
-                rmd.append(rmode)
+                ref_mode.append(rmode)
                 pwr.append(0.0)
-        return [pwr, tau, indx, rmd]
+        return [pwr, tau, indx, ref_mode]
 
     def paraxial_lens_to_seq_model(self, lens):
         """ Applies a paraxial lens spec (power, reduced distance) to the model data
