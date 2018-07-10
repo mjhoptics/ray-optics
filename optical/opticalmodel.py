@@ -42,6 +42,20 @@ class SystemSpec:
         self.temperature = 20.0
         self.pressure = 760.0
 
+    def nm_to_sys_units(self, nm):
+        if self.dimensions == 'M':
+            return 1e-9 * nm
+        elif self.dimensions == 'CM':
+            return 1e-7 * nm
+        elif self.dimensions == 'MM':
+            return 1e-6 * nm
+        elif self.dimensions == 'IN':
+            return 1e-6 * nm/25.4
+        elif self.dimensions == 'FT':
+            return 1e-6 * nm/304.8
+        else:
+            return nm
+
 
 class OpticalModel:
     """ Top level container for optical model. """
@@ -73,3 +87,6 @@ class OpticalModel:
     def update_model(self):
         self.seq_model.update_model()
         self.ele_model.update_model()
+
+    def nm_to_sys_units(self, nm):
+        return self.system_spec.nm_to_sys_units(nm)
