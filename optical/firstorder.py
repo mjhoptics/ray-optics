@@ -9,7 +9,7 @@ Created on Tue Feb 13 10:48:19 2018
 """
 import math
 from optical.model_constants import Surf, Gap
-from optical.model_constants import ht, slp
+from optical.model_constants import ht, slp, aoi
 
 
 class FirstOrderData:
@@ -241,3 +241,16 @@ def compute_first_order(seq_model, stop, wl):
     fod.exp_radius = abs(fod.opt_inv/(n_k*pr_ray[-1][slp]))
 
     return ax_ray, pr_ray, fod
+
+
+def list_parax_trace(seq_model):
+    ax_ray, pr_ray, fod = seq_model.optical_spec.parax_data
+    wl = seq_model.optical_spec.spectral_region.reference_wvl
+    print("stop surface:", seq_model.stop_surface)
+    print("           y           u           n*i         ybar         ubar"
+          "        n*ibar")
+    for i, ax in enumerate(ax_ray):
+        n = seq_model.rndx[i][wl]
+        print("{:2} {:12.6g} {:12.6g} {:12.6g} {:12.6g} {:12.6g} {:12.6g}"
+              .format(i, ax_ray[i][ht], ax_ray[i][slp], n*ax_ray[i][aoi],
+                      pr_ray[i][ht], pr_ray[i][slp], n*pr_ray[i][aoi]))
