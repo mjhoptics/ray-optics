@@ -113,9 +113,16 @@ class OpticalSpecs:
 
 
 class WvlSpec:
-    def __init__(self, wlwts=[(550., 1.)]):
+    """ Class defining a spectral region
+
+    A spectral region is a list of wavelengths (in nm) and corresponding
+    weights. A reference wavelength index defines the "center" of the
+    spectral region.
+
+    """
+    def __init__(self, wlwts=[(550., 1.)], ref_wl=0):
         self.set_from_list(wlwts)
-        self.reference_wvl = 0
+        self.reference_wvl = ref_wl
         self.coating_wvl = 550.0
 
     def central_wvl(self):
