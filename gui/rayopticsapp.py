@@ -29,6 +29,7 @@ import optical.elements as ele
 import gui.plotcanvas as plotter
 import gui.mpl.axisarrayfigure as aaf
 import gui.mpl.paraxdgnfigure as pdf
+from gui.mpl.lenslayoutfigure import LensLayoutFigure
 import gui.pytablemodel as tbl
 import gui.graphicsitems as gitm
 
@@ -90,6 +91,8 @@ class MainWindow(QMainWindow):
 #                       "codev/test/rc_f16.seq")
         self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
                        "codev/test/ag_dblgauss.seq")
+#        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
+#                       "TwoMirror.roa")
 
     def add_subwindow(self, widget, model_info):
             sub_wind = self.mdi.addSubWindow(widget)
@@ -146,6 +149,7 @@ class MainWindow(QMainWindow):
         self.opt_model = optm.open_model(file_name)
         self.is_changed = True
         self.create_lens_table()
+#        self.create_lens_layout_view()
         self.create_2D_lens_view()
 
     def save_file(self, file_name):
@@ -158,7 +162,8 @@ class MainWindow(QMainWindow):
             self.create_lens_table()
 
         if q.text() == "Lens View":
-            self.create_2D_lens_view()
+            self.create_lens_layout_view()
+#            self.create_2D_lens_view()
 
         if q.text() == "Ray Fans":
             self.create_ray_fan_view()
@@ -277,6 +282,35 @@ class MainWindow(QMainWindow):
         for fi, f in enumerate(fov.fields):
             rb = gitm.RayBundle(seq_model, fi, start_offset)
             gscene.addItem(rb)
+
+    def create_lens_layout_view(self):
+        fig = LensLayoutFigure(self.opt_model)
+#        fig = LensLayoutFigure(self.opt_model, figsize=(5, 4))
+        pc = plotter.PlotCanvas(self, fig)
+        # construct the top level widget
+        widget = QWidget()
+        # construct the top level layout
+        layout = QVBoxLayout(widget)
+
+        # set the layout on the widget
+        widget.setLayout(layout)
+
+        sub = self.add_subwindow(widget,
+                                 (self.opt_model,
+                                  MainWindow.update_lens_layout_view, fig))
+        sub.setWindowTitle("Lens Layout View")
+        view_width = 660
+        view_ht = 440
+        orig_x, orig_y = self.initial_window_offset()
+        sub.setGeometry(orig_x, orig_y, view_width, view_ht)
+
+        layout.addWidget(pc)
+
+        sub.show()
+
+    def update_lens_layout_view(plotFigure):
+        plotFigure.update_data()
+        plotFigure.plot()
 
     def create_paraxial_design_view(self, dgm_type):
         seq_model = self.opt_model.seq_model
