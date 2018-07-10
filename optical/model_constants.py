@@ -8,12 +8,13 @@ Created on Wed May 23 16:00:55 2018
 """
 
 # sequential model data structures
-Surf, Gap = range(2)
+Surf, Gap, Indx = range(3)
 
 
 # paraxial optics data structures
-# 3 parts of paraxial model: axial ray, principal ray, lens data
-ax, pr, lns = range(3)
+# 4 parts of paraxial model: axial ray, principal ray,
+#                            lens data, optical invariant
+ax, pr, lns, inv = range(4)
 # paraxial ray data at an interface: height, n*slope, n*angle of incidence
 ht, slp, aoi = range(3)
 # lens data: power, reduced distance, refractive index (n), refract mode

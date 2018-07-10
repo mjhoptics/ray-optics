@@ -125,16 +125,17 @@ class ParaxialDesignFigure(Figure):
             self.data_slice = slice(1, None)
             self.x_label = r'$\overline{y}$'
             self.y_label = 'y'
-            self.apply_data = pd.ht_to_slope
+            self.apply_data = pd.apply_ht_dgm_data
         elif dgm_type == slp_dgm:
             self.type_sel = slp
             self.data_slice = slice(0, -1)
             self.x_label = r'$\overline{\omega}$'
             self.y_label = r'$\omega$'
-            self.apply_data = pd.slope_to_ht
+            self.apply_data = pd.apply_slope_dgm_data
 
     def update_data(self):
         self.lens = pd.build_lens(self.seq_model)
+        return self
 
     def plot(self):
         self.clf()
@@ -192,9 +193,8 @@ class ParaxialDesignFigure(Figure):
         if self.vertex:
             self.lens[pr][self.type_sel][self.vertex] = event.xdata
             self.lens[ax][self.type_sel][self.vertex] = event.ydata
-            opt_inv = self.seq_model.optical_spec.parax_data[2].opt_inv
-#            print("on_release", self.vertex, opt_inv, event.xdata, event.ydata)
-            self.apply_data(self.lens, self.vertex, opt_inv)
+#            print("on_release", self.vertex, event.xdata, event.ydata)
+            self.apply_data(self.lens, self.vertex)
             self.seq_model.paraxial_lens_to_seq_model(self.lens)
             self.refresh_gui()
             self.vertex = None
