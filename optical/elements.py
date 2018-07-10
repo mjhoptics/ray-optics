@@ -9,7 +9,6 @@ Created on Sun Jan 28 16:27:01 2018
 """
 
 import util.rgbtable as rgbt
-from optical.model_constants import Surf, Gap
 import optical.thinlens
 
 
@@ -45,16 +44,21 @@ class Element():
         return attrs
 
     def sync_to_restore(self, surfs, tfrms):
+        # when restoring, we want to use the stored indices to look up the
+        # new object instances
         self.tfrm = tfrms[self.s1_indx]
         self.s1 = surfs[self.s1_indx]
         self.s2 = surfs[self.s2_indx]
 
-    def reference_interface(self):
-        return self.s1
-
     def sync_to_update(self, surfs):
+        # when updating, we want to use the stored object instances to get the
+        # current indices into the interface list (e.g. to handle insertion and
+        # deletion of interfaces)
         self.s1_indx = surfs.index(self.s1)
         self.s2_indx = surfs.index(self.s2)
+
+    def reference_interface(self):
+        return self.s1
 
     def update_size(self):
         self.sd = max(self.s1.surface_od(), self.s2.surface_od())
