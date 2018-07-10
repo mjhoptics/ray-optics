@@ -86,9 +86,11 @@ class AxisArrayFigure(Figure):
                     y_smooth.append(spline(x_data[k], y_data[k], x_smooth[k]))
                 row.append((x_smooth, y_smooth, max_value, rc))
             self.axis_data_array.append(row)
+        return self
 
     def plot(self):
-        self.clf()
+        if hasattr(self, 'ax_arr'):
+            self.clf()
 
         m = self.num_rows - 1
         n = self.num_cols - 1
