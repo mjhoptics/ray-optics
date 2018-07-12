@@ -71,6 +71,7 @@ class SequentialModel:
         attrs = dict(vars(self))
         del attrs['parent']
         del attrs['transforms']
+        del attrs['rndx']
         return attrs
 
     def reset(self):
