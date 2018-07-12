@@ -40,3 +40,11 @@ def isanumber(a):
         bool_a = False
 
     return bool_a
+
+
+def transpose(mat):
+    """ transposes a m x n input list and returns the result """
+    mat_t = []
+    for j in range(len(mat[0])):
+        mat_t.append([mat[i][j] for i in range(len(mat))])
+    return mat_t
