@@ -413,7 +413,7 @@ class SequentialModel:
 
     def trace_fan(self, fi, xy, num_rays=21):
         """ xy determines whether x (=0) or y (=1) fan """
-        chief_ray, _ = self.optical_spec.trace(self, [0., 0.], fi)
+        chief_ray, chief_ray_op = self.optical_spec.trace(self, [0., 0.], fi)
         central_coord = chief_ray[-1][0]
         wvls = self.optical_spec.spectral_region
         fans_x = []
@@ -430,7 +430,7 @@ class SequentialModel:
             fan = self.optical_spec.trace_fan(self, fan_def, fi, True, wi)
             f_x = []
             f_y = []
-            for p, r in fan:
+            for p, r, op in fan:
                 f_x.append(p[xy])
                 y_val = r[xy] - central_coord[xy]
                 f_y.append(y_val)
@@ -441,6 +441,28 @@ class SequentialModel:
         fans_x = np.array(fans_x)
         fans_y = np.array(fans_y)
         return fans_x, fans_y, max_y_val, rc
+
+    def trace_grid(self, fi, fct, num_rays=32):
+        """ fct is applied to the raw grid and returned as a grid  """
+        chief_ray, chief_ray_op = self.optical_spec.trace(self, [0., 0.], fi)
+        central_coord = chief_ray[-1][0]
+        wvls = self.optical_spec.spectral_region
+        grids = []
+        grid_start = np.array([-1., -1.])
+        grid_stop = np.array([1., 1.])
+        grid_def = [grid_start, grid_stop, num_rays]
+        rc = []
+        for wi in range(len(wvls.wavelengths)):
+            rc.append(wvls.render_colors[wi])
+            grid = self.optical_spec.trace_grid(self, grid_def, fi, True, wi)
+            grid_w = []
+            for row in grid:
+                for p, r, op in row:
+                    result = fct(p, r, op, central_coord, chief_ray_op)
+                    grid_w.append(result)
+
+            grids.append(np.array(grid_w))
+        return grids, rc
 
     def shift_start_of_ray_bundle(self, rayset, start_offset, r, t):
         """ modify rayset so that rays begin "start_offset" from 1st surface

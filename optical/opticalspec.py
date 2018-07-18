@@ -90,12 +90,50 @@ class OpticalSpecs:
             dir0 = dir0/length
             ray, op = rt.trace(sm.path(), pt0, dir0, wvl, eps)
             if img_only:
-                fan.append([pupil, ray[-1][0]])
+                fan.append([pupil, ray[-1][0], op])
             else:
-                fan.append([pupil, ray])
+                fan.append([pupil, ray, op])
 
             start += step
         return fan
+
+    def trace_grid(self, seq_model, grid_rng, fld, img_only=True,
+                   wl=None, eps=1.0e-12):
+        if wl is None:
+            wvl = self.spectral_region.central_wvl()
+        else:
+            wvl = self.spectral_region.wavelengths[wl]
+
+        f = self.field_of_view.fields[fld]
+        pt0 = self.obj_coords(f)
+        fod = self.parax_data[2]
+        eprad = fod.enp_radius
+        start = np.array(grid_rng[0])
+        stop = grid_rng[1]
+        num = grid_rng[2]
+        step = np.array((stop - start)/(num - 1))
+        grid = []
+        for i in range(num):
+            grid_row = []
+            for j in range(num):
+                pupil = np.array(start)
+                if (pupil[0]**2 + pupil[1]**2) < 1.0:
+                    f.apply_vignetting(pupil)
+                    pt1 = np.array([eprad*pupil[0], eprad*pupil[1],
+                                    fod.obj_dist+fod.enp_dist])
+                    dir0 = pt1 - pt0
+                    length = norm(dir0)
+                    dir0 = dir0/length
+                    ray, op = rt.trace(seq_model.path(), pt0, dir0, wvl, eps)
+                    if img_only:
+                        grid_row.append([pupil, ray[-1][0], op])
+                    else:
+                        grid_row.append([pupil, ray, op])
+                start[1] += step[1]
+            grid.append(grid_row)
+            start[0] += step[0]
+            start[1] = grid_rng[0][1]
+        return grid
 
     def obj_coords(self, fld):
         fov = self.field_of_view
