@@ -8,9 +8,9 @@ Created on Fri Jul  6 07:24:40 2018
 """
 
 import numpy as np
+import pandas as pd
 
 from optical.model_constants import ht, slp, aoi
-from util.misc_math import transpose
 
 
 def compute_third_order(seq_model):
@@ -21,17 +21,11 @@ def compute_third_order(seq_model):
     opt_inv = fod.opt_inv
     opt_inv_sqr = opt_inv*opt_inv
 
-    SI = 0.
-    SII = 0.
-    SIII = 0.
-    SIV = 0.
-    SV = 0.
-    third_order = []
-    third_order_asp = {}
+    third_order = {}
 
     # Transfer from object
     p = 0
-
+    pd_index = ['S-I', 'S-II', 'S-III', 'S-IV', 'S-V']
     for c in range(1, len(ax_ray)-1):
         n_after = seq_model.rndx[c][wl]
         cv = seq_model.ifcs[c].profile_cv()
@@ -48,34 +42,23 @@ def compute_third_order(seq_model):
         SVi = -Abar*(Abar * Abar * delta_n_sqr * ax_ray[c][ht] -
                      (opt_inv + Abar * ax_ray[c][ht])*pr_ray[c][ht]*P)
 
+        scoef = pd.Series([SIi, SIIi, SIIIi, SIVi, SVi], index=pd_index)
+        col = str(c)
+        third_order[col] = scoef
+
         # handle case of aspheric profile
         if hasattr(seq_model.ifcs[c], 'profile'):
             to_asp = aspheric_seidel_contribution(seq_model, c)
             if to_asp:
-                third_order_asp[c] = to_asp
-
-        SI += SIi
-        SII += SIIi
-        SIII += SIIIi
-        SIV += SIVi
-        SV += SVi
-
-        third_order.append([SIi, SIIi, SIIIi, SIVi, SVi])
+                ascoef = pd.Series(to_asp, index=pd_index)
+                third_order[col+'.asp'] = ascoef
 
         p = c
         n_before = n_after
 
-    third_order_total = [sum(v) for v in transpose(third_order)]
-
-    if len(third_order_asp) > 0:
-        asp_vals = list(third_order_asp.values())
-        sum_asp = [sum(v) for v in transpose(asp_vals)]
-        third_order_total = [third_order_total[i]+sum_asp[i]
-                             for i in range(len(sum_asp))]
-#        third_order_total = np.add(third_order_total, sum_asp)
-
-    third_order.append(third_order_total)
-    return (third_order, third_order_total, third_order_asp)
+    third_order_df = pd.DataFrame(third_order, index=pd_index)
+    third_order_df['sum'] = third_order_df.sum(axis='columns')
+    return third_order_df.T
 
 
 def calc_4th_order_aspheric_term(p):
@@ -112,17 +95,19 @@ def aspheric_seidel_contribution(seq_model, i):
 
 def seidel_to_wavefront(seidel, central_wvl):
     """ Convert Seidel coefficients to wavefront aberrations """
+    pd_index = ['W040', 'W131', 'W222', 'W220', 'W311']
     SI, SII, SIII, SIV, SV = seidel
     W040 = 0.125*SI/central_wvl
     W131 = 0.5*SII/central_wvl
     W222 = 0.5*SIII/central_wvl
     W220 = 0.25*(SIV + SIII)/central_wvl
     W311 = 0.5*SV/central_wvl
-    return [W040, W131, W222, W220, W311]
+    return pd.Series([W040, W131, W222, W220, W311], index=pd_index)
 
 
 def seidel_to_transverse_aberration(seidel, ref_index, slope):
     """ Convert Seidel coefficients to transverse ray aberrations """
+    pd_index = ['TSA', 'TCO', 'TAS', 'SAS', 'PTB', 'DST']
     SI, SII, SIII, SIV, SV = seidel
     cnvrt = 1.0/(2.0*ref_index*slope)
     # TSA = transverse spherical aberration
@@ -137,11 +122,12 @@ def seidel_to_transverse_aberration(seidel, ref_index, slope):
     PTB = cnvrt*SIV
     # DST = distortion
     DST = cnvrt*SV
-    return [TSA, TCO, TAS, SAS, PTB, DST]
+    return pd.Series([TSA, TCO, TAS, SAS, PTB, DST], index=pd_index)
 
 
 def seidel_to_field_curv(seidel, ref_index, opt_inv):
     """ Convert Seidel coefficients to astigmatic and Petzval curvatures """
+    pd_index = ['TCV', 'SCV', 'PCV']
     SI, SII, SIII, SIV, SV = seidel
     cnvrt = ref_index/opt_inv**2
     # TCV = curvature of the tangential image surface
@@ -150,104 +136,4 @@ def seidel_to_field_curv(seidel, ref_index, opt_inv):
     SCV = cnvrt*(SIII + SIV)
     # PCV = curvature of the Petzval surface
     PCV = cnvrt*SIV
-    return [TCV, SCV, PCV]
-
-
-def transform_3rd_order(to_pkg, action):
-    """ apply action to 3rd order package, to_pkg.
-        to_pkg = to3, to3_total, to3_asp
-        action = fct, (args)
-        returns a 2d list of the transformed inputs
-    """
-    to3, to3_total, to3_asp = to_pkg
-    fct, (args) = action
-    has_asp = False if len(to3_asp) is 0 else True
-    transformed_3rd_order = []
-    for i, to3i in enumerate(to3[:-1]):
-        ta = fct(to3i, *args)
-        transformed_3rd_order.append(ta)
-        if has_asp:
-            try:
-                to_asp = to3_asp[i+1]
-            except KeyError:
-                continue
-            else:
-                ta = fct(to_asp, *args)
-                transformed_3rd_order.append(ta)
-    transformed_3rd_order.append(fct(to3_total, *args))
-    return transformed_3rd_order
-
-
-def list_seidel_coefficients(to_pkg):
-    to3, to3_total, to3_asp = to_pkg
-    has_asp = False if len(to3_asp) is 0 else True
-    print("\n                  SI          SII          SIII          SIV"
-          "          SV ")
-    for i, to3i in enumerate(to3[:-1]):
-        print("{}         {:12.4g} {:12.4g} {:12.4g} {:12.4g} {:12.4g}"
-              .format(i+1, to3i[0], to3i[1], to3i[2], to3i[3], to3i[4]))
-        if has_asp:
-            try:
-                to_asp = to3_asp[i+1]
-            except KeyError:
-                continue
-            else:
-                print("asp       {:12.4g} {:12.4g} {:12.4g} {:12.4g} {:12.4g}"
-                      .format(to_asp[0], to_asp[1], to_asp[2], to_asp[3],
-                              to_asp[4]))
-    print("Total     {:12.4g} {:12.4g} {:12.4g} {:12.4g} {:12.4g}"
-          .format(*to3_total))
-
-
-def list_3rd_order_trans_abr(to_pkg, n_last, u_last):
-    to3, to3_total, to3_asp = to_pkg
-    has_asp = False if len(to3_asp) is 0 else True
-    print("\n                 TSA          TCO          TAS          SAS"
-          "          PTB          DST")
-    for i, to3i in enumerate(to3[:-1]):
-        ta = seidel_to_transverse_aberration(to3i, n_last, u_last)
-        print("{}         "
-              "{:12.4g} {:12.4g} {:12.4g} {:12.4g} {:12.4g} {:12.4g}"
-              .format(i+1, ta[0], ta[1], ta[2], ta[3], ta[4], ta[5]))
-        if has_asp:
-            try:
-                to_asp = to3_asp[i+1]
-            except KeyError:
-                continue
-            else:
-                ta = seidel_to_transverse_aberration(to_asp, n_last, u_last)
-                print("asp       {:12.4g} {:12.4g} {:12.4g} {:12.4g} {:12.4g}"
-                      .format(ta[0], ta[1], ta[2], ta[3], ta[4]))
-    tab_total = seidel_to_transverse_aberration(to3_total, n_last, u_last)
-    print("Total     {:12.4g} {:12.4g} {:12.4g} {:12.4g} {:12.4g} {:12.4g}"
-          .format(*tab_total))
-
-
-def list_3rd_order_wvfrnt(to_pkg, central_wv):
-    to3, to3_total, to3_asp = to_pkg
-    has_asp = False if len(to3_asp) is 0 else True
-    print("\nWavefront sums    W040         W131         W222         "
-          "W220         W311")
-    for i, to3i in enumerate(to3[:-1]):
-        wv = seidel_to_wavefront(to3i, central_wv)
-        print("{}         {:12.4g} {:12.4g} {:12.4g} {:12.4g} {:12.4g}"
-              .format(i+1, wv[0], wv[1], wv[2], wv[3], wv[4]))
-        if has_asp:
-            try:
-                to_asp = to3_asp[i+1]
-            except KeyError:
-                continue
-            else:
-                wv = seidel_to_wavefront(to_asp, central_wv)
-                print("asp       {:12.4g} {:12.4g} {:12.4g} {:12.4g} {:12.4g}"
-                      .format(wv[0], wv[1], wv[2], wv[3], wv[4]))
-    wv_total = seidel_to_wavefront(to3_total, central_wv)
-    print("Total     {:12.4g} {:12.4g} {:12.4g} {:12.4g} {:12.4g}".
-          format(*wv_total))
-
-
-def list_3rd_order_field_cv(to_pkg, n_last, opt_inv):
-    to3, to3_total, to3_asp = to_pkg
-    TCV, SCV, PCV = seidel_to_field_curv(to3_total, n_last, opt_inv)
-    print("\nField Curvatures:   Tangential    Sagittal      Petzval")
-    print("Totals           {:12.4g} {:12.4g} {:12.4g}".format(TCV, SCV, PCV))
+    return pd.Series([TCV, SCV, PCV], index=pd_index)
