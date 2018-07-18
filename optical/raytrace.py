@@ -51,6 +51,26 @@ def phase(intrfc, pt, d_in, normal, wl, n_in, n_out):
 
 
 def trace(path, pt0, dir0, wl, eps=1.0e-12):
+    """ fundamental raytrace function
+
+    inputs:
+        path: an iterator containing interfaces and gaps to be traced
+        pt0: starting point in coords of first interface
+        dir0: starting direction cosines in coords of first interface
+        wl: wavelength in nm
+        eps: accuracy tolerance for surface intersection calculation
+
+    returns ray, op_delta
+    where ray is:
+        [pt, after_dir, dst_before]
+        where
+        pt: the intersection point of the ray in interface coordinates
+        after_dir: the ray direction cosine following the interface in
+                   interface coordinates
+        dst_before: the geometric distance from the previous interface
+    and
+        op_delta: optical path wrt equally inclined chords to the optical axis
+    """
     ray = []
     # trace object surface
     obj = next(path)
