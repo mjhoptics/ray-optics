@@ -63,6 +63,10 @@ class LensLayoutFigure(Figure):
             ele_model.elements_from_sequence(self.opt_model.seq_model)
         self.update_data()
 
+    def refresh(self):
+        self.update_data()
+        self.plot()
+
     def update_data(self):
         self.patches = []
         self.ele_bbox = self.update_element_model(self.opt_model.ele_model)

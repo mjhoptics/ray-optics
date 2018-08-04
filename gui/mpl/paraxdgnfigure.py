@@ -133,6 +133,10 @@ class ParaxialDesignFigure(Figure):
             self.y_label = r'$\omega$'
             self.apply_data = pd.apply_slope_dgm_data
 
+    def refresh(self):
+        self.update_data()
+        self.plot()
+
     def update_data(self):
         self.lens = pd.build_lens(self.seq_model)
         return self
