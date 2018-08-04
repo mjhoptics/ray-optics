@@ -32,6 +32,8 @@ class FirstOrderData:
         self.enp_radius = None
         self.exp_dist = None
         self.exp_radius = None
+        self.obj_na = None
+        self.img_na = None
 
     def list_first_order_data(self):
         print("efl        {:12.4g}".format(self.efl))
@@ -45,11 +47,13 @@ class FirstOrderData:
         print("obj_ang    {:12.4g}".format(self.obj_ang))
         print("enp_dist   {:12.4g}".format(self.enp_dist))
         print("enp_radius {:12.4g}".format(self.enp_radius))
+        print("na obj     {:12.4g}".format(self.obj_na))
         print("n obj      {:12.4g}".format(self.n_obj))
         print("img_dist   {:12.4g}".format(self.img_dist))
         print("img_ht     {:12.4g}".format(self.img_ht))
         print("exp_dist   {:12.4g}".format(self.exp_dist))
         print("exp_radius {:12.4g}".format(self.exp_radius))
+        print("na img     {:12.4g}".format(self.img_na))
         print("n img      {:12.4g}".format(self.n_img))
         print("optical invariant {:12.4g}".format(self.opt_inv))
 
@@ -152,7 +156,7 @@ def compute_first_order(seq_model, stop, wl):
     """ Returns paraxial axial and chief rays, plus first order data. """
     p_ray, q_ray = paraxial_trace(seq_model.path(), 1, [1., 0.], [0., 1.], wl)
 
-    n_k = seq_model.gaps[-1].medium.rindex(wl)
+    n_k = seq_model.central_rndx(-1)
     ak1 = p_ray[-1][ht]
     bk1 = q_ray[-1][ht]
     ck1 = n_k*p_ray[-1][slp]
@@ -161,7 +165,7 @@ def compute_first_order(seq_model, stop, wl):
 #    print(p_ray[-2][ht], q_ray[-2][ht], n_k*p_ray[-2][slp], n_k*q_ray[-2][slp])
 #    print(ak1, bk1, ck1, dk1)
 
-    n_s = seq_model.gaps[stop].medium.rindex(wl)
+    n_s = seq_model.central_rndx(stop)
     as1 = p_ray[stop][ht]
     bs1 = q_ray[stop][ht]
     cs1 = n_s*p_ray[stop][slp]
@@ -212,7 +216,7 @@ def compute_first_order(seq_model, stop, wl):
 
     ax_ray, pr_ray = paraxial_trace(seq_model.path(), 0, yu, yu_bar, wl)
 
-    n_0 = seq_model.gaps[0].medium.rindex(wl)
+    n_0 = seq_model.central_rndx(0)
     opt_inv = n_0*(ax_ray[1][ht]*pr_ray[0][slp] - pr_ray[1][ht]*ax_ray[0][slp])
 
     fod = FirstOrderData()
@@ -229,7 +233,7 @@ def compute_first_order(seq_model, stop, wl):
         fod.ppk = (p_ray[-2][ht] - 1.0)*(n_k/ck1)
     fod.ffl = fod.pp1 - fod.efl
     fod.bfl = fod.efl - fod.ppk
-    fod.fno = -1.0/(2.0*ax_ray[-1][slp])
+    fod.fno = -1.0/(2.0*n_k*ax_ray[-1][slp])
     fod.red = dk1 + ck1*fod.obj_dist
     fod.n_obj = n_0
     fod.n_img = n_k
@@ -239,18 +243,20 @@ def compute_first_order(seq_model, stop, wl):
     fod.enp_radius = abs(fod.opt_inv/(n_0*pr_ray[0][slp]))
     fod.exp_dist = -(pr_ray[-1][ht]/pr_ray[-1][slp] - fod.img_dist)
     fod.exp_radius = abs(fod.opt_inv/(n_k*pr_ray[-1][slp]))
+    # compute object and image space numerical apertures
+    fod.obj_na = n_0*math.sin(math.atan(seq_model.z_dir[0]*ax_ray[0][slp]))
+    fod.img_na = n_k*math.sin(math.atan(seq_model.z_dir[-1]*ax_ray[-1][slp]))
 
     return ax_ray, pr_ray, fod
 
 
 def list_parax_trace(seq_model):
     ax_ray, pr_ray, fod = seq_model.optical_spec.parax_data
-    wl = seq_model.optical_spec.spectral_region.reference_wvl
     print("stop surface:", seq_model.stop_surface)
     print("           y           u           n*i         ybar         ubar"
           "        n*ibar")
     for i, ax in enumerate(ax_ray):
-        n = seq_model.rndx[i][wl]
+        n = seq_model.central_rndx(i)
         print("{:2} {:12.6g} {:12.6g} {:12.6g} {:12.6g} {:12.6g} {:12.6g}"
               .format(i, ax_ray[i][ht], ax_ray[i][slp], n*ax_ray[i][aoi],
                       pr_ray[i][ht], pr_ray[i][slp], n*pr_ray[i][aoi]))
