@@ -22,10 +22,7 @@ from PyQt5.QtWidgets import (QApplication, QAction, QMainWindow, QMdiArea,
                              QGroupBox)
 from PyQt5.QtCore import pyqtSlot
 
-import codev.cmdproc as cvp
 import optical.opticalmodel as optm
-import optical.sequential as seq
-import optical.elements as ele
 import gui.plotcanvas as plotter
 import gui.mpl.axisarrayfigure as aaf
 import gui.mpl.paraxdgnfigure as pdf
@@ -65,11 +62,15 @@ class MainWindow(QMainWindow):
         view.addAction("Lens Table")
         view.addAction("Lens View")
         view.addSeparator()
-        view.addAction("Ray Fans")
         view.addAction("Paraxial Height View")
         view.addAction("Paraxial Slope View")
         view.addAction("Paraxial Ray Table")
         view.addAction("Ray Table")
+        view.addSeparator()
+        view.addAction("Ray Fans")
+        view.addAction("OPD Fans")
+        view.addAction("Spot Diagram")
+        view.addAction("Wavefront Map")
         view.addSeparator()
         view.triggered[QAction].connect(self.view_action)
         wnd = bar.addMenu("Window")
@@ -84,15 +85,25 @@ class MainWindow(QMainWindow):
 #        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
 #                       "codev/test/paraboloid.seq")
 #        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
+#                       "singlet_f5.roa")
+#        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
+#                       "Ritchey_Chretien.roa")
+#        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
 #                       "codev/test/schmidt.seq")
 #        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
 #                       "codev/test/questar35.seq")
 #        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
+#                       "codev/test/conic_mirror.seq")
+#        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
 #                       "codev/test/rc_f16.seq")
+#        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
+#                       "codev/test/ag_dblgauss.seq")
         self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
-                       "codev/test/ag_dblgauss.seq")
+                       "codev/test/landscape_lens.seq")
 #        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
 #                       "TwoMirror.roa")
+#        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
+#                       "Sasian Triplet.roa")
 
     def add_subwindow(self, widget, model_info):
             sub_wind = self.mdi.addSubWindow(widget)
@@ -166,7 +177,16 @@ class MainWindow(QMainWindow):
 #            self.create_2D_lens_view()
 
         if q.text() == "Ray Fans":
-            self.create_ray_fan_view()
+            self.create_ray_fan_view("Ray")
+
+        if q.text() == "OPD Fans":
+            self.create_ray_fan_view("OPD")
+
+        if q.text() == "Spot Diagram":
+            self.create_ray_grid_view()
+
+        if q.text() == "Wavefront Map":
+            self.create_wavefront_view()
 
         if q.text() == "Paraxial Height View":
             self.create_paraxial_design_view(pdf.ht_dgm)
@@ -188,18 +208,7 @@ class MainWindow(QMainWindow):
             self.create_table_view(model, "Paraxial Ray Table")
 
         if q.text() == "Ray Table":
-            seq_model = self.opt_model.seq_model
-            r2f1, _ = seq_model.optical_spec.trace(seq_model, [0., 1.], 0)
-            colEvalStr = ['[{}][0][0]', '[{}][0][1]', '[{}][0][2]',
-                          '[{}][1][0]', '[{}][1][1]', '[{}][1][2]',
-                          '[{}][2]']
-            rowHeaders = seq_model.surface_label_list()
-            colHeaders = ['x', 'y', 'z', 'l', 'm', 'n', 'length']
-            colFormats = ['{:12.5g}', '{:12.5g}', '{:12.5g}', '{:9.6f}',
-                          '{:9.6f}', '{:9.6f}', '{:12.5g}']
-            model = tbl.PyTableModel(r2f1, '', colEvalStr, rowHeaders,
-                                     colHeaders, colFormats, False)
-            self.create_table_view(model, "Ray Table")
+            self.create_ray_table()
 
     def window_action(self, q):
         if q.text() == "Cascade":
@@ -221,6 +230,26 @@ class MainWindow(QMainWindow):
         model = tbl.PyTableModel(seq_model, '', colEvalStr, rowHeaders,
                                  colHeaders, colFormats, True)
         self.create_table_view(model, "Surface Data Table")
+
+    def create_ray_table(self):
+        sm = self.opt_model.seq_model
+        osp = sm.optical_spec
+        pupil = [0., 0.]
+        fi = 1
+        wl = osp.spectral_region.reference_wvl
+        fld, wvl = osp.lookup_fld_and_wvl(fi, wl)
+        ray, ray_op, wvl, opd = osp.trace_with_opd(sm, pupil, fld, wvl)
+
+        colEvalStr = ['[{}][0][0]', '[{}][0][1]', '[{}][0][2]',
+                      '[{}][1][0]', '[{}][1][1]', '[{}][1][2]',
+                      '[{}][2]']
+        rowHeaders = sm.surface_label_list()
+        colHeaders = ['x', 'y', 'z', 'l', 'm', 'n', 'length']
+        colFormats = ['{:12.5g}', '{:12.5g}', '{:12.5g}', '{:9.6f}',
+                      '{:9.6f}', '{:9.6f}', '{:12.5g}']
+        model = tbl.PyTableModel(ray, '', colEvalStr, rowHeaders,
+                                 colHeaders, colFormats, False)
+        self.create_table_view(model, "Ray Table")
 
     def create_2D_lens_view(self):
         scene2d = QGraphicsScene()
@@ -285,69 +314,63 @@ class MainWindow(QMainWindow):
 
     def create_lens_layout_view(self):
         fig = LensLayoutFigure(self.opt_model)
-#        fig = LensLayoutFigure(self.opt_model, figsize=(5, 4))
-        pc = plotter.PlotCanvas(self, fig)
-        # construct the top level widget
-        widget = QWidget()
-        # construct the top level layout
-        layout = QVBoxLayout(widget)
-
-        # set the layout on the widget
-        widget.setLayout(layout)
-
-        sub = self.add_subwindow(widget,
-                                 (self.opt_model,
-                                  MainWindow.update_lens_layout_view, fig))
-        sub.setWindowTitle("Lens Layout View")
         view_width = 660
         view_ht = 440
-        orig_x, orig_y = self.initial_window_offset()
-        sub.setGeometry(orig_x, orig_y, view_width, view_ht)
+        title = "Lens Layout View"
+        self.create_plot_view(fig, title, view_width, view_ht,
+                              add_scale_panel=False)
 
-        layout.addWidget(pc)
-
-        sub.show()
-
-    def update_lens_layout_view(plotFigure):
-        plotFigure.update_data()
-        plotFigure.plot()
+    def update_figure_view(plotFigure):
+        plotFigure.refresh()
 
     def create_paraxial_design_view(self, dgm_type):
         seq_model = self.opt_model.seq_model
         fig = pdf.ParaxialDesignFigure(seq_model, self.refresh_gui, dgm_type,
                                        figsize=(5, 4))
-        pc = plotter.PlotCanvas(self, fig)
-        # construct the top level widget
-        widget = QWidget()
-        # construct the top level layout
-        layout = QVBoxLayout(widget)
-
-        # set the layout on the widget
-        widget.setLayout(layout)
-
-        sub = self.add_subwindow(widget,
-                                 (self.opt_model,
-                                  MainWindow.update_paraxial_design_view, fig))
-        sub.setWindowTitle("Paraxial Design View")
         view_width = 500
         view_ht = 500
-        orig_x, orig_y = self.initial_window_offset()
-        sub.setGeometry(orig_x, orig_y, view_width, view_ht)
+        title = "Paraxial Design View"
+        self.create_plot_view(fig, title, view_width, view_ht,
+                              add_scale_panel=False)
 
-        layout.addWidget(pc)
-
-        sub.show()
-
-    def update_paraxial_design_view(plotFigure):
-        plotFigure.update_data()
-        plotFigure.plot()
-
-    def create_ray_fan_view(self):
+    def create_ray_fan_view(self, data_type):
         seq_model = self.opt_model.seq_model
-        fig = aaf.AxisArrayFigure(seq_model, aaf.Fit_All_Same,
-                                  figsize=(5, 4), dpi=100)
+        fig = aaf.RayFanFigure(seq_model, data_type,
+                               scale_type=aaf.Fit_All_Same,
+                               figsize=(5, 4), dpi=100)
+        view_width = 600
+        view_ht = 600
+        if data_type == "Ray":
+            title = "Ray Fan View"
+        elif data_type == "OPD":
+            title = "OPD Fan View"
+        else:
+            title = "bad data_type argument"
+        self.create_plot_view(fig, title, view_width, view_ht)
+
+    def create_ray_grid_view(self):
+        seq_model = self.opt_model.seq_model
+
+        fig = aaf.SpotDiagramFigure(seq_model, scale_type=aaf.Fit_All_Same,
+                                    num_rays=11, dpi=100)
+        view_width = 300
+        view_ht = 600
+        title = "Spot Diagram"
+        self.create_plot_view(fig, title, view_width, view_ht)
+
+    def create_wavefront_view(self):
+        seq_model = self.opt_model.seq_model
+
+        fig = aaf.WavefrontFigure(seq_model, scale_type=aaf.Fit_All_Same,
+                                  num_rays=11, dpi=100)
+        view_width = 300
+        view_ht = 600
+        title = "Wavefront Map"
+        self.create_plot_view(fig, title, view_width, view_ht)
+
+    def create_plot_view(self, fig, title, view_width, view_ht,
+                         add_scale_panel=True):
         pc = plotter.PlotCanvas(self, fig)
-        psp = self.create_plot_scale_panel(pc)
         # construct the top level widget
         widget = QWidget()
         # construct the top level layout
@@ -356,13 +379,13 @@ class MainWindow(QMainWindow):
         # set the layout on the widget
         widget.setLayout(layout)
 
-        layout.addWidget(psp)
+        if add_scale_panel:
+            psp = self.create_plot_scale_panel(pc)
+            layout.addWidget(psp)
 
         sub = self.add_subwindow(widget, (self.opt_model,
-                                          MainWindow.update_ray_fan_view, fig))
-        sub.setWindowTitle("Ray Fan View")
-        view_width = 600
-        view_ht = 600
+                                          MainWindow.update_figure_view, fig))
+        sub.setWindowTitle(title)
         orig_x, orig_y = self.initial_window_offset()
         sub.setGeometry(orig_x, orig_y, view_width, view_ht)
 
@@ -423,10 +446,6 @@ class MainWindow(QMainWindow):
             return ''
 
         plotFigure.plot()
-
-    def update_ray_fan_view(axis_array_figure):
-        axis_array_figure.update_data()
-        axis_array_figure.plot()
 
     def create_table_view(self, table_model, table_title):
         # construct the top level widget
