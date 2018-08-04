@@ -46,7 +46,7 @@ class RayBundle(QGraphicsPolygonItem):
     def __init__(self, seq_model, field_num, start_offset):
         super(RayBundle, self).__init__()
         self.seq_model = seq_model
-        self.field_num = field_num
+        self.field = seq_model.optical_spec.field_of_view.fields[field_num]
         self.start_offset = start_offset
         self.update_shape()
 
@@ -59,7 +59,8 @@ class RayBundle(QGraphicsPolygonItem):
         offset = self.start_offset
         seq_model = self.seq_model
         tfrms = seq_model.transforms
-        rayset = seq_model.trace_boundary_rays_at_field(self.field_num)
+        wvl = seq_model.central_wavelength()
+        rayset = seq_model.trace_boundary_rays_at_field(self.field, wvl)
 
         # If the object distance (tfrms[0][1][2]) is greater than the
         #  start_offset, then modify rayset start to match start_offset.

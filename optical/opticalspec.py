@@ -11,7 +11,9 @@ Created on Thu Jan 25 11:01:04 2018
 import math
 import numpy as np
 from numpy.linalg import norm
+from util.misc_math import normalize
 from optical.firstorder import compute_first_order
+from optical.model_constants import ht, slp, aoi
 from . import raytrace as rt
 import util.colour_system as cs
 srgb = cs.cs_srgb
@@ -43,38 +45,51 @@ class OpticalSpecs:
         self.field_of_view = dl[2]
 
     def update_model(self, seq_model):
+        self.field_of_view.update_model(seq_model)
         stop = seq_model.stop_surface
-        wl = self.spectral_region.central_wvl()
-        self.parax_data = compute_first_order(seq_model, stop, wl)
+        wvl = self.spectral_region.central_wvl()
+        self.parax_data = compute_first_order(seq_model, stop, wvl)
 
-    def trace(self, sm, pupil, fld, wl=None, eps=1.0e-12):
+    def lookup_fld_and_wvl(self, fi, wl=None):
         if wl is None:
             wvl = self.spectral_region.central_wvl()
         else:
             wvl = self.spectral_region.wavelengths[wl]
+        fld = self.field_of_view.fields[fi]
+        return fld, wvl
 
-        f = self.field_of_view.fields[fld]
-        f.apply_vignetting(pupil)
+    def trace_base(self, seq_model, pupil, fld, wvl, eps=1.0e-12):
+        fld.apply_vignetting(pupil)
         fod = self.parax_data[2]
         eprad = fod.enp_radius
         pt1 = np.array([eprad*pupil[0], eprad*pupil[1],
                         fod.obj_dist+fod.enp_dist])
-        pt0 = self.obj_coords(f)
+        pt0 = self.obj_coords(fld)
         dir0 = pt1 - pt0
         length = norm(dir0)
         dir0 = dir0/length
-        return rt.trace(sm.path(), pt0, dir0, wvl, eps)
+        return rt.trace(seq_model, pt0, dir0, wvl, eps)
 
-    def trace_fan(self, sm, fan_rng, fld, img_only=True, wl=None, eps=1.0e-12):
-        if wl is None:
-            wvl = self.spectral_region.central_wvl()
-        else:
-            wvl = self.spectral_region.wavelengths[wl]
+    def trace_with_opd(self, seq_model, pupil, fld, wvl, eps=1.0e-12):
+        """ returns ray and ray_op """
+        ray_pkg = self.trace_base(seq_model, pupil, fld, wvl, eps)
 
-        f = self.field_of_view.fields[fld]
-        pt0 = self.obj_coords(f)
-        fod = self.parax_data[2]
-        eprad = fod.enp_radius
+        rs_pkg, cr_pkg = self.setup_pupil_coords(seq_model, fld, wvl)
+        fld.chief_ray = cr_pkg
+        fld.ref_sphere = rs_pkg
+
+        opd_pkg = rt.wave_abr(seq_model, fld, wvl, ray_pkg)
+        ray, ray_op, wvl = ray_pkg
+        return ray, ray_op, wvl, opd_pkg[0]
+
+    def trace(self, seq_model, pupil, fi, wl=None, eps=1.0e-12):
+        """ returns ray and ray_op """
+        fld, wvl = self.lookup_fld_and_wvl(fi, wl)
+        ray, ray_op, wvl = self.trace_base(seq_model, pupil, fld, wvl, eps)
+        return ray, ray_op, wvl
+
+    def trace_fan(self, seq_model, fan_rng, fld, wvl, img_filter=None,
+                  eps=1.0e-12):
         start = np.array(fan_rng[0])
         stop = fan_rng[1]
         num = fan_rng[2]
@@ -82,32 +97,19 @@ class OpticalSpecs:
         fan = []
         for r in range(num):
             pupil = np.array(start)
-            f.apply_vignetting(pupil)
-            pt1 = np.array([eprad*pupil[0], eprad*pupil[1],
-                            fod.obj_dist+fod.enp_dist])
-            dir0 = pt1 - pt0
-            length = norm(dir0)
-            dir0 = dir0/length
-            ray, op = rt.trace(sm.path(), pt0, dir0, wvl, eps)
-            if img_only:
-                fan.append([pupil, ray[-1][0], op])
+            ray_pkg = self.trace_base(seq_model, pupil, fld, wvl, eps)
+
+            if img_filter:
+                result = img_filter(pupil, ray_pkg)
+                fan.append([pupil, result])
             else:
-                fan.append([pupil, ray, op])
+                fan.append([pupil, ray_pkg])
 
             start += step
         return fan
 
-    def trace_grid(self, seq_model, grid_rng, fld, img_only=True,
-                   wl=None, eps=1.0e-12):
-        if wl is None:
-            wvl = self.spectral_region.central_wvl()
-        else:
-            wvl = self.spectral_region.wavelengths[wl]
-
-        f = self.field_of_view.fields[fld]
-        pt0 = self.obj_coords(f)
-        fod = self.parax_data[2]
-        eprad = fod.enp_radius
+    def trace_grid(self, seq_model, grid_rng, fld, wvl, img_filter=None,
+                   eps=1.0e-12):
         start = np.array(grid_rng[0])
         stop = grid_rng[1]
         num = grid_rng[2]
@@ -118,17 +120,19 @@ class OpticalSpecs:
             for j in range(num):
                 pupil = np.array(start)
                 if (pupil[0]**2 + pupil[1]**2) < 1.0:
-                    f.apply_vignetting(pupil)
-                    pt1 = np.array([eprad*pupil[0], eprad*pupil[1],
-                                    fod.obj_dist+fod.enp_dist])
-                    dir0 = pt1 - pt0
-                    length = norm(dir0)
-                    dir0 = dir0/length
-                    ray, op = rt.trace(seq_model.path(), pt0, dir0, wvl, eps)
-                    if img_only:
-                        grid_row.append([pupil, ray[-1][0], op])
+                    ray_pkg = self.trace_base(seq_model, pupil, fld, wvl, eps)
+                    if img_filter:
+                        result = img_filter(pupil, ray_pkg)
+                        grid_row.append([pupil, result])
                     else:
-                        grid_row.append([pupil, ray, op])
+                        grid_row.append([pupil, ray_pkg])
+                else:  # ray outside pupil
+                    if img_filter:
+                        result = img_filter(pupil, None)
+                        grid_row.append([pupil, result])
+                    else:
+                        grid_row.append([pupil, None])
+
                 start[1] += step[1]
             grid.append(grid_row)
             start[0] += step[0]
@@ -148,6 +152,91 @@ class OpticalSpecs:
         else:
             obj_pt = np.array([fld.x, fld.y, 0.0])
         return obj_pt
+
+    def trace_chief_ray(self, seq_model, fld, wvl):
+        fod = self.parax_data[2]
+
+        ray, op, wvl = self.trace_base(seq_model, [0., 0.], fld, wvl)
+        cr = rt.RayPkg(ray, op, wvl)
+
+        # cr_exp_pt: E upper bar prime: pupil center for pencils from Q
+        # cr_exp_pt, cr_b4_dir, cr_exp_dist
+        cr_exp_seg = rt.transfer_to_exit_pupil(seq_model.ifcs[-2],
+                                               (cr.ray[-2][0], cr.ray[-2][1]),
+                                               fod.exp_dist)
+        return cr, cr_exp_seg
+
+    def setup_pupil_coords(self, seq_model, fld, wvl,
+                           chief_ray_pkg=None, image_pt=None):
+        if chief_ray_pkg is None:
+            chief_ray_pkg = self.trace_chief_ray(seq_model, fld, wvl)
+
+        cr, cr_exp_seg = chief_ray_pkg
+
+        if image_pt is None:
+            image_pt = cr.ray[-1][0]
+
+        # cr_exp_pt: E upper bar prime: pupil center for pencils from Q
+        # cr_exp_pt, cr_b4_dir, cr_dst
+        cr_exp_pt = cr_exp_seg[0]
+        cr_exp_dist = cr_exp_seg[2]
+
+        img_dist = seq_model.gaps[-1].thi
+        img_pt = np.array(image_pt)
+        img_pt[2] += img_dist
+
+        # R' radius of reference sphere for O'
+        ref_sphere_vec = img_pt - cr_exp_pt
+        ref_sphere_radius = np.linalg.norm(ref_sphere_vec)
+        ref_dir = normalize(ref_sphere_vec)
+
+        ref_sphere = (image_pt, cr_exp_pt, cr_exp_dist,
+                      ref_dir, ref_sphere_radius)
+
+        z_dir = seq_model.z_dir[-1]
+        n_obj = seq_model.rndx[wvl].iloc[0]
+        n_img = seq_model.rndx[wvl].iloc[-1]
+        ref_sphere_pkg = (ref_sphere, self.parax_data, n_obj, n_img, z_dir)
+
+        return ref_sphere_pkg, chief_ray_pkg
+
+    def setup_canonical_coords(self, seq_model, fld, wvl, image_pt=None):
+        fod = self.parax_data[2]
+
+        if fld.chief_ray is None:
+            ray, op, wvl = self.trace_base(seq_model, [0., 0.], fld, wvl)
+            fld.chief_ray = rt.RayPkg(ray, op, wvl)
+        cr = fld.chief_ray
+
+        if image_pt is None:
+            image_pt = cr.ray[-1][0]
+
+        # cr_exp_pt: E upper bar prime: pupil center for pencils from Q
+        # cr_exp_pt, cr_b4_dir, cr_dst
+        cr_exp_seg = rt.transfer_to_exit_pupil(seq_model.ifcs[-2],
+                                               (cr.ray[-2][0], cr.ray[-2][1]),
+                                               fod.exp_dist)
+        cr_exp_pt = cr_exp_seg[0]
+        cr_exp_dist = cr_exp_seg[2]
+
+        img_dist = seq_model.gaps[-1].thi
+        img_pt = np.array(image_pt)
+        img_pt[2] += img_dist
+
+        # R' radius of reference sphere for O'
+        ref_sphere_vec = img_pt - cr_exp_pt
+        ref_sphere_radius = np.linalg.norm(ref_sphere_vec)
+        ref_dir = normalize(ref_sphere_vec)
+
+        ref_sphere = (image_pt, cr_exp_pt, cr_exp_dist,
+                      ref_dir, ref_sphere_radius)
+
+        z_dir = seq_model.z_dir[-1]
+        n_obj = seq_model.rndx[wvl].iloc[0]
+        n_img = seq_model.rndx[wvl].iloc[-1]
+        ref_sphere_pkg = (ref_sphere, self.parax_data, n_obj, n_img, z_dir)
+        fld.ref_sphere = ref_sphere_pkg
+        return ref_sphere_pkg, cr
 
 
 class WvlSpec:
@@ -185,12 +274,12 @@ class WvlSpec:
         if num_wvls == 1:
             self.render_colors.append('black')
         elif num_wvls == 2:
-            self.render_colors.append('blue')
             self.render_colors.append('red')
+            self.render_colors.append('blue')
         elif num_wvls == 3:
-            self.render_colors.append('blue')
-            self.render_colors.append('green')
             self.render_colors.append('red')
+            self.render_colors.append('green')
+            self.render_colors.append('blue')
         else:
             for w in self.wavelengths:
                 print("calc_colors", w)
@@ -225,6 +314,11 @@ class FieldSpec:
         self.fields = [Field() for f in range(len(flds))]
         for i, f in enumerate(self.fields):
             f.y = flds[i]
+
+    def update_model(self, seq_model):
+        for f in self.fields:
+            f.update()
+        return self
 
     def update_fields_cv_input(self, tla, dlist):
         if tla == 'XOB' or tla == 'YOB':
@@ -267,6 +361,12 @@ class Field:
         self.vlx = 0.0
         self.vly = 0.0
         self.wt = wt
+        self.chief_ray = None
+        self.ref_sphere = None
+
+    def update(self):
+        self.chief_ray = None
+        self.ref_sphere = None
 
     def apply_vignetting(self, pupil):
         if pupil[0] < 0.0:
