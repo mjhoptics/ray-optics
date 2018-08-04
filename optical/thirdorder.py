@@ -15,8 +15,8 @@ from optical.model_constants import ht, slp, aoi
 
 def compute_third_order(seq_model):
     """ Compute Seidel aberration coefficents. """
-    wl = seq_model.optical_spec.spectral_region.reference_wvl
-    n_before = seq_model.rndx[0][wl]
+    wvl = seq_model.central_wvl()
+    n_before = seq_model.rndx[wvl][0]
     ax_ray, pr_ray, fod = seq_model.optical_spec.parax_data
     opt_inv = fod.opt_inv
     opt_inv_sqr = opt_inv*opt_inv
@@ -27,7 +27,7 @@ def compute_third_order(seq_model):
     p = 0
     pd_index = ['S-I', 'S-II', 'S-III', 'S-IV', 'S-V']
     for c in range(1, len(ax_ray)-1):
-        n_after = seq_model.rndx[c][wl]
+        n_after = seq_model.rndx[wvl][c]
         cv = seq_model.ifcs[c].profile_cv()
 
         A = n_after * ax_ray[c][aoi]
