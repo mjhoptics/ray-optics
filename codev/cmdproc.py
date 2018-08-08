@@ -128,7 +128,7 @@ def spec_data(seqm, tla, qlist, dlist):
         elif dim == 'C':
             dim = 'CM'
         elif dim == 'I':
-            dim == 'IN'
+            dim = 'IN'
         optm.system_spec.dimensions = dim
     elif tla == "CA":
         optm.system_spec.aperture_override = ''
