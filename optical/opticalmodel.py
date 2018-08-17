@@ -65,6 +65,9 @@ class OpticalModel:
         self.seq_model = seq.SequentialModel(self)
         self.ele_model = ele.ElementModel(self)
 
+    def name(self):
+        return self.system_spec.title
+
     def reset(self):
         rdm = self.radius_mode
         self.__init__()
