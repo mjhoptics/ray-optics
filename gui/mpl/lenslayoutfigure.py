@@ -121,7 +121,8 @@ class LensLayoutFigure(Figure):
         offset = start_offset
         seq_model = self.opt_model.seq_model
         tfrms = seq_model.transforms
-        rayset = seq_model.trace_boundary_rays_at_field(field_num)
+        fld, wvl, foc = seq_model.lookup_fld_wvl_focus(field_num)
+        rayset = seq_model.trace_boundary_rays_at_field(fld, wvl)
 
         # If the object distance (tfrms[0][1][2]) is greater than the
         #  start_offset, then modify rayset start to match start_offset.

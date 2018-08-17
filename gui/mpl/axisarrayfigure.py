@@ -73,6 +73,9 @@ class AxisArrayFigure(Figure):
             arr.append(row)
         return arr
 
+    def wvl_to_sys_units(self, wvl):
+        return self.seq_model.parent.nm_to_sys_units(wvl)
+
     def refresh(self):
         self.update_data()
         self.plot()
@@ -89,9 +92,6 @@ class RayFanFigure(AxisArrayFigure):
     def __init__(self, seq_model, data_type, **kwargs):
         self.max_value_all = 0.0
 
-        def wvl_to_sys_units(wvl):
-            return seq_model.parent.nm_to_sys_units(wvl)
-
         def ray_abr(p, xy, ray_pkg, fld, wvl):
             image_pt = fld.ref_sphere[0][0]
             if ray_pkg[0] is not None:
@@ -104,14 +104,16 @@ class RayFanFigure(AxisArrayFigure):
         def opd(p, xy, ray_pkg, fld, wvl):
             if ray_pkg[0] is not None:
                 opd = rt.wave_abr(self.seq_model, fld, wvl, ray_pkg)
-                return opd[0]/wvl_to_sys_units(wvl)
+                return opd[0]/self.wvl_to_sys_units(wvl)
             else:
                 return None
 
         def eval_abr_fan(i, j):
+            fld, wvl, foc = seq_model.lookup_fld_wvl_focus(i)
             return seq_model.trace_fan(ray_abr, i, j, num_rays=self.num_rays)
 
         def eval_opd_fan(i, j):
+            fld, wvl, foc = seq_model.lookup_fld_wvl_focus(i)
             return seq_model.trace_fan(opd, i, j, num_rays=self.num_rays)
 
         if data_type == 'Ray':
@@ -194,8 +196,9 @@ class SpotDiagramFigure(AxisArrayFigure):
                 return None
 
         def eval_grid(i, j):
-            return seq_model.trace_grid(spot, i,
-                                        num_rays=self.num_rays, form='list')
+            fld, wvl, foc = seq_model.lookup_fld_wvl_focus(i, wl=j)
+            return seq_model.trace_grid(spot, i, num_rays=self.num_rays,
+                                        form='list', append_if_none=False)
 
         num_flds = len(seq_model.optical_spec.field_of_view.fields)
         super().__init__(seq_model, eval_fct=eval_grid,
@@ -255,6 +258,8 @@ class SpotDiagramFigure(AxisArrayFigure):
             [[ax.set_xlim(-us, us) for ax in r] for r in self.ax_arr]
             [[ax.set_ylim(-us, us) for ax in r] for r in self.ax_arr]
 
+        self.tight_layout()
+
         self.canvas.draw()
 
         return self
@@ -265,22 +270,20 @@ class WavefrontFigure(AxisArrayFigure):
     def __init__(self, seq_model, **kwargs):
         self.max_value_all = 0.0
 
-        def wvl_to_sys_units(wvl):
-            return seq_model.parent.nm_to_sys_units(wvl)
-
         def wave(p, wi, ray_pkg, fld, wvl):
             x = p[0]
             y = p[1]
             if ray_pkg is not None:
                 opd_pkg = rt.wave_abr(self.seq_model, fld, wvl, ray_pkg)
-                opd = opd_pkg[0]/wvl_to_sys_units(wvl)
+                opd = opd_pkg[0]/self.wvl_to_sys_units(wvl)
             else:
                 opd = 0.0
             return np.array([x, y, opd])
 
         def eval_grid(i, j):
-            return seq_model.trace_grid(wave, i, wl=j,
-                                        num_rays=self.num_rays, form='grid')
+            fld, wvl, foc = seq_model.lookup_fld_wvl_focus(i, wl=j)
+            return seq_model.trace_grid(wave, i, wl=j, num_rays=self.num_rays,
+                                        form='grid', append_if_none=True)
 
         num_flds = len(seq_model.optical_spec.field_of_view.fields)
         num_wvls = len(seq_model.optical_spec.spectral_region.wavelengths)
@@ -296,15 +299,19 @@ class WavefrontFigure(AxisArrayFigure):
 
     def update_data(self):
         self.axis_data_array = []
+        self.max_value_all = 0.0
         for i in reversed(range(self.num_rows)):
             row = []
             for j in reversed(range(self.num_cols)):
-                max_val = 0.
                 grids, rc = self.eval_fct(i, j)
                 g = grids[0]
                 g = np.rollaxis(g, 2)
-                max_val = max(np.max(g[2]), -np.min(g[2]), max_val)
-                row.append((g, max_val, rc))
+                max_value = max(np.max(g[2]), -np.min(g[2]))
+                row.append((g, max_value, rc))
+
+                if max_value > self.max_value_all:
+                    self.max_value_all = max_value
+
             self.axis_data_array.append(row)
         return self
 
@@ -316,32 +323,32 @@ class WavefrontFigure(AxisArrayFigure):
         n = self.num_cols - 1
         self.ax_arr = self.construct_plot_array(self.num_rows, self.num_cols)
 
-        self.max_value_all = 0.0
         for i in reversed(range(self.num_rows)):
             for j in reversed(range(self.num_cols)):
                 grid, max_value, rc = self.axis_data_array[m-i][n-j]
+                if self.scale_type == Fit_All_Same:
+                    max_value = self.max_value_all
+                elif (self.scale_type == User_Scale and
+                      self.user_scale_value is not None):
+                    max_value = self.user_scale_value
                 ax = self.ax_arr[m-i][n-j]
-                cntr = ax.contourf(grid[0],
-                                   grid[1],
-                                   grid[2],
-                                   cmap="RdBu_r")
-                self.colorbar(cntr, ax=ax)
+#                hmap = ax.contourf(grid[0],
+#                                   grid[1],
+#                                   grid[2],
+#                                   cmap="RdBu_r",
+#                                   vmin=-max_value,
+#                                   vmax=max_value)
+                hmap = ax.imshow(grid[2],
+                                 cmap="RdBu_r",
+                                 vmin=-max_value,
+                                 vmax=max_value,
+                                 extent=[-1., 1., -1., 1.],
+                                 origin='lower')
+                self.colorbar(hmap, ax=ax)
 
                 ax.set_aspect('equal')
 
-                if max_value > self.max_value_all:
-                    self.max_value_all = max_value
-
-        if self.scale_type == Fit_All:
-            pass
-#            print("Fit_All", self.max_value_all)
-#            [[ax.set_ylim(-mv, mv) for ax in r] for r in self.ax_arr]
-        if self.scale_type == Fit_All_Same:
-            mv = self.max_value_all
-#            print("Fit_All_Same", mv)
-        if self.scale_type == User_Scale and self.user_scale_value is not None:
-            us = self.user_scale_value
-#            print("User_Scale", us)
+        self.tight_layout()
 
         self.canvas.draw()
 

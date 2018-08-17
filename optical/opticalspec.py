@@ -32,6 +32,7 @@ class OpticalSpecs:
         self.spectral_region = WvlSpec()
         self.pupil = PupilSpec()
         self.field_of_view = FieldSpec()
+        self.defocus = FocusRange(0.0)
         self.parax_data = None
 
     def __json_encode__(self):
@@ -48,19 +49,23 @@ class OpticalSpecs:
         self.field_of_view.update_model(seq_model)
         stop = seq_model.stop_surface
         wvl = self.spectral_region.central_wvl()
+        if not hasattr(self, 'defocus'):
+            self.defocus = FocusRange(0.0)
+
         self.parax_data = compute_first_order(seq_model, stop, wvl)
 
-    def lookup_fld_and_wvl(self, fi, wl=None):
+    def lookup_fld_wvl_focus(self, fi, wl=None, fr=0.0):
         if wl is None:
             wvl = self.spectral_region.central_wvl()
         else:
             wvl = self.spectral_region.wavelengths[wl]
         fld = self.field_of_view.fields[fi]
-        return fld, wvl
+        foc = self.defocus.get_focus(fr)
+        return fld, wvl, foc
 
     def trace_base(self, seq_model, pupil, fld, wvl, eps=1.0e-12):
         fld.apply_vignetting(pupil)
-        fod = self.parax_data[2]
+        fod = self.parax_data.fod
         eprad = fod.enp_radius
         pt1 = np.array([eprad*pupil[0], eprad*pupil[1],
                         fod.obj_dist+fod.enp_dist])
@@ -70,11 +75,11 @@ class OpticalSpecs:
         dir0 = dir0/length
         return rt.trace(seq_model, pt0, dir0, wvl, eps)
 
-    def trace_with_opd(self, seq_model, pupil, fld, wvl, eps=1.0e-12):
+    def trace_with_opd(self, seq_model, pupil, fld, wvl, foc, eps=1.0e-12):
         """ returns ray and ray_op """
         ray_pkg = self.trace_base(seq_model, pupil, fld, wvl, eps)
 
-        rs_pkg, cr_pkg = self.setup_pupil_coords(seq_model, fld, wvl)
+        rs_pkg, cr_pkg = self.setup_pupil_coords(seq_model, fld, wvl, foc)
         fld.chief_ray = cr_pkg
         fld.ref_sphere = rs_pkg
 
@@ -84,11 +89,11 @@ class OpticalSpecs:
 
     def trace(self, seq_model, pupil, fi, wl=None, eps=1.0e-12):
         """ returns ray and ray_op """
-        fld, wvl = self.lookup_fld_and_wvl(fi, wl)
+        fld, wvl, foc = self.lookup_fld_wvl_focus(fi, wl, 0.0)
         ray, ray_op, wvl = self.trace_base(seq_model, pupil, fld, wvl, eps)
         return ray, ray_op, wvl
 
-    def trace_fan(self, seq_model, fan_rng, fld, wvl, img_filter=None,
+    def trace_fan(self, seq_model, fan_rng, fld, wvl, foc, img_filter=None,
                   eps=1.0e-12):
         start = np.array(fan_rng[0])
         stop = fan_rng[1]
@@ -108,40 +113,48 @@ class OpticalSpecs:
             start += step
         return fan
 
-    def trace_grid(self, seq_model, grid_rng, fld, wvl, img_filter=None,
-                   eps=1.0e-12):
+    def trace_grid(self, seq_model, grid_rng, fld, wvl, foc, img_filter=None,
+                   form='grid', append_if_none=True, eps=1.0e-12):
         start = np.array(grid_rng[0])
         stop = grid_rng[1]
         num = grid_rng[2]
         step = np.array((stop - start)/(num - 1))
         grid = []
         for i in range(num):
-            grid_row = []
+            if form == 'list':
+                working_grid = grid
+            elif form == 'grid':
+                grid_row = []
+                working_grid = grid_row
+
             for j in range(num):
                 pupil = np.array(start)
                 if (pupil[0]**2 + pupil[1]**2) < 1.0:
                     ray_pkg = self.trace_base(seq_model, pupil, fld, wvl, eps)
                     if img_filter:
                         result = img_filter(pupil, ray_pkg)
-                        grid_row.append([pupil, result])
+                        working_grid.append(result)
                     else:
-                        grid_row.append([pupil, ray_pkg])
+                        working_grid.append([pupil[0], pupil[1], ray_pkg])
                 else:  # ray outside pupil
                     if img_filter:
                         result = img_filter(pupil, None)
-                        grid_row.append([pupil, result])
+                        if result is not None or append_if_none:
+                            working_grid.append(result)
                     else:
-                        grid_row.append([pupil, None])
+                        if append_if_none:
+                            working_grid.append([pupil[0], pupil[1], None])
 
                 start[1] += step[1]
-            grid.append(grid_row)
+            if form == 'grid':
+                grid.append(grid_row)
             start[0] += step[0]
             start[1] = grid_rng[0][1]
-        return grid
+        return np.array(grid)
 
     def obj_coords(self, fld):
         fov = self.field_of_view
-        fod = self.parax_data[2]
+        fod = self.parax_data.fod
         if fov.type == 'OBJ_ANG':
             ang_dg = np.array([fld.x, fld.y, 0.0])
             dir_tan = np.tan(np.deg2rad(ang_dg))
@@ -153,8 +166,8 @@ class OpticalSpecs:
             obj_pt = np.array([fld.x, fld.y, 0.0])
         return obj_pt
 
-    def trace_chief_ray(self, seq_model, fld, wvl):
-        fod = self.parax_data[2]
+    def trace_chief_ray(self, seq_model, fld, wvl, foc):
+        fod = self.parax_data.fod
 
         ray, op, wvl = self.trace_base(seq_model, [0., 0.], fld, wvl)
         cr = rt.RayPkg(ray, op, wvl)
@@ -166,10 +179,12 @@ class OpticalSpecs:
                                                fod.exp_dist)
         return cr, cr_exp_seg
 
-    def setup_pupil_coords(self, seq_model, fld, wvl,
+    def setup_pupil_coords(self, seq_model, fld, wvl, foc,
                            chief_ray_pkg=None, image_pt=None):
         if chief_ray_pkg is None:
-            chief_ray_pkg = self.trace_chief_ray(seq_model, fld, wvl)
+            chief_ray_pkg = self.trace_chief_ray(seq_model, fld, wvl, foc)
+        elif chief_ray_pkg[2] != wvl:
+            chief_ray_pkg = self.trace_chief_ray(seq_model, fld, wvl, foc)
 
         cr, cr_exp_seg = chief_ray_pkg
 
@@ -201,7 +216,7 @@ class OpticalSpecs:
         return ref_sphere_pkg, chief_ray_pkg
 
     def setup_canonical_coords(self, seq_model, fld, wvl, image_pt=None):
-        fod = self.parax_data[2]
+        fod = self.parax_data.fod
 
         if fld.chief_ray is None:
             ray, op, wvl = self.trace_base(seq_model, [0., 0.], fld, wvl)
@@ -364,6 +379,12 @@ class Field:
         self.chief_ray = None
         self.ref_sphere = None
 
+    def __json_encode__(self):
+        attrs = dict(vars(self))
+        del attrs['chief_ray']
+        del attrs['ref_sphere']
+        return attrs
+
     def update(self):
         self.chief_ray = None
         self.ref_sphere = None
@@ -382,3 +403,20 @@ class Field:
             if self.vuy != 0.0:
                 pupil[1] *= (1.0 - self.vuy)
         return pupil
+
+
+class FocusRange:
+    def __init__(self, defocus, infocus=0.0):
+        self.infocus = infocus
+        self.defocus = defocus
+
+    def update(self):
+        self.chief_ray = None
+        self.ref_sphere = None
+
+    def get_focus(self, fr):
+        """ return focus position for input focus range parameter
+
+        fr, focus range parameter, -1.0 to 1.0
+        """
+        return self.infocus + fr*self.defocus

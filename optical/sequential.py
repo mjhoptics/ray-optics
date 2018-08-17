@@ -401,13 +401,9 @@ class SequentialModel:
                       self.ifcs[i+1].profile,
                       gp)
 
-    def lookup_fld_and_wvl(self, fi, wl=None):
-        if wl is None:
-            wvl = self.central_wavelength()
-        else:
-            wvl = self.optical_spec.spectral_region.wavelengths[wl]
-        fld = self.field_of_view.fields[fi]
-        return fld, wvl
+    def lookup_fld_wvl_focus(self, fi, wl=None, fr=0.0):
+        fld, wvl, foc = self.optical_spec.lookup_fld_wvl_focus(fi, wl, fr)
+        return fld, wvl, foc
 
     def trace_boundary_rays_at_field(self, fld, wvl):
         pupil_rays = [[0., 0.], [1., 0.], [-1., 0.], [0., 1.], [0., -1.]]
@@ -431,8 +427,9 @@ class SequentialModel:
         osp = self.optical_spec
         fld = osp.field_of_view.fields[fi]
         wvl = self.central_wavelength()
+        foc = 0.0
 #        osp.setup_canonical_coords(self, fld, wvl)
-        rs_pkg, cr_pkg = osp.setup_pupil_coords(self, fld, wvl)
+        rs_pkg, cr_pkg = osp.setup_pupil_coords(self, fld, wvl, foc)
         fld.chief_ray = cr_pkg
         fld.ref_sphere = rs_pkg
         img_pt = cr_pkg[0].ray[-1][0]
@@ -450,12 +447,11 @@ class SequentialModel:
         for wi, wvl in enumerate(wvls.wavelengths):
             rc.append(wvls.render_colors[wi])
 
-#            osp.setup_canonical_coords(self, fld, wvl, image_pt=img_pt)
-            rs_pkg, cr_pkg = osp.setup_pupil_coords(self, fld, wvl,
+            rs_pkg, cr_pkg = osp.setup_pupil_coords(self, fld, wvl, foc,
                                                     image_pt=img_pt)
             fld.chief_ray = cr_pkg
             fld.ref_sphere = rs_pkg
-            fan = osp.trace_fan(self, fan_def, fld, wvl,
+            fan = osp.trace_fan(self, fan_def, fld, wvl, foc,
                                 img_filter=lambda p, ray_pkg:
                                 fct(p, xy, ray_pkg, fld, wvl))
             f_x = []
@@ -471,42 +467,60 @@ class SequentialModel:
         fans_y = np.array(fans_y)
         return fans_x, fans_y, max_y_val, rc
 
-    def trace_grid(self, fct, fi, wl=None, num_rays=32, form='grid'):
+    def trace_grid(self, fct, fi, wl=None, num_rays=21, form='grid',
+                   append_if_none=True):
         """ fct is applied to the raw grid and returned as a grid  """
         osp = self.optical_spec
         wvls = osp.spectral_region
         wvl = self.central_wavelength()
         wv_list = wvls.wavelengths if wl is None else [wvl]
         fld = osp.field_of_view.fields[fi]
+        foc = 0.0
 
-#        osp.setup_canonical_coords(self, fld, wvl)
-        rs_pkg, cr_pkg = osp.setup_pupil_coords(self, fld, wvl)
+        rs_pkg, cr_pkg = osp.setup_pupil_coords(self, fld, wvl, foc)
         fld.chief_ray = cr_pkg
         fld.ref_sphere = rs_pkg
 
         grids = []
-        grid_start = np.array([-1., -1.])
-        grid_stop = np.array([1., 1.])
+        origin = -.05
+        delta = 0.1
+        grid_start = np.array([origin, origin])
+        grid_stop = np.array([origin+delta, origin+delta])
         grid_def = [grid_start, grid_stop, num_rays]
         for wi, wvl in enumerate(wv_list):
-            grid = osp.trace_grid(self, grid_def, fld, wvl,
+            grid = osp.trace_grid(self, grid_def, fld, wvl, foc,
+                                  form=form, append_if_none=append_if_none,
                                   img_filter=lambda p, ray_pkg:
                                   fct(p, wi, ray_pkg, fld, wvl))
-            grid_w = []
-            if form == 'list':
-                for row in grid:
-                    for p, result in row:
-                        if result is not None:
-                            grid_w.append(result)
-            elif form == 'grid':
-                for row in grid:
-                    row_w = []
-                    for p, result in row:
-                        row_w.append(result)
-                    grid_w.append(row_w)
-            grids.append(np.array(grid_w))
+            grids.append(grid)
         rc = wvls.render_colors
         return grids, rc
+
+    def trace_wavefront(self, fld, wvl, foc, num_rays=32):
+
+        def wave(p, ray_pkg, fld, wvl):
+            x = p[0]
+            y = p[1]
+            if ray_pkg is not None:
+                opd_pkg = rt.wave_abr(self, fld, wvl, ray_pkg)
+                opd = opd_pkg[0]/self.parent.nm_to_sys_units(wvl)
+            else:
+                opd = 0.0
+            return np.array([x, y, opd])
+
+        osp = self.optical_spec
+        rs_pkg, cr_pkg = osp.setup_pupil_coords(self, fld, wvl, foc)
+        fld.chief_ray = cr_pkg
+        fld.ref_sphere = rs_pkg
+
+        grid_start = np.array([-1., -1.])
+        grid_stop = np.array([1., 1.])
+        grid_def = (grid_start, grid_stop, num_rays)
+
+        grid = osp.trace_grid(self, grid_def, fld, wvl, foc,
+                              img_filter=lambda p, ray_pkg:
+                              wave(p, ray_pkg, fld, wvl), form='grid')
+        return grid
 
     def shift_start_of_ray_bundle(self, rayset, start_offset, r, t):
         """ modify rayset so that rays begin "start_offset" from 1st surface
