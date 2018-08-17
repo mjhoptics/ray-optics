@@ -29,6 +29,7 @@ import gui.mpl.paraxdgnfigure as pdf
 from gui.mpl.lenslayoutfigure import LensLayoutFigure
 import gui.pytablemodel as tbl
 import gui.graphicsitems as gitm
+from gui.appmanager import ModelInfo, AppManager
 
 
 class MainWindow(QMainWindow):
@@ -36,12 +37,12 @@ class MainWindow(QMainWindow):
 
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
-        self.opt_model = None
         self.mdi = QMdiArea()
         self.setCentralWidget(self.mdi)
 
-        self.wnd_dict = {}
-        self.mdi.subWindowActivated.connect(self.on_subwindow_activated)
+        self.app_manager = AppManager(None)
+        self.mdi.subWindowActivated.connect(self.app_manager.
+                                            on_window_activated)
 
         self.left = 100
         self.top = 50
@@ -85,6 +86,8 @@ class MainWindow(QMainWindow):
 #        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
 #                       "codev/test/paraboloid.seq")
 #        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
+#                       "codev/test/paraboloid_f8.seq")
+#        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
 #                       "singlet_f5.roa")
 #        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
 #                       "Ritchey_Chretien.roa")
@@ -96,10 +99,10 @@ class MainWindow(QMainWindow):
 #                       "codev/test/conic_mirror.seq")
 #        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
 #                       "codev/test/rc_f16.seq")
-#        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
-#                       "codev/test/ag_dblgauss.seq")
         self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
-                       "codev/test/landscape_lens.seq")
+                       "codev/test/ag_dblgauss.seq")
+#        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
+#                       "codev/test/landscape_lens.seq")
 #        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
 #                       "TwoMirror.roa")
 #        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
@@ -107,13 +110,13 @@ class MainWindow(QMainWindow):
 
     def add_subwindow(self, widget, model_info):
             sub_wind = self.mdi.addSubWindow(widget)
-            self.wnd_dict[sub_wind] = model_info
+            self.app_manager.add_window(sub_wind, model_info)
             MainWindow.count += 1
             return sub_wind
 
     def delete_subwindow(self, sub_wind):
+            self.app_manager.delete_window(sub_wind)
             self.mdi.removeSubWindow(sub_wind)
-            del self.wnd_dict[sub_wind]
             MainWindow.count -= 1
 
     def initial_window_offset(self):
@@ -125,9 +128,9 @@ class MainWindow(QMainWindow):
 
     def file_action(self, q):
         if q.text() == "New":
-            self.opt_model = optm.OpticalModel()
+            opt_model = optm.OpticalModel()
             sub = self.add_subwindow(QTextEdit(),
-                                     (self.opt_model, ))
+                                     ModelInfo(opt_model, None, None))
             sub.setWindowTitle("subwindow"+str(MainWindow.count))
             sub.show()
 
@@ -157,14 +160,14 @@ class MainWindow(QMainWindow):
 
     def open_file(self, file_name):
         self.cur_filename = file_name
-        self.opt_model = optm.open_model(file_name)
+        self.app_manager.model = optm.open_model(file_name)
         self.is_changed = True
         self.create_lens_table()
 #        self.create_lens_layout_view()
         self.create_2D_lens_view()
 
     def save_file(self, file_name):
-        self.opt_model.save_model(file_name)
+        self.app_manager.model.save_model(file_name)
         self.cur_filename = file_name
         self.is_changed = False
 
@@ -195,11 +198,11 @@ class MainWindow(QMainWindow):
             self.create_paraxial_design_view(pdf.slp_dgm)
 
         if q.text() == "Paraxial Ray Table":
-            root = self.opt_model
+            root = self.app_manager.model
             rootEvalStr = ".seq_model.optical_spec.parax_data"
             colEvalStr = ['[0][{}][0]', '[0][{}][1]', '[0][{}][2]',
                           '[1][{}][0]', '[1][{}][1]', '[1][{}][2]']
-            rowHeaders = self.opt_model.seq_model.surface_label_list()
+            rowHeaders = self.app_manager.model.seq_model.surface_label_list()
             colHeaders = ['y', 'u', 'i', 'y-bar', 'u-bar', 'i-bar']
             colFormats = ['{:12.5g}', '{:9.6f}', '{:9.6f}', '{:12.5g}',
                           '{:9.6f}', '{:9.6f}']
@@ -218,7 +221,7 @@ class MainWindow(QMainWindow):
             self.mdi.tileSubWindows()
 
     def create_lens_table(self):
-        seq_model = self.opt_model.seq_model
+        seq_model = self.app_manager.model.seq_model
         colEvalStr = ['.ifcs[{}].interface_type()',
                       '.ifcs[{}].profile_cv()',
                       '.ifcs[{}].surface_od()', '.gaps[{}].thi',
@@ -232,13 +235,13 @@ class MainWindow(QMainWindow):
         self.create_table_view(model, "Surface Data Table")
 
     def create_ray_table(self):
-        sm = self.opt_model.seq_model
+        sm = self.app_manager.model.seq_model
         osp = sm.optical_spec
         pupil = [0., 0.]
         fi = 1
         wl = osp.spectral_region.reference_wvl
-        fld, wvl = osp.lookup_fld_and_wvl(fi, wl)
-        ray, ray_op, wvl, opd = osp.trace_with_opd(sm, pupil, fld, wvl)
+        fld, wvl, foc = osp.lookup_fld_wvl_focus(fi, wl)
+        ray, ray_op, wvl, opd = osp.trace_with_opd(sm, pupil, fld, wvl, foc)
 
         colEvalStr = ['[{}][0][0]', '[{}][0][1]', '[{}][0][2]',
                       '[{}][1][0]', '[{}][1][1]', '[{}][1][2]',
@@ -266,9 +269,9 @@ class MainWindow(QMainWindow):
         # set the layout on the widget
         widget.setLayout(layout)
 
-        sub = self.add_subwindow(widget, (self.opt_model,
-                                          MainWindow.update_2D_lens_view,
-                                          scene2d))
+        sub = self.add_subwindow(widget, ModelInfo(self.app_manager.model,
+                                         MainWindow.update_2D_lens_view,
+                                         scene2d))
         sub.setWindowTitle("2D Lens View")
         view_width = 660
         view_ht = 440
@@ -295,14 +298,14 @@ class MainWindow(QMainWindow):
             gi.update_shape()
 
     def create_element_model(self, gscene):
-        ele_model = self.opt_model.ele_model
-        ele_model.elements_from_sequence(self.opt_model.seq_model)
+        ele_model = self.app_manager.model.ele_model
+        ele_model.elements_from_sequence(self.app_manager.model.seq_model)
         for e in ele_model.elements:
             ge = gitm.OpticalElement(e)
             gscene.addItem(ge)
 
     def create_ray_model(self, gscene, start_surf=1):
-        seq_model = self.opt_model.seq_model
+        seq_model = self.app_manager.model.seq_model
 
         img_dist = abs(seq_model.optical_spec.parax_data[2].img_dist)
         start_offset = 0.05*(gscene.sceneRect().width() + img_dist)
@@ -313,7 +316,7 @@ class MainWindow(QMainWindow):
             gscene.addItem(rb)
 
     def create_lens_layout_view(self):
-        fig = LensLayoutFigure(self.opt_model)
+        fig = LensLayoutFigure(self.app_manager.model)
         view_width = 660
         view_ht = 440
         title = "Lens Layout View"
@@ -324,7 +327,7 @@ class MainWindow(QMainWindow):
         plotFigure.refresh()
 
     def create_paraxial_design_view(self, dgm_type):
-        seq_model = self.opt_model.seq_model
+        seq_model = self.app_manager.model.seq_model
         fig = pdf.ParaxialDesignFigure(seq_model, self.refresh_gui, dgm_type,
                                        figsize=(5, 4))
         view_width = 500
@@ -334,7 +337,7 @@ class MainWindow(QMainWindow):
                               add_scale_panel=False)
 
     def create_ray_fan_view(self, data_type):
-        seq_model = self.opt_model.seq_model
+        seq_model = self.app_manager.model.seq_model
         fig = aaf.RayFanFigure(seq_model, data_type,
                                scale_type=aaf.Fit_All_Same,
                                figsize=(5, 4), dpi=100)
@@ -349,22 +352,28 @@ class MainWindow(QMainWindow):
         self.create_plot_view(fig, title, view_width, view_ht)
 
     def create_ray_grid_view(self):
-        seq_model = self.opt_model.seq_model
+        seq_model = self.app_manager.model.seq_model
+        num_flds = len(seq_model.optical_spec.field_of_view.fields)
 
         fig = aaf.SpotDiagramFigure(seq_model, scale_type=aaf.Fit_All_Same,
                                     num_rays=11, dpi=100)
-        view_width = 300
-        view_ht = 600
+        view_box = 300
+        view_width = view_box
+        view_ht = num_flds * view_box
         title = "Spot Diagram"
         self.create_plot_view(fig, title, view_width, view_ht)
 
     def create_wavefront_view(self):
-        seq_model = self.opt_model.seq_model
+        seq_model = self.app_manager.model.seq_model
+        num_flds = len(seq_model.optical_spec.field_of_view.fields)
+        num_wvls = len(seq_model.optical_spec.spectral_region.wavelengths)
 
         fig = aaf.WavefrontFigure(seq_model, scale_type=aaf.Fit_All_Same,
-                                  num_rays=11, dpi=100)
-        view_width = 300
-        view_ht = 600
+                                  num_rays=32, dpi=100)
+#                                  figsize=(2*num_wvls, 2*num_flds))
+        view_box = 300
+        view_width = num_wvls * view_box
+        view_ht = num_flds * view_box
         title = "Wavefront Map"
         self.create_plot_view(fig, title, view_width, view_ht)
 
@@ -383,8 +392,8 @@ class MainWindow(QMainWindow):
             psp = self.create_plot_scale_panel(pc)
             layout.addWidget(psp)
 
-        sub = self.add_subwindow(widget, (self.opt_model,
-                                          MainWindow.update_figure_view, fig))
+        sub = self.add_subwindow(widget, ModelInfo(self.app_manager.model,
+                                         MainWindow.update_figure_view, fig))
         sub.setWindowTitle(title)
         orig_x, orig_y = self.initial_window_offset()
         sub.setGeometry(orig_x, orig_y, view_width, view_ht)
@@ -462,9 +471,9 @@ class MainWindow(QMainWindow):
         # set the layout on the widget
         widget.setLayout(layout)
 
-        sub = self.add_subwindow(widget, (self.opt_model,
-                                          MainWindow.update_table_view,
-                                          tableView))
+        sub = self.add_subwindow(widget, ModelInfo(self.app_manager.model,
+                                         MainWindow.update_table_view,
+                                         tableView))
         sub.setWindowTitle(table_title)
 
         tableView.setModel(table_model)
@@ -489,14 +498,7 @@ class MainWindow(QMainWindow):
         table_model.endResetModel()
 
     def refresh_gui(self):
-        self.opt_model.update_model()
-        for model_info in self.wnd_dict.values():
-            if model_info[0] == self.opt_model:
-                num_items = len(model_info)
-                if num_items == 2:
-                    model_info[1]()
-                elif num_items == 3:
-                    model_info[1](model_info[2])
+        self.app_manager.refresh_gui()
 
     @pyqtSlot(object, int)
     def on_data_changed(self, rootObj, index):
@@ -504,21 +506,7 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot(QMdiSubWindow)
     def on_subwindow_activated(self, window):
-        if window is not None:
-            try:
-                model_info = self.wnd_dict[window]
-            except KeyError:
-                logging.debug('Window "%s" not in wnd_dict',
-                              window.windowTitle())
-            else:
-                opt_model = model_info[0]
-                logging.debug("on_subwindow_activated: %s, %s" %
-                              (opt_model.system_spec.title,
-                               window.windowTitle()))
-                if opt_model and opt_model != self.opt_model:
-                    self.opt_model = opt_model
-                    logging.debug("switch opt_model to",
-                                  opt_model.system_spec.title)
+        self.app_manager.on_window_activated(window)
 
 
 if __name__ == '__main__':
