@@ -8,8 +8,11 @@ Created on Tue Feb 13 10:48:19 2018
 @author: Michael J. Hayford
 """
 import math
+from collections import namedtuple
 from optical.model_constants import Surf, Gap
 from optical.model_constants import ht, slp, aoi
+
+ParaxData = namedtuple('ParaxData', ['ax_ray', 'pr_ray', 'fod'])
 
 
 class FirstOrderData:
@@ -247,7 +250,7 @@ def compute_first_order(seq_model, stop, wl):
     fod.obj_na = n_0*math.sin(math.atan(seq_model.z_dir[0]*ax_ray[0][slp]))
     fod.img_na = n_k*math.sin(math.atan(seq_model.z_dir[-1]*ax_ray[-1][slp]))
 
-    return ax_ray, pr_ray, fod
+    return ParaxData(ax_ray, pr_ray, fod)
 
 
 def list_parax_trace(seq_model):
