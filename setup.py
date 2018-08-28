@@ -21,10 +21,11 @@ setuptools.setup(
     ],
     install_requires=[
         "numpy",
+        "scipy",
         "matplotlib",
         "json_tricks",
         "pandas",
-        "pyqt",
+        "pyqt5",
         "attr"
         ]
 )
