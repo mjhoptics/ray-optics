@@ -12,7 +12,7 @@ from scipy.interpolate import spline
 
 import numpy as np
 
-import optical.raytrace as rt
+import rayoptics.optical.raytrace as rt
 
 Fit_All, Fit_All_Same, User_Scale = range(3)
 

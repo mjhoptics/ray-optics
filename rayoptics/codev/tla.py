@@ -7,6 +7,7 @@
 """
 import csv
 import os
+from pathlib import Path
 
 
 class MapTLA:
@@ -16,14 +17,13 @@ class MapTLA:
     def __init__(self):
         TLA, CmdFct, IndxQuals, DataType, Quals = range(5)
         if len(MapTLA._d) == 0:
-            """
-            print('initialize dictionary')
-            cwd = os.getcwd()
-            print(cwd)
-            os.chdir(cwd+"/codev")
-            print(os.getcwd())
-            """
-            with open('codev/tla_mapping.csv', 'rU') as f:
+#            print('initialize dictionary')
+#            cwd = os.getcwd()
+#            print(cwd)
+#            os.chdir(cwd+"/../codev")
+#            print(os.getcwd())
+            pth = Path(__file__).resolve().parent
+            with open(pth / 'tla_mapping.csv', 'rU') as f:
                 reader = csv.reader(f)
                 for row in reader:
                     if row[TLA] is not '':

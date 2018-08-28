@@ -12,6 +12,7 @@ Created on Mon Feb 12 09:24:01 2018
 
 import sys
 import logging
+from pathlib import Path
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
@@ -22,14 +23,14 @@ from PyQt5.QtWidgets import (QApplication, QAction, QMainWindow, QMdiArea,
                              QGroupBox)
 from PyQt5.QtCore import pyqtSlot
 
-import optical.opticalmodel as optm
-import gui.plotcanvas as plotter
-import gui.mpl.axisarrayfigure as aaf
-import gui.mpl.paraxdgnfigure as pdf
-from gui.mpl.lenslayoutfigure import LensLayoutFigure
-import gui.pytablemodel as tbl
-import gui.graphicsitems as gitm
-from gui.appmanager import ModelInfo, AppManager
+import rayoptics.optical.opticalmodel as optm
+import rayoptics.gui.plotcanvas as plotter
+import rayoptics.gui.mpl.axisarrayfigure as aaf
+import rayoptics.gui.mpl.paraxdgnfigure as pdf
+from rayoptics.gui.mpl.lenslayoutfigure import LensLayoutFigure
+import rayoptics.gui.pytablemodel as tbl
+import rayoptics.gui.graphicsitems as gitm
+from rayoptics.gui.appmanager import ModelInfo, AppManager
 
 
 class MainWindow(QMainWindow):
@@ -81,32 +82,23 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("Ray Optics")
         self.show()
-#        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
-#                       "codev/test/asp46.seq")
-#        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
-#                       "codev/test/paraboloid.seq")
-#        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
-#                       "codev/test/paraboloid_f8.seq")
-#        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
-#                       "singlet_f5.roa")
-#        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
-#                       "Ritchey_Chretien.roa")
-#        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
-#                       "codev/test/schmidt.seq")
-#        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
-#                       "codev/test/questar35.seq")
-#        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
-#                       "codev/test/conic_mirror.seq")
-#        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
-#                       "codev/test/rc_f16.seq")
-        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
-                       "codev/test/ag_dblgauss.seq")
-#        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
-#                       "codev/test/landscape_lens.seq")
-#        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
-#                       "TwoMirror.roa")
-#        self.open_file("/Users/Mike/Developer/PyProjects/ray-optics/"
-#                       "Sasian Triplet.roa")
+
+        pth = Path(__file__).resolve().parents[1]
+#        self.open_file(pth / "codev/test/asp46.seq")
+#        self.open_file(pth / "codev/test/paraboloid.seq")
+#        self.open_file(pth / "codev/test/paraboloid_f8.seq")
+#        self.open_file(pth / "singlet_f5.roa")
+#        self.open_file(pth / "Ritchey_Chretien.roa")
+#        self.open_file(pth / "codev/test/schmidt.seq")
+#        self.open_file(pth / "codev/test/questar35.seq")
+#        self.open_file(pth / "codev/test/conic_mirror.seq")
+#        self.open_file(pth / "codev/test/rc_f16.seq")
+        self.open_file(pth / "codev/test/ag_dblgauss.seq")
+#        self.open_file(pth / "codev/test/landscape_lens.seq")
+
+#        pth = Path(__file__).resolve().parents[2]
+#        self.open_file(pth / "TwoMirror.roa")
+#        self.open_file(pth / "Sasian Triplet.roa")
 
     def add_subwindow(self, widget, model_info):
             sub_wind = self.mdi.addSubWindow(widget)

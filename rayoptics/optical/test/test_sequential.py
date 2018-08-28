@@ -11,8 +11,8 @@ import unittest
 import numpy as np
 import numpy.testing as npt
 from math import log10, pow
-import optical.sequential as seq
-from util.misc_math import normalize
+import rayoptics.optical.sequential as seq
+from rayoptics.util.misc_math import normalize
 
 import ag_dblgauss_s as dblg
 import marginal_ray as f1r2

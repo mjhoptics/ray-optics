@@ -11,7 +11,8 @@ code from the web blog:
 
 import numpy as np
 from scipy.constants import h, c, k
-from util.line_intersection import intersect_with_3lines
+from rayoptics.util.line_intersection import intersect_with_3lines
+from pathlib import Path
 
 
 def xyz_from_xy(x, y):
@@ -30,7 +31,8 @@ class ColourSystem:
     """
 
     # The CIE colour matching function for 380 - 780 nm in 5 nm intervals
-    cmf = np.loadtxt('util/cie-cmf.txt', usecols=(1, 2, 3))
+    pth = Path(__file__).resolve().parent
+    cmf = np.loadtxt(pth / 'cie-cmf.txt', usecols=(1, 2, 3))
 
     def __init__(self, red, green, blue, white):
         """Initialise the ColourSystem object.

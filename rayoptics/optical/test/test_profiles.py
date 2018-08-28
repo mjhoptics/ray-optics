@@ -8,8 +8,8 @@ Created on Wed Oct 18 10:59:29 2017
 
 
 import unittest
-import optical.profile as p
-from util.misc_math import normalize
+import rayoptics.optical.profile as p
+from rayoptics.util.misc_math import normalize
 import numpy as np
 import numpy.testing as npt
 from math import sqrt

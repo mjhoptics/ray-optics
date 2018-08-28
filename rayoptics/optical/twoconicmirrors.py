@@ -7,8 +7,8 @@ Created on Tue Jun 26 16:11:58 2018
 @author: Michael J. Hayford
 """
 
-from optical.model_constants import ax, pr
-from optical.model_constants import ht, slp
+from rayoptics.optical.model_constants import ax, pr
+from rayoptics.optical.model_constants import ht, slp
 
 
 def __decode_lens__(lens_package):

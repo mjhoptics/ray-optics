@@ -10,7 +10,7 @@ Created on Tue Aug  1 13:18:57 2017
 
 import numpy as np
 from math import sqrt, copysign, sin, atan2
-from util.misc_math import normalize
+from rayoptics.util.misc_math import normalize
 
 
 class SurfaceProfile:

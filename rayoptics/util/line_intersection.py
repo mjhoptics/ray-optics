@@ -8,7 +8,6 @@ Created on Wed Apr 18 11:04:53 2018
 """
 
 import numpy as np
-from util.misc_math import distance_sqr_2d
 
 
 def line(p1, p2):
@@ -57,8 +56,6 @@ def do_intersect(a1, a2, b1, b2, soln, delta):
         t = d[0]/delta[0]
     else:
         t = d[1]/delta[1]
-#    dist = distance_sqr_2d\(xy, a1)
-#    print("t, dist, xy", t, dist, xy)
     if soln[0] < t and t < 1.0:
         soln = t, xy
     return soln

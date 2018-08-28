@@ -8,9 +8,9 @@ Created on Sat Mar 31 21:14:42 2018
 @author: Michael J. Hayford
 """
 
-from optical.model_constants import ax, pr, lns, inv
-from optical.model_constants import ht, slp, aoi
-from optical.model_constants import pwr, tau, indx, rmd
+from rayoptics.optical.model_constants import ax, pr, lns, inv
+from rayoptics.optical.model_constants import ht, slp, aoi
+from rayoptics.optical.model_constants import pwr, tau, indx, rmd
 
 
 def build_lens(seq_model):

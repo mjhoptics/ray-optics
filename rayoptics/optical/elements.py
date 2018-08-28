@@ -8,12 +8,12 @@ Created on Sun Jan 28 16:27:01 2018
 @author: Michael J. Hayford
 """
 
-import util.rgbtable as rgbt
-import optical.thinlens
+import rayoptics.util.rgbtable as rgbt
+import rayoptics.optical.thinlens as thinlens
 
 
 class Element():
-    clut = rgbt.RGBTable(filename='util/red_blue64.csv',
+    clut = rgbt.RGBTable(filename='red_blue64.csv',
                          data_range=[10.0, 100.])
 
     def __init__(self, tfrm, s1, s1_indx, g, s2, s2_indx, sd):
@@ -167,7 +167,7 @@ class ElementModel:
     def elements_from_sequence(self, seq_model):
         tfrms = seq_model.compute_global_coords(1)
         for i, g in enumerate(seq_model.gaps):
-            if isinstance(seq_model.ifcs[i], optical.thinlens.ThinLens):
+            if isinstance(seq_model.ifcs[i], thinlens.ThinLens):
                 te = ThinElement(tfrms[i], seq_model.ifcs[i], i)
                 self.elements.append(te)
                 return

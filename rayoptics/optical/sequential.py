@@ -15,17 +15,17 @@ from . import gap
 from . import medium as m
 from . import raytrace as rt
 from . import transform as trns
-from optical.model_constants import Surf, Gap
-from optical.model_constants import ax, pr, lns
-from optical.model_constants import ht, slp, aoi
-from optical.model_constants import pwr, tau, indx, rmd
-from glass import glassfactory as gfact
-from glass import glasserror as ge
+from rayoptics.optical.model_constants import Surf, Gap
+from rayoptics.optical.model_constants import ax, pr, lns
+from rayoptics.optical.model_constants import ht, slp, aoi
+from rayoptics.optical.model_constants import pwr, tau, indx, rmd
+from opticalglass import glassfactory as gfact
+from opticalglass import glasserror as ge
 import numpy as np
 import pandas as pd
 import transforms3d as t3d
 from math import sqrt, copysign
-from util.misc_math import euler2opt, isanumber
+from rayoptics.util.misc_math import euler2opt, isanumber
 
 
 class SequentialModel:

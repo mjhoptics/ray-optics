@@ -10,7 +10,8 @@ Created on Wed Mar 14 11:08:28 2018
 
 import os.path
 import json_tricks
-import codev.cmdproc as cvp
+
+import rayoptics.codev.cmdproc as cvp
 
 from . import sequential as seq
 from . import elements as ele

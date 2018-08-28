@@ -10,7 +10,7 @@ Created on Fri Jul  6 07:24:40 2018
 import numpy as np
 import pandas as pd
 
-from optical.model_constants import ht, slp, aoi
+from rayoptics.optical.model_constants import ht, slp, aoi
 
 
 def compute_third_order(seq_model):

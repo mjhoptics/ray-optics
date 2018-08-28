@@ -11,11 +11,12 @@ Created on Thu Jan 25 11:01:04 2018
 import math
 import numpy as np
 from numpy.linalg import norm
-from util.misc_math import normalize
-from optical.firstorder import compute_first_order
-from optical.model_constants import ht, slp, aoi
+
+from rayoptics.util.misc_math import normalize
+from rayoptics.optical.firstorder import compute_first_order
+from rayoptics.optical.model_constants import ht, slp, aoi
 from . import raytrace as rt
-import util.colour_system as cs
+import rayoptics.util.colour_system as cs
 srgb = cs.cs_srgb
 
 

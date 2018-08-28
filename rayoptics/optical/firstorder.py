@@ -9,8 +9,8 @@ Created on Tue Feb 13 10:48:19 2018
 """
 import math
 from collections import namedtuple
-from optical.model_constants import Surf, Gap
-from optical.model_constants import ht, slp, aoi
+from rayoptics.optical.model_constants import Surf, Gap
+from rayoptics.optical.model_constants import ht, slp, aoi
 
 ParaxData = namedtuple('ParaxData', ['ax_ray', 'pr_ray', 'fod'])
 

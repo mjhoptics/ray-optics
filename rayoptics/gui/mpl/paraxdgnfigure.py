@@ -9,11 +9,11 @@ Created on Mon Apr  2 19:20:27 2018
 
 from matplotlib.figure import Figure
 
-import optical.paraxialdesign as pd
-from optical.model_constants import ax, pr, lns
-from optical.model_constants import ht, slp, aoi
-from optical.model_constants import pwr, tau, indx, rmd
-from util.misc_math import distance_sqr_2d
+import rayoptics.optical.paraxialdesign as pd
+from rayoptics.optical.model_constants import ax, pr, lns
+from rayoptics.optical.model_constants import ht, slp, aoi
+from rayoptics.optical.model_constants import pwr, tau, indx, rmd
+from rayoptics.util.misc_math import distance_sqr_2d
 
 ht_dgm, slp_dgm = range(2)
 

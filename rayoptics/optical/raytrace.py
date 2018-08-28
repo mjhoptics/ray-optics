@@ -14,7 +14,7 @@ from collections import namedtuple
 from numpy.linalg import norm
 from math import sqrt, copysign
 from . import transform as trns
-from util.misc_math import normalize
+from rayoptics.util.misc_math import normalize
 #from optical.model_constants import Surf, Gap
 import attr
 
