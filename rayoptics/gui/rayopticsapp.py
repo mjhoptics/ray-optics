@@ -84,22 +84,32 @@ class MainWindow(QMainWindow):
         self.show()
 
         pth = Path(__file__).resolve()
-        path = Path(*pth.parts[:pth.parts.index('rayoptics')+1])
-#        self.open_file(path / "codev/test/asp46.seq")
-#        self.open_file(path / "codev/test/paraboloid.seq")
-#        self.open_file(path / "codev/test/paraboloid_f8.seq")
-#        self.open_file(path / "codev/test/schmidt.seq")
-#        self.open_file(path / "codev/test/questar35.seq")
-#        self.open_file(path / "codev/test/conic_mirror.seq")
-#        self.open_file(path / "codev/test/rc_f16.seq")
-        self.open_file(path / "codev/test/ag_dblgauss.seq")
-#        self.open_file(path / "codev/test/landscape_lens.seq")
+        try:
+            root_pos = pth.parts.index('rayoptics')
+        except ValueError:
+            logging.debug("Can't find rayoptics: path is %s", pth)
+        else:
+            path = Path(*pth.parts[:root_pos+1])
+#            self.open_file(path / "codev/test/asp46.seq")
+#            self.open_file(path / "codev/test/paraboloid.seq")
+#            self.open_file(path / "codev/test/paraboloid_f8.seq")
+#            self.open_file(path / "codev/test/schmidt.seq")
+#            self.open_file(path / "codev/test/questar35.seq")
+#            self.open_file(path / "codev/test/conic_mirror.seq")
+#            self.open_file(path / "codev/test/rc_f16.seq")
+            self.open_file(path / "codev/test/ag_dblgauss.seq")
+#            self.open_file(path / "codev/test/landscape_lens.seq")
 
-#        path = Path(*pth.parts[:pth.parts.index('ray-optics')+1])
-#        self.open_file(path / "test/TwoMirror.roa")
-#        self.open_file(path / "test/Sasian Triplet.roa")
-#        self.open_file(path / "test/singlet_f5.roa")
-#        self.open_file(path / "test/Ritchey_Chretien.roa")
+#        try:
+#            root_pos = pth.parts.index('ray-optics')
+#        except ValueError:
+#            logging.debug("Can't find ray-optics: path is %s", pth)
+#        else:
+#            path = Path(*pth.parts[:root_pos+1])
+#            self.open_file(path / "test/TwoMirror.roa")
+#            self.open_file(path / "test/Sasian Triplet.roa")
+#            self.open_file(path / "test/singlet_f5.roa")
+#            self.open_file(path / "test/Ritchey_Chretien.roa")
 
     def add_subwindow(self, widget, model_info):
             sub_wind = self.mdi.addSubWindow(widget)
