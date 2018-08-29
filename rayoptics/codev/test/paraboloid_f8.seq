@@ -1,0 +1,12 @@
+len
+tit 'f/8, 200mm paraboloid'
+dim m
+rdm y
+so 0. 1e+11
+s -400 -200 refl
+con
+k -1
+si 0 0
+fno 8.0; wl 550
+!epd 100; wl 550
+yim 0 10. 20. 30.

@@ -1,0 +1,11 @@
+tit 'Landscape lens'
+dim m
+so 0. 1.0e+10
+s 0. 1.664
+sto
+s -0.2 0.22 NBK7_SCHOTT  !was 500.625
+s -0.387040626 10.150245
+epd 1.0
+wl 650 550 450 ! wavelengths 
+ref 2
+yim 0 3
