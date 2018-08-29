@@ -83,22 +83,23 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Ray Optics")
         self.show()
 
-        pth = Path(__file__).resolve().parents[1]
-#        self.open_file(pth / "codev/test/asp46.seq")
-#        self.open_file(pth / "codev/test/paraboloid.seq")
-#        self.open_file(pth / "codev/test/paraboloid_f8.seq")
-#        self.open_file(pth / "singlet_f5.roa")
-#        self.open_file(pth / "Ritchey_Chretien.roa")
-#        self.open_file(pth / "codev/test/schmidt.seq")
-#        self.open_file(pth / "codev/test/questar35.seq")
-#        self.open_file(pth / "codev/test/conic_mirror.seq")
-#        self.open_file(pth / "codev/test/rc_f16.seq")
-        self.open_file(pth / "codev/test/ag_dblgauss.seq")
-#        self.open_file(pth / "codev/test/landscape_lens.seq")
+        pth = Path(__file__).resolve()
+        path = Path(*pth.parts[:pth.parts.index('rayoptics')+1])
+#        self.open_file(path / "codev/test/asp46.seq")
+#        self.open_file(path / "codev/test/paraboloid.seq")
+#        self.open_file(path / "codev/test/paraboloid_f8.seq")
+#        self.open_file(path / "codev/test/schmidt.seq")
+#        self.open_file(path / "codev/test/questar35.seq")
+#        self.open_file(path / "codev/test/conic_mirror.seq")
+#        self.open_file(path / "codev/test/rc_f16.seq")
+        self.open_file(path / "codev/test/ag_dblgauss.seq")
+#        self.open_file(path / "codev/test/landscape_lens.seq")
 
-#        pth = Path(__file__).resolve().parents[2]
-#        self.open_file(pth / "TwoMirror.roa")
-#        self.open_file(pth / "Sasian Triplet.roa")
+#        path = Path(*pth.parts[:pth.parts.index('ray-optics')+1])
+#        self.open_file(path / "test/TwoMirror.roa")
+#        self.open_file(path / "test/Sasian Triplet.roa")
+#        self.open_file(path / "test/singlet_f5.roa")
+#        self.open_file(path / "test/Ritchey_Chretien.roa")
 
     def add_subwindow(self, widget, model_info):
             sub_wind = self.mdi.addSubWindow(widget)

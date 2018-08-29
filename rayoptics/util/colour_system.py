@@ -31,8 +31,8 @@ class ColourSystem:
     """
 
     # The CIE colour matching function for 380 - 780 nm in 5 nm intervals
-    pth = Path(__file__).resolve().parent
-    cmf = np.loadtxt(pth / 'cie-cmf.txt', usecols=(1, 2, 3))
+    path = Path(__file__).resolve().parent
+    cmf = np.loadtxt(path / 'cie-cmf.txt', usecols=(1, 2, 3))
 
     def __init__(self, red, green, blue, white):
         """Initialise the ColourSystem object.

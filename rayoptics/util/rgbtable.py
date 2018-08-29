@@ -17,8 +17,8 @@ class RGBTable():
     def __init__(self, filename='sunset_rgb.csv', data_range=[0., 100.]):
         self.data_range = data_range
         if len(self.data_list) == 0:
-            pth = Path(__file__).resolve().parent
-            with open(pth / filename, newline='') as f:
+            path = Path(__file__).resolve().parent
+            with open(path / filename, newline='') as f:
                 reader = csv.reader(f)
                 for row in reader:
                     self.data_list.append(list(map(int, row)))
