@@ -18,11 +18,8 @@ from matplotlib.backends.backend_qt5agg \
              NavigationToolbar2QT as NavigationToolbar)
 
 from matplotlib.figure import Figure
-# import matplotlib.pyplot as plt
 
-# import numpy as np
-
-import glass.glassfactory as gf
+import opticalglass.glassfactory as gf
 
 pickTableHeader = ["Catalog", "Glass", "Nd", "Vd", "P C,d"]
 pickTableFormat = ["s", "s", "7.5f", "5.2f", "6.4f"]
