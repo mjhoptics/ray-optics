@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="rayoptics",
-    version="0.1.5.dev1",
+    version="0.1.5",
     author="Michael J Hayford",
     author_email="mjhoptics@gmail.com",
     description="Tools for image forming optical design and analysis",
@@ -20,12 +20,22 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        "numpy",
-        "scipy",
-        "matplotlib",
-        "json_tricks",
-        "pandas",
+        "opticalglass",
+        "numpy>=1.15.0",
+        "scipy>=1.1.0",
+        "matplotlib>=2.2.3",
+        "json_tricks>=3.12.1",
+        "pandas>=0.23.4",
         "pyqt5",
-        "attr"
-        ]
+        "attrs>=18.1.0"
+        ],
+    entry_points={
+        'gui_scripts': [
+            'rayoptics = rayoptics.gui.rayopticsapp:main',
+        ],
+    },
+    data_files=[
+        ('codev', ['tla_mapping.csv', 'test/*.seq', 'test/*.roa']),
+        ('util', ['cie-cmf.txt', '*.csv']),
+        ],
 )

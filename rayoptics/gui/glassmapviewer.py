@@ -263,8 +263,12 @@ class PlotCanvas(FigureCanvas):
         self.draw()
 
 
-if __name__ == '__main__':
+def main():
     qapp = QApplication(sys.argv)
     app = GlassMapViewer()
     app.show()
     qapp.exec_()
+
+
+if __name__ == '__main__':
+    main()

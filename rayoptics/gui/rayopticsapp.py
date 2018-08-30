@@ -512,10 +512,14 @@ class MainWindow(QMainWindow):
         self.app_manager.on_window_activated(window)
 
 
-if __name__ == '__main__':
+def main():
     app = QApplication(sys.argv)
     logging.basicConfig(filename='rayoptics.log',
                         filemode='w',
                         level=logging.INFO)
     ex = MainWindow()
     sys.exit(app.exec())
+
+
+if __name__ == '__main__':
+    main()
