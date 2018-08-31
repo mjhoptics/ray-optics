@@ -23,14 +23,14 @@ from PyQt5.QtWidgets import (QApplication, QAction, QMainWindow, QMdiArea,
                              QGroupBox)
 from PyQt5.QtCore import pyqtSlot
 
-import rayoptics.optical.opticalmodel as optm
-import rayoptics.gui.plotcanvas as plotter
-import rayoptics.gui.mpl.axisarrayfigure as aaf
-import rayoptics.gui.mpl.paraxdgnfigure as pdf
-from rayoptics.gui.mpl.lenslayoutfigure import LensLayoutFigure
-import rayoptics.gui.pytablemodel as tbl
-import rayoptics.gui.graphicsitems as gitm
 from rayoptics.gui.appmanager import ModelInfo, AppManager
+import rayoptics.optical.opticalmodel as optm
+import rayoptics.mpl.axisarrayfigure as aaf
+import rayoptics.mpl.paraxdgnfigure as pdf
+from rayoptics.mpl.lenslayoutfigure import LensLayoutFigure
+from rayoptics.qtgui.pytablemodel import PyTableModel
+from rayoptics.qtgui.graphicsitems import OpticalElement, RayBundle
+from rayoptics.qtgui.plotcanvas import PlotCanvas
 
 
 class MainWindow(QMainWindow):
@@ -209,8 +209,8 @@ class MainWindow(QMainWindow):
             colHeaders = ['y', 'u', 'i', 'y-bar', 'u-bar', 'i-bar']
             colFormats = ['{:12.5g}', '{:9.6f}', '{:9.6f}', '{:12.5g}',
                           '{:9.6f}', '{:9.6f}']
-            model = tbl.PyTableModel(root, rootEvalStr, colEvalStr, rowHeaders,
-                                     colHeaders, colFormats, False)
+            model = PyTableModel(root, rootEvalStr, colEvalStr, rowHeaders,
+                                 colHeaders, colFormats, False)
             self.create_table_view(model, "Paraxial Ray Table")
 
         if q.text() == "Ray Table":
@@ -233,8 +233,8 @@ class MainWindow(QMainWindow):
         colHeaders = ['type', 'cv', 'sd', 'thi', 'medium', 'mode']
         colFormats = ['{:s}', '{:12.7g}', '{:12.5g}', '{:12.5g}',
                       '{:s}', '{:s}']
-        model = tbl.PyTableModel(seq_model, '', colEvalStr, rowHeaders,
-                                 colHeaders, colFormats, True)
+        model = PyTableModel(seq_model, '', colEvalStr, rowHeaders,
+                             colHeaders, colFormats, True)
         self.create_table_view(model, "Surface Data Table")
 
     def create_ray_table(self):
@@ -253,8 +253,8 @@ class MainWindow(QMainWindow):
         colHeaders = ['x', 'y', 'z', 'l', 'm', 'n', 'length']
         colFormats = ['{:12.5g}', '{:12.5g}', '{:12.5g}', '{:9.6f}',
                       '{:9.6f}', '{:9.6f}', '{:12.5g}']
-        model = tbl.PyTableModel(ray, '', colEvalStr, rowHeaders,
-                                 colHeaders, colFormats, False)
+        model = PyTableModel(ray, '', colEvalStr, rowHeaders,
+                             colHeaders, colFormats, False)
         self.create_table_view(model, "Ray Table")
 
     def create_2D_lens_view(self):
@@ -304,7 +304,7 @@ class MainWindow(QMainWindow):
         ele_model = self.app_manager.model.ele_model
         ele_model.elements_from_sequence(self.app_manager.model.seq_model)
         for e in ele_model.elements:
-            ge = gitm.OpticalElement(e)
+            ge = OpticalElement(e)
             gscene.addItem(ge)
 
     def create_ray_model(self, gscene, start_surf=1):
@@ -315,7 +315,7 @@ class MainWindow(QMainWindow):
 
         fov = seq_model.optical_spec.field_of_view
         for fi, f in enumerate(fov.fields):
-            rb = gitm.RayBundle(seq_model, fi, start_offset)
+            rb = RayBundle(seq_model, fi, start_offset)
             gscene.addItem(rb)
 
     def create_lens_layout_view(self):
@@ -382,7 +382,7 @@ class MainWindow(QMainWindow):
 
     def create_plot_view(self, fig, title, view_width, view_ht,
                          add_scale_panel=True):
-        pc = plotter.PlotCanvas(self, fig)
+        pc = PlotCanvas(self, fig)
         # construct the top level widget
         widget = QWidget()
         # construct the top level layout
@@ -513,13 +513,13 @@ class MainWindow(QMainWindow):
 
 
 def main():
-    app = QApplication(sys.argv)
+    qtapp = QApplication(sys.argv)
     logging.basicConfig(filename='rayoptics.log',
                         filemode='w',
                         level=logging.INFO)
-    ex = MainWindow()
-    sys.exit(app.exec())
+    qtwnd = MainWindow()
+    return qtapp.exec()
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

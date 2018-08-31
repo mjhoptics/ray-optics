@@ -26,12 +26,14 @@ setuptools.setup(
         "matplotlib>=2.2.3",
         "json_tricks>=3.12.1",
         "pandas>=0.23.4",
-        "pyqt5",
         "attrs>=18.1.0"
         ],
+    extras_require={
+        'QtGUI':  ["pyqt5"],
+    },
     entry_points={
         'gui_scripts': [
-            'rayoptics = rayoptics.gui.rayopticsapp:main',
+            'rayoptics = rayoptics.qtgui.rayopticsapp:main [QtGUI]',
         ],
     },
     data_files=[
