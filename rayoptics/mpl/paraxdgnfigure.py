@@ -7,6 +7,8 @@ Created on Mon Apr  2 19:20:27 2018
 @author: Michael J. Hayford
 """
 
+from enum import Enum, auto
+
 from matplotlib.figure import Figure
 
 import rayoptics.optical.paraxialdesign as pd
@@ -15,7 +17,10 @@ from rayoptics.optical.model_constants import ht, slp, aoi
 from rayoptics.optical.model_constants import pwr, tau, indx, rmd
 from rayoptics.util.misc_math import distance_sqr_2d
 
-ht_dgm, slp_dgm = range(2)
+
+class Dgm(Enum):
+    ht = auto()
+    slp = auto()
 
 
 class EditableLine:
@@ -120,13 +125,13 @@ class ParaxialDesignFigure(Figure):
         self.update_data()
 
     def setup_dgm_type(self, dgm_type):
-        if dgm_type == ht_dgm:
+        if dgm_type == Dgm.ht:
             self.type_sel = ht
             self.data_slice = slice(1, None)
             self.x_label = r'$\overline{y}$'
             self.y_label = 'y'
             self.apply_data = pd.apply_ht_dgm_data
-        elif dgm_type == slp_dgm:
+        elif dgm_type == Dgm.slp:
             self.type_sel = slp
             self.data_slice = slice(0, -1)
             self.x_label = r'$\overline{\omega}$'

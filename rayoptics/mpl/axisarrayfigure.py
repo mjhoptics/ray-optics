@@ -7,6 +7,8 @@ Created on Fri Apr  13 10:43:19 2018
 @author: Michael J. Hayford
 """
 
+from enum import Enum, auto
+
 from matplotlib.figure import Figure
 from scipy.interpolate import spline
 
@@ -14,7 +16,11 @@ import numpy as np
 
 import rayoptics.optical.raytrace as rt
 
-Fit_All, Fit_All_Same, User_Scale = range(3)
+
+class Fit(Enum):
+    All = auto()
+    All_Same = auto()
+    User_Scale = auto()
 
 
 def clip_to_range(rgb_list, lower, upper):
@@ -35,7 +41,7 @@ class AxisArrayFigure(Figure):
 
     def __init__(self, seq_model,
                  num_rays=21,
-                 scale_type=Fit_All,
+                 scale_type=Fit.All,
                  user_scale_value=0.1,
                  num_rows=1, num_cols=1,
                  eval_fct=None, **kwargs):
@@ -161,15 +167,15 @@ class RayFanFigure(AxisArrayFigure):
                 if max_value > self.max_value_all:
                     self.max_value_all = max_value
 
-        if self.scale_type == Fit_All:
+        if self.scale_type == Fit.All:
             pass
-#            print("Fit_All", self.max_value_all)
+#            print("Fit.All", self.max_value_all)
 #            [[ax.set_ylim(-mv, mv) for ax in r] for r in self.ax_arr]
-        if self.scale_type == Fit_All_Same:
+        if self.scale_type == Fit.All_Same:
             mv = self.max_value_all
-#            print("Fit_All_Same", mv)
+#            print("Fit.All_Same", mv)
             [[ax.set_ylim(-mv, mv) for ax in r] for r in self.ax_arr]
-        if self.scale_type == User_Scale and self.user_scale_value is not None:
+        if self.scale_type == Fit.User_Scale and self.user_scale_value is not None:
             us = self.user_scale_value
 #            print("User_Scale", us)
             [[ax.set_ylim(-us, us) for ax in r] for r in self.ax_arr]
@@ -243,16 +249,16 @@ class SpotDiagramFigure(AxisArrayFigure):
                 if max_value > self.max_value_all:
                     self.max_value_all = max_value
 
-        if self.scale_type == Fit_All:
+        if self.scale_type == Fit.All:
             pass
-#            print("Fit_All", self.max_value_all)
+#            print("Fit.All", self.max_value_all)
 #            [[ax.set_ylim(-mv, mv) for ax in r] for r in self.ax_arr]
-        if self.scale_type == Fit_All_Same:
+        if self.scale_type == Fit.All_Same:
             mv = self.max_value_all
-#            print("Fit_All_Same", mv)
+#            print("Fit.All_Same", mv)
             [[ax.set_xlim(-mv, mv) for ax in r] for r in self.ax_arr]
             [[ax.set_ylim(-mv, mv) for ax in r] for r in self.ax_arr]
-        if self.scale_type == User_Scale and self.user_scale_value is not None:
+        if self.scale_type == Fit.User_Scale and self.user_scale_value is not None:
             us = self.user_scale_value
 #            print("User_Scale", us)
             [[ax.set_xlim(-us, us) for ax in r] for r in self.ax_arr]
@@ -326,9 +332,9 @@ class WavefrontFigure(AxisArrayFigure):
         for i in reversed(range(self.num_rows)):
             for j in reversed(range(self.num_cols)):
                 grid, max_value, rc = self.axis_data_array[m-i][n-j]
-                if self.scale_type == Fit_All_Same:
+                if self.scale_type == Fit.All_Same:
                     max_value = self.max_value_all
-                elif (self.scale_type == User_Scale and
+                elif (self.scale_type == Fit.User_Scale and
                       self.user_scale_value is not None):
                     max_value = self.user_scale_value
                 ax = self.ax_arr[m-i][n-j]

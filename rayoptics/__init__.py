@@ -8,8 +8,9 @@ from .optical.opticalspec import FieldSpec, PupilSpec
 from .optical.firstorder import ParaxData
 from .optical.raytrace import list_ray
 
-from .mpl.paraxdgnfigure import ParaxialDesignFigure
+from .mpl.paraxdgnfigure import ParaxialDesignFigure, Dgm
 
+from .mpl.axisarrayfigure import Fit
 from .mpl.axisarrayfigure import RayFanFigure
 from .mpl.axisarrayfigure import SpotDiagramFigure
 from .mpl.axisarrayfigure import WavefrontFigure

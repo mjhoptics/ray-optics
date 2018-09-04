@@ -23,11 +23,11 @@ from PyQt5.QtWidgets import (QApplication, QAction, QMainWindow, QMdiArea,
                              QGroupBox)
 from PyQt5.QtCore import pyqtSlot
 
+import rayoptics as ro
 from rayoptics.gui.appmanager import ModelInfo, AppManager
-import rayoptics.optical.opticalmodel as optm
-import rayoptics.mpl.axisarrayfigure as aaf
-import rayoptics.mpl.paraxdgnfigure as pdf
-from rayoptics.mpl.lenslayoutfigure import LensLayoutFigure
+from rayoptics.optical.opticalmodel import OpticalModel
+from rayoptics.mpl.axisarrayfigure import Fit
+from rayoptics.mpl.paraxdgnfigure import Dgm
 from rayoptics.qtgui.pytablemodel import PyTableModel
 from rayoptics.qtgui.graphicsitems import OpticalElement, RayBundle
 from rayoptics.qtgui.plotcanvas import PlotCanvas
@@ -43,7 +43,7 @@ class MainWindow(QMainWindow):
 
         self.app_manager = AppManager(None)
         self.mdi.subWindowActivated.connect(self.app_manager.
-                                            on_window_activated)
+                                            on_view_activated)
 
         self.left = 100
         self.top = 50
@@ -113,12 +113,12 @@ class MainWindow(QMainWindow):
 
     def add_subwindow(self, widget, model_info):
             sub_wind = self.mdi.addSubWindow(widget)
-            self.app_manager.add_window(sub_wind, model_info)
+            self.app_manager.add_view(sub_wind, model_info)
             MainWindow.count += 1
             return sub_wind
 
     def delete_subwindow(self, sub_wind):
-            self.app_manager.delete_window(sub_wind)
+            self.app_manager.delete_view(sub_wind)
             self.mdi.removeSubWindow(sub_wind)
             MainWindow.count -= 1
 
@@ -131,9 +131,9 @@ class MainWindow(QMainWindow):
 
     def file_action(self, q):
         if q.text() == "New":
-            opt_model = optm.OpticalModel()
+            opt_model = OpticalModel()
             sub = self.add_subwindow(QTextEdit(),
-                                     ModelInfo(opt_model, None, None))
+                                     ModelInfo(opt_model))
             sub.setWindowTitle("subwindow"+str(MainWindow.count))
             sub.show()
 
@@ -163,7 +163,7 @@ class MainWindow(QMainWindow):
 
     def open_file(self, file_name):
         self.cur_filename = file_name
-        self.app_manager.model = optm.open_model(file_name)
+        self.app_manager.model = ro.open_model(file_name)
         self.is_changed = True
         self.create_lens_table()
 #        self.create_lens_layout_view()
@@ -195,10 +195,10 @@ class MainWindow(QMainWindow):
             self.create_wavefront_view()
 
         if q.text() == "Paraxial Height View":
-            self.create_paraxial_design_view(pdf.ht_dgm)
+            self.create_paraxial_design_view(Dgm.ht)
 
         if q.text() == "Paraxial Slope View":
-            self.create_paraxial_design_view(pdf.slp_dgm)
+            self.create_paraxial_design_view(Dgm.slp)
 
         if q.text() == "Paraxial Ray Table":
             root = self.app_manager.model
@@ -319,7 +319,7 @@ class MainWindow(QMainWindow):
             gscene.addItem(rb)
 
     def create_lens_layout_view(self):
-        fig = LensLayoutFigure(self.app_manager.model)
+        fig = ro.LensLayoutFigure(self.app_manager.model)
         view_width = 660
         view_ht = 440
         title = "Lens Layout View"
@@ -331,8 +331,8 @@ class MainWindow(QMainWindow):
 
     def create_paraxial_design_view(self, dgm_type):
         seq_model = self.app_manager.model.seq_model
-        fig = pdf.ParaxialDesignFigure(seq_model, self.refresh_gui, dgm_type,
-                                       figsize=(5, 4))
+        fig = ro.ParaxialDesignFigure(seq_model, self.refresh_gui, dgm_type,
+                                      figsize=(5, 4))
         view_width = 500
         view_ht = 500
         title = "Paraxial Design View"
@@ -341,9 +341,9 @@ class MainWindow(QMainWindow):
 
     def create_ray_fan_view(self, data_type):
         seq_model = self.app_manager.model.seq_model
-        fig = aaf.RayFanFigure(seq_model, data_type,
-                               scale_type=aaf.Fit_All_Same,
-                               figsize=(5, 4), dpi=100)
+        fig = ro.RayFanFigure(seq_model, data_type,
+                              scale_type=Fit.All_Same,
+                              figsize=(5, 4), dpi=100)
         view_width = 600
         view_ht = 600
         if data_type == "Ray":
@@ -358,8 +358,8 @@ class MainWindow(QMainWindow):
         seq_model = self.app_manager.model.seq_model
         num_flds = len(seq_model.optical_spec.field_of_view.fields)
 
-        fig = aaf.SpotDiagramFigure(seq_model, scale_type=aaf.Fit_All_Same,
-                                    num_rays=11, dpi=100)
+        fig = ro.SpotDiagramFigure(seq_model, scale_type=Fit.All_Same,
+                                   num_rays=11, dpi=100)
         view_box = 300
         view_width = view_box
         view_ht = num_flds * view_box
@@ -371,9 +371,9 @@ class MainWindow(QMainWindow):
         num_flds = len(seq_model.optical_spec.field_of_view.fields)
         num_wvls = len(seq_model.optical_spec.spectral_region.wavelengths)
 
-        fig = aaf.WavefrontFigure(seq_model, scale_type=aaf.Fit_All_Same,
-                                  num_rays=32, dpi=100)
-#                                  figsize=(2*num_wvls, 2*num_flds))
+        fig = ro.WavefrontFigure(seq_model, scale_type=Fit.All_Same,
+                                 num_rays=32, dpi=100)
+#                                 figsize=(2*num_wvls, 2*num_flds))
         view_box = 300
         view_width = num_wvls * view_box
         view_ht = num_flds * view_box
@@ -415,17 +415,17 @@ class MainWindow(QMainWindow):
         user_scale_wdgt.editingFinished.connect(lambda: self.
                                                 on_plot_scale_changed(cntxt))
         fit_all_btn = QRadioButton("Fit All")
-        fit_all_btn.setChecked(pf.scale_type == aaf.Fit_All)
+        fit_all_btn.setChecked(pf.scale_type == Fit.All)
         fit_all_btn.toggled.connect(lambda: self.
-                                    on_plot_scale_toggled(cntxt, aaf.Fit_All))
+                                    on_plot_scale_toggled(cntxt, Fit.All))
         fit_all_same_btn = QRadioButton("Fit All Same")
-        fit_all_same_btn.setChecked(pf.scale_type == aaf.Fit_All_Same)
+        fit_all_same_btn.setChecked(pf.scale_type == Fit.All_Same)
         fit_all_same_btn.toggled.connect(lambda: self.on_plot_scale_toggled(
-                                                 cntxt, aaf.Fit_All_Same))
+                                                 cntxt, Fit.All_Same))
         user_scale_btn = QRadioButton("User Scale")
-        user_scale_btn.setChecked(pf.scale_type == aaf.User_Scale)
+        user_scale_btn.setChecked(pf.scale_type == Fit.User_Scale)
         user_scale_btn.toggled.connect(lambda: self.on_plot_scale_toggled(
-                                       cntxt, aaf.User_Scale))
+                                       cntxt, Fit.User_Scale))
         box = QHBoxLayout()
         box.addWidget(fit_all_btn)
         box.addWidget(fit_all_same_btn)
@@ -439,7 +439,7 @@ class MainWindow(QMainWindow):
     def on_plot_scale_toggled(self, cntxt, scale_type):
         plotFigure, scale_wdgt = cntxt
         plotFigure.scale_type = scale_type
-        if scale_type == aaf.User_Scale:
+        if scale_type == Fit.User_Scale:
             scale_wdgt.setReadOnly(False)
             scale_wdgt.setText('{:7.4f}'.format(plotFigure.user_scale_value))
         else:
@@ -509,7 +509,7 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot(QMdiSubWindow)
     def on_subwindow_activated(self, window):
-        self.app_manager.on_window_activated(window)
+        self.app_manager.on_view_activated(window)
 
 
 def main():
