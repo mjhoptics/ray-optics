@@ -97,8 +97,8 @@ class MainWindow(QMainWindow):
 #            self.open_file(path / "codev/test/questar35.seq")
 #            self.open_file(path / "codev/test/conic_mirror.seq")
 #            self.open_file(path / "codev/test/rc_f16.seq")
-            self.open_file(path / "codev/test/ag_dblgauss.seq")
-#            self.open_file(path / "codev/test/landscape_lens.seq")
+#            self.open_file(path / "codev/test/ag_dblgauss.seq")
+            self.open_file(path / "codev/test/landscape_lens.seq")
 
 #        try:
 #            root_pos = pth.parts.index('ray-optics')
@@ -274,7 +274,7 @@ class MainWindow(QMainWindow):
 
         sub = self.add_subwindow(widget, ModelInfo(self.app_manager.model,
                                          MainWindow.update_2D_lens_view,
-                                         scene2d))
+                                         (scene2d,)))
         sub.setWindowTitle("2D Lens View")
         view_width = 660
         view_ht = 440
@@ -396,7 +396,8 @@ class MainWindow(QMainWindow):
             layout.addWidget(psp)
 
         sub = self.add_subwindow(widget, ModelInfo(self.app_manager.model,
-                                         MainWindow.update_figure_view, fig))
+                                         MainWindow.update_figure_view,
+                                         (fig,)))
         sub.setWindowTitle(title)
         orig_x, orig_y = self.initial_window_offset()
         sub.setGeometry(orig_x, orig_y, view_width, view_ht)
@@ -476,7 +477,7 @@ class MainWindow(QMainWindow):
 
         sub = self.add_subwindow(widget, ModelInfo(self.app_manager.model,
                                          MainWindow.update_table_view,
-                                         tableView))
+                                         (tableView,)))
         sub.setWindowTitle(table_title)
 
         tableView.setModel(table_model)
