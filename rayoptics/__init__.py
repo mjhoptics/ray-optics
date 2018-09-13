@@ -1,11 +1,11 @@
-from .optical.opticalmodel import open_model
+from .optical.opticalmodel import OpticalModel, open_model
 
 from .optical.gap import Gap
 from .optical.thinlens import ThinLens
 from .optical.profiles import Spherical, Conic
 from .optical.opticalspec import FieldSpec, PupilSpec
 
-from .optical.firstorder import ParaxData
+from .optical.firstorder import ParaxData, compute_first_order
 from .optical.raytrace import list_ray
 
 from .mpl.paraxdgnfigure import ParaxialDesignFigure, Dgm
