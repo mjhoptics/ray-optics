@@ -22,40 +22,35 @@ class Element():
         self.s1_indx = s1_indx
         self.s2 = s2
         self.s2_indx = s2_indx
-        self.thi = g.thi
-        self.medium = g.medium
+        self.g = g
         self.sd = sd
         self.flat1 = None
         self.flat2 = None
-        try:
-            gc = float(self.medium.glass_code())
-        except AttributeError:
-            self.render_color = (255, 255, 255)  # white
-        else:
-            # set element color based on V-number
-            vnbr = round(100.0*(gc - int(gc)), 3)
-            self.render_color = Element.clut.get_color(vnbr)
+        self.render_color = self.calc_render_color()
 
     def __json_encode__(self):
         attrs = dict(vars(self))
         del attrs['tfrm']
         del attrs['s1']
         del attrs['s2']
+        del attrs['g']
         return attrs
 
-    def sync_to_restore(self, surfs, tfrms):
+    def sync_to_restore(self, surfs, gaps, tfrms):
         # when restoring, we want to use the stored indices to look up the
         # new object instances
         self.tfrm = tfrms[self.s1_indx]
         self.s1 = surfs[self.s1_indx]
+        self.g = gaps[self.s1_indx]
         self.s2 = surfs[self.s2_indx]
 
-    def sync_to_update(self, surfs):
+    def sync_to_update(self, seq_model):
         # when updating, we want to use the stored object instances to get the
         # current indices into the interface list (e.g. to handle insertion and
         # deletion of interfaces)
-        self.s1_indx = surfs.index(self.s1)
-        self.s2_indx = surfs.index(self.s2)
+        self.s1_indx = seq_model.ifcs.index(self.s1)
+        self.s2_indx = seq_model.ifcs.index(self.s2)
+        self.render_color = self.calc_render_color()
 
     def reference_interface(self):
         return self.s1
@@ -64,11 +59,21 @@ class Element():
         self.sd = max(self.s1.surface_od(), self.s2.surface_od())
         return self.sd
 
+    def calc_render_color(self):
+        try:
+            gc = float(self.g.medium.glass_code())
+        except AttributeError:
+            return (255, 255, 255)  # white
+        else:
+            # set element color based on V-number
+            vnbr = round(100.0*(gc - int(gc)), 3)
+            return Element.clut.get_color(vnbr)
+
     def shape(self):
         poly = self.s1.full_profile(self.sd, self.flat1)
         poly2 = self.s2.full_profile(self.sd, self.flat2, -1)
         for p in poly2:
-            p[0] += self.thi
+            p[0] += self.g.thi
         poly += poly2
         poly.append(poly[0])
         return poly
@@ -93,15 +98,15 @@ class Mirror():
         del attrs['s']
         return attrs
 
-    def sync_to_restore(self, surfs, tfrms):
+    def sync_to_restore(self, surfs, gaps, tfrms):
         self.tfrm = tfrms[self.s_indx]
         self.s = surfs[self.s_indx]
 
     def reference_interface(self):
         return self.s
 
-    def sync_to_update(self, surfs):
-        self.s_indx = surfs.index(self.s)
+    def sync_to_update(self, seq_model):
+        self.s_indx = seq_model.ifcs.index(self.s)
 
     def update_size(self):
         self.sd = self.s.surface_od()
@@ -131,15 +136,15 @@ class ThinElement():
         del attrs['intrfc']
         return attrs
 
-    def sync_to_restore(self, surfs, tfrms):
+    def sync_to_restore(self, surfs, gaps, tfrms):
         self.tfrm = tfrms[self.intrfc_indx]
         self.intrfc = surfs[self.intrfc_indx]
 
     def reference_interface(self):
         return self.intrfc
 
-    def sync_to_update(self, surfs):
-        self.intrfc_indx = surfs.index(self.intrfc)
+    def sync_to_update(self, seq_model):
+        self.intrfc_indx = seq_model.ifcs.index(self.intrfc)
 
     def update_size(self):
         self.sd = self.intrfc.surface_od()
@@ -190,16 +195,17 @@ class ElementModel:
         self.parent = opt_model
         seq_model = opt_model.seq_model
         surfs = seq_model.ifcs
+        gaps = seq_model.gaps
         tfrms = seq_model.compute_global_coords(1)
         for e in self.elements:
-            e.sync_to_restore(surfs, tfrms)
+            e.sync_to_restore(surfs, gaps, tfrms)
 
     def update_model(self):
         seq_model = self.parent.seq_model
         tfrms = seq_model.compute_global_coords(1)
         for e in self.elements:
             e.update_size()
-            e.sync_to_update(seq_model.ifcs)
+            e.sync_to_update(seq_model)
             intrfc = e.reference_interface()
             try:
                 i = seq_model.ifcs.index(intrfc)
@@ -216,7 +222,7 @@ class ElementModel:
             if ele.s1 is not None:
                 print(ele.s1.profile,
                       ele.s2.profile,
-                      ele.thi, ele.medium.name())
+                      ele.g.thi, ele.g.medium.name())
             else:
                 print('REFL',
                       ele.s2.profile)
