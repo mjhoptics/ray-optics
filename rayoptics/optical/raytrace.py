@@ -16,12 +16,25 @@ from math import sqrt, copysign
 from . import transform as trns
 from rayoptics.util.misc_math import normalize
 #from optical.model_constants import Surf, Gap
+import pandas as pd
 import attr
 
 Intfc, Gap, Index, Trfm, Z_Dir = range(5)
 pt, dcs = range(2)
 
 RayPkg = namedtuple('RayPkg', ['ray', 'op', 'wvl'])
+
+
+def ray_pkg(ray_pkg):
+    """ return a Series containing a ray package (RayPkg) """
+    return pd.Series(ray_pkg, index=['ray', 'op', 'wvl'])
+
+
+def ray_df(ray):
+    """ return a DataFrame containing ray data """
+    r = pd.DataFrame(ray, columns=['inc_pt', 'after_dir', 'dst_before'])
+    r.index.names = ['intrfc']
+    return r
 
 
 @attr.s
