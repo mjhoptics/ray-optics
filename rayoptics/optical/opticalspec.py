@@ -23,8 +23,10 @@ srgb = cs.cs_srgb
 class OpticalSpecs:
     """ Container class for optical usage information
 
-    Contains optical usage information to specify the aperture, field of view
-    and spectrum. It also supports model ray tracing in terms of relative
+    Contains optical usage information to specify the aperture, field of view,
+    spectrum and focal position.
+
+    It also supports model ray tracing in terms of relative
     aperture and field.
 
     It maintains a repository of paraxial data.
@@ -47,6 +49,7 @@ class OpticalSpecs:
         self.field_of_view = dl[2]
 
     def update_model(self, seq_model):
+        self.pupil.update_model(seq_model)
         self.field_of_view.update_model(seq_model)
         stop = seq_model.stop_surface
         wvl = self.spectral_region.central_wvl()
@@ -306,14 +309,23 @@ class WvlSpec:
 
 class PupilSpec:
     types = ('EPD', 'NA', 'NAO', 'FNO')
+    default_pupil_rays = [[0., 0.], [1., 0.], [-1., 0.], [0., 1.], [0., -1.]]
+    default_ray_labels = ['00', '+X', '-X', '+Y', '-Y']
 
     def __init__(self, type='EPD', value=1.0):
         self.type = type
         self.value = value
+        self.pupil_rays = PupilSpec.default_pupil_rays
+        self.ray_labels = PupilSpec.default_ray_labels
 
     def set_from_list(self, ppl_spec):
         self.type = ppl_spec[0]
         self.value = ppl_spec[1]
+
+    def update_model(self, seq_model):
+        if not hasattr(self, 'pupil_rays'):
+            self.pupil_rays = PupilSpec.default_pupil_rays
+            self.ray_labels = PupilSpec.default_ray_labels
 
 
 class FieldSpec:
@@ -334,6 +346,10 @@ class FieldSpec:
     def update_model(self, seq_model):
         for f in self.fields:
             f.update()
+
+        max_field, fi = self.max_field()
+        field_norm = 1.0 if max_field == 0 else 1.0/max_field
+        self.index_labels = [field_norm*f.y for f in self.fields]
         return self
 
     def update_fields_cv_input(self, tla, dlist):
@@ -385,6 +401,9 @@ class Field:
         del attrs['chief_ray']
         del attrs['ref_sphere']
         return attrs
+
+    def __str__(self):
+        return "{}, {}".format(self.x, self.y)
 
     def update(self):
         self.chief_ray = None
