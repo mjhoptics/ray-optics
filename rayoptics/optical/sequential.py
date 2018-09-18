@@ -405,23 +405,6 @@ class SequentialModel:
         fld, wvl, foc = self.optical_spec.lookup_fld_wvl_focus(fi, wl, fr)
         return fld, wvl, foc
 
-    def trace_boundary_rays_at_field(self, fld, wvl):
-        pupil_rays = [[0., 0.], [1., 0.], [-1., 0.], [0., 1.], [0., -1.]]
-        rim_rays = []
-        for r in pupil_rays:
-            ray, op, wvl = self.optical_spec.trace_base(self, r, fld, wvl)
-            rim_rays.append([ray, op, wvl])
-        return rim_rays
-
-    def trace_boundary_rays(self):
-        rayset = []
-        fov = self.optical_spec.field_of_view
-        wvl = self.central_wavelength()
-        for fi, fld in enumerate(fov.fields):
-            rim_rays = self.trace_boundary_rays_at_field(fld, wvl)
-            rayset.append(rim_rays)
-        return rayset
-
     def trace_fan(self, fct, fi, xy, num_rays=21):
         """ xy determines whether x (=0) or y (=1) fan """
         osp = self.optical_spec
@@ -574,7 +557,7 @@ class SequentialModel:
         return r, t
 
     def set_clear_apertures(self):
-        rayset = self.trace_boundary_rays()
+        rayset = self.optical_spec.trace_boundary_rays(self)
         for i, s in enumerate(self.ifcs):
             max_ap = -1.0e+10
             for f in rayset:

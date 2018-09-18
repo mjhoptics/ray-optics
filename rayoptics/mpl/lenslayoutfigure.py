@@ -120,9 +120,10 @@ class LensLayoutFigure(Figure):
     def update_ray_fan_shape(self, field_num, start_offset):
         offset = start_offset
         seq_model = self.opt_model.seq_model
+        optical_spec = seq_model.optical_spec
         tfrms = seq_model.transforms
-        fld, wvl, foc = seq_model.lookup_fld_wvl_focus(field_num)
-        rayset = seq_model.trace_boundary_rays_at_field(fld, wvl)
+        fld, wvl, foc = optical_spec.lookup_fld_wvl_focus(field_num)
+        rayset = optical_spec.trace_boundary_rays_at_field(seq_model, fld, wvl)
 
         # If the object distance (tfrms[0][1][2]) is greater than the
         #  start_offset, then modify rayset start to match start_offset.

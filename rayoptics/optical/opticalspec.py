@@ -11,6 +11,7 @@ Created on Thu Jan 25 11:01:04 2018
 import math
 import numpy as np
 from numpy.linalg import norm
+import pandas as pd
 
 from rayoptics.util.misc_math import normalize
 from rayoptics.optical.firstorder import compute_first_order
@@ -155,6 +156,65 @@ class OpticalSpecs:
             start[0] += step[0]
             start[1] = grid_rng[0][1]
         return np.array(grid)
+
+    def trace_boundary_rays_at_field(self, seq_model, fld, wvl):
+        rim_rays = []
+        for p in self.pupil.pupil_rays:
+            ray, op, wvl = self.trace_base(seq_model, p, fld, wvl)
+            rim_rays.append([ray, op, wvl])
+        return rim_rays
+
+    def trace_ray_list_at_field(self, seq_model, ray_list, fld, wvl, foc):
+        rayset = pd.DataFrame(data=np.nan)
+        for p in ray_list:
+            ray, op, wvl = self.trace_base(seq_model, p, fld, wvl)
+            rayset[(fld, wvl, foc, p)] = ray
+        return rayset
+
+    def trace_field(self, seq_model, fld, wvl):
+        rayset = self.trace_boundary_rays_at_field(seq_model, fld, wvl)
+        rdf_list = [rt.ray_df(r[0]) for r in rayset]
+        rset = pd.concat(rdf_list, keys=self.pupil.ray_labels,
+                         names=['pupil'])
+        return rset
+
+    def boundary_rays_df(self, seq_model, pupil_spec, rim_rays):
+        """ return a DataFrame containing the boundary ray set """
+        rays = []
+        for p, r in zip(pupil_spec.pupil_rays, rim_rays):
+            ray_df = rt.ray_df(r[0])
+            ray_df.index = seq_model.surface_label_list()
+            ray_pkg = pd.Series((p, ray_df, *r[1:]),
+                                index=['pupil', 'ray', 'op', 'wvl'])
+            rays.append(ray_pkg)
+        ray_set = pd.DataFrame(rays, index=pupil_spec.ray_labels)
+        return ray_set
+
+    def trace_boundary_rays(self, seq_model):
+        rayset = []
+        fov = self.field_of_view
+        wvl = self.spectral_region.central_wvl()
+        for fld in fov.fields:
+            rim_rays = self.trace_boundary_rays_at_field(seq_model, fld, wvl)
+            rayset.append(rim_rays)
+        return rayset
+
+    def trace_boundary_rays_df(self, seq_model):
+        """
+        set up a multi-index that varies over:
+            surface, pupil and field. wavelength and focus are constants
+            """
+        rayset = []
+        mi = pd.MultiIndex.from_product([self.field_of_view.index_labels,
+                                         self.pupil.ray_labels,
+                                         seq_model.surface_label_list()],
+                                        names=['field', 'pupil', 'surf'])
+        fov = self.field_of_view
+        wvl = self.spectral_region.central_wvl()
+        for fld in fov.fields:
+            rim_rays = self.trace_boundary_rays_at_field(seq_model, fld, wvl)
+            rayset.append(rim_rays)
+        return rayset
 
     def obj_coords(self, fld):
         fov = self.field_of_view
@@ -349,7 +409,10 @@ class FieldSpec:
 
         max_field, fi = self.max_field()
         field_norm = 1.0 if max_field == 0 else 1.0/max_field
-        self.index_labels = [field_norm*f.y for f in self.fields]
+        self.index_labels = [str(field_norm*f.y)+'F' for f in self.fields]
+        self.index_labels[0] = 'axis'
+        if len(self.index_labels) > 1:
+            self.index_labels[-1] = 'edge'
         return self
 
     def update_fields_cv_input(self, tla, dlist):

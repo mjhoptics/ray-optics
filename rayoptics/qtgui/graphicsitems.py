@@ -12,6 +12,8 @@ from PyQt5.QtCore import QPointF
 from PyQt5.QtGui import (QColor, QPen, QPolygonF)
 from PyQt5.QtWidgets import QGraphicsPolygonItem
 
+import pandas as pd
+
 
 class OpticalElement(QGraphicsPolygonItem):
     """ QGraphicsItem subclass for 2D lens element graphics """
@@ -46,7 +48,7 @@ class RayBundle(QGraphicsPolygonItem):
     def __init__(self, seq_model, field_num, start_offset):
         super(RayBundle, self).__init__()
         self.seq_model = seq_model
-        self.field = seq_model.optical_spec.field_of_view.fields[field_num]
+        self.fld, self.wvl, _ = seq_model.optical_spec.lookup_fld_wvl_focus(field_num)
         self.start_offset = start_offset
         self.update_shape()
 
@@ -58,10 +60,14 @@ class RayBundle(QGraphicsPolygonItem):
     def update_shape(self):
         offset = self.start_offset
         seq_model = self.seq_model
+        optical_spec = seq_model.optical_spec
         tfrms = seq_model.transforms
-        wvl = seq_model.central_wavelength()
-        rayset = seq_model.trace_boundary_rays_at_field(self.field, wvl)
-
+        rayset = optical_spec.trace_boundary_rays_at_field(seq_model,
+                                                           self.fld,
+                                                           self.wvl)
+#        rset = optical_spec.trace_field(seq_model, self.fld, self.wvl)
+#        rset.loc['00'].inc_pt
+#        print(rset.loc['+Y':'-Y'].inc_pt)
         # If the object distance (tfrms[0][1][2]) is greater than the
         #  start_offset, then modify rayset start to match start_offset.
         # Remember object transformation for resetting at the end.
@@ -76,14 +82,14 @@ class RayBundle(QGraphicsPolygonItem):
             for i, r in enumerate(rayset[3][0][0:]):
                 rot, trns = tfrms[i]
                 p = rot.dot(r[0]) + trns
-    #            print(i, r[0], rot, trns, p)
+#                print(i, r[0], rot, trns, p)
                 poly1.append(QPointF(p[2], -p[1]))
 
             poly2 = []
             for i, r in enumerate(rayset[4][0][0:]):
                 rot, trns = tfrms[i]
                 p = rot.dot(r[0]) + trns
-    #            print(i, r[0], rot, trns, p)
+#                print(i, r[0], rot, trns, p)
                 poly2.append(QPointF(p[2], -p[1]))
 
             poly2.reverse()
