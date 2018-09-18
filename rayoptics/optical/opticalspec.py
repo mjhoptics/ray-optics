@@ -68,10 +68,10 @@ class OpticalSpecs:
         return fld, wvl, foc
 
     def trace_base(self, seq_model, pupil, fld, wvl, eps=1.0e-12):
-        fld.apply_vignetting(pupil)
+        vig_pupil = fld.apply_vignetting(pupil)
         fod = self.parax_data.fod
         eprad = fod.enp_radius
-        pt1 = np.array([eprad*pupil[0], eprad*pupil[1],
+        pt1 = np.array([eprad*vig_pupil[0], eprad*vig_pupil[1],
                         fod.obj_dist+fod.enp_dist])
         pt0 = self.obj_coords(fld)
         dir0 = pt1 - pt0
@@ -410,19 +410,20 @@ class Field:
         self.ref_sphere = None
 
     def apply_vignetting(self, pupil):
+        vig_pupil = pupil[:]
         if pupil[0] < 0.0:
             if self.vlx != 0.0:
-                pupil[0] *= (1.0 - self.vlx)
+                vig_pupil[0] *= (1.0 - self.vlx)
         else:
             if self.vux != 0.0:
-                pupil[0] *= (1.0 - self.vux)
+                vig_pupil[0] *= (1.0 - self.vux)
         if pupil[1] < 0.0:
             if self.vly != 0.0:
-                pupil[1] *= (1.0 - self.vly)
+                vig_pupil[1] *= (1.0 - self.vly)
         else:
             if self.vuy != 0.0:
-                pupil[1] *= (1.0 - self.vuy)
-        return pupil
+                vig_pupil[1] *= (1.0 - self.vuy)
+        return vig_pupil
 
 
 class FocusRange:

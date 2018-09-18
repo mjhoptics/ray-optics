@@ -532,11 +532,11 @@ class SequentialModel:
         r, t: transformation rotation and translation
         """
         for ri, ray in enumerate(rayset):
-            b4_pt = r.dot(ray[0][1][0]) + t
+            b4_pt = r.dot(ray[0][1][0]) - t
             b4_dir = r.dot(ray[0][0][1])
             if ri == 0:
                 # For the chief ray, use the input offset.
-                dst = -start_offset
+                dst = -b4_pt[2]/b4_dir[2]
             else:
                 pt0 = rayset[0][0][0][0]
                 dir0 = rayset[0][0][0][1]
@@ -557,7 +557,7 @@ class SequentialModel:
         s1 = self.ifcs[1]
         s0 = self.ifcs[0]
         g0 = gap.Gap(start_offset, self.gaps[0].medium)
-        r, t = trns.reverse_transform(s1, g0, s0)
+        r, t = trns.reverse_transform(s0, g0, s1)
         return r, t
 
     def shift_start_of_rayset(self, rayset, start_offset):
