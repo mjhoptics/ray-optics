@@ -129,7 +129,7 @@ class ThinLens(Interface):
     def normal(self, p):
         return np.array([0., 0., 1.])
 
-    def intersect(self, p0, d, eps):
+    def intersect(self, p0, d, **kwargs):
         s1 = -p0[2]/d[2]
         p = p0 + s1*d
         return s1, p

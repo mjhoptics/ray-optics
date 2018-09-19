@@ -14,6 +14,7 @@ from . import profiles
 from . import gap
 from . import medium as m
 from . import raytrace as rt
+from . import trace as trace
 from . import transform as trns
 from rayoptics.optical.model_constants import Surf, Gap
 from rayoptics.optical.model_constants import ax, pr, lns
@@ -411,8 +412,8 @@ class SequentialModel:
         fld = osp.field_of_view.fields[fi]
         wvl = self.central_wavelength()
         foc = 0.0
-#        osp.setup_canonical_coords(self, fld, wvl)
-        rs_pkg, cr_pkg = osp.setup_pupil_coords(self, fld, wvl, foc)
+#        trace.setup_canonical_coords(self, fld, wvl)
+        rs_pkg, cr_pkg = trace.setup_pupil_coords(self, fld, wvl, foc)
         fld.chief_ray = cr_pkg
         fld.ref_sphere = rs_pkg
         img_pt = cr_pkg[0].ray[-1][0]
@@ -430,13 +431,13 @@ class SequentialModel:
         for wi, wvl in enumerate(wvls.wavelengths):
             rc.append(wvls.render_colors[wi])
 
-            rs_pkg, cr_pkg = osp.setup_pupil_coords(self, fld, wvl, foc,
-                                                    image_pt=img_pt)
+            rs_pkg, cr_pkg = trace.setup_pupil_coords(self, fld, wvl, foc,
+                                                      image_pt=img_pt)
             fld.chief_ray = cr_pkg
             fld.ref_sphere = rs_pkg
-            fan = osp.trace_fan(self, fan_def, fld, wvl, foc,
-                                img_filter=lambda p, ray_pkg:
-                                fct(p, xy, ray_pkg, fld, wvl))
+            fan = trace.trace_fan(self, fan_def, fld, wvl, foc,
+                                  img_filter=lambda p, ray_pkg:
+                                  fct(p, xy, ray_pkg, fld, wvl))
             f_x = []
             f_y = []
             for p, y_val in fan:
@@ -460,7 +461,7 @@ class SequentialModel:
         fld = osp.field_of_view.fields[fi]
         foc = 0.0
 
-        rs_pkg, cr_pkg = osp.setup_pupil_coords(self, fld, wvl, foc)
+        rs_pkg, cr_pkg = trace.setup_pupil_coords(self, fld, wvl, foc)
         fld.chief_ray = cr_pkg
         fld.ref_sphere = rs_pkg
 
@@ -471,10 +472,10 @@ class SequentialModel:
         grid_stop = np.array([origin+delta, origin+delta])
         grid_def = [grid_start, grid_stop, num_rays]
         for wi, wvl in enumerate(wv_list):
-            grid = osp.trace_grid(self, grid_def, fld, wvl, foc,
-                                  form=form, append_if_none=append_if_none,
-                                  img_filter=lambda p, ray_pkg:
-                                  fct(p, wi, ray_pkg, fld, wvl))
+            grid = trace.trace_grid(self, grid_def, fld, wvl, foc,
+                                    form=form, append_if_none=append_if_none,
+                                    img_filter=lambda p, ray_pkg:
+                                    fct(p, wi, ray_pkg, fld, wvl))
             grids.append(grid)
         rc = wvls.render_colors
         return grids, rc
@@ -491,8 +492,7 @@ class SequentialModel:
                 opd = 0.0
             return np.array([x, y, opd])
 
-        osp = self.optical_spec
-        rs_pkg, cr_pkg = osp.setup_pupil_coords(self, fld, wvl, foc)
+        rs_pkg, cr_pkg = trace.setup_pupil_coords(self, fld, wvl, foc)
         fld.chief_ray = cr_pkg
         fld.ref_sphere = rs_pkg
 
@@ -500,9 +500,9 @@ class SequentialModel:
         grid_stop = np.array([1., 1.])
         grid_def = (grid_start, grid_stop, num_rays)
 
-        grid = osp.trace_grid(self, grid_def, fld, wvl, foc,
-                              img_filter=lambda p, ray_pkg:
-                              wave(p, ray_pkg, fld, wvl), form='grid')
+        grid = trace.trace_grid(self, grid_def, fld, wvl, foc,
+                                img_filter=lambda p, ray_pkg:
+                                wave(p, ray_pkg, fld, wvl), form='grid')
         return grid
 
     def shift_start_of_ray_bundle(self, rayset, start_offset, r, t):
@@ -557,24 +557,24 @@ class SequentialModel:
         return r, t
 
     def set_clear_apertures(self):
-        rayset = self.optical_spec.trace_boundary_rays(self)
-        for i, s in enumerate(self.ifcs):
-            max_ap = -1.0e+10
-            for f in rayset:
-                for p in f:
-                    ap = sqrt(p[0][i][0][0]**2 + p[0][i][0][1]**2)
-                    if ap > max_ap:
-                        max_ap = ap
+        def rd(v):
+            """ take 2d length of input vector v """
+            return np.sqrt(v[0]*v[0]+v[1]*v[1])
+
+        fields_df = trace.trace_all_fields(self)
+        # a) Select the inc_pt data from the unstacked result and transpose so
+        #    that intrfcs are the index
+        inc_pts = fields_df.unstack()['inc_pt'].T
+        # b) applymap() is used to apply the function rd() to each element in
+        #    the dataframe
+        inc_pts_rd = inc_pts.applymap(rd)
+        # c) apply max() function to each row (i.e. across columns, axis=1)
+        semi_ap = inc_pts_rd.max(axis=1)
+        for s, max_ap in zip(self.ifcs[1:-1], semi_ap[1:-1]):
             s.set_max_aperture(max_ap)
 
-    def trace(self, pt0, dir0, wvl, eps=1.0e-12):
-        return rt.trace(self, pt0, dir0, wvl, eps)
-
-    def trace_op(self, pt0, dir0, wl, eps=1.0e-12):
-        indices = [g.medium.rindex(wl) for g in self.gaps]
-        indices.append(indices[-1])
-
-        return rt.trace_op(self, indices, pt0, dir0, wl, eps)
+    def trace(self, pt0, dir0, wvl, **kwargs):
+        return rt.trace(self, pt0, dir0, wvl, **kwargs)
 
     def compute_global_coords(self, glo=1):
         """ Return global surface coordinates (rot, t) wrt surface glo. """
@@ -648,7 +648,3 @@ class SequentialModel:
                 before = after
 
         return tfrms
-
-    def compute_global_coords_wrt(self, rng, go=1):
-        for s in rng:
-            pass

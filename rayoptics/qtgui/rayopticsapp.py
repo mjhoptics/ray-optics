@@ -31,6 +31,7 @@ from rayoptics.mpl.paraxdgnfigure import Dgm
 from rayoptics.qtgui.pytablemodel import PyTableModel
 from rayoptics.qtgui.graphicsitems import OpticalElement, RayBundle
 from rayoptics.qtgui.plotcanvas import PlotCanvas
+from rayoptics.optical import trace as trace
 
 
 class MainWindow(QMainWindow):
@@ -244,7 +245,7 @@ class MainWindow(QMainWindow):
         fi = 1
         wl = osp.spectral_region.reference_wvl
         fld, wvl, foc = osp.lookup_fld_wvl_focus(fi, wl)
-        ray, ray_op, wvl, opd = osp.trace_with_opd(sm, pupil, fld, wvl, foc)
+        ray, ray_op, wvl, opd = trace.trace_with_opd(sm, pupil, fld, wvl, foc)
 
         colEvalStr = ['[{}][0][0]', '[{}][0][1]', '[{}][0][2]',
                       '[{}][1][0]', '[{}][1][1]', '[{}][1][2]',

@@ -10,49 +10,11 @@ Created on Thu Jan 25 11:01:04 2018
 
 import itertools
 import numpy as np
-from collections import namedtuple
 from numpy.linalg import norm
 from math import sqrt, copysign
-from . import transform as trns
-from rayoptics.util.misc_math import normalize
-#from optical.model_constants import Surf, Gap
-import pandas as pd
-import attr
 
 Intfc, Gap, Index, Trfm, Z_Dir = range(5)
 pt, dcs = range(2)
-
-RayPkg = namedtuple('RayPkg', ['ray', 'op', 'wvl'])
-
-
-def ray_pkg(ray_pkg):
-    """ return a Series containing a ray package (RayPkg) """
-    return pd.Series(ray_pkg, index=['ray', 'op', 'wvl'])
-
-
-def ray_df(ray):
-    """ return a DataFrame containing ray data """
-    r = pd.DataFrame(ray, columns=['inc_pt', 'after_dir', 'dst_before'])
-    r.index.names = ['intrfc']
-    return r
-
-
-@attr.s
-class RaySeg():
-    inc_pt = attr.ib()
-    after_dir = attr.ib()
-    dst_before = attr.ib()
-    phase = attr.ib(default=0.0)
-
-
-def list_ray(ray):
-    print("          X            Y            Z           L"
-          "            M            N               Len")
-    for i, r in enumerate(ray):
-        print("{}: {:12.5f} {:12.5f} {:12.5f} {:12.6f} {:12.6f} "
-              "{:12.6f} {:12.5g}".format(i,
-                                         r[0][0], r[0][1], r[0][2],
-                                         r[1][0], r[1][1], r[1][2], r[2]))
 
 
 def bend(d_in, normal, n_in, n_out):
@@ -80,7 +42,7 @@ def phase(intrfc, inc_pt, d_in, normal, wvl, n_in, n_out):
     return d_out, dW
 
 
-def trace(seq_model, pt0, dir0, wvl, eps=1.0e-12):
+def trace(seq_model, pt0, dir0, wvl, **kwargs):
     """ fundamental raytrace function
 
     inputs:
@@ -105,7 +67,7 @@ def trace(seq_model, pt0, dir0, wvl, eps=1.0e-12):
                                  seq_model.rndx[wvl], seq_model.lcl_tfrms,
                                  seq_model.z_dir)
     path_pkg = (path, seq_model.get_num_surfaces())
-    return trace_raw(path_pkg, pt0, dir0, wvl, eps)
+    return trace_raw(path_pkg, pt0, dir0, wvl, **kwargs)
 
 
 def trace_raw(path_pkg, pt0, dir0, wvl, eps=1.0e-12):

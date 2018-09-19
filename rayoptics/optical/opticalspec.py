@@ -10,13 +10,8 @@ Created on Thu Jan 25 11:01:04 2018
 
 import math
 import numpy as np
-from numpy.linalg import norm
-import pandas as pd
 
-from rayoptics.util.misc_math import normalize
 from rayoptics.optical.firstorder import compute_first_order
-from rayoptics.optical.model_constants import ht, slp, aoi
-from . import raytrace as rt
 import rayoptics.util.colour_system as cs
 srgb = cs.cs_srgb
 
@@ -26,9 +21,6 @@ class OpticalSpecs:
 
     Contains optical usage information to specify the aperture, field of view,
     spectrum and focal position.
-
-    It also supports model ray tracing in terms of relative
-    aperture and field.
 
     It maintains a repository of paraxial data.
     """
@@ -68,154 +60,6 @@ class OpticalSpecs:
         foc = self.defocus.get_focus(fr)
         return fld, wvl, foc
 
-    def trace_base(self, seq_model, pupil, fld, wvl, eps=1.0e-12):
-        vig_pupil = fld.apply_vignetting(pupil)
-        fod = self.parax_data.fod
-        eprad = fod.enp_radius
-        pt1 = np.array([eprad*vig_pupil[0], eprad*vig_pupil[1],
-                        fod.obj_dist+fod.enp_dist])
-        pt0 = self.obj_coords(fld)
-        dir0 = pt1 - pt0
-        length = norm(dir0)
-        dir0 = dir0/length
-        return rt.trace(seq_model, pt0, dir0, wvl, eps)
-
-    def trace_with_opd(self, seq_model, pupil, fld, wvl, foc, eps=1.0e-12):
-        """ returns ray and ray_op """
-        ray_pkg = self.trace_base(seq_model, pupil, fld, wvl, eps)
-
-        rs_pkg, cr_pkg = self.setup_pupil_coords(seq_model, fld, wvl, foc)
-        fld.chief_ray = cr_pkg
-        fld.ref_sphere = rs_pkg
-
-        opd_pkg = rt.wave_abr(seq_model, fld, wvl, ray_pkg)
-        ray, ray_op, wvl = ray_pkg
-        return ray, ray_op, wvl, opd_pkg[0]
-
-    def trace(self, seq_model, pupil, fi, wl=None, eps=1.0e-12):
-        """ returns ray and ray_op """
-        fld, wvl, foc = self.lookup_fld_wvl_focus(fi, wl, 0.0)
-        ray, ray_op, wvl = self.trace_base(seq_model, pupil, fld, wvl, eps)
-        return ray, ray_op, wvl
-
-    def trace_fan(self, seq_model, fan_rng, fld, wvl, foc, img_filter=None,
-                  eps=1.0e-12):
-        start = np.array(fan_rng[0])
-        stop = fan_rng[1]
-        num = fan_rng[2]
-        step = (stop - start)/(num - 1)
-        fan = []
-        for r in range(num):
-            pupil = np.array(start)
-            ray_pkg = self.trace_base(seq_model, pupil, fld, wvl, eps)
-
-            if img_filter:
-                result = img_filter(pupil, ray_pkg)
-                fan.append([pupil, result])
-            else:
-                fan.append([pupil, ray_pkg])
-
-            start += step
-        return fan
-
-    def trace_grid(self, seq_model, grid_rng, fld, wvl, foc, img_filter=None,
-                   form='grid', append_if_none=True, eps=1.0e-12):
-        start = np.array(grid_rng[0])
-        stop = grid_rng[1]
-        num = grid_rng[2]
-        step = np.array((stop - start)/(num - 1))
-        grid = []
-        for i in range(num):
-            if form == 'list':
-                working_grid = grid
-            elif form == 'grid':
-                grid_row = []
-                working_grid = grid_row
-
-            for j in range(num):
-                pupil = np.array(start)
-                if (pupil[0]**2 + pupil[1]**2) < 1.0:
-                    ray_pkg = self.trace_base(seq_model, pupil, fld, wvl, eps)
-                    if img_filter:
-                        result = img_filter(pupil, ray_pkg)
-                        working_grid.append(result)
-                    else:
-                        working_grid.append([pupil[0], pupil[1], ray_pkg])
-                else:  # ray outside pupil
-                    if img_filter:
-                        result = img_filter(pupil, None)
-                        if result is not None or append_if_none:
-                            working_grid.append(result)
-                    else:
-                        if append_if_none:
-                            working_grid.append([pupil[0], pupil[1], None])
-
-                start[1] += step[1]
-            if form == 'grid':
-                grid.append(grid_row)
-            start[0] += step[0]
-            start[1] = grid_rng[0][1]
-        return np.array(grid)
-
-    def trace_boundary_rays_at_field(self, seq_model, fld, wvl):
-        rim_rays = []
-        for p in self.pupil.pupil_rays:
-            ray, op, wvl = self.trace_base(seq_model, p, fld, wvl)
-            rim_rays.append([ray, op, wvl])
-        return rim_rays
-
-    def trace_ray_list_at_field(self, seq_model, ray_list, fld, wvl, foc):
-        rayset = pd.DataFrame(data=np.nan)
-        for p in ray_list:
-            ray, op, wvl = self.trace_base(seq_model, p, fld, wvl)
-            rayset[(fld, wvl, foc, p)] = ray
-        return rayset
-
-    def trace_field(self, seq_model, fld, wvl):
-        rayset = self.trace_boundary_rays_at_field(seq_model, fld, wvl)
-        rdf_list = [rt.ray_df(r[0]) for r in rayset]
-        rset = pd.concat(rdf_list, keys=self.pupil.ray_labels,
-                         names=['pupil'])
-        return rset
-
-    def boundary_rays_df(self, seq_model, pupil_spec, rim_rays):
-        """ return a DataFrame containing the boundary ray set """
-        rays = []
-        for p, r in zip(pupil_spec.pupil_rays, rim_rays):
-            ray_df = rt.ray_df(r[0])
-            ray_df.index = seq_model.surface_label_list()
-            ray_pkg = pd.Series((p, ray_df, *r[1:]),
-                                index=['pupil', 'ray', 'op', 'wvl'])
-            rays.append(ray_pkg)
-        ray_set = pd.DataFrame(rays, index=pupil_spec.ray_labels)
-        return ray_set
-
-    def trace_boundary_rays(self, seq_model):
-        rayset = []
-        fov = self.field_of_view
-        wvl = self.spectral_region.central_wvl()
-        for fld in fov.fields:
-            rim_rays = self.trace_boundary_rays_at_field(seq_model, fld, wvl)
-            rayset.append(rim_rays)
-        return rayset
-
-    def trace_boundary_rays_df(self, seq_model):
-        """
-        set up a multi-index that varies over:
-            surface, pupil and field. wavelength and focus are constants
-            """
-        rayset = []
-        mi = pd.MultiIndex.from_product([self.field_of_view.index_labels,
-                                         self.pupil.ray_labels,
-                                         seq_model.surface_label_list()],
-                                        names=['field', 'pupil', 'surf'])
-        fov = self.field_of_view
-        wvl = self.spectral_region.central_wvl()
-        for fld in fov.fields:
-            rim_rays = self.trace_boundary_rays_at_field(seq_model, fld, wvl)
-            rayset.append(rim_rays)
-        return rayset
-
     def obj_coords(self, fld):
         fov = self.field_of_view
         fod = self.parax_data.fod
@@ -229,93 +73,6 @@ class OpticalSpecs:
         else:
             obj_pt = np.array([fld.x, fld.y, 0.0])
         return obj_pt
-
-    def trace_chief_ray(self, seq_model, fld, wvl, foc):
-        fod = self.parax_data.fod
-
-        ray, op, wvl = self.trace_base(seq_model, [0., 0.], fld, wvl)
-        cr = rt.RayPkg(ray, op, wvl)
-
-        # cr_exp_pt: E upper bar prime: pupil center for pencils from Q
-        # cr_exp_pt, cr_b4_dir, cr_exp_dist
-        cr_exp_seg = rt.transfer_to_exit_pupil(seq_model.ifcs[-2],
-                                               (cr.ray[-2][0], cr.ray[-2][1]),
-                                               fod.exp_dist)
-        return cr, cr_exp_seg
-
-    def setup_pupil_coords(self, seq_model, fld, wvl, foc,
-                           chief_ray_pkg=None, image_pt=None):
-        if chief_ray_pkg is None:
-            chief_ray_pkg = self.trace_chief_ray(seq_model, fld, wvl, foc)
-        elif chief_ray_pkg[2] != wvl:
-            chief_ray_pkg = self.trace_chief_ray(seq_model, fld, wvl, foc)
-
-        cr, cr_exp_seg = chief_ray_pkg
-
-        if image_pt is None:
-            image_pt = cr.ray[-1][0]
-
-        # cr_exp_pt: E upper bar prime: pupil center for pencils from Q
-        # cr_exp_pt, cr_b4_dir, cr_dst
-        cr_exp_pt = cr_exp_seg[0]
-        cr_exp_dist = cr_exp_seg[2]
-
-        img_dist = seq_model.gaps[-1].thi
-        img_pt = np.array(image_pt)
-        img_pt[2] += img_dist
-
-        # R' radius of reference sphere for O'
-        ref_sphere_vec = img_pt - cr_exp_pt
-        ref_sphere_radius = np.linalg.norm(ref_sphere_vec)
-        ref_dir = normalize(ref_sphere_vec)
-
-        ref_sphere = (image_pt, cr_exp_pt, cr_exp_dist,
-                      ref_dir, ref_sphere_radius)
-
-        z_dir = seq_model.z_dir[-1]
-        n_obj = seq_model.rndx[wvl].iloc[0]
-        n_img = seq_model.rndx[wvl].iloc[-1]
-        ref_sphere_pkg = (ref_sphere, self.parax_data, n_obj, n_img, z_dir)
-
-        return ref_sphere_pkg, chief_ray_pkg
-
-    def setup_canonical_coords(self, seq_model, fld, wvl, image_pt=None):
-        fod = self.parax_data.fod
-
-        if fld.chief_ray is None:
-            ray, op, wvl = self.trace_base(seq_model, [0., 0.], fld, wvl)
-            fld.chief_ray = rt.RayPkg(ray, op, wvl)
-        cr = fld.chief_ray
-
-        if image_pt is None:
-            image_pt = cr.ray[-1][0]
-
-        # cr_exp_pt: E upper bar prime: pupil center for pencils from Q
-        # cr_exp_pt, cr_b4_dir, cr_dst
-        cr_exp_seg = rt.transfer_to_exit_pupil(seq_model.ifcs[-2],
-                                               (cr.ray[-2][0], cr.ray[-2][1]),
-                                               fod.exp_dist)
-        cr_exp_pt = cr_exp_seg[0]
-        cr_exp_dist = cr_exp_seg[2]
-
-        img_dist = seq_model.gaps[-1].thi
-        img_pt = np.array(image_pt)
-        img_pt[2] += img_dist
-
-        # R' radius of reference sphere for O'
-        ref_sphere_vec = img_pt - cr_exp_pt
-        ref_sphere_radius = np.linalg.norm(ref_sphere_vec)
-        ref_dir = normalize(ref_sphere_vec)
-
-        ref_sphere = (image_pt, cr_exp_pt, cr_exp_dist,
-                      ref_dir, ref_sphere_radius)
-
-        z_dir = seq_model.z_dir[-1]
-        n_obj = seq_model.rndx[wvl].iloc[0]
-        n_img = seq_model.rndx[wvl].iloc[-1]
-        ref_sphere_pkg = (ref_sphere, self.parax_data, n_obj, n_img, z_dir)
-        fld.ref_sphere = ref_sphere_pkg
-        return ref_sphere_pkg, cr
 
 
 class WvlSpec:

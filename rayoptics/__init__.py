@@ -6,7 +6,7 @@ from .optical.profiles import Spherical, Conic
 from .optical.opticalspec import FieldSpec, PupilSpec
 
 from .optical.firstorder import ParaxData, compute_first_order
-from .optical.raytrace import list_ray
+from .optical.trace import list_ray
 
 from .mpl.paraxdgnfigure import ParaxialDesignFigure, Dgm
 

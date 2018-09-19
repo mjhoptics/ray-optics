@@ -14,7 +14,7 @@ from scipy.interpolate import spline
 
 import numpy as np
 
-import rayoptics.optical.raytrace as rt
+from rayoptics.optical.raytrace import wave_abr
 
 
 class Fit(Enum):
@@ -109,7 +109,7 @@ class RayFanFigure(AxisArrayFigure):
 
         def opd(p, xy, ray_pkg, fld, wvl):
             if ray_pkg[0] is not None:
-                opd = rt.wave_abr(self.seq_model, fld, wvl, ray_pkg)
+                opd = wave_abr(self.seq_model, fld, wvl, ray_pkg)
                 return opd[0]/self.wvl_to_sys_units(wvl)
             else:
                 return None
@@ -280,7 +280,7 @@ class WavefrontFigure(AxisArrayFigure):
             x = p[0]
             y = p[1]
             if ray_pkg is not None:
-                opd_pkg = rt.wave_abr(self.seq_model, fld, wvl, ray_pkg)
+                opd_pkg = wave_abr(self.seq_model, fld, wvl, ray_pkg)
                 opd = opd_pkg[0]/self.wvl_to_sys_units(wvl)
             else:
                 opd = 0.0
