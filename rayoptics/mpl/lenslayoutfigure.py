@@ -15,6 +15,8 @@ from matplotlib.patches import Polygon
 
 import numpy as np
 
+import rayoptics.gui.layout as layout
+
 Fit_All, User_Scale = range(2)
 
 
@@ -29,12 +31,6 @@ def rgb2mpl(rgb):
 
 
 backgrnd_color = rgb2mpl([237, 243, 254])  # light blue
-
-
-def bbox_from_poly(poly):
-    minx, miny = np.min(poly, axis=0)
-    maxx, maxy = np.max(poly, axis=0)
-    return np.array([[minx, miny], [maxx, maxy]])
 
 
 class LensLayoutFigure(Figure):
@@ -56,11 +52,10 @@ class LensLayoutFigure(Figure):
 
         self.set_facecolor(backgrnd_color)
 
-        self.patches = []
-
         ele_model = self.opt_model.ele_model
         if len(ele_model.elements) == 0:
             ele_model.elements_from_sequence(self.opt_model.seq_model)
+
         self.update_data()
 
     def refresh(self):
@@ -69,32 +64,16 @@ class LensLayoutFigure(Figure):
 
     def update_data(self):
         self.patches = []
-        self.ele_bbox = self.update_element_model(self.opt_model.ele_model)
-        self.ray_bbox = self.update_ray_model()
-        self.sys_bbox = bbox_from_poly(np.concatenate((self.ele_bbox,
-                                                       self.ray_bbox)))
+
+        self.ele_shapes = self.create_element_model(self.opt_model.ele_model)
+        self.ele_bbox = self.update_patches(self.ele_shapes)
+
+        self.ray_shapes = self.create_ray_model()
+        self.ray_bbox = self.update_patches(self.ray_shapes)
+
+        self.sys_bbox = layout.bbox_from_poly(np.concatenate((self.ele_bbox,
+                                                             self.ray_bbox)))
         return self
-
-    def update_element_model(self, ele_model):
-        bbox_list = []
-        for e in ele_model.elements:
-            p, bbox = self.update_element_shape(e)
-            self.patches.append(p)
-            if len(bbox_list) == 0:
-                bbox_list = bbox
-            else:
-                bbox_list = np.vstack((bbox_list, bbox))
-        ele_bbox = bbox_from_poly(bbox_list)
-        return ele_bbox
-
-    def update_element_shape(self, e):
-        t = np.array([e.tfrm[1][2], -e.tfrm[1][1]])
-        poly = np.array(e.shape())
-        poly += t
-        bbox = bbox_from_poly(poly)
-        p = Polygon(poly, closed=True, fc=rgb2mpl(e.render_color), ec='black')
-        p.set_linewidth(self.linewidth)
-        return p, bbox
 
     def system_length(self):
         seq_model = self.opt_model.seq_model
@@ -102,75 +81,57 @@ class LensLayoutFigure(Figure):
         ele_length = self.ele_bbox[1][0] - self.ele_bbox[0][0]
         return ele_length+img_dist
 
-    def update_ray_model(self, start_surf=1):
-        start_offset = 0.05*self.system_length()
-
+    def update_patches(self, shapes):
         bbox_list = []
-        fov = self.opt_model.seq_model.optical_spec.field_of_view
-        for fi, f in enumerate(fov.fields):
-            p, bbox = self.update_ray_fan_shape(fi, start_offset)
-            self.patches.append(p)
+        for shape in shapes:
+            poly, bbox = shape[0](shape[1])
+            self.patches.append(poly)
             if len(bbox_list) == 0:
                 bbox_list = bbox
             else:
                 bbox_list = np.vstack((bbox_list, bbox))
-        ray_bbox = bbox_from_poly(bbox_list)
-        return ray_bbox
+        bbox = layout.bbox_from_poly(bbox_list)
+        return bbox
 
-    def update_ray_fan_shape(self, field_num, start_offset):
-        offset = start_offset
-        seq_model = self.opt_model.seq_model
-        optical_spec = seq_model.optical_spec
-        tfrms = seq_model.transforms
-        fld, wvl, foc = optical_spec.lookup_fld_wvl_focus(field_num)
-        rayset = optical_spec.trace_boundary_rays_at_field(seq_model, fld, wvl)
+    def create_element_model(self, ele_model):
+        elements = []
+        for e in ele_model.elements:
+            oe = layout.OpticalElement(e)
+            elements.append((self.update_element_shape, oe))
+        return elements
 
-        # If the object distance (tfrms[0][1][2]) is greater than the
-        #  start_offset, then modify rayset start to match start_offset.
-        # Remember object transformation for resetting at the end.
-        tfrtm0 = tfrms[0]
+    def update_element_shape(self, oe):
+        poly, bbox = oe.update_shape()
+        p = Polygon(poly, closed=True, fc=rgb2mpl(oe.render_color()),
+                    ec='black')
+        p.set_linewidth(self.linewidth)
+        return p, bbox
 
-        if abs(tfrms[0][1][2]) > start_offset:
-            r, t = seq_model.setup_shift_of_ray_bundle(offset)
-            tfrms[0] = (r, t)
-            seq_model.shift_start_of_ray_bundle(rayset, offset, r, t)
+    def create_ray_model(self, start_surf=1):
+        start_offset = 0.05*self.system_length()
 
-        poly1 = []
-        for i, r in enumerate(rayset[3][0][0:]):
-            rot, trns = tfrms[i]
-            p = rot.dot(r[0]) + trns
-#            print(i, r[0], rot, trns, p)
-#            print("r3", i, p[2], p[1])
-            poly1.append([p[2], p[1]])
+        ray_bundles = []
+        fov = self.opt_model.seq_model.optical_spec.field_of_view
+        wvl = self.opt_model.seq_model.central_wavelength()
+        for fld in fov.fields:
+            rb = layout.RayBundle(self.opt_model.seq_model,
+                                  fld, wvl, start_offset)
+            ray_bundles.append((self.update_ray_fan_shape, rb))
+        return ray_bundles
 
-        poly2 = []
-        for i, r in enumerate(rayset[4][0][0:]):
-            rot, trns = tfrms[i]
-            p = rot.dot(r[0]) + trns
-#            print(i, r[0], rot, trns, p)
-#            print("r4", i, p[2], p[1])
-            poly2.append([p[2], p[1]])
-
-        poly2.reverse()
-        poly1.extend(poly2)
-        bbox = bbox_from_poly(poly1)
-
+    def update_ray_fan_shape(self, rb):
         rndr_clr = rgb2mpl([254, 197, 254, 64])  # magenta, 25%
 
-        p = Polygon(poly1, fc=rndr_clr, ec='black')
+        poly, bbox = rb.update_shape()
+        p = Polygon(poly, fc=rndr_clr, ec='black')
         p.set_linewidth(self.linewidth)
-
-        tfrms[0] = tfrtm0
 
         return p, bbox
 
     def scale_bounds(self, oversize_factor):
-        inc_x = oversize_factor*(self.sys_bbox[1][0] - self.sys_bbox[0][0])
-        inc_y = oversize_factor*(self.sys_bbox[1][1] - self.sys_bbox[0][1])
-        incr = max(inc_x, inc_y)
-        bb = self.sys_bbox
-        self.ax.set_xlim(bb[0][0]-incr, bb[1][0]+incr)
-        self.ax.set_ylim(bb[0][1]-incr, bb[1][1]+incr)
+        bbox = layout.scale_bounds(self.sys_bbox, oversize_factor)
+        self.ax.set_xlim(bbox[0][0], bbox[1][0])
+        self.ax.set_ylim(bbox[0][1], bbox[1][1])
 
     def draw_frame(self, do_draw_frame):
         if do_draw_frame:
