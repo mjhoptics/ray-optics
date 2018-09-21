@@ -11,7 +11,6 @@ Created on Wed May 16 14:05:38 2018
 
 from math import sqrt
 import numpy as np
-import transforms3d as t3d
 from rayoptics.util.misc_math import normalize
 from rayoptics.optical.surface import Interface
 

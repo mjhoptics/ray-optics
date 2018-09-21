@@ -26,7 +26,8 @@ setuptools.setup(
         "matplotlib>=2.2.3",
         "json_tricks>=3.12.1",
         "pandas>=0.23.4",
-        "attrs>=18.1.0"
+        "attrs>=18.1.0",
+        "transforms3d>=0.3.1"
         ],
     extras_require={
         'QtGUI':  ["pyqt5"],

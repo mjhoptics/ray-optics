@@ -25,8 +25,8 @@ from opticalglass import glasserror as ge
 import numpy as np
 import pandas as pd
 import transforms3d as t3d
-from math import sqrt, copysign
-from rayoptics.util.misc_math import euler2opt, isanumber
+from math import copysign
+from rayoptics.util.misc_math import isanumber
 
 
 class SequentialModel:
