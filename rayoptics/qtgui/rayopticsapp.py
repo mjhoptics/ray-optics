@@ -14,7 +14,7 @@ import sys
 import logging
 from pathlib import Path
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt as qt
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (QApplication, QAction, QMainWindow, QMdiArea,
                              QMdiSubWindow, QTextEdit, QFileDialog, QTableView,
@@ -22,6 +22,9 @@ from PyQt5.QtWidgets import (QApplication, QAction, QMainWindow, QMdiArea,
                              QLineEdit, QGraphicsScene, QRadioButton,
                              QGroupBox)
 from PyQt5.QtCore import pyqtSlot
+
+from matplotlib.backends.backend_qt5agg \
+     import (NavigationToolbar2QT as NavigationToolbar)
 
 import rayoptics as ro
 from rayoptics.gui.appmanager import ModelInfo, AppManager
@@ -346,7 +349,7 @@ class MainWindow(QMainWindow):
         view_ht = 500
         title = "Paraxial Design View"
         self.create_plot_view(fig, title, view_width, view_ht,
-                              add_scale_panel=False)
+                              add_scale_panel=False, add_nav_toolbar=True)
 
     def create_ray_fan_view(self, data_type):
         seq_model = self.app_manager.model.seq_model
@@ -390,7 +393,7 @@ class MainWindow(QMainWindow):
         self.create_plot_view(fig, title, view_width, view_ht)
 
     def create_plot_view(self, fig, title, view_width, view_ht,
-                         add_scale_panel=True):
+                         add_scale_panel=True, add_nav_toolbar=False):
         pc = PlotCanvas(self, fig)
         # construct the top level widget
         widget = QWidget()
@@ -404,16 +407,21 @@ class MainWindow(QMainWindow):
             psp = self.create_plot_scale_panel(pc)
             layout.addWidget(psp)
 
-        sub = self.add_subwindow(widget, ModelInfo(self.app_manager.model,
-                                         MainWindow.update_figure_view,
-                                         (fig,)))
-        sub.setWindowTitle(title)
+        mi = ModelInfo(self.app_manager.model,
+                       MainWindow.update_figure_view, (fig,))
+        sub_window = self.add_subwindow(widget, mi)
+        sub_window.setWindowTitle(title)
         orig_x, orig_y = self.initial_window_offset()
-        sub.setGeometry(orig_x, orig_y, view_width, view_ht)
+        sub_window.setGeometry(orig_x, orig_y, view_width, view_ht)
 
         layout.addWidget(pc)
 
-        sub.show()
+        if add_nav_toolbar:
+            layout.addWidget(NavigationToolbar(pc, sub_window))
+#            sub_window.addToolBar(qt.BottomToolBarArea,
+#                                  NavigationToolbar(pc, sub_window))
+
+        sub_window.show()
 
     def create_plot_scale_panel(self, pc):
         groupBox = QGroupBox("Plot Scale", self)

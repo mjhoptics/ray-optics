@@ -14,7 +14,6 @@ from matplotlib.figure import Figure
 import rayoptics.optical.paraxialdesign as pd
 from rayoptics.optical.model_constants import ax, pr, lns
 from rayoptics.optical.model_constants import ht, slp, aoi
-from rayoptics.optical.model_constants import pwr, tau, indx, rmd
 from rayoptics.util.misc_math import distance_sqr_2d
 
 
@@ -118,6 +117,7 @@ class ParaxialDesignFigure(Figure):
         self.seq_model = seq_model
         self.refresh_gui = refresh_gui
         self.setup_dgm_type(dgm_type)
+        self.skip_build = False
 
         Figure.__init__(self, **kwargs)
 
@@ -131,19 +131,23 @@ class ParaxialDesignFigure(Figure):
             self.x_label = r'$\overline{y}$'
             self.y_label = 'y'
             self.apply_data = pd.apply_ht_dgm_data
+            self.header = r'$y-\overline{y}$ Diagram'
         elif dgm_type == Dgm.slp:
             self.type_sel = slp
             self.data_slice = slice(0, -1)
             self.x_label = r'$\overline{\omega}$'
             self.y_label = r'$\omega$'
             self.apply_data = pd.apply_slope_dgm_data
+            self.header = r'$\omega-\overline{\omega}$ Diagram'
 
     def refresh(self):
         self.update_data()
         self.plot()
 
     def update_data(self):
-        self.lens = pd.build_lens(self.seq_model)
+        if not self.skip_build:
+            self.lens = pd.build_lens(self.seq_model)
+        self.skip_build = False
         return self
 
     def plot(self):
@@ -151,6 +155,7 @@ class ParaxialDesignFigure(Figure):
         self.ax = self.add_subplot(1, 1, 1)
         self.ax.axvline(0, c='black', lw=1)
         self.ax.axhline(0, c='black', lw=1)
+        self.ax.set_title(self.header, pad=10.0, fontsize=18)
 
         x_data = self.lens[pr][self.type_sel][self.data_slice]
         y_data = self.lens[ax][self.type_sel][self.data_slice]
@@ -163,7 +168,7 @@ class ParaxialDesignFigure(Figure):
         self.canvas.mpl_connect('pick_event', self.on_pick)
         self.canvas.mpl_connect('button_press_event', self.on_press)
         self.canvas.mpl_connect('button_release_event', self.on_release)
-
+        self.canvas.mpl_connect('motion_notify_event', self.on_motion)
         self.canvas.draw()
 
         return self
@@ -195,7 +200,18 @@ class ParaxialDesignFigure(Figure):
                 self.vertex = hit_vertex + self.data_slice.start
 #                print("vertex selected", hit_vertex, min_hit_dist)
 #            print('on_press', event.button, event.x, event.y,
-#                  event.xdata, event.ydata, event.key, len(hit_list), hit_list)
+#                  event.xdata, event.ydata, event.key,
+#                  len(hit_list), hit_list)
+
+    def on_motion(self, event):
+        if self.vertex:
+            self.lens[pr][self.type_sel][self.vertex] = event.xdata
+            self.lens[ax][self.type_sel][self.vertex] = event.ydata
+#            print("on_motion", self.vertex, event.xdata, event.ydata)
+            self.apply_data(self.lens, self.vertex)
+            self.seq_model.paraxial_lens_to_seq_model(self.lens)
+            self.skip_build = True
+            self.refresh_gui()
 
     def on_release(self, event):
         'on release we reset the press data'
@@ -205,6 +221,7 @@ class ParaxialDesignFigure(Figure):
 #            print("on_release", self.vertex, event.xdata, event.ydata)
             self.apply_data(self.lens, self.vertex)
             self.seq_model.paraxial_lens_to_seq_model(self.lens)
+            self.skip_build = True
             self.refresh_gui()
             self.vertex = None
 
