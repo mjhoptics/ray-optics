@@ -60,6 +60,7 @@ class MainWindow(QMainWindow):
         file.addSeparator()
         file.addAction("Save")
         file.addAction("Save As...")
+        file.addAction("Close")
         file.triggered[QAction].connect(self.file_action)
         view = bar.addMenu("View")
         view.addAction("Lens Table")
@@ -162,6 +163,9 @@ class MainWindow(QMainWindow):
                 logging.debug("save file: %s", fileName)
                 self.save_file(fileName)
 
+        if q.text() == "Close":
+            self.close_model()
+
     def open_file(self, file_name):
         self.cur_filename = file_name
         self.app_manager.model = ro.open_model(file_name)
@@ -174,6 +178,10 @@ class MainWindow(QMainWindow):
         self.app_manager.model.save_model(file_name)
         self.cur_filename = file_name
         self.is_changed = False
+
+    def close_model(self):
+        """ NOTE: this does not check to save a modified model """
+        self.app_manager.close_model(self.delete_subwindow)
 
     def view_action(self, q):
         if q.text() == "Lens Table":
