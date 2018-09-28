@@ -146,6 +146,12 @@ class PupilSpec:
 
 
 class FieldSpec:
+    """ Field of view specification
+
+    Attributes:
+        type: string with field specification type
+        fields: list of Field instances
+    """
     types = ('OBJ_ANG', 'OBJ_HT', 'IMG_HT')
 
     def __init__(self, type='OBJ_ANG', flds=[0.], wide_angle=False):
@@ -194,6 +200,11 @@ class FieldSpec:
             f.__setattr__(attr, dlist[i])
 
     def max_field(self):
+        """ calculates the maximum field of view
+
+        Returns:
+            magnitude of maximum field, maximum Field instance
+        """
         max_fld = None
         max_fld_sqrd = 0.0
         for i, f in enumerate(self.fields):
@@ -258,6 +269,10 @@ class FocusRange:
     def get_focus(self, fr):
         """ return focus position for input focus range parameter
 
-        fr, focus range parameter, -1.0 to 1.0
+        Args:
+            fr: focus range parameter, -1.0 to 1.0
+
+        Returns:
+            focus position for input focus range parameter
         """
         return self.infocus + fr*self.defocus
