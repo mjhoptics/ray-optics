@@ -222,7 +222,7 @@ class ElementModel:
             if ele.s1 is not None:
                 print(ele.s1.profile,
                       ele.s2.profile,
-                      ele.g.thi, ele.g.medium.name())
+                      ele.g.thi, ele.sd, ele.g.medium.name())
             else:
                 print('REFL',
-                      ele.s2.profile)
+                      ele.s2.profile, ele.sd)
