@@ -54,12 +54,12 @@ def trace(seq_model, pt0, dir0, wvl, **kwargs):
 
     returns ray, op_delta
     where ray is:
-        [pt, after_dir, dst_before]
+        [pt, after_dir, after_dst]
         where
         pt: the intersection point of the ray in interface coordinates
         after_dir: the ray direction cosine following the interface in
                    interface coordinates
-        dst_before: the geometric distance from the previous interface
+        after_dst: the geometric distance to the next interface
     and
         op_delta: optical path wrt equally inclined chords to the optical axis
     """
@@ -100,11 +100,11 @@ def trace_raw(path_pkg, pt0, dir0, wvl, eps=1.0e-12):
     obj = next(path)
     srf_obj = obj[Intfc]
     dst_b4, pt_obj = srf_obj.intersect(pt0, dir0)
-    ray.append([pt_obj, dir0, dst_b4])
 
     before = obj
     before_pt = pt_obj
     before_dir = dir0
+    before_normal = srf_obj.normal(before_pt)
     tfrm_from_before = before[Trfm]
     z_dir_before = before[Z_Dir]
     n_before = before[Index] if z_dir_before > 0.0 else -before[Index]
@@ -153,13 +153,15 @@ def trace_raw(path_pkg, pt0, dir0, wvl, eps=1.0e-12):
                         n_after, eic_dst_after, dW])
 
             dst_b4 = pp_dst + pp_dst_intrsct
-            ray.append([inc_pt, after_dir, dst_b4])
+            ray.append([before_pt, before_dir, dst_b4])
+#            ray.append([before_pt, before_normal, before_dir, dst_b4])
 #            print("after:", surf, inc_pt, after_dir)
 #            print("e{}= {:12.5g} e{}'= {:12.5g} dW={:10.8g} n={:8.5g}"
 #                  " n'={:8.5g}".format(surf, eic_dst_before,
 #                                       surf, eic_dst_after,
 #                                       dW, before[Index], after[Index]))
             before_pt = inc_pt
+            before_normal = normal
             before_dir = after_dir
             n_before = n_after
             z_dir_before = z_dir_after
@@ -167,6 +169,8 @@ def trace_raw(path_pkg, pt0, dir0, wvl, eps=1.0e-12):
             tfrm_from_before = before[Trfm]
 
         except StopIteration:
+            ray.append([inc_pt, after_dir, 0.0])
+#            ray.append([inc_pt, normal, after_dir, 0.0])
             P, P1k, Ps = calc_path_length(eic, offset=1)
             op_delta += P
             break

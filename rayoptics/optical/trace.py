@@ -31,7 +31,7 @@ def ray_pkg(ray_pkg):
 
 def ray_df(ray):
     """ return a DataFrame containing ray data """
-    r = pd.DataFrame(ray, columns=['inc_pt', 'after_dir', 'dst_before'])
+    r = pd.DataFrame(ray, columns=['inc_pt', 'after_dir', 'after_dst'])
     r.index.names = ['intrfc']
     return r
 
@@ -40,18 +40,20 @@ def ray_df(ray):
 class RaySeg():
     inc_pt = attr.ib()
     after_dir = attr.ib()
-    dst_before = attr.ib()
+    after_dst = attr.ib()
     phase = attr.ib(default=0.0)
 
 
 def list_ray(ray):
-    print("          X            Y            Z           L"
+    print("            X            Y            Z           L"
           "            M            N               Len")
+    r = None
     for i, r in enumerate(ray):
-        print("{}: {:12.5f} {:12.5f} {:12.5f} {:12.6f} {:12.6f} "
+        print("{:3d}: {:12.5f} {:12.5f} {:12.5f} {:12.6f} {:12.6f} "
               "{:12.6f} {:12.5g}".format(i,
                                          r[0][0], r[0][1], r[0][2],
-                                         r[1][0], r[1][1], r[1][2], r[2]))
+                                         r[1][0], r[1][1], r[1][2],
+                                         r[2]))
 
 
 def trace_base(seq_model, pupil, fld, wvl, **kwargs):
