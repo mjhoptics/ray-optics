@@ -40,12 +40,14 @@ class LensLayoutFigure(Figure):
                  scale_type=Fit_All,
                  user_scale_value=1.0,
                  oversize_factor=0.05,
+                 do_draw_rays=True,
                  **kwargs):
         self.opt_model = opt_model
         self.user_scale_value = user_scale_value
         self.scale_type = scale_type
         self.linewidth = 0.5
         self.do_draw_frame = do_draw_frame
+        self.do_draw_rays = do_draw_rays
         self.oversize_factor = oversize_factor
 
         Figure.__init__(self, **kwargs)
@@ -68,11 +70,15 @@ class LensLayoutFigure(Figure):
         self.ele_shapes = self.create_element_model(self.opt_model.ele_model)
         self.ele_bbox = self.update_patches(self.ele_shapes)
 
-        self.ray_shapes = self.create_ray_model()
-        self.ray_bbox = self.update_patches(self.ray_shapes)
+        if self.do_draw_rays:
+            self.ray_shapes = self.create_ray_model()
+            self.ray_bbox = self.update_patches(self.ray_shapes)
 
-        self.sys_bbox = layout.bbox_from_poly(np.concatenate((self.ele_bbox,
-                                                             self.ray_bbox)))
+            concat_bbox = np.concatenate((self.ele_bbox, self.ray_bbox))
+            self.sys_bbox = layout.bbox_from_poly(concat_bbox)
+        else:
+            self.sys_bbox = self.ele_bbox
+
         return self
 
     def system_length(self):
