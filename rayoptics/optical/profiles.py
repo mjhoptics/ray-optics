@@ -13,6 +13,10 @@ from math import sqrt, copysign, sin, atan2
 from rayoptics.util.misc_math import normalize
 
 
+def resize_list(lst, new_length, null_item=None):
+    return lst + [null_item for item in range(new_length - len(lst))]
+
+
 class SurfaceProfile:
     def __repr__(self):
         return "{!s}()".format(type(self).__name__)
@@ -47,8 +51,32 @@ class SurfaceProfile:
 
 class Spherical(SurfaceProfile):
     """ Spherical surface profile parameterized by curvature. """
-    def __init__(self, c=0.0):
-        self.cv = c
+    def __init__(self, c=0.0, r=None):
+        """ initialize a Spherical profile.
+
+        Args:
+            c: curvature
+            r: radius of curvature. If zero, taken as planar. If r is
+                specified, it overrides any input for c (curvature).
+        """
+        if r:
+            self.r = r
+        else:
+            self.cv = c
+
+    @property
+    def r(self):
+        if self.cv != 0.0:
+            return 1.0/self.cv
+        else:
+            return 0.0
+
+    @r.setter
+    def r(self, radius):
+        if radius != 0.0:
+            self.cv = 1.0/radius
+        else:
+            self.cv = 0.0
 
     def __str__(self):
         return type(self).__name__ + " " + str(self.cv)
@@ -116,9 +144,48 @@ class Conic(SurfaceProfile):
         cc = -1.0: paraboloid
         cc < -1.0: hyperboloid
     """
-    def __init__(self, c=0.0, cc=0.0):
-        self.cv = c
-        self.cc = cc
+    def __init__(self, c=0.0, cc=0.0, r=None, k=None):
+        """ initialize a Conic profile.
+
+        Args:
+            c: curvature
+            r: radius of curvature. If zero, taken as planar. If r is
+                specified, it overrides any input for c (curvature).
+            cc: conic constant
+            k: eccentricity (= cc + 1). If k is specified, it overrides any
+                input for the conic constant (cc).
+        """
+        if r:
+            self.r = r
+        else:
+            self.cv = c
+
+        if k:
+            self.k = k
+        else:
+            self.cc = cc
+
+    @property
+    def r(self):
+        if self.cv != 0.0:
+            return 1.0/self.cv
+        else:
+            return 0.0
+
+    @r.setter
+    def r(self, radius):
+        if radius != 0.0:
+            self.cv = 1.0/radius
+        else:
+            self.cv = 0.0
+
+    @property
+    def k(self):
+        return self.cc + 1.0
+
+    @k.setter
+    def k(self, kappa):
+        self.cc = kappa - 1.0
 
     def __str__(self):
         return type(self).__name__ + " " + str(self.cv) + " " + \
@@ -171,10 +238,33 @@ class Conic(SurfaceProfile):
 
 class EvenPolynomial(SurfaceProfile):
     """ Even Polynomial asphere up to 20th order, on base conic. """
-    def __init__(self, c=0.0):
-        self.cv = c
-        self.cc = 0.0
-        self.coefs = []
+    def __init__(self, c=0.0, cc=0.0, r=None, k=None, coefs=None):
+        """ initialize a EvenPolynomial profile.
+
+        Args:
+            c: curvature
+            r: radius of curvature. If zero, taken as planar. If r is
+                specified, it overrides any input for c (curvature).
+            cc: conic constant
+            k: eccentricity (= cc + 1). If k is specified, it overrides any
+                input for the conic constant (cc).
+            coefs: a list of even power coefficents, starting with the
+                quadratic term, and not exceeding the 20th order term.
+        """
+        if r:
+            self.r = r
+        else:
+            self.cv = c
+
+        if k:
+            self.k = k
+        else:
+            self.cc = cc
+
+        if coefs:
+            self.coefs = coefs
+        else:
+            self.coefs = []
         self.max_nonzero_coef = 0
         self.coef2 = 0.0
         self.coef4 = 0.0
@@ -186,6 +276,28 @@ class EvenPolynomial(SurfaceProfile):
         self.coef16 = 0.0
         self.coef18 = 0.0
         self.coef20 = 0.0
+
+    @property
+    def r(self):
+        if self.cv != 0.0:
+            return 1.0/self.cv
+        else:
+            return 0.0
+
+    @r.setter
+    def r(self, radius):
+        if radius != 0.0:
+            self.cv = 1.0/radius
+        else:
+            self.cv = 0.0
+
+    @property
+    def k(self):
+        return self.cc + 1.0
+
+    @k.setter
+    def k(self, kappa):
+        self.cc = kappa - 1.0
 
     def __str__(self):
         return type(self).__name__ + " " + str(self.cv) + " " + \
@@ -213,18 +325,19 @@ class EvenPolynomial(SurfaceProfile):
         self.coef20 = other.coef20
 
     def gen_coef_list(self):
-        self.coefs = []
-        self.coefs.append(self.coef2)
-        self.coefs.append(self.coef4)
-        self.coefs.append(self.coef6)
-        self.coefs.append(self.coef8)
-        self.coefs.append(self.coef10)
-        self.coefs.append(self.coef12)
-        self.coefs.append(self.coef14)
-        self.coefs.append(self.coef16)
-        self.coefs.append(self.coef18)
-        self.coefs.append(self.coef20)
-        self.max_nonzero_coef = -1
+        if len(self.coefs) == 0:
+            self.coefs = []
+            self.coefs.append(self.coef2)
+            self.coefs.append(self.coef4)
+            self.coefs.append(self.coef6)
+            self.coefs.append(self.coef8)
+            self.coefs.append(self.coef10)
+            self.coefs.append(self.coef12)
+            self.coefs.append(self.coef14)
+            self.coefs.append(self.coef16)
+            self.coefs.append(self.coef18)
+            self.coefs.append(self.coef20)
+            self.max_nonzero_coef = -1
         for i, c in enumerate(self.coefs):
             if c != 0.0:
                 self.max_nonzero_coef = i
@@ -288,16 +401,211 @@ class EvenPolynomial(SurfaceProfile):
         return prf
 
 
+class RadialPolynomial(SurfaceProfile):
+    """ Radial Polynomial asphere, on base conic. """
+    initial_size = 10
+
+    def __init__(self, c=0.0, cc=0.0, r=None, ec=None, coefs=None):
+        """ initialize a RadialPolynomial profile.
+
+        Args:
+            c: curvature
+            r: radius of curvature. If zero, taken as planar. If r is
+                specified, it overrides any input for c (curvature).
+            cc: conic constant
+            ec: eccentricity (= cc + 1). If ec is specified, it overrides any
+                input for the conic constant (cc).
+            coefs: a list of radial coefficents, starting with the
+                constant term, (and not exceeding the 10th order term).
+        """
+        if r:
+            self.r = r
+        else:
+            self.cv = c
+
+        if ec:
+            self.ec = ec
+        else:
+            self.cc = cc
+
+        if coefs:
+            self.coefs = coefs
+        else:
+            self.coefs = [0. for i in range(self.initial_size)]
+        self.max_nonzero_coef = 0
+        self.coef1 = 0.0
+        self.coef2 = 0.0
+        self.coef3 = 0.0
+        self.coef4 = 0.0
+        self.coef5 = 0.0
+        self.coef6 = 0.0
+        self.coef7 = 0.0
+        self.coef8 = 0.0
+        self.coef9 = 0.0
+        self.coef10 = 0.0
+
+    @property
+    def r(self):
+        if self.cv != 0.0:
+            return 1.0/self.cv
+        else:
+            return 0.0
+
+    @r.setter
+    def r(self, radius):
+        if radius != 0.0:
+            self.cv = 1.0/radius
+        else:
+            self.cv = 0.0
+
+    @property
+    def ec(self):
+        return self.cc + 1.0
+
+    @ec.setter
+    def ec(self, ec):
+        self.cc = ec - 1.0
+
+#    @property
+    def get_coef(self, exp):
+        return self.coefs[exp]
+
+#    @coef.setter
+    def set_coef(self, exp, value):
+        try:
+            self.coefs[exp] = value
+        except IndexError:
+            self.coefs = resize_list(self.coefs, exp, null_item=0.0)
+            self.coefs[exp] = value
+
+    def __str__(self):
+        return type(self).__name__ + " " + str(self.cv) + " " + \
+                                           str(self.cc)
+
+    def __repr__(self):
+        return "Profile({}: c={}, cc={}".format(type(self).__name__,
+                                                self.cv, self.cc)
+
+    def copyFrom(self, other):
+        dispatch[type(self), type(other)](self, other)
+
+    def copyDataFrom(self, other):
+        self.cv = other.cv
+        self.cc = other.cc
+        self.coefs = other.coefs.copy()
+        self.coefs = other.coefs
+        self.coef1 = other.coef1
+        self.coef2 = other.coef2
+        self.coef3 = other.coef3
+        self.coef4 = other.coef4
+        self.coef5 = other.coef5
+        self.coef6 = other.coef6
+        self.coef7 = other.coef7
+        self.coef8 = other.coef8
+        self.coef9 = other.coef9
+        self.coef10 = other.coef10
+
+    def gen_coef_list(self):
+        if len(self.coefs) == 0:
+            self.coefs = []
+            self.coefs.append(self.coef1)
+            self.coefs.append(self.coef2)
+            self.coefs.append(self.coef3)
+            self.coefs.append(self.coef4)
+            self.coefs.append(self.coef5)
+            self.coefs.append(self.coef6)
+            self.coefs.append(self.coef7)
+            self.coefs.append(self.coef8)
+            self.coefs.append(self.coef9)
+            self.coefs.append(self.coef10)
+            self.max_nonzero_coef = -1
+        for i, c in enumerate(self.coefs):
+            if c != 0.0:
+                self.max_nonzero_coef = i
+        self.max_nonzero_coef += 1
+
+    def update(self):
+        self.gen_coef_list()
+
+    def normal(self, p):
+        # sphere + conic contribution
+        r2 = p[0]*p[0] + p[1]*p[1]
+        r = sqrt(r2)
+        e = self.cv/sqrt(1. - (self.cc+1.0)*self.cv*self.cv*r2)
+
+        # polynomial asphere contribution - compute using Horner's Rule
+        e_asp = 0.0
+        if r == 0.0:
+            r_pow = 1.0
+        else:
+            # Initialize to 1/r because we multiply by r's components p[0] and
+            # p[1] at the final normalization step.
+            r_pow = 1.0/r
+        c_coef = 1.0
+        for coef in self.coefs[1:self.max_nonzero_coef]:
+            e_asp += c_coef*coef*r_pow
+            c_coef += 1.0
+            r_pow *= r
+
+        e_tot = e + e_asp
+        return normalize(np.array([-e_tot*p[0], -e_tot*p[1], 1.0]))
+
+    def sag(self, x, y):
+        r2 = x*x + y*y
+        r = sqrt(r2)
+        # sphere + conic contribution
+        z = self.cv*r2/(1. + sqrt(1. - (self.cc+1.0)*self.cv*self.cv*r2))
+
+        # polynomial asphere contribution
+        z_asp = 0.0
+        r_pow = 1.0
+        for coef in self.coefs[:self.max_nonzero_coef]:
+            z_asp += coef*r_pow
+            r_pow *= r
+
+        z_tot = z + z_asp
+        return z_tot
+
+    def f(self, p):
+        return p[2] - self.sag(p[0], p[1])
+
+    def profile(self, sd, dir=1, steps=21):
+        if steps < 21:
+            steps = 21
+        prf = []
+        if self.max_nonzero_coef > 0 or self.cv != 0.0:
+            delta = dir*sd/steps
+            y = -dir*sd
+            z = self.sag(0., y)
+            prf.append([z, y])
+            for i in range(2*steps):
+                y += delta
+                z = self.sag(0., y)
+                prf.append([z, y])
+                # print(i, z, y)
+        else:
+            prf.append([0, -dir*sd])
+            prf.append([0, dir*sd])
+        return prf
+
+
 dispatch = {
   (Spherical, Spherical): Spherical.copyDataFrom,
   (Spherical, Conic): Spherical.copyDataFrom,
   (Spherical, EvenPolynomial): Spherical.copyDataFrom,
+  (Spherical, RadialPolynomial): Spherical.copyDataFrom,
   (Conic, Spherical): Spherical.copyDataFrom,
   (Conic, Conic): Conic.copyDataFrom,
   (Conic, EvenPolynomial): Conic.copyDataFrom,
+  (Conic, RadialPolynomial): Conic.copyDataFrom,
   (EvenPolynomial, Spherical): Spherical.copyDataFrom,
   (EvenPolynomial, Conic): Conic.copyDataFrom,
   (EvenPolynomial, EvenPolynomial): EvenPolynomial.copyDataFrom,
+  (EvenPolynomial, RadialPolynomial): EvenPolynomial.copyDataFrom,
+  (RadialPolynomial, Spherical): Spherical.copyDataFrom,
+  (RadialPolynomial, Conic): Conic.copyDataFrom,
+  (RadialPolynomial, EvenPolynomial): EvenPolynomial.copyDataFrom,
+  (RadialPolynomial, RadialPolynomial): RadialPolynomial.copyDataFrom,
 }
 
 
