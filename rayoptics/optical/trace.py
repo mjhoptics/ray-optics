@@ -88,8 +88,7 @@ def trace(seq_model, pupil, fi, wl=None, **kwargs):
     """ returns (ray, ray_opl, wvl) """
     osp = seq_model.optical_spec
     fld, wvl, foc = osp.lookup_fld_wvl_focus(fi, wl, 0.0)
-    ray, ray_op, wvl = osp.trace_base(seq_model, pupil,
-                                      fld, wvl, **kwargs)
+    ray, ray_op, wvl = trace_base(seq_model, pupil, fld, wvl, **kwargs)
     return ray, ray_op, wvl
 
 

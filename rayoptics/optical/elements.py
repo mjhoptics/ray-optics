@@ -170,12 +170,18 @@ class ElementModel:
         return attrs
 
     def elements_from_sequence(self, seq_model):
+        """ generate an element list from a sequential model """
+
+        # if there are elements in the list already, just return
+        if len(self.elements) > 0:
+            return
+
         tfrms = seq_model.compute_global_coords(1)
         for i, g in enumerate(seq_model.gaps):
             if isinstance(seq_model.ifcs[i], thinlens.ThinLens):
                 te = ThinElement(tfrms[i], seq_model.ifcs[i], i)
                 self.elements.append(te)
-                return
+                continue
 
             if g.medium.name().lower() == 'air':
                 # close off element
