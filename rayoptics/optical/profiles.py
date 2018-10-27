@@ -11,6 +11,7 @@ Created on Tue Aug  1 13:18:57 2017
 import numpy as np
 from math import sqrt, copysign, sin, atan2
 from rayoptics.util.misc_math import normalize
+from .traceerror import TraceMissedSurfaceError
 
 
 def resize_list(lst, new_length, null_item=None):
@@ -40,11 +41,12 @@ class SurfaceProfile:
         p = p1 = p0
         s1 = -self.f(p1)/np.dot(d, self.normal(p1))
         delta = abs(s1)
+#        print("intersect", s1)
         while delta > eps:
             p = p1 + s1*d
             s2 = s1 - self.f(p)/np.dot(d, self.normal(p))
             delta = abs(s2 - s1)
-            # print(s1, s2, delta)
+#            print("intersect", s1, s2, delta)
             s1 = s2
         return s1, p
 
@@ -103,8 +105,12 @@ class Spherical(SurfaceProfile):
     def sag(self, x, y):
         if self.cv != 0.0:
             r = 1/self.cv
-            adj = sqrt(r*r - x*x - y*y)
-            return r*(1 - abs(adj/r))
+            try:
+                adj = sqrt(r*r - x*x - y*y)
+            except ValueError:
+                raise TraceMissedSurfaceError(self, (x, y))
+            finally:
+                return r*(1 - abs(adj/r))
         else:
             return 0
 
@@ -144,7 +150,7 @@ class Conic(SurfaceProfile):
         cc = -1.0: paraboloid
         cc < -1.0: hyperboloid
     """
-    def __init__(self, c=0.0, cc=0.0, r=None, k=None):
+    def __init__(self, c=0.0, cc=0.0, r=None, ec=None):
         """ initialize a Conic profile.
 
         Args:
@@ -152,7 +158,7 @@ class Conic(SurfaceProfile):
             r: radius of curvature. If zero, taken as planar. If r is
                 specified, it overrides any input for c (curvature).
             cc: conic constant
-            k: eccentricity (= cc + 1). If k is specified, it overrides any
+            ec: conic asphere (= cc + 1). If ec is specified, it overrides any
                 input for the conic constant (cc).
         """
         if r:
@@ -160,8 +166,8 @@ class Conic(SurfaceProfile):
         else:
             self.cv = c
 
-        if k:
-            self.k = k
+        if ec:
+            self.ec = ec
         else:
             self.cc = cc
 
@@ -180,12 +186,12 @@ class Conic(SurfaceProfile):
             self.cv = 0.0
 
     @property
-    def k(self):
+    def ec(self):
         return self.cc + 1.0
 
-    @k.setter
-    def k(self, kappa):
-        self.cc = kappa - 1.0
+    @ec.setter
+    def ec(self, ec):
+        self.cc = ec - 1.0
 
     def __str__(self):
         return type(self).__name__ + " " + str(self.cv) + " " + \
@@ -238,7 +244,7 @@ class Conic(SurfaceProfile):
 
 class EvenPolynomial(SurfaceProfile):
     """ Even Polynomial asphere up to 20th order, on base conic. """
-    def __init__(self, c=0.0, cc=0.0, r=None, k=None, coefs=None):
+    def __init__(self, c=0.0, cc=0.0, r=None, ec=None, coefs=None):
         """ initialize a EvenPolynomial profile.
 
         Args:
@@ -246,7 +252,7 @@ class EvenPolynomial(SurfaceProfile):
             r: radius of curvature. If zero, taken as planar. If r is
                 specified, it overrides any input for c (curvature).
             cc: conic constant
-            k: eccentricity (= cc + 1). If k is specified, it overrides any
+            ec: conic asphere (= cc + 1). If ec is specified, it overrides any
                 input for the conic constant (cc).
             coefs: a list of even power coefficents, starting with the
                 quadratic term, and not exceeding the 20th order term.
@@ -256,8 +262,8 @@ class EvenPolynomial(SurfaceProfile):
         else:
             self.cv = c
 
-        if k:
-            self.k = k
+        if ec:
+            self.ec = ec
         else:
             self.cc = cc
 
@@ -292,12 +298,12 @@ class EvenPolynomial(SurfaceProfile):
             self.cv = 0.0
 
     @property
-    def k(self):
+    def ec(self):
         return self.cc + 1.0
 
-    @k.setter
-    def k(self, kappa):
-        self.cc = kappa - 1.0
+    @ec.setter
+    def ec(self, ec):
+        self.cc = ec - 1.0
 
     def __str__(self):
         return type(self).__name__ + " " + str(self.cv) + " " + \
@@ -402,19 +408,27 @@ class EvenPolynomial(SurfaceProfile):
 
 
 class RadialPolynomial(SurfaceProfile):
-    """ Radial Polynomial asphere, on base conic. """
+    """ Radial Polynomial asphere, on base conic.
+
+    Conics produced for conic asphere values:
+        ec > 1.0: oblate spheroid
+        ec = 1.0: sphere
+        ec > 0.0 and < 1.0: ellipsoid
+        ec = 0.0: paraboloid
+        ec < 0.0: hyperboloid
+    """
     initial_size = 10
 
-    def __init__(self, c=0.0, cc=0.0, r=None, ec=None, coefs=None):
+    def __init__(self, c=0.0, cc=None, r=None, ec=1.0, coefs=None):
         """ initialize a RadialPolynomial profile.
 
         Args:
             c: curvature
             r: radius of curvature. If zero, taken as planar. If r is
                 specified, it overrides any input for c (curvature).
-            cc: conic constant
-            ec: eccentricity (= cc + 1). If ec is specified, it overrides any
-                input for the conic constant (cc).
+            ec: conic asphere.
+            cc: conic constant (= ec - 1). If cc is specified, it overrides any
+                input for the conic asphere (ec).
             coefs: a list of radial coefficents, starting with the
                 constant term, (and not exceeding the 10th order term).
         """
@@ -423,10 +437,10 @@ class RadialPolynomial(SurfaceProfile):
         else:
             self.cv = c
 
-        if ec:
-            self.ec = ec
-        else:
+        if cc:
             self.cc = cc
+        else:
+            self.ec = ec
 
         if coefs:
             self.coefs = coefs
@@ -459,12 +473,12 @@ class RadialPolynomial(SurfaceProfile):
             self.cv = 0.0
 
     @property
-    def ec(self):
-        return self.cc + 1.0
+    def cc(self):
+        return self.ec - 1.0
 
-    @ec.setter
-    def ec(self, ec):
-        self.cc = ec - 1.0
+    @cc.setter
+    def cc(self, cc):
+        self.ec = cc + 1.0
 
 #    @property
     def get_coef(self, exp):
@@ -480,18 +494,18 @@ class RadialPolynomial(SurfaceProfile):
 
     def __str__(self):
         return type(self).__name__ + " " + str(self.cv) + " " + \
-                                           str(self.cc)
+                                           str(self.ec)
 
     def __repr__(self):
-        return "Profile({}: c={}, cc={}".format(type(self).__name__,
-                                                self.cv, self.cc)
+        return "Profile({}: c={}, ec={}".format(type(self).__name__,
+                                                self.cv, self.ec)
 
     def copyFrom(self, other):
         dispatch[type(self), type(other)](self, other)
 
     def copyDataFrom(self, other):
         self.cv = other.cv
-        self.cc = other.cc
+        self.ec = other.ec
         self.coefs = other.coefs.copy()
         self.coefs = other.coefs
         self.coef1 = other.coef1
@@ -531,7 +545,7 @@ class RadialPolynomial(SurfaceProfile):
         # sphere + conic contribution
         r2 = p[0]*p[0] + p[1]*p[1]
         r = sqrt(r2)
-        e = self.cv/sqrt(1. - (self.cc+1.0)*self.cv*self.cv*r2)
+        e = self.cv/sqrt(1. - self.ec*self.cv*self.cv*r2)
 
         # polynomial asphere contribution - compute using Horner's Rule
         e_asp = 0.0
@@ -554,7 +568,7 @@ class RadialPolynomial(SurfaceProfile):
         r2 = x*x + y*y
         r = sqrt(r2)
         # sphere + conic contribution
-        z = self.cv*r2/(1. + sqrt(1. - (self.cc+1.0)*self.cv*self.cv*r2))
+        z = self.cv*r2/(1. + sqrt(1. - self.ec*self.cv*self.cv*r2))
 
         # polynomial asphere contribution
         z_asp = 0.0

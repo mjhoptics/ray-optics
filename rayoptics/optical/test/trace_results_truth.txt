@@ -1,0 +1,7 @@
+singlet - 40000 trials: min time 11.23, max time 11.44, spread 1.82%
+landscape lens - 40000 trials: min time 13.56, max time 13.79, spread 1.71%
+paraboloid - 40000 trials: min time 12.42, max time 12.62, spread 1.56%
+double gauss - 15000 trials: min time 14.20, max time 14.47, spread 1.92%
+cell phone camera - 10000 trials: min time 16.31, max time 16.42, spread 0.68%
+Sasian Triplet - 20000 trials: min time 12.05, max time 12.21, spread 1.28%
+Cassegrain - 40000 trials: min time 12.30, max time 12.31, spread 0.06%
