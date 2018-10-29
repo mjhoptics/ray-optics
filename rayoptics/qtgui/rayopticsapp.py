@@ -103,7 +103,9 @@ class MainWindow(QMainWindow):
 #            self.open_file(path / "codev/test/conic_mirror.seq")
 #            self.open_file(path / "codev/test/rc_f16.seq")
 #            self.open_file(path / "codev/test/ag_dblgauss.seq")
-            self.open_file(path / "codev/test/landscape_lens.seq")
+#            self.open_file(path / "codev/test/landscape_lens.seq")
+#            self.open_file(path / "optical/test/cell_phone_camera.roa")
+            self.open_file(path / "optical/test/singlet_f3.roa")
 
 #        try:
 #            root_pos = pth.parts.index('ray-optics')
@@ -252,8 +254,8 @@ class MainWindow(QMainWindow):
     def create_ray_table(self):
         sm = self.app_manager.model.seq_model
         osp = sm.optical_spec
-        pupil = [0., 0.]
-        fi = 1
+        pupil = [0., 1.]
+        fi = 0
         wl = osp.spectral_region.reference_wvl
         fld, wvl, foc = osp.lookup_fld_wvl_focus(fi, wl)
         ray, ray_op, wvl, opd = trace.trace_with_opd(sm, pupil, fld, wvl, foc)
