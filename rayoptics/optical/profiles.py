@@ -99,6 +99,35 @@ class Spherical(SurfaceProfile):
         return normalize(np.array(
                 [-self.cv*p[0], -self.cv*p[1], 1.0-self.cv*p[2]]))
 
+    def intersect(self, p, d, eps=1.0e-12):
+        # general solution via interation
+#        s, p1 = super().intersect(p, d, eps)
+
+        # Welford's intersection with a sphere, starting from the tangent plane
+        # transfer p to tangent plane of surface
+        s0 = -p[2]/d[2]
+        p0 = np.array([p[0] + s0*d[0], p[1] + s0*d[1], 0.])
+
+        # Welford's 4.8, 4.9 and 4.12
+        F = self.cv*(p0[0]*p0[0] + p0[1]*p0[1])
+        G = d[2] - self.cv*(d[0]*p0[0] + d[1]*p0[1])
+        s1 = F/(G + sqrt(G*G - F*self.cv))
+
+        s = s0 + s1
+
+        # Intersection with a sphere, starting from an arbitrary point.
+        # substitute expressions equivalent to Welford's 4.8 and 4.9
+        # for quadratic equation ax**2 + bx + c = 0
+        #  F = 2c
+        #  G = -b
+        #  a = cv/2
+#        F = self.cv * p.dot(p) - 2.0*p[2]
+#        G = d[2] - 2.0*self.cv * d.dot(p)
+#        s = F/(G + sqrt(G*G - F*self.cv))
+
+        p1 = p + s*d
+        return s, p1
+
     def f(self, p):
         return p[2] - 0.5*self.cv*(np.dot(p, p))
 
