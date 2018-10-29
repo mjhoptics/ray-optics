@@ -105,25 +105,27 @@ class Spherical(SurfaceProfile):
 
         # Welford's intersection with a sphere, starting from the tangent plane
         # transfer p to tangent plane of surface
-        s0 = -p[2]/d[2]
-        p0 = np.array([p[0] + s0*d[0], p[1] + s0*d[1], 0.])
+#        s0 = -p[2]/d[2]
+#        p0 = np.array([p[0] + s0*d[0], p[1] + s0*d[1], 0.])
 
         # Welford's 4.8, 4.9 and 4.12
-        F = self.cv*(p0[0]*p0[0] + p0[1]*p0[1])
-        G = d[2] - self.cv*(d[0]*p0[0] + d[1]*p0[1])
-        s1 = F/(G + sqrt(G*G - F*self.cv))
-
-        s = s0 + s1
+#        F = self.cv*(p0[0]*p0[0] + p0[1]*p0[1])
+#        G = d[2] - self.cv*(d[0]*p0[0] + d[1]*p0[1])
+#        s1 = F/(G + sqrt(G*G - F*self.cv))
+#
+#        s = s0 + s1
 
         # Intersection with a sphere, starting from an arbitrary point.
         # substitute expressions equivalent to Welford's 4.8 and 4.9
         # for quadratic equation ax**2 + bx + c = 0
+        #  a = cv/2
+        #  b = 2cv(p dot d) - d[z]
+        #  c = ( cv( p dot p) - 2p[z]) / 2
         #  F = 2c
         #  G = -b
-        #  a = cv/2
-#        F = self.cv * p.dot(p) - 2.0*p[2]
-#        G = d[2] - 2.0*self.cv * d.dot(p)
-#        s = F/(G + sqrt(G*G - F*self.cv))
+        F = self.cv * p.dot(p) - 2.0*p[2]
+        G = d[2] - 2.0*self.cv * d.dot(p)
+        s = F/(G + sqrt(G*G - F*self.cv))
 
         p1 = p + s*d
         return s, p1
