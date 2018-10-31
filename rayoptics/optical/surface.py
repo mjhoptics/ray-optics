@@ -145,8 +145,8 @@ class Surface(Interface):
         else:
             self.clear_apertures.append(cir_ap)
 
-    def intersect(self, p0, d, eps=1.0e-12):
-        return self.profile.intersect(p0, d, eps)
+    def intersect(self, p0, d, eps=1.0e-12, z_dir=1.0):
+        return self.profile.intersect(p0, d, eps, z_dir)
 
     def normal(self, p):
         return self.profile.normal(p)

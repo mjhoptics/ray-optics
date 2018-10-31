@@ -127,7 +127,8 @@ def trace_raw(path_pkg, pt0, dir0, wvl, eps=1.0e-12):
             n_after = after[Index] if z_dir_after > 0.0 else -after[Index]
 
             # intersect ray with profile
-            pp_dst_intrsct, inc_pt = ifc.intersect(pp_pt_before, b4_dir, eps)
+            pp_dst_intrsct, inc_pt = ifc.intersect(pp_pt_before, b4_dir,
+                                                   eps=eps, z_dir=z_dir_before)
             normal = ifc.normal(inc_pt)
 
             eic_dst_before = ((inc_pt.dot(b4_dir) + z_dir_before*inc_pt[2]) /

@@ -12,6 +12,7 @@ import timeit
 
 # ray-optics
 import rayoptics as ro
+import rayoptics.optical.raytrace as rt
 from rayoptics.util.misc_math import normalize
 
 
@@ -47,8 +48,11 @@ if __name__ == '__main__':
     trials15 = 15000
     trials20 = 20000
     trials25 = 25000
+    trials30 = 30000
     trials40 = 40000
     trials50 = 50000
+    trials80 = 80000
+    trials100 = 100000
     setup_str = 'trace_args=setup("{:s}")'
 
     results = []
@@ -57,38 +61,53 @@ if __name__ == '__main__':
     with open(root_pth/'optical/test/trace_results.txt', mode='w') as f:
 
         tst_name = 'singlet'
-        trials = trials40
+        trials = trials100
         setup_stmt = setup_str.format("codev/test/singlet.seq")
         results.append(run_test(tst_name, trials, setup_stmt, file=f))
 
         tst_name = 'landscape lens'
-        trials = trials40
+        trials = trials80
         setup_stmt = setup_str.format("codev/test/landscape_lens.seq")
         results.append(run_test(tst_name, trials, setup_stmt, file=f))
 
-        tst_name = 'paraboloid'
-        trials = trials40
-        setup_stmt = setup_str.format("codev/test/paraboloid.seq")
+        tst_name = 'Sasian triplet'
+        trials = trials50
+        setup_stmt = setup_str.format("../test/Sasian Triplet.roa")
         results.append(run_test(tst_name, trials, setup_stmt, file=f))
 
         tst_name = 'double gauss'
-        trials = trials15
+        trials = trials30
         setup_stmt = setup_str.format("codev/test/ag_dblgauss.seq")
+        results.append(run_test(tst_name, trials, setup_stmt, file=f))
+
+        tst_name = '2 spherical mirrors (spheres)'
+        trials = trials100
+        setup_stmt = setup_str.format("../test/TwoSphericalMirror.roa")
+        results.append(run_test(tst_name, trials, setup_stmt, file=f))
+
+        tst_name = '2 spherical mirrors (conics)'
+        trials = trials100
+        setup_stmt = setup_str.format("../test/TwoMirror.roa")
+        results.append(run_test(tst_name, trials, setup_stmt, file=f))
+
+        tst_name = 'paraboloid'
+        trials = trials100
+        setup_stmt = setup_str.format("codev/test/paraboloid.seq")
+        results.append(run_test(tst_name, trials, setup_stmt, file=f))
+
+        tst_name = 'Cassegrain'
+        trials = trials100
+        setup_stmt = setup_str.format("../test/Cassegrain.roa")
+        results.append(run_test(tst_name, trials, setup_stmt, file=f))
+
+        tst_name = 'Ritchey-Chretien'
+        trials = trials100
+        setup_stmt = setup_str.format("../test/Ritchey_Chretien.roa")
         results.append(run_test(tst_name, trials, setup_stmt, file=f))
 
         tst_name = 'cell phone camera'
         trials = trials10
         setup_stmt = setup_str.format("optical/test/cell_phone_camera.roa")
-        results.append(run_test(tst_name, trials, setup_stmt, file=f))
-
-        tst_name = 'Sasian Triplet'
-        trials = trials20
-        setup_stmt = setup_str.format("../test/Sasian Triplet.roa")
-        results.append(run_test(tst_name, trials, setup_stmt, file=f))
-
-        tst_name = 'Cassegrain'
-        trials = trials40
-        setup_stmt = setup_str.format("../test/Cassegrain.roa")
         results.append(run_test(tst_name, trials, setup_stmt, file=f))
 
     with open(root_pth/'optical/test/trace_data.txt', mode='w') as f:
