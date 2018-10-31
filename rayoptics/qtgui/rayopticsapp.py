@@ -89,12 +89,12 @@ class MainWindow(QMainWindow):
         self.show()
 
         pth = Path(__file__).resolve()
-        try:
-            root_pos = pth.parts.index('rayoptics')
-        except ValueError:
-            logging.debug("Can't find rayoptics: path is %s", pth)
-        else:
-            path = Path(*pth.parts[:root_pos+1])
+#        try:
+#            root_pos = pth.parts.index('rayoptics')
+#        except ValueError:
+#            logging.debug("Can't find rayoptics: path is %s", pth)
+#        else:
+#            path = Path(*pth.parts[:root_pos+1])
 #            self.open_file(path / "codev/test/asp46.seq")
 #            self.open_file(path / "codev/test/paraboloid.seq")
 #            self.open_file(path / "codev/test/paraboloid_f8.seq")
@@ -105,18 +105,19 @@ class MainWindow(QMainWindow):
 #            self.open_file(path / "codev/test/ag_dblgauss.seq")
 #            self.open_file(path / "codev/test/landscape_lens.seq")
 #            self.open_file(path / "optical/test/cell_phone_camera.roa")
-            self.open_file(path / "optical/test/singlet_f3.roa")
+#            self.open_file(path / "optical/test/singlet_f3.roa")
 
-#        try:
-#            root_pos = pth.parts.index('ray-optics')
-#        except ValueError:
-#            logging.debug("Can't find ray-optics: path is %s", pth)
-#        else:
-#            path = Path(*pth.parts[:root_pos+1])
+        try:
+            root_pos = pth.parts.index('ray-optics')
+        except ValueError:
+            logging.debug("Can't find ray-optics: path is %s", pth)
+        else:
+            path = Path(*pth.parts[:root_pos+1])
 #            self.open_file(path / "test/TwoMirror.roa")
+#            self.open_file(path / "test/TwoSphericalMirror.roa")
 #            self.open_file(path / "test/Sasian Triplet.roa")
 #            self.open_file(path / "test/singlet_f5.roa")
-#            self.open_file(path / "test/Ritchey_Chretien.roa")
+            self.open_file(path / "test/Ritchey_Chretien.roa")
 
     def add_subwindow(self, widget, model_info):
             sub_wind = self.mdi.addSubWindow(widget)
