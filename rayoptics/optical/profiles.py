@@ -18,6 +18,29 @@ def resize_list(lst, new_length, null_item=None):
     return lst + [null_item for item in range(new_length - len(lst))]
 
 
+def intersect_parabola(cv, p, d, z_dir=1.0):
+    ''' Intersect a parabolid, starting from an arbitrary point.
+
+    Args:
+        cv: vertex curvature
+        p:  start point of the ray in the profile's coordinate system
+        d:  direction cosine of the ray in the profile's coordinate system
+        z_dir: 
+    '''
+    # Intersection with a conic, starting from an arbitrary point.
+    #
+    # For quadratic equation ax**2 + bx + c = 0:
+    #  ax2 = 2a
+    #  cx2 = 2c
+    ax2 = cv*(1. - d[2]*d[2])
+    cx2 = cv*(p[0]*p[0] + p[1]*p[1]) - 2.0*p[2]
+    b = cv*(d[0]*p[0] + d[1]*p[1]) - d[2]
+    # Use z_dir to pick correct root
+    s = cx2/(z_dir*sqrt(b*b - ax2*cx2) - b)
+
+    p1 = p + s*d
+    return s, p1
+
 class SurfaceProfile:
     def __repr__(self):
         return "{!s}()".format(type(self).__name__)
@@ -38,6 +61,19 @@ class SurfaceProfile:
         pass
 
     def intersect(self, p0, d, eps, z_dir):
+        ''' Intersect a profile, starting from an arbitrary point.
+    
+        Args:
+            cv: vertex curvature
+            p0:  start point of the ray in the profile's coordinate system
+            d:  direction cosine of the ray in the profile's coordinate system
+            z_dir: +1 if propagation positive direction, -1 if otherwise
+            eps: numeric tolerance for convergence of any iterative procedure
+
+        Returns:
+            s1: distance to intersection point
+            p: intersection point
+        '''
         p = p1 = p0
         s1 = -self.f(p1)/np.dot(d, self.normal(p1))
         delta = abs(s1)
@@ -99,10 +135,7 @@ class Spherical(SurfaceProfile):
         return normalize(np.array(
                 [-self.cv*p[0], -self.cv*p[1], 1.0-self.cv*p[2]]))
 
-    def intersect(self, p, d, eps, z_dir):
-        # general solution via iteration
-#        s, p1 = super().intersect(p, d, eps, z_dir)
-
+    def intersect_tangent_plane(self, p, d, eps, z_dir):
         # Welford's intersection with a sphere, starting from the tangent plane
         # transfer p to tangent plane of surface
         s0 = -p[2]/d[2]
@@ -115,17 +148,21 @@ class Spherical(SurfaceProfile):
 
         s = s0 + s1
 
-        # Intersection with a sphere, starting from an arbitrary point.
-        # substitute expressions equivalent to Welford's 4.8 and 4.9
-        # for quadratic equation ax**2 + bx + c = 0
-        #  a = cv/2
-        #  b = 2cv(p dot d) - d[z]
-        #  c = ( cv( p dot p) - 2p[z]) / 2
-        #  F = 2c
-        #  G = -b
-#        F = self.cv * p.dot(p) - 2.0*p[2]
-#        G = d[2] - 2.0*self.cv * d.dot(p)
-#        s = F/(G + z_dir*sqrt(G*G - F*self.cv))
+        p1 = p + s*d
+        return s, p1
+
+    def intersect(self, p, d, eps, z_dir):
+        ''' Intersection with a sphere, starting from an arbitrary point. '''
+
+        # Substitute expressions equivalent to Welford's 4.8 and 4.9
+        # For quadratic equation ax**2 + bx + c = 0:
+        #  ax2 = 2a
+        #  cx2 = 2c
+        ax2 = self.cv
+        cx2 = self.cv * p.dot(p) - 2.0*p[2]
+        b = 2.0*self.cv * d.dot(p) - d[2]
+        # Use z_dir to pick correct root
+        s = cx2/(z_dir*sqrt(b*b - ax2*cx2) - b)
 
         p1 = p + s*d
         return s, p1
@@ -245,10 +282,7 @@ class Conic(SurfaceProfile):
                  -self.cv*p[1],
                  1.0-(self.cc+1.0)*self.cv*p[2]]))
 
-    def intersect(self, p, d, eps, z_dir):
-        # general solution via iteration
-#        s_itr, p1_itr = super().intersect(p, d, eps, z_dir)
-
+    def intersect_tangent_plane(self, p, d, eps, z_dir):
         # Welford's intersection with a conic, starting from the tangent plane
         # transfer p to tangent plane of surface
         s0 = -p[2]/d[2]
@@ -261,16 +295,20 @@ class Conic(SurfaceProfile):
         s1 = F/(G + z_dir*sqrt(G*G - F*ax2))
 
         s = s0 + s1
+        p1 = p + s*d
+        return s, p1
 
-        # Intersection with a conic, starting from an arbitrary point.
-        # for quadratic equation ax**2 + bx + c = 0
-        #  F = 2c
-        #  G = -b
+    def intersect(self, p, d, eps, z_dir):
+        ''' Intersection with a conic, starting from an arbitrary point.'''
+
+        # For quadratic equation ax**2 + bx + c = 0:
         #  ax2 = 2a
-#        ax2 = self.cv*(1. + self.cc*d[2]*d[2])
-#        F = self.cv*(p[0]*p[0] + p[1]*p[1] + self.ec*p[2]*p[2]) - 2.0*p[2]
-#        G = d[2] - self.cv*(d[0]*p[0] + d[1]*p[1] + self.ec*d[2]*p[2])
-#        s = F/(G + z_dir*sqrt(G*G - F*ax2))
+        #  cx2 = 2c
+        ax2 = self.cv*(1. + self.cc*d[2]*d[2])
+        cx2 = self.cv*(p[0]*p[0] + p[1]*p[1] + self.ec*p[2]*p[2]) - 2.0*p[2]
+        b = self.cv*(d[0]*p[0] + d[1]*p[1] + self.ec*d[2]*p[2]) - d[2]
+        # Use z_dir to pick correct root
+        s = cx2/(z_dir*sqrt(b*b - ax2*cx2) - b)
 
         p1 = p + s*d
         return s, p1
