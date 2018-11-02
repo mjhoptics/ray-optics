@@ -16,6 +16,7 @@ from . import medium as m
 from . import raytrace as rt
 from . import trace as trace
 from . import transform as trns
+import rayoptics.optical.model_constants as mc
 from rayoptics.optical.model_constants import Surf, Gap
 from rayoptics.optical.model_constants import ax, pr, lns
 from rayoptics.optical.model_constants import ht, slp, aoi
@@ -331,8 +332,9 @@ class SequentialModel:
         return [pwr, tau, nom_indx, ref_mode]
 
     def paraxial_lens_to_seq_model(self, lens):
-        """ Applies a paraxial lens spec (power, reduced distance) to the model data
+        """ Applies a paraxial lens spec (power, reduced distance) to the model
 
+        Args:
         lens: list of paraxial axial, chief and lens data
         """
         power = lens[lns][pwr]
@@ -504,57 +506,6 @@ class SequentialModel:
                                 img_filter=lambda p, ray_pkg:
                                 wave(p, ray_pkg, fld, wvl), form='grid')
         return grid
-
-    def shift_start_of_ray_bundle(self, rayset, start_offset, r, t):
-        """ modify rayset so that rays begin "start_offset" from 1st surface
-
-        rayset: list of rays in a bundle, i.e. all for one field. rayset[0]
-                is assumed to be the chief ray
-        start_offset: z distance rays should start wrt first surface.
-                      positive if to left of first surface
-        r, t: transformation rotation and translation
-        """
-        for ri, ray in enumerate(rayset):
-            b4_pt = r.dot(ray[0][1][0]) - t
-            b4_dir = r.dot(ray[0][0][1])
-            if ri == 0:
-                # For the chief ray, use the input offset.
-                dst = -b4_pt[2]/b4_dir[2]
-            else:
-                pt0 = rayset[0][0][0][0]
-                dir0 = rayset[0][0][0][1]
-                # Calculate distance along ray to plane perpendicular to
-                #  the chief ray.
-                dst = -(b4_pt - pt0).dot(dir0)/b4_dir.dot(dir0)
-            pt = b4_pt + dst*b4_dir
-            ray[0][0][0] = pt
-            ray[0][0][1] = b4_dir
-
-    def setup_shift_of_ray_bundle(self, start_offset):
-        """ compute transformation for rays "start_offset" from 1st surface
-
-        start_offset: z distance rays should start wrt first surface.
-                      positive if to left of first surface
-        return: transformation rotation and translation
-        """
-        s1 = self.ifcs[1]
-        s0 = self.ifcs[0]
-        g0 = gap.Gap(start_offset, self.gaps[0].medium)
-        r, t = trns.reverse_transform(s0, g0, s1)
-        return r, t
-
-    def shift_start_of_rayset(self, rayset, start_offset):
-        """ modify rayset so that rays begin "start_offset" from 1st surface
-
-        rayset: list of ray bundles, i.e. for a list of fields
-        start_offset: z distance rays should start wrt first surface.
-                      positive if to left of first surface
-        return: transformation rotation and translation
-        """
-        r, t = self.setup_shift_of_ray_bundle(start_offset)
-        for ray_bundle in rayset:
-            self.shift_start_of_ray_bundle(ray_bundle, start_offset, r, t)
-        return r, t
 
     def set_clear_apertures(self):
         def rd(v):

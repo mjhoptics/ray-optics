@@ -13,8 +13,11 @@ import numpy as np
 from numpy.linalg import norm
 from math import sqrt, copysign
 
+import rayoptics.optical.model_constants as mc
+
+
 Intfc, Gap, Index, Trfm, Z_Dir = range(5)
-pt, dcs = range(2)
+#pt, dcs = range(2)
 
 
 def bend(d_in, normal, n_in, n_out):
@@ -45,14 +48,14 @@ def phase(intrfc, inc_pt, d_in, normal, wvl, n_in, n_out):
 def trace(seq_model, pt0, dir0, wvl, **kwargs):
     """ fundamental raytrace function
 
-    inputs:
+    Args:
         seq_model: the sequential model to be traced
         pt0: starting point in coords of first interface
         dir0: starting direction cosines in coords of first interface
         wvl: wavelength in nm
         eps: accuracy tolerance for surface intersection calculation
 
-    returns ray, op_delta
+    Returns: ray, op_delta
     where ray is:
         [pt, after_dir, after_dst]
         where
@@ -62,6 +65,7 @@ def trace(seq_model, pt0, dir0, wvl, **kwargs):
         after_dst: the geometric distance to the next interface
     and
         op_delta: optical path wrt equally inclined chords to the optical axis
+        wvl: wavelength (in nm) that the ray was traced in
     """
     path = itertools.zip_longest(seq_model.ifcs, seq_model.gaps,
                                  seq_model.rndx[wvl], seq_model.lcl_tfrms,
@@ -73,23 +77,27 @@ def trace(seq_model, pt0, dir0, wvl, **kwargs):
 def trace_raw(path_pkg, pt0, dir0, wvl, eps=1.0e-12):
     """ fundamental raytrace function
 
-    inputs:
+    Args:
         path_pkg: an iterator containing interfaces and gaps to be traced
         pt0: starting point in coords of first interface
         dir0: starting direction cosines in coords of first interface
         wvl: wavelength in nm
         eps: accuracy tolerance for surface intersection calculation
 
-    returns ray, op_delta, wvl
-    where ray is:
-        [pt, after_dir, dst_b4]
-        where
-        pt: the intersection point of the ray in interface coordinates
-        after_dir: the ray direction cosine following the interface in
-                   interface coordinates
-        dst_b4: the geometric distance from the previous interface
-    and
-        op_delta: optical path wrt equally inclined chords to the optical axis
+    Returns:
+        ray, op_delta, wvl
+        where ray is a list of these elements:
+            [pt, after_dir, after_dst, normal]
+            where
+            pt: the intersection point of the ray in interface coordinates
+            after_dir: the ray direction cosine following the interface in
+                       interface coordinates
+            after_dst: after_dst: the geometric distance to the next interface
+            normal: the surface normal at the intersection point
+        and
+            op_delta: optical path wrt equally inclined chords to the
+                      optical axis
+            wvl: wavelength (in nm) that the ray was traced in
     """
     ray = []
     eic = []
@@ -154,8 +162,7 @@ def trace_raw(path_pkg, pt0, dir0, wvl, eps=1.0e-12):
                         n_after, eic_dst_after, dW])
 
             dst_b4 = pp_dst + pp_dst_intrsct
-            ray.append([before_pt, before_dir, dst_b4])
-#            ray.append([before_pt, before_normal, before_dir, dst_b4])
+            ray.append([before_pt, before_dir, dst_b4, before_normal])
 #            print("after:", surf, inc_pt, after_dir)
 #            print("e{}= {:12.5g} e{}'= {:12.5g} dW={:10.8g} n={:8.5g}"
 #                  " n'={:8.5g}".format(surf, eic_dst_before,
@@ -170,8 +177,7 @@ def trace_raw(path_pkg, pt0, dir0, wvl, eps=1.0e-12):
             tfrm_from_before = before[Trfm]
 
         except StopIteration:
-            ray.append([inc_pt, after_dir, 0.0])
-#            ray.append([inc_pt, normal, after_dir, 0.0])
+            ray.append([inc_pt, after_dir, 0.0, normal])
             P, P1k, Ps = calc_path_length(eic, offset=1)
             op_delta += P
             break
@@ -179,9 +185,33 @@ def trace_raw(path_pkg, pt0, dir0, wvl, eps=1.0e-12):
     return ray, op_delta, wvl
 
 
+def calc_path_length(eic, offset=0):
+    """ given eic array, compute path length between outer surfaces
+        offset is beginning index of eic array wrt the object interface
+        """
+    P1k = -eic[1-offset][2]*eic[1-offset][3] + eic[-2][0]*eic[-2][1]
+    Ps = 0.
+    for i in range(2-offset, len(eic)-2):
+        Ps -= eic[i][4]
+#        Ps -= eic[i][2]*eic[i][3] - eic[i][0]*eic[i][1]
+    P = P1k + Ps
+    return P, P1k, Ps
+
+
 def eic_distance(r, r0):
-    e = (np.dot(r[dcs] + r0[dcs], r[pt] - r0[pt]) /
-         (1. + np.dot(r[dcs], r0[dcs])))
+    """ calculate equally inclined chord distance between 2 rays
+
+    Args:
+        r: (p, d), where p is a point on the ray r and d is the direction
+           cosine of r
+        r0: (p0, d0), where p0 is a point on the ray r0 and d0 is the direction
+            cosine of r0
+
+    Returns:
+        e: distance along r from equally inclined chord point to p
+    """
+    # eq 3.9
+    e = (np.dot(r[1] + r0[1], r[0] - r0[0]) / (1. + np.dot(r[1], r0[1])))
     return e
 
 
@@ -199,18 +229,18 @@ def wave_abr_real_coord(seq_model, fld, wvl, ray_pkg):
     k = -2  # last interface in sequence
 
     # eq 3.12
-    e1 = eic_distance((ray[1][pt], ray[0][dcs]),
-                      (chief_ray[1][pt], chief_ray[0][dcs]))
+    e1 = eic_distance((ray[1][mc.p], ray[0][mc.d]),
+                      (chief_ray[1][mc.p], chief_ray[0][mc.d]))
     # eq 3.13
-    ekp = eic_distance((ray[k][pt], ray[k][dcs]),
-                       (chief_ray[k][pt], chief_ray[k][dcs]))
+    ekp = eic_distance((ray[k][mc.p], ray[k][mc.d]),
+                       (chief_ray[k][mc.p], chief_ray[k][mc.d]))
 
     dst = ekp - cr_exp_dist
 
-    eic_exp_pt = ray[k][pt] - dst*ray[k][dcs]
+    eic_exp_pt = ray[k][mc.p] - dst*ray[k][mc.d]
 #    eic_exp_pt[2] -= cr_exp_dist
     p_coord = eic_exp_pt - cr_exp_pt
-    F = ref_dir.dot(ray[k][dcs]) - ray[k][dcs].dot(p_coord)/ref_sphere_radius
+    F = ref_dir.dot(ray[k][mc.d]) - ray[k][mc.d].dot(p_coord)/ref_sphere_radius
     J = p_coord.dot(p_coord)/ref_sphere_radius - 2.0*ref_dir.dot(p_coord)
     ep = J/(F + sqrt(F**2 + J/ref_sphere_radius))
 
@@ -231,18 +261,18 @@ def wave_abr_HHH(seq_model, fld, wvl, ray_pkg):
     H = n_img*(pr_k[ht]*ax_k[slp] - ax_k[ht]*pr_k[slp])
 
     # eq 3.12
-    e1 = eic_distance((ray[1][pt], ray[0][dcs]),
-                      (chief_ray[1][pt], chief_ray[0][dcs]))
+    e1 = eic_distance((ray[1][mc.p], ray[0][mc.d]),
+                      (chief_ray[1][mc.p], chief_ray[0][mc.d]))
     # eq 3.13
-    ekp = eic_distance((ray[k][pt], ray[k][dcs]),
-                       (chief_ray[k][pt], chief_ray[k][dcs]))
+    ekp = eic_distance((ray[k][mc.p], ray[k][mc.d]),
+                       (chief_ray[k][mc.p], chief_ray[k][mc.d]))
 
     # eq 4.33
-    eic_pt = ray[k][pt] - ekp*ray[k][dcs]
+    eic_pt = ray[k][mc.p] - ekp*ray[k][mc.d]
     print("eic_pt", eic_pt)
 
-    Nk_cr = chief_ray[k][dcs][2]
-    Zk_cr = chief_ray[k][pt][2]
+    Nk_cr = chief_ray[k][mc.d][2]
+    Zk_cr = chief_ray[k][mc.p][2]
 
     def reduced_pupil_coord(X, L, e):
         coef1 = -n_img/(H * Nk_cr)
@@ -251,15 +281,15 @@ def wave_abr_HHH(seq_model, fld, wvl, ray_pkg):
         return xp
 
     # eq 5.4
-    xp_ray = reduced_pupil_coord(ray[k][pt][0], ray[k][dcs][0], ekp)
-    yp_ray = reduced_pupil_coord(ray[k][pt][1], ray[k][dcs][1], ekp)
+    xp_ray = reduced_pupil_coord(ray[k][mc.p][0], ray[k][mc.d][0], ekp)
+    yp_ray = reduced_pupil_coord(ray[k][mc.p][1], ray[k][mc.d][1], ekp)
     # eq 5.5
-    xp_cr = reduced_pupil_coord(chief_ray[k][pt][0], chief_ray[k][dcs][0], 0.)
-    yp_cr = reduced_pupil_coord(chief_ray[k][pt][1], chief_ray[k][dcs][1], 0.)
+    xp_cr = reduced_pupil_coord(chief_ray[k][mc.p][0], chief_ray[k][mc.d][0], 0.)
+    yp_cr = reduced_pupil_coord(chief_ray[k][mc.p][1], chief_ray[k][mc.d][1], 0.)
     # eq 5.6
-    zp_ray = -(((ray[k][dcs][0] + chief_ray[k][dcs][0])*(xp_ray - xp_cr) +
-                (ray[k][dcs][1] + chief_ray[k][dcs][1])*(yp_ray - yp_cr)) /
-                (ray[k][dcs][2] + chief_ray[k][dcs][2]))
+    zp_ray = -(((ray[k][mc.d][0] + chief_ray[k][mc.d][0])*(xp_ray - xp_cr) +
+                (ray[k][mc.d][1] + chief_ray[k][mc.d][1])*(yp_ray - yp_cr)) /
+                (ray[k][mc.d][2] + chief_ray[k][mc.d][2]))
 
     rpc_ray = np.array([xp_ray, yp_ray, zp_ray])
     rpc_cr = np.array([xp_cr, yp_cr, 0.])
@@ -274,14 +304,14 @@ def wave_abr_HHH(seq_model, fld, wvl, ray_pkg):
         return G0
 
     # eq 5.13
-    G0_ray = reduced_image_coord(ray[k][pt][0], ray[k][dcs][0],
-                                 ray[k][pt][2], ray[k][dcs][2])
-    H0_ray = reduced_image_coord(ray[k][pt][1], ray[k][dcs][1],
-                                 ray[k][pt][2], ray[k][dcs][2])
+    G0_ray = reduced_image_coord(ray[k][mc.p][0], ray[k][mc.d][0],
+                                 ray[k][mc.p][2], ray[k][mc.d][2])
+    H0_ray = reduced_image_coord(ray[k][mc.p][1], ray[k][mc.d][1],
+                                 ray[k][mc.p][2], ray[k][mc.d][2])
     # eq 5.14
-    G0_cr = reduced_image_coord(chief_ray[k][pt][0], chief_ray[k][dcs][0],
+    G0_cr = reduced_image_coord(chief_ray[k][mc.p][0], chief_ray[k][mc.d][0],
                                 Zk_cr, Nk_cr)
-    H0_cr = reduced_image_coord(chief_ray[k][pt][1], chief_ray[k][dcs][1],
+    H0_cr = reduced_image_coord(chief_ray[k][mc.p][1], chief_ray[k][mc.d][1],
                                 Zk_cr, Nk_cr)
     print("G0, H0_ref; G0, H0_cr:", G0_ref, H0_ref, G0_cr, H0_cr)
     # eq 4.17
@@ -290,16 +320,16 @@ def wave_abr_HHH(seq_model, fld, wvl, ray_pkg):
     g = z_dir/sqrt(1. - a**2 + b**2)
     # eq 4.18
     ref_dir = np.array([-a*g, -b*g, g])
-    print("ref_dir, cr_dir", ref_dir, chief_ray[k][dcs])
+    print("ref_dir, cr_dir", ref_dir, chief_ray[k][mc.d])
     # eq 4.25
-    F = (np.dot(ref_dir, ray[k][dcs]) + ref_dir[2]*ax_k[slp] *
-         np.dot(chief_ray[k][dcs], (rpc_ray - rpc_cr)))
+    F = (np.dot(ref_dir, ray[k][mc.d]) + ref_dir[2]*ax_k[slp] *
+         np.dot(chief_ray[k][mc.d], (rpc_ray - rpc_cr)))
 
     # eq 4.28
     Ja = (ref_dir[2]*ax_k[slp] *
           np.dot((eic_pt - chief_ray[k][0]), (rpc_ray - rpc_cr)))
     Jb = -(2.0*(ref_dir[2]/Nk_cr)*(ax_k[ht] - ax_k[slp]*Zk_cr) *
-           np.dot(chief_ray[k][dcs], (rpc_ray - rpc_cr)))
+           np.dot(chief_ray[k][mc.d], (rpc_ray - rpc_cr)))
     Jc = (2.0*(ref_dir[2]/n_img)*((G0_cr - G0_ref)*(xp_ray - xp_cr) +
                                   (H0_cr - H0_ref)*(yp_ray - yp_cr)))
     J = Ja + Jb + Jc
@@ -307,17 +337,17 @@ def wave_abr_HHH(seq_model, fld, wvl, ray_pkg):
 #    J = ((ref_dir[2]*ax_k[slp] *
 #         np.dot((eic_pt - chief_ray[k][0]), (rpc_ray - rpc_cr))) -
 #         2.0*(ref_dir[2]/Nk_cr)*(ax_k[ht] - ax_k[slp]*Zk_cr) *
-#         np.dot(chief_ray[k][dcs], (rpc_ray - rpc_cr)) +
+#         np.dot(chief_ray[k][mc.d], (rpc_ray - rpc_cr)) +
 #         2.0*(ref_dir[2]/n_img)*((G0_cr - G0_ref)*(xp_ray - xp_cr) +
 #                                 (H0_cr - H0_ref)*(yp_ray - yp_cr)))
 
 #    # eq 4.29 Q' = image_pt
-#    F = (np.dot(chief_ray[k][dcs], ray[k][dcs]) + Nk_cr*ax_k[slp] *
-#         np.dot(chief_ray[k][dcs], (rpc_ray - rpc_cr)))
+#    F = (np.dot(chief_ray[k][mc.d], ray[k][mc.d]) + Nk_cr*ax_k[slp] *
+#         np.dot(chief_ray[k][mc.d], (rpc_ray - rpc_cr)))
 #    J = ((Nk_cr*ax_k[slp] *
 #         np.dot((eic_pt - chief_ray[k][0]), (rpc_ray - rpc_cr))) -
 #         2.0*(ax_k[ht] - ax_k[slp]*Zk_cr) *
-#         np.dot(chief_ray[k][dcs], (rpc_ray - rpc_cr)))
+#         np.dot(chief_ray[k][mc.d], (rpc_ray - rpc_cr)))
 
     # eq 4.21
     ep = J/(F + sqrt(F**2 + J*(n_img*ax_k[slp]*pr_k[slp]*ref_dir[2] / H)))
@@ -338,8 +368,8 @@ def transfer_to_exit_pupil(interface, ray_seg, exp_dst_parax):
     else:
         b4_pt, b4_dir = ray_seg[0], ray_seg[1]
 
-    h = b4_pt[pt]**2 + b4_pt[dcs]**2
-    u = b4_dir[pt]**2 + b4_dir[dcs]**2
+    h = b4_pt[0]**2 + b4_pt[1]**2
+    u = b4_dir[0]**2 + b4_dir[1]**2
     if u == 0.0:
         dst = exp_dst_parax
     else:
@@ -407,16 +437,3 @@ def eic_path_accumulation(ray, rndx, lcl_tfrms, z_dir):
 
     P, P1k, Ps = calc_path_length(eic)
     return eic, P
-
-
-def calc_path_length(eic, offset=0):
-    """ given eic array, compute path length between outer surfaces
-        offset is beginning index of eic array wrt the object interface
-        """
-    P1k = -eic[1-offset][2]*eic[1-offset][3] + eic[-2][0]*eic[-2][1]
-    Ps = 0.
-    for i in range(2-offset, len(eic)-2):
-        Ps -= eic[i][4]
-#        Ps -= eic[i][2]*eic[i][3] - eic[i][0]*eic[i][1]
-    P = P1k + Ps
-    return P, P1k, Ps

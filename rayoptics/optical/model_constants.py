@@ -19,3 +19,17 @@ ax, pr, lns, inv = range(4)
 ht, slp, aoi = range(3)
 # lens data: power, reduced distance, refractive index (n), refract mode
 pwr, tau, indx, rmd = range(4)
+
+# ray trace segment data
+# p: intersection point with interface
+# d: direction cosine exiting the interface
+# dst: distance from intersection point to next interface
+# nrml: surface normal at intersection point
+# phase: optical phase introduced at the interface
+p, d, dst, nrml, phase = range(5)
+
+# ray package
+# ray: list of ray segment data
+# op:  optical path wrt equally inclined chords to the optical axis
+# wvl: wavelength (in nm) that the ray was traced in
+ray, op, wvl = range(3)

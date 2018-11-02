@@ -13,32 +13,33 @@ import numpy as np
 import rayoptics.optical.gap as gap
 import rayoptics.optical.transform as trns
 from rayoptics.optical.trace import trace_boundary_rays_at_field
+import rayoptics.optical.model_constants as mc
 
 
-def shift_start_of_ray_bundle(rayset, start_offset, r, t):
-    """ modify rayset so that rays begin "start_offset" from 1st surface
+def shift_start_of_ray_bundle(ray_bundle, start_offset, r, t):
+    """ modify ray_bundle so that rays begin "start_offset" from 1st surface
 
-    rayset: list of rays in a bundle, i.e. all for one field. rayset[0]
+    ray_bundle: list of rays in a bundle, i.e. all for one field. ray_bundle[0]
             is assumed to be the chief ray
     start_offset: z distance rays should start wrt first surface.
                   positive if to left of first surface
     r, t: transformation rotation and translation
     """
-    for ri, ray in enumerate(rayset):
-        b4_pt = r.dot(ray[0][1][0]) - t
-        b4_dir = r.dot(ray[0][0][1])
+    for ri, ray in enumerate(ray_bundle):
+        b4_pt = r.dot(ray[mc.ray][1][mc.p]) - t
+        b4_dir = r.dot(ray[mc.ray][0][mc.d])
         if ri == 0:
             # For the chief ray, use the input offset.
             dst = -b4_pt[2]/b4_dir[2]
         else:
-            pt0 = rayset[0][0][0][0]
-            dir0 = rayset[0][0][0][1]
+            pt0 = ray_bundle[0][mc.ray][0][mc.p]
+            dir0 = ray_bundle[0][mc.ray][0][mc.d]
             # Calculate distance along ray to plane perpendicular to
             #  the chief ray.
             dst = -(b4_pt - pt0).dot(dir0)/b4_dir.dot(dir0)
         pt = b4_pt + dst*b4_dir
-        ray[0][0][0] = pt
-        ray[0][0][1] = b4_dir
+        ray[mc.ray][0][mc.p] = pt
+        ray[mc.ray][0][mc.d] = b4_dir
 
 
 def setup_shift_of_ray_bundle(seq_model, start_offset):
@@ -65,7 +66,7 @@ def shift_start_of_rayset(seq_model, rayset, start_offset):
     """
     r, t = seq_model.setup_shift_of_ray_bundle(start_offset)
     for ray_bundle in rayset:
-        seq_model.shift_start_of_ray_bundle(ray_bundle, start_offset, r, t)
+        shift_start_of_ray_bundle(ray_bundle, start_offset, r, t)
     return r, t
 
 
@@ -125,17 +126,17 @@ class RayBundle():
                                           r, t)
 
             poly1 = []
-            for i, r in enumerate(rayset[3][0][0:]):
+            for i, r in enumerate(rayset[3][mc.ray][0:]):
                 rot, trns = tfrms[i]
-                p = rot.dot(r[0]) + trns
+                p = rot.dot(r[mc.p]) + trns
     #            print(i, r[0], rot, trns, p)
     #            print("r3", i, p[2], p[1])
                 poly1.append([p[2], p[1]])
 
             poly2 = []
-            for i, r in enumerate(rayset[4][0][0:]):
+            for i, r in enumerate(rayset[4][mc.ray][0:]):
                 rot, trns = tfrms[i]
-                p = rot.dot(r[0]) + trns
+                p = rot.dot(r[mc.p]) + trns
     #            print(i, r[0], rot, trns, p)
     #            print("r4", i, p[2], p[1])
                 poly2.append([p[2], p[1]])

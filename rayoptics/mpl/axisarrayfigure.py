@@ -15,6 +15,7 @@ from scipy.interpolate import spline
 import numpy as np
 
 from rayoptics.optical.raytrace import wave_abr
+import rayoptics.optical.model_constants as mc
 
 
 class Fit(Enum):
@@ -100,15 +101,15 @@ class RayFanFigure(AxisArrayFigure):
 
         def ray_abr(p, xy, ray_pkg, fld, wvl):
             image_pt = fld.ref_sphere[0][0]
-            if ray_pkg[0] is not None:
-                ray = ray_pkg[0]
-                y_val = ray[-1][0][xy] - image_pt[xy]
+            if ray_pkg[mc.ray] is not None:
+                ray = ray_pkg[mc.ray]
+                y_val = ray[-1][mc.p][xy] - image_pt[xy]
                 return y_val
             else:
                 return None
 
         def opd(p, xy, ray_pkg, fld, wvl):
-            if ray_pkg[0] is not None:
+            if ray_pkg[mc.ray] is not None:
                 opd = wave_abr(self.seq_model, fld, wvl, ray_pkg)
                 return opd[0]/self.wvl_to_sys_units(wvl)
             else:
@@ -194,9 +195,9 @@ class SpotDiagramFigure(AxisArrayFigure):
             image_pt = fld.ref_sphere[0][0]
 #            image_pt = fld.chief_ray.ray[-1][0]
             if ray_pkg is not None:
-                ray = ray_pkg[0]
-                x = ray[-1][0][0] - image_pt[0]
-                y = ray[-1][0][1] - image_pt[1]
+                ray = ray_pkg[mc.ray]
+                x = ray[-1][mc.p][0] - image_pt[0]
+                y = ray[-1][mc.p][1] - image_pt[1]
                 return np.array([x, y])
             else:
                 return None

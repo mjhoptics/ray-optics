@@ -18,6 +18,7 @@ import pandas as pd
 import attr
 
 from . import raytrace as rt
+from . import model_constants as mc
 from rayoptics.util.misc_math import normalize
 
 
@@ -31,7 +32,8 @@ def ray_pkg(ray_pkg):
 
 def ray_df(ray):
     """ return a DataFrame containing ray data """
-    r = pd.DataFrame(ray, columns=['inc_pt', 'after_dir', 'after_dst'])
+    r = pd.DataFrame(ray, columns=['inc_pt', 'after_dir',
+                                   'after_dst', 'normal'])
     r.index.names = ['intrfc']
     return r
 
@@ -51,9 +53,9 @@ def list_ray(ray):
     for i, r in enumerate(ray):
         print("{:3d}: {:12.5f} {:12.5f} {:12.5f} {:12.6f} {:12.6f} "
               "{:12.6f} {:12.5g}".format(i,
-                                         r[0][0], r[0][1], r[0][2],
-                                         r[1][0], r[1][1], r[1][2],
-                                         r[2]))
+                                         r[mc.p][0], r[mc.p][1], r[mc.p][2],
+                                         r[mc.d][0], r[mc.d][1], r[mc.d][2],
+                                         r[mc.dst]))
 
 
 def trace_base(seq_model, pupil, fld, wvl, **kwargs):
@@ -146,7 +148,8 @@ def trace_chief_ray(seq_model, fld, wvl, foc):
     # cr_exp_pt: E upper bar prime: pupil center for pencils from Q
     # cr_exp_pt, cr_b4_dir, cr_exp_dist
     cr_exp_seg = rt.transfer_to_exit_pupil(seq_model.ifcs[-2],
-                                           (cr.ray[-2][0], cr.ray[-2][1]),
+                                           (cr.ray[-2][mc.p],
+                                            cr.ray[-2][mc.d]),
                                            fod.exp_dist)
     return cr, cr_exp_seg
 
@@ -222,12 +225,12 @@ def setup_pupil_coords(seq_model, fld, wvl, foc,
     cr, cr_exp_seg = chief_ray_pkg
 
     if image_pt is None:
-        image_pt = cr.ray[-1][0]
+        image_pt = cr.ray[-1][mc.p]
 
     # cr_exp_pt: E upper bar prime: pupil center for pencils from Q
     # cr_exp_pt, cr_b4_dir, cr_dst
-    cr_exp_pt = cr_exp_seg[0]
-    cr_exp_dist = cr_exp_seg[2]
+    cr_exp_pt = cr_exp_seg[mc.p]
+    cr_exp_dist = cr_exp_seg[mc.dst]
 
     img_dist = seq_model.gaps[-1].thi
     img_pt = np.array(image_pt)
@@ -260,15 +263,16 @@ def setup_canonical_coords(seq_model, fld, wvl, image_pt=None):
     cr = fld.chief_ray
 
     if image_pt is None:
-        image_pt = cr.ray[-1][0]
+        image_pt = cr.ray[-1][mc.p]
 
     # cr_exp_pt: E upper bar prime: pupil center for pencils from Q
     # cr_exp_pt, cr_b4_dir, cr_dst
     cr_exp_seg = rt.transfer_to_exit_pupil(seq_model.ifcs[-2],
-                                           (cr.ray[-2][0], cr.ray[-2][1]),
+                                           (cr.ray[-2][mc.p],
+                                            cr.ray[-2][mc.d]),
                                            fod.exp_dist)
-    cr_exp_pt = cr_exp_seg[0]
-    cr_exp_dist = cr_exp_seg[2]
+    cr_exp_pt = cr_exp_seg[mc.p]
+    cr_exp_dist = cr_exp_seg[mc.dst]
 
     img_dist = seq_model.gaps[-1].thi
     img_pt = np.array(image_pt)
