@@ -18,22 +18,16 @@ from PyQt5.QtCore import Qt as qt
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (QApplication, QAction, QMainWindow, QMdiArea,
                              QMdiSubWindow, QTextEdit, QFileDialog, QTableView,
-                             QHBoxLayout, QVBoxLayout, QWidget, QGraphicsView,
-                             QLineEdit, QGraphicsScene, QRadioButton,
-                             QGroupBox)
+                             QVBoxLayout, QWidget, QGraphicsView,
+                             QGraphicsScene)
 from PyQt5.QtCore import pyqtSlot
 
-from matplotlib.backends.backend_qt5agg \
-     import (NavigationToolbar2QT as NavigationToolbar)
-
 import rayoptics as ro
+import rayoptics.gui.appcmds as cmds
 from rayoptics.gui.appmanager import ModelInfo, AppManager
 from rayoptics.optical.opticalmodel import OpticalModel
-from rayoptics.mpl.axisarrayfigure import Fit
 from rayoptics.mpl.paraxdgnfigure import Dgm
-from rayoptics.qtgui.pytablemodel import PyTableModel
 from rayoptics.qtgui.graphicsitems import OpticalElement, RayBundle
-from rayoptics.qtgui.plotcanvas import PlotCanvas
 from rayoptics.optical import trace as trace
 
 
@@ -190,46 +184,41 @@ class MainWindow(QMainWindow):
         self.app_manager.close_model(self.delete_subwindow)
 
     def view_action(self, q):
+        seq_model = self.app_manager.model.seq_model
         if q.text() == "Lens Table":
             self.create_lens_table()
 
         if q.text() == "Lens View":
-            self.create_lens_layout_view()
+            cmds.create_lens_layout_view(self.app_manager.model,
+                                         gui_parent=self)
 #            self.create_2D_lens_view()
 
         if q.text() == "Ray Fans":
-            self.create_ray_fan_view("Ray")
+            cmds.create_ray_fan_view(seq_model, "Ray", gui_parent=self)
 
         if q.text() == "OPD Fans":
-            self.create_ray_fan_view("OPD")
+            cmds.create_ray_fan_view(seq_model, "OPD", gui_parent=self)
 
         if q.text() == "Spot Diagram":
-            self.create_ray_grid_view()
+            cmds.create_ray_grid_view(seq_model, gui_parent=self)
 
         if q.text() == "Wavefront Map":
-            self.create_wavefront_view()
+            cmds.create_wavefront_view(seq_model, gui_parent=self)
 
         if q.text() == "Paraxial Height View":
-            self.create_paraxial_design_view(Dgm.ht)
+            cmds.create_paraxial_design_view(seq_model, Dgm.ht,
+                                             gui_parent=self)
 
         if q.text() == "Paraxial Slope View":
-            self.create_paraxial_design_view(Dgm.slp)
+            cmds.create_paraxial_design_view(seq_model, Dgm.slp,
+                                             gui_parent=self)
 
         if q.text() == "Paraxial Ray Table":
-            root = self.app_manager.model
-            rootEvalStr = ".seq_model.optical_spec.parax_data"
-            colEvalStr = ['[0][{}][0]', '[0][{}][1]', '[0][{}][2]',
-                          '[1][{}][0]', '[1][{}][1]', '[1][{}][2]']
-            rowHeaders = self.app_manager.model.seq_model.surface_label_list()
-            colHeaders = ['y', 'u', 'i', 'y-bar', 'u-bar', 'i-bar']
-            colFormats = ['{:12.5g}', '{:9.6f}', '{:9.6f}', '{:12.5g}',
-                          '{:9.6f}', '{:9.6f}']
-            model = PyTableModel(root, rootEvalStr, colEvalStr, rowHeaders,
-                                 colHeaders, colFormats, False)
+            model = cmds.create_parax_table_model(seq_model)
             self.create_table_view(model, "Paraxial Ray Table")
 
         if q.text() == "Ray Table":
-            self.create_ray_table()
+            self.create_ray_table(seq_model)
 
     def window_action(self, q):
         if q.text() == "Cascade":
@@ -240,20 +229,10 @@ class MainWindow(QMainWindow):
 
     def create_lens_table(self):
         seq_model = self.app_manager.model.seq_model
-        colEvalStr = ['.ifcs[{}].interface_type()',
-                      '.ifcs[{}].profile_cv()',
-                      '.ifcs[{}].surface_od()', '.gaps[{}].thi',
-                      '.gaps[{}].medium.name()', '.ifcs[{}].refract_mode']
-        rowHeaders = seq_model.surface_label_list()
-        colHeaders = ['type', 'cv', 'sd', 'thi', 'medium', 'mode']
-        colFormats = ['{:s}', '{:12.7g}', '{:12.5g}', '{:12.5g}',
-                      '{:s}', '{:s}']
-        model = PyTableModel(seq_model, '', colEvalStr, rowHeaders,
-                             colHeaders, colFormats, True)
+        model = cmds.create_lens_table_model(seq_model)
         self.create_table_view(model, "Surface Data Table")
 
-    def create_ray_table(self):
-        sm = self.app_manager.model.seq_model
+    def create_ray_table(self, sm):
         osp = sm.optical_spec
         pupil = [0., 1.]
         fi = 0
@@ -261,15 +240,7 @@ class MainWindow(QMainWindow):
         fld, wvl, foc = osp.lookup_fld_wvl_focus(fi, wl)
         ray, ray_op, wvl, opd = trace.trace_with_opd(sm, pupil, fld, wvl, foc)
 
-        colEvalStr = ['[{}][0][0]', '[{}][0][1]', '[{}][0][2]',
-                      '[{}][1][0]', '[{}][1][1]', '[{}][1][2]',
-                      '[{}][2]']
-        rowHeaders = sm.surface_label_list()
-        colHeaders = ['x', 'y', 'z', 'l', 'm', 'n', 'length']
-        colFormats = ['{:12.5g}', '{:12.5g}', '{:12.5g}', '{:9.6f}',
-                      '{:9.6f}', '{:9.6f}', '{:12.5g}']
-        model = PyTableModel(ray, '', colEvalStr, rowHeaders,
-                             colHeaders, colFormats, False)
+        model = cmds.create_ray_table_model(sm, ray)
         self.create_table_view(model, "Ray Table")
 
     def create_2D_lens_view(self):
@@ -333,153 +304,6 @@ class MainWindow(QMainWindow):
             rb = RayBundle(seq_model, fi, start_offset)
             gscene.addItem(rb)
 
-    def create_lens_layout_view(self):
-        fig = ro.LensLayoutFigure(self.app_manager.model)
-        view_width = 660
-        view_ht = 440
-        title = "Lens Layout View"
-        self.create_plot_view(fig, title, view_width, view_ht,
-                              add_scale_panel=False)
-
-    def update_figure_view(plotFigure):
-        plotFigure.refresh()
-
-    def create_paraxial_design_view(self, dgm_type):
-        seq_model = self.app_manager.model.seq_model
-        fig = ro.ParaxialDesignFigure(seq_model, self.refresh_gui, dgm_type,
-                                      figsize=(5, 4))
-        view_width = 500
-        view_ht = 500
-        title = "Paraxial Design View"
-        self.create_plot_view(fig, title, view_width, view_ht,
-                              add_scale_panel=False, add_nav_toolbar=True)
-
-    def create_ray_fan_view(self, data_type):
-        seq_model = self.app_manager.model.seq_model
-        fig = ro.RayFanFigure(seq_model, data_type,
-                              scale_type=Fit.All_Same,
-                              figsize=(5, 4), dpi=100)
-        view_width = 600
-        view_ht = 600
-        if data_type == "Ray":
-            title = "Ray Fan View"
-        elif data_type == "OPD":
-            title = "OPD Fan View"
-        else:
-            title = "bad data_type argument"
-        self.create_plot_view(fig, title, view_width, view_ht)
-
-    def create_ray_grid_view(self):
-        seq_model = self.app_manager.model.seq_model
-        num_flds = len(seq_model.optical_spec.field_of_view.fields)
-
-        fig = ro.SpotDiagramFigure(seq_model, scale_type=Fit.All_Same,
-                                   num_rays=11, dpi=100)
-        view_box = 300
-        view_width = view_box
-        view_ht = num_flds * view_box
-        title = "Spot Diagram"
-        self.create_plot_view(fig, title, view_width, view_ht)
-
-    def create_wavefront_view(self):
-        seq_model = self.app_manager.model.seq_model
-        num_flds = len(seq_model.optical_spec.field_of_view.fields)
-        num_wvls = len(seq_model.optical_spec.spectral_region.wavelengths)
-
-        fig = ro.WavefrontFigure(seq_model, scale_type=Fit.All_Same,
-                                 num_rays=32, dpi=100)
-#                                 figsize=(2*num_wvls, 2*num_flds))
-        view_box = 300
-        view_width = num_wvls * view_box
-        view_ht = num_flds * view_box
-        title = "Wavefront Map"
-        self.create_plot_view(fig, title, view_width, view_ht)
-
-    def create_plot_view(self, fig, title, view_width, view_ht,
-                         add_scale_panel=True, add_nav_toolbar=False):
-        pc = PlotCanvas(self, fig)
-        # construct the top level widget
-        widget = QWidget()
-        # construct the top level layout
-        layout = QVBoxLayout(widget)
-
-        # set the layout on the widget
-        widget.setLayout(layout)
-
-        if add_scale_panel:
-            psp = self.create_plot_scale_panel(pc)
-            layout.addWidget(psp)
-
-        mi = ModelInfo(self.app_manager.model,
-                       MainWindow.update_figure_view, (fig,))
-        sub_window = self.add_subwindow(widget, mi)
-        sub_window.setWindowTitle(title)
-        orig_x, orig_y = self.initial_window_offset()
-        sub_window.setGeometry(orig_x, orig_y, view_width, view_ht)
-
-        layout.addWidget(pc)
-
-        if add_nav_toolbar:
-            layout.addWidget(NavigationToolbar(pc, sub_window))
-#            sub_window.addToolBar(qt.BottomToolBarArea,
-#                                  NavigationToolbar(pc, sub_window))
-
-        sub_window.show()
-
-    def create_plot_scale_panel(self, pc):
-        groupBox = QGroupBox("Plot Scale", self)
-
-        user_scale_wdgt = QLineEdit()
-        user_scale_wdgt.setReadOnly(True)
-        pf = pc.figure
-        cntxt = pf, user_scale_wdgt
-        user_scale_wdgt.editingFinished.connect(lambda: self.
-                                                on_plot_scale_changed(cntxt))
-        fit_all_btn = QRadioButton("Fit All")
-        fit_all_btn.setChecked(pf.scale_type == Fit.All)
-        fit_all_btn.toggled.connect(lambda: self.
-                                    on_plot_scale_toggled(cntxt, Fit.All))
-        fit_all_same_btn = QRadioButton("Fit All Same")
-        fit_all_same_btn.setChecked(pf.scale_type == Fit.All_Same)
-        fit_all_same_btn.toggled.connect(lambda: self.on_plot_scale_toggled(
-                                                 cntxt, Fit.All_Same))
-        user_scale_btn = QRadioButton("User Scale")
-        user_scale_btn.setChecked(pf.scale_type == Fit.User_Scale)
-        user_scale_btn.toggled.connect(lambda: self.on_plot_scale_toggled(
-                                       cntxt, Fit.User_Scale))
-        box = QHBoxLayout()
-        box.addWidget(fit_all_btn)
-        box.addWidget(fit_all_same_btn)
-        box.addWidget(user_scale_btn)
-        box.addWidget(user_scale_wdgt)
-
-        groupBox.setLayout(box)
-
-        return groupBox
-
-    def on_plot_scale_toggled(self, cntxt, scale_type):
-        plotFigure, scale_wdgt = cntxt
-        plotFigure.scale_type = scale_type
-        if scale_type == Fit.User_Scale:
-            scale_wdgt.setReadOnly(False)
-            scale_wdgt.setText('{:7.4f}'.format(plotFigure.user_scale_value))
-        else:
-            scale_wdgt.setReadOnly(True)
-
-        plotFigure.plot()
-
-    def on_plot_scale_changed(self, cntxt):
-        plotFigure, scale_wdgt = cntxt
-        eval_str = scale_wdgt.text()
-        try:
-            val = eval(eval_str)
-            plotFigure.user_scale_value = val
-            scale_wdgt.setText('{:7.4f}'.format(val))
-        except IndexError:
-            return ''
-
-        plotFigure.plot()
-
     def create_table_view(self, table_model, table_title):
         # construct the top level widget
         widget = QWidget()
@@ -496,8 +320,8 @@ class MainWindow(QMainWindow):
         widget.setLayout(layout)
 
         sub = self.add_subwindow(widget, ModelInfo(self.app_manager.model,
-                                         MainWindow.update_table_view,
-                                         (tableView,)))
+                                                   cmds.update_table_view,
+                                                   (tableView,)))
         sub.setWindowTitle(table_title)
 
         tableView.setModel(table_model)
@@ -516,10 +340,6 @@ class MainWindow(QMainWindow):
         table_model.update.connect(self.on_data_changed)
 
         sub.show()
-
-    def update_table_view(table_view):
-        table_model = table_view.model()
-        table_model.endResetModel()
 
     def refresh_gui(self):
         self.app_manager.refresh_gui()
