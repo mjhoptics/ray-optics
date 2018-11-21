@@ -8,6 +8,7 @@ Created on Wed May 23 15:27:06 2018
 """
 import numpy as np
 from numpy.linalg import norm
+from math import sqrt
 
 
 def normalize(v):
@@ -22,6 +23,30 @@ def normalize(v):
 def distance_sqr_2d(pt0, pt1):
     """ return distance squared between 2d points pt0 and pt1 """
     return (pt0[0] - pt1[0])**2 + (pt0[1] - pt1[1])**2
+
+
+def perpendicular_distance_2d(pt, pt1, pt2):
+    """ return perpendicular distance of pt from the line between pt1 and pt2
+    """
+    return (((pt2[0] - pt1[0])*(pt1[1] - pt[1])
+            - (pt1[0] - pt[0])*(pt2[1] - pt1[1]))
+            / sqrt(distance_sqr_2d(pt2, pt1)))
+
+
+def perpendicular_to_radial(pt, pt2):
+    """ return perpendicular distance of pt from the line between the origin
+    and pt2
+    """
+    return (pt[0]*pt2[1] - pt2[0]*pt[1]) / sqrt(pt2[0]**2 + pt2[1]**2)
+
+
+def perpendicular_to_line(pt, pt1, pt2):
+    """ return perpendicular distance of pt from the line between pt1 and pt2
+    """
+    d = perpendicular_distance_2d(pt, pt1, pt2)
+    return (((pt2[0] - pt1[0])*(pt1[1] - pt0[1])
+            - (pt1[0] - pt0[0])*(pt2[1] - pt1[1]))
+            / sqrt(distance_sqr_2d(pt2, pt1)))
 
 
 def euler2opt(e):
