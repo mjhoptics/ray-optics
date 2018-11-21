@@ -57,6 +57,9 @@ class Glass(Medium):
     def __repr__(self):
         return 'Glass ' + self.label + ': ' + glass_encode(self.n, self.v)
 
+    def glass_code(self):
+        return str(1000*round((self.n - 1), 3) + round(self.v/100, 3))
+
     def name(self):
         if self.label == '':
             return glass_encode(self.n, self.v)
