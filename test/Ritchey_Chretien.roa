@@ -46,17 +46,7 @@
           "cv":0.0
          }
         },
-        "clear_apertures":[
-         {
-          "__instance_type__":[
-           "rayoptics.optical.surface",
-           "Circular"
-          ],
-          "attributes":{
-           "radius":65999999.16999999
-          }
-         }
-        ],
+        "clear_apertures":[],
         "edge_apertures":[]
        }
       },
@@ -77,7 +67,7 @@
          ],
          "attributes":{
           "cv":-0.013727272717823692,
-          "cc":-1.3031151012785251
+          "cc":-1.303115101278525
          }
         },
         "clear_apertures":[
@@ -111,7 +101,7 @@
          ],
          "attributes":{
           "cv":-0.017998163738521585,
-          "cc":-13.602974376524415
+          "cc":-13.602974376524408
          }
         },
         "clear_apertures":[
@@ -121,7 +111,7 @@
            "Circular"
           ],
           "attributes":{
-           "radius":1.6483861799867925
+           "radius":1.6483861799868615
           }
          }
         ],
@@ -147,17 +137,7 @@
           "cv":0.0
          }
         },
-        "clear_apertures":[
-         {
-          "__instance_type__":[
-           "rayoptics.optical.surface",
-           "Circular"
-          ],
-          "attributes":{
-           "radius":0.5005986229262155
-          }
-         }
-        ],
+        "clear_apertures":[],
         "edge_apertures":[]
        }
       }
@@ -222,127 +202,127 @@
       }
      ],
      "stop_surface":1,
-     "cur_surface":2,
-     "optical_spec":{
+     "cur_surface":2
+    }
+   },
+   "optical_spec":{
+    "__instance_type__":[
+     "rayoptics.optical.opticalspec",
+     "OpticalSpecs"
+    ],
+    "attributes":{
+     "spectral_region":{
       "__instance_type__":[
        "rayoptics.optical.opticalspec",
-       "OpticalSpecs"
+       "WvlSpec"
       ],
       "attributes":{
-       "spectral_region":{
-        "__instance_type__":[
-         "rayoptics.optical.opticalspec",
-         "WvlSpec"
+       "wavelengths":[
+        550.0
+       ],
+       "spectral_wts":[
+        1.0
+       ],
+       "render_colors":[
+        "black"
+       ],
+       "reference_wvl":0,
+       "coating_wvl":550.0
+      }
+     },
+     "pupil":{
+      "__instance_type__":[
+       "rayoptics.optical.opticalspec",
+       "PupilSpec"
+      ],
+      "attributes":{
+       "type":"FNO",
+       "value":10.0,
+       "pupil_rays":[
+        [
+         0.0,
+         0.0
         ],
-        "attributes":{
-         "wavelengths":[
-          550.0
-         ],
-         "spectral_wts":[
-          1.0
-         ],
-         "render_colors":[
-          "black"
-         ],
-         "reference_wvl":0,
-         "coating_wvl":550.0
-        }
-       },
-       "pupil":{
-        "__instance_type__":[
-         "rayoptics.optical.opticalspec",
-         "PupilSpec"
+        [
+         1.0,
+         0.0
         ],
-        "attributes":{
-         "type":"FNO",
-         "value":10.0,
-         "pupil_rays":[
-          [
-           0.0,
-           0.0
-          ],
-          [
-           1.0,
-           0.0
-          ],
-          [
-           -1.0,
-           0.0
-          ],
-          [
-           0.0,
-           1.0
-          ],
-          [
-           0.0,
-           -1.0
-          ]
-         ],
-         "ray_labels":[
-          "00",
-          "+X",
-          "-X",
-          "+Y",
-          "-Y"
-         ]
-        }
-       },
-       "field_of_view":{
-        "__instance_type__":[
-         "rayoptics.optical.opticalspec",
-         "FieldSpec"
+        [
+         -1.0,
+         0.0
         ],
-        "attributes":{
-         "type":"IMG_HT",
-         "fields":[
-          {
-           "__instance_type__":[
-            "rayoptics.optical.opticalspec",
-            "Field"
-           ],
-           "attributes":{
-            "x":0.0,
-            "y":0.0,
-            "vux":0.0,
-            "vuy":0.0,
-            "vlx":0.0,
-            "vly":0.0,
-            "wt":1.0
-           }
-          },
-          {
-           "__instance_type__":[
-            "rayoptics.optical.opticalspec",
-            "Field"
-           ],
-           "attributes":{
-            "x":0.0,
-            "y":0.5,
-            "vux":0.0,
-            "vuy":0.0,
-            "vlx":0.0,
-            "vly":0.0,
-            "wt":1.0
-           }
-          }
-         ],
-         "wide_angle":false,
-         "index_labels":[
-          "axis",
-          "edge"
-         ]
-        }
-       },
-       "defocus":{
-        "__instance_type__":[
-         "rayoptics.optical.opticalspec",
-         "FocusRange"
+        [
+         0.0,
+         1.0
         ],
-        "attributes":{
-         "infocus":0.0,
-         "defocus":0.0
+        [
+         0.0,
+         -1.0
+        ]
+       ],
+       "ray_labels":[
+        "00",
+        "+X",
+        "-X",
+        "+Y",
+        "-Y"
+       ]
+      }
+     },
+     "field_of_view":{
+      "__instance_type__":[
+       "rayoptics.optical.opticalspec",
+       "FieldSpec"
+      ],
+      "attributes":{
+       "type":"IMG_HT",
+       "fields":[
+        {
+         "__instance_type__":[
+          "rayoptics.optical.opticalspec",
+          "Field"
+         ],
+         "attributes":{
+          "x":0.0,
+          "y":0.0,
+          "vux":0.0,
+          "vuy":0.0,
+          "vlx":0.0,
+          "vly":0.0,
+          "wt":1.0
+         }
+        },
+        {
+         "__instance_type__":[
+          "rayoptics.optical.opticalspec",
+          "Field"
+         ],
+         "attributes":{
+          "x":0.0,
+          "y":0.5,
+          "vux":0.0,
+          "vuy":0.0,
+          "vlx":0.0,
+          "vly":0.0,
+          "wt":1.0
+         }
         }
-       }
+       ],
+       "wide_angle":false,
+       "index_labels":[
+        "axis",
+        "edge"
+       ]
+      }
+     },
+     "defocus":{
+      "__instance_type__":[
+       "rayoptics.optical.opticalspec",
+       "FocusRange"
+      ],
+      "attributes":{
+       "infocus":0.0,
+       "defocus":0.0
       }
      }
     }
@@ -383,9 +363,9 @@
          192
         ],
         "s_indx":2,
-        "sd":1.6483861799867925,
+        "sd":1.6483861799868615,
         "flat":null,
-        "thi":0.07527276315062285
+        "thi":0.07527276315062166
        }
       }
      ]
