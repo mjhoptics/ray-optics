@@ -109,9 +109,9 @@ class MainWindow(QMainWindow):
             path = Path(*pth.parts[:root_pos+1])
 #            self.open_file(path / "test/TwoMirror.roa")
 #            self.open_file(path / "test/TwoSphericalMirror.roa")
-            self.open_file(path / "test/Sasian Triplet.roa")
+#            self.open_file(path / "test/Sasian Triplet.roa")
 #            self.open_file(path / "test/singlet_f5.roa")
-#            self.open_file(path / "test/Ritchey_Chretien.roa")
+            self.open_file(path / "test/Ritchey_Chretien.roa")
 
     def add_subwindow(self, widget, model_info):
             sub_wind = self.mdi.addSubWindow(widget)

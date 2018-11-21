@@ -91,28 +91,36 @@ def create_lens_table_model(seq_model):
     colFormats = ['{:s}', '{:12.7g}', '{:12.5g}', '{:12.5g}',
                   '{:s}', '{:s}']
     return PyTableModel(seq_model, '', colEvalStr, rowHeaders,
-                        colHeaders, colFormats, True)
+                        colHeaders, colFormats, True,
+                        get_num_rows=seq_model.get_num_surfaces,
+                        get_row_headers=seq_model.surface_label_list)
 
 
 def create_ray_table_model(opt_model, ray):
     colEvalStr = ['[{}][0][0]', '[{}][0][1]', '[{}][0][2]',
                   '[{}][1][0]', '[{}][1][1]', '[{}][1][2]',
                   '[{}][2]']
-    rowHeaders = opt_model.seq_model.surface_label_list()
+    seq_model = opt_model.seq_model
+    rowHeaders = seq_model.surface_label_list()
     colHeaders = ['x', 'y', 'z', 'l', 'm', 'n', 'length']
     colFormats = ['{:12.5g}', '{:12.5g}', '{:12.5g}', '{:9.6f}',
                   '{:9.6f}', '{:9.6f}', '{:12.5g}']
     return PyTableModel(ray, '', colEvalStr, rowHeaders,
-                        colHeaders, colFormats, False)
+                        colHeaders, colFormats, False,
+                        get_num_rows=seq_model.get_num_surfaces,
+                        get_row_headers=seq_model.surface_label_list)
 
 
 def create_parax_table_model(opt_model):
     rootEvalStr = ".optical_spec.parax_data"
     colEvalStr = ['[0][{}][0]', '[0][{}][1]', '[0][{}][2]',
                   '[1][{}][0]', '[1][{}][1]', '[1][{}][2]']
-    rowHeaders = opt_model.seq_model.surface_label_list()
+    seq_model = opt_model.seq_model
+    rowHeaders = seq_model.surface_label_list()
     colHeaders = ['y', 'u', 'i', 'y-bar', 'u-bar', 'i-bar']
     colFormats = ['{:12.5g}', '{:9.6f}', '{:9.6f}', '{:12.5g}',
                   '{:9.6f}', '{:9.6f}']
     return PyTableModel(opt_model, rootEvalStr, colEvalStr, rowHeaders,
-                        colHeaders, colFormats, False)
+                        colHeaders, colFormats, False,
+                        get_num_rows=seq_model.get_num_surfaces,
+                        get_row_headers=seq_model.surface_label_list)

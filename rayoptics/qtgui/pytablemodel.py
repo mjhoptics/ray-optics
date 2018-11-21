@@ -19,7 +19,8 @@ class PyTableModel(QAbstractTableModel):
 
     """ Model interface for table view of list structures """
     def __init__(self, rootObj, rootEvalStr, colEvalStr, rowHeaders,
-                 colHeaders, colFormats, is_editable=False, num_rows=None):
+                 colHeaders, colFormats, is_editable=False, get_num_rows=None,
+                 get_row_headers=None):
         """ Table model supporting data content via python eval() fct
 
         Initialization arguments:
@@ -37,6 +38,10 @@ class PyTableModel(QAbstractTableModel):
                         the table
             colFormats: format strings to be used to format data in each column
             is_editable: if true, items are editable
+            get_num_rows: if not None, a function that returns the number of
+                          rows in the table
+            get_row_headers: if not None, a function that returns the row
+                             headers for the table
         """
         super(PyTableModel, self).__init__()
         self.root = rootObj
@@ -46,10 +51,14 @@ class PyTableModel(QAbstractTableModel):
         self.colHeaders = colHeaders
         self.colFormats = colFormats
         self.is_editable = is_editable
-        self.get_num_rows = num_rows
+        self.get_num_rows = get_num_rows
+        self.get_row_headers = get_row_headers
 
     def rowCount(self, index):
-        return len(self.rowHeaders)
+        if self.get_num_rows is not None:
+            return self.get_num_rows()
+        else:
+            return len(self.rowHeaders)
 
     def columnCount(self, index):
         return len(self.colHeaders)
@@ -59,6 +68,8 @@ class PyTableModel(QAbstractTableModel):
             if orientation == Qt.Horizontal:
                 return self.colHeaders[section]
             elif orientation == Qt.Vertical:
+                if self.get_row_headers is not None:
+                    self.rowHeaders = self.get_row_headers()
                 return self.rowHeaders[section]
         else:
             return None
