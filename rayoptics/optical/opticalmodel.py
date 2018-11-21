@@ -13,8 +13,10 @@ import json_tricks
 
 import rayoptics.codev.cmdproc as cvp
 
-from . import sequential as seq
-from . import elements as ele
+from rayoptics.optical.elements import ElementModel
+from rayoptics.optical.paraxialdesign import ParaxialModel
+from rayoptics.optical.sequential import SequentialModel
+from rayoptics.optical.opticalspec import OpticalSpecs
 
 
 def open_model(file_name):
@@ -63,8 +65,10 @@ class OpticalModel:
     def __init__(self):
         self.radius_mode = False
         self.system_spec = SystemSpec()
-        self.seq_model = seq.SequentialModel(self)
-        self.ele_model = ele.ElementModel(self)
+        self.seq_model = SequentialModel(self)
+        self.optical_spec = OpticalSpecs(self)
+        self.parax_model = ParaxialModel(self)
+        self.ele_model = ElementModel(self)
 
     def name(self):
         return self.system_spec.title
@@ -73,6 +77,11 @@ class OpticalModel:
         rdm = self.radius_mode
         self.__init__()
         self.radius_mode = rdm
+
+    def __json_encode__(self):
+        attrs = dict(vars(self))
+        del attrs['parax_model']
+        return attrs
 
     def save_model(self, file_name):
         file_extension = os.path.splitext(file_name)[1]
@@ -86,10 +95,17 @@ class OpticalModel:
     def sync_to_restore(self):
         self.seq_model.sync_to_restore(self)
         self.ele_model.sync_to_restore(self)
+        self.optical_spec.sync_to_restore(self)
+        if not hasattr(self, 'parax_model'):
+            self.parax_model = ParaxialModel(self)
+        else:
+            self.parax_model.sync_to_restore(self)
         self.update_model()
 
     def update_model(self):
         self.seq_model.update_model()
+        self.optical_spec.update_model()
+        self.parax_model.update_model()
         self.ele_model.update_model()
 
     def nm_to_sys_units(self, nm):

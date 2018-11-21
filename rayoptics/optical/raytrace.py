@@ -215,12 +215,12 @@ def eic_distance(r, r0):
     return e
 
 
-def wave_abr(seq_model, fld, wvl, ray_pkg):
-    return wave_abr_real_coord(seq_model, fld, wvl, ray_pkg)
+def wave_abr(fld, wvl, ray_pkg):
+    return wave_abr_real_coord(fld, wvl, ray_pkg)
 #    return wave_abr_HHH(fld.ref_sphere_pkg, fld.chief_ray_pkg, ray_pkg)
 
 
-def wave_abr_real_coord(seq_model, fld, wvl, ray_pkg):
+def wave_abr_real_coord(fld, wvl, ray_pkg):
     ref_sphere, parax_data, n_obj, n_img, z_dir = fld.ref_sphere
     image_pt, cr_exp_pt, cr_exp_dist, ref_dir, ref_sphere_radius = ref_sphere
     chief_ray, chief_ray_op, wvl = fld.chief_ray[0]
@@ -248,7 +248,7 @@ def wave_abr_real_coord(seq_model, fld, wvl, ray_pkg):
     return opd, e1, ekp, ep
 
 
-def wave_abr_HHH(seq_model, fld, wvl, ray_pkg):
+def wave_abr_HHH(fld, wvl, ray_pkg):
     ref_sphere, parax_data, n_obj, n_img, z_dir = fld.ref_sphere
     image_pt, cr_exp_pt, ref_dir, ref_sphere_radius = ref_sphere
     chief_ray, chief_ray_op, wvl = fld.chief_ray

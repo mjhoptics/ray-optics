@@ -24,7 +24,8 @@ class OpticalSpecs:
 
     It maintains a repository of paraxial data.
     """
-    def __init__(self):
+    def __init__(self, opt_model):
+        self.opt_model = opt_model
         self.spectral_region = WvlSpec()
         self.pupil = PupilSpec()
         self.field_of_view = FieldSpec()
@@ -33,6 +34,7 @@ class OpticalSpecs:
 
     def __json_encode__(self):
         attrs = dict(vars(self))
+        del attrs['opt_model']
         del attrs['parax_data']
         return attrs
 
@@ -41,15 +43,18 @@ class OpticalSpecs:
         self.pupil = dl[1]
         self.field_of_view = dl[2]
 
-    def update_model(self, seq_model):
-        self.pupil.update_model(seq_model)
-        self.field_of_view.update_model(seq_model)
-        stop = seq_model.stop_surface
+    def sync_to_restore(self, opt_model):
+        self.opt_model = opt_model
+
+    def update_model(self):
+        self.pupil.update_model()
+        self.field_of_view.update_model()
+        stop = self.opt_model.seq_model.stop_surface
         wvl = self.spectral_region.central_wvl()
         if not hasattr(self, 'defocus'):
             self.defocus = FocusRange(0.0)
 
-        self.parax_data = compute_first_order(seq_model, stop, wvl)
+        self.parax_data = compute_first_order(self.opt_model, stop, wvl)
 
     def lookup_fld_wvl_focus(self, fi, wl=None, fr=0.0):
         if wl is None:
@@ -139,7 +144,7 @@ class PupilSpec:
         self.type = ppl_spec[0]
         self.value = ppl_spec[1]
 
-    def update_model(self, seq_model):
+    def update_model(self):
         if not hasattr(self, 'pupil_rays'):
             self.pupil_rays = PupilSpec.default_pupil_rays
             self.ray_labels = PupilSpec.default_ray_labels
@@ -166,7 +171,7 @@ class FieldSpec:
         for i, f in enumerate(self.fields):
             f.y = flds[i]
 
-    def update_model(self, seq_model):
+    def update_model(self):
         for f in self.fields:
             f.update()
 

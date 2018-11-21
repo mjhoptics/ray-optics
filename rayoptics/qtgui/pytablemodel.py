@@ -19,7 +19,7 @@ class PyTableModel(QAbstractTableModel):
 
     """ Model interface for table view of list structures """
     def __init__(self, rootObj, rootEvalStr, colEvalStr, rowHeaders,
-                 colHeaders, colFormats, is_editable=False):
+                 colHeaders, colFormats, is_editable=False, num_rows=None):
         """ Table model supporting data content via python eval() fct
 
         Initialization arguments:
@@ -46,6 +46,7 @@ class PyTableModel(QAbstractTableModel):
         self.colHeaders = colHeaders
         self.colFormats = colFormats
         self.is_editable = is_editable
+        self.get_num_rows = num_rows
 
     def rowCount(self, index):
         return len(self.rowHeaders)

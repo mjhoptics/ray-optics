@@ -21,7 +21,7 @@ def setup(filename):
     root_pth = Path(ro.__file__).resolve().parent
     opm = ro.open_model(root_pth/filename)
     sm = opm.seq_model
-    osp = sm.optical_spec
+    osp = opm.optical_spec
     fld, wvl, foc = osp.lookup_fld_wvl_focus(1)
     vig_pupil = fld.apply_vignetting([0.5, 0.5])
     fod = osp.parax_data.fod

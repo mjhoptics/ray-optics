@@ -109,9 +109,9 @@ class MainWindow(QMainWindow):
             path = Path(*pth.parts[:root_pos+1])
 #            self.open_file(path / "test/TwoMirror.roa")
 #            self.open_file(path / "test/TwoSphericalMirror.roa")
-#            self.open_file(path / "test/Sasian Triplet.roa")
+            self.open_file(path / "test/Sasian Triplet.roa")
 #            self.open_file(path / "test/singlet_f5.roa")
-            self.open_file(path / "test/Ritchey_Chretien.roa")
+#            self.open_file(path / "test/Ritchey_Chretien.roa")
 
     def add_subwindow(self, widget, model_info):
             sub_wind = self.mdi.addSubWindow(widget)
@@ -184,6 +184,7 @@ class MainWindow(QMainWindow):
         self.app_manager.close_model(self.delete_subwindow)
 
     def view_action(self, q):
+        opt_model = self.app_manager.model
         seq_model = self.app_manager.model.seq_model
         if q.text() == "Lens Table":
             self.create_lens_table()
@@ -194,31 +195,31 @@ class MainWindow(QMainWindow):
 #            self.create_2D_lens_view()
 
         if q.text() == "Ray Fans":
-            cmds.create_ray_fan_view(seq_model, "Ray", gui_parent=self)
+            cmds.create_ray_fan_view(opt_model, "Ray", gui_parent=self)
 
         if q.text() == "OPD Fans":
-            cmds.create_ray_fan_view(seq_model, "OPD", gui_parent=self)
+            cmds.create_ray_fan_view(opt_model, "OPD", gui_parent=self)
 
         if q.text() == "Spot Diagram":
-            cmds.create_ray_grid_view(seq_model, gui_parent=self)
+            cmds.create_ray_grid_view(opt_model, gui_parent=self)
 
         if q.text() == "Wavefront Map":
-            cmds.create_wavefront_view(seq_model, gui_parent=self)
+            cmds.create_wavefront_view(opt_model, gui_parent=self)
 
         if q.text() == "Paraxial Height View":
-            cmds.create_paraxial_design_view(seq_model, Dgm.ht,
+            cmds.create_paraxial_design_view(opt_model, Dgm.ht,
                                              gui_parent=self)
 
         if q.text() == "Paraxial Slope View":
-            cmds.create_paraxial_design_view(seq_model, Dgm.slp,
+            cmds.create_paraxial_design_view(opt_model, Dgm.slp,
                                              gui_parent=self)
 
         if q.text() == "Paraxial Ray Table":
-            model = cmds.create_parax_table_model(seq_model)
+            model = cmds.create_parax_table_model(opt_model)
             self.create_table_view(model, "Paraxial Ray Table")
 
         if q.text() == "Ray Table":
-            self.create_ray_table(seq_model)
+            self.create_ray_table(opt_model)
 
     def window_action(self, q):
         if q.text() == "Cascade":
@@ -232,15 +233,16 @@ class MainWindow(QMainWindow):
         model = cmds.create_lens_table_model(seq_model)
         self.create_table_view(model, "Surface Data Table")
 
-    def create_ray_table(self, sm):
-        osp = sm.optical_spec
+    def create_ray_table(self, opt_model):
+        osp = opt_model.optical_spec
         pupil = [0., 1.]
         fi = 0
         wl = osp.spectral_region.reference_wvl
         fld, wvl, foc = osp.lookup_fld_wvl_focus(fi, wl)
-        ray, ray_op, wvl, opd = trace.trace_with_opd(sm, pupil, fld, wvl, foc)
+        ray, ray_op, wvl, opd = trace.trace_with_opd(opt_model, pupil,
+                                                     fld, wvl, foc)
 
-        model = cmds.create_ray_table_model(sm, ray)
+        model = cmds.create_ray_table_model(opt_model, ray)
         self.create_table_view(model, "Ray Table")
 
     def create_2D_lens_view(self):
@@ -294,14 +296,14 @@ class MainWindow(QMainWindow):
             gscene.addItem(ge)
 
     def create_ray_model(self, gscene, start_surf=1):
-        seq_model = self.app_manager.model.seq_model
+        opt_model = self.app_manager.model
 
-        img_dist = abs(seq_model.optical_spec.parax_data[2].img_dist)
+        img_dist = abs(opt_model.optical_spec.parax_data[2].img_dist)
         start_offset = 0.05*(gscene.sceneRect().width() + img_dist)
 
-        fov = seq_model.optical_spec.field_of_view
+        fov = opt_model.optical_spec.field_of_view
         for fi, f in enumerate(fov.fields):
-            rb = RayBundle(seq_model, fi, start_offset)
+            rb = RayBundle(opt_model, fi, start_offset)
             gscene.addItem(rb)
 
     def create_table_view(self, table_model, table_title):

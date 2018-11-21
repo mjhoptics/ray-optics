@@ -7,61 +7,58 @@ Created on Tue Jun 26 16:11:58 2018
 @author: Michael J. Hayford
 """
 
-from rayoptics.optical.model_constants import ax, pr
 from rayoptics.optical.model_constants import ht, slp
 
 
 def __decode_lens__(lens_package):
     """ decode the lens_package tuple into its constituents
 
-        lens_package is a tuple or a paraxial lens model
-        if it's a tuple:
-            the first element is a paraxial lens model
-            the second element is a tuple with the begining and ending indicies
-                into lens model lists
-        else its just a lens model
-            return it and some range defaults
+        Args:
+            lens_package: a tuple or a ParaxialModel
+                if it's a tuple:
+                    the first element is a ParaxialModel
+                    the second element is a tuple with the begining and ending
+                    indicies into lens model lists
+                else its just a ParaxialModel
+                    return it and some range defaults
+
+        Returns:
+            ParaxialModel, beginning and ending indicies into paraxial model
     """
     if type(lens_package) is tuple:
-        lens = lens_package[0]
+        parax_model = lens_package[0]
         bgn, end = lens_package[1]
     else:
-        lens = lens_package
+        parax_model = lens_package
         bgn, end = (1, -1)
-    return lens, bgn, end
+    return parax_model, bgn, end
 
 
 def separation_ratio(lens_package):
     """ the ratio of the backfocus to the mirror separation
 
-        lens_package is a tuple or a paraxial lens model
-        if it's a tuple:
-            the first element is a paraxial lens model
-            the second element is a tuple with the begining and ending indicies
-                into lens model lists
+        Args:
+            see description in __decode_lens__
     """
-    lens, bgn, end = __decode_lens__(lens_package)
-    ax_ray = lens[ax]
+    parax_model, bgn, end = __decode_lens__(lens_package)
+    ax_ray = parax_model.ax
 #    a = ax_ray[ht][end]/ax_ray[slp][end]
 #    B = (ax_ray[ht][end] - ax_ray[ht][bgn])/ax_ray[slp][bgn]
 #    s = a/B
-    m = ax_ray[slp][bgn]/ax_ray[slp][end]
-    s = m*ax_ray[ht][end-1]/(ax_ray[ht][bgn] - ax_ray[ht][end-1])
+    m = ax_ray[bgn][slp]/ax_ray[end][slp]
+    s = m*ax_ray[end-1][ht]/(ax_ray[bgn][ht] - ax_ray[end-1][ht])
     return s
 
 
 def mag(lens_package):
     """ the magnification of the input paraxial lens over the specified range
 
-        lens_package is a tuple or a paraxial lens model
-        if it's a tuple:
-            the first element is a paraxial lens model
-            the second element is a tuple with the begining and ending indicies
-                into lens model lists
+        Args:
+            see description in __decode_lens__
     """
-    lens, bgn, end = __decode_lens__(lens_package)
-    ax_ray = lens[ax]
-    m = ax_ray[slp][bgn]/ax_ray[slp][end]
+    parax_model, bgn, end = __decode_lens__(lens_package)
+    ax_ray = parax_model.ax
+    m = ax_ray[bgn][slp]/ax_ray[end][slp]
     return m
 
 

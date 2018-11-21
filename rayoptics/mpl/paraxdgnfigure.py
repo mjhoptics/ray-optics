@@ -9,17 +9,33 @@ Created on Mon Apr  2 19:20:27 2018
 
 from enum import Enum, auto
 
+import numpy as np
 from matplotlib.figure import Figure
 
-import rayoptics.optical.paraxialdesign as pd
-from rayoptics.optical.model_constants import ax, pr, lns
 from rayoptics.optical.model_constants import ht, slp, aoi
-from rayoptics.util.misc_math import distance_sqr_2d
+from rayoptics.optical.elements import create_thinlens, create_mirror
+from rayoptics.util.misc_math import distance_sqr_2d, perpendicular_distance_2d
 
 
 class Dgm(Enum):
     ht = auto()
     slp = auto()
+
+
+def create_parax_design_commands(fig):
+    cmds = []
+    # Select an existing point
+    cmds.append(('Select', (fig.select_point, (), {})))
+    # Add thin lens
+    cmds.append(('Add Thin Lens',
+                 (fig.add_point, (), {'factory': create_thinlens})))
+    # Add lens
+    cmds.append(('Add Lens', (fig.add_point, (), {})))
+    # Add mirror
+    cmds.append(('Add Mirror',
+                 (fig.add_point, (), {'factory': create_mirror})))
+
+    return cmds
 
 
 class EditableLine:
@@ -39,35 +55,62 @@ class EditableLine:
         self.cidmotion = self.line.figure.canvas.mpl_connect(
             'motion_notify_event', self.on_motion)
 
-    def process_hit_location(self, event, hit_list):
+    def process_hit_location(self, event, hit_list, prt=False):
         xdata, ydata = self.line.get_data()
+        # create a list of vertex coordinates in the model coordinate system
         line_hits = [[xdata[i], ydata[i]] for i in hit_list]
+        # transform the list into display coordinates
         dsp_hits = self.line.axes.transData.transform(line_hits)
         hit_pt = [event.x, event.y]
 
         hit_vertex = None
+        hit_edge = None
         min_hit_dist = 1e10
+        min_perp_dist = 1e10
         for i, pt in enumerate(dsp_hits):
+            # consider hit point as a vertex
             hit_dist = distance_sqr_2d(pt, hit_pt)
             if hit_dist < min_hit_dist:
                 min_hit_dist = hit_dist
                 if hit_dist < self.pick_radius_sqr:
                     hit_vertex = hit_list[i]
-        if hit_vertex is None:
-            h = hit_list[0]
-#            print("edge selected", hit_list, min_hit_dist,
-#                  xdata[h:h+2], ydata[h:h+2])
-            return xdata[h:h+2], ydata[h:h+2], ''
-        else:
-            return xdata[hit_vertex], ydata[hit_vertex], 's'
+
+            # consider hit point on an edge
+            nxt = hit_list[i]+1
+            try:
+                next_pt = np.array([xdata[nxt], ydata[nxt]])
+            except IndexError:
+                continue
+            else:
+                next_dsp_pt = self.line.axes.transData.transform(next_pt)
+                perp_dist = perpendicular_distance_2d(pt, hit_pt, next_dsp_pt)
+                if perp_dist < min_perp_dist:
+                    min_perp_dist = perp_dist
+#                    if perp_dist < self.pick_radius_sqr:
+#                    print("perp_dist", hit_list[i], perp_dist)
+                    hit_edge = hit_list[i]
+        v = None
+        if hit_vertex is not None:
+            v = (hit_vertex, event.xdata, event.ydata,
+                 xdata[hit_vertex], ydata[hit_vertex], 's')
 #            print("vertex selected %d: event x=%f y=%f data x=%f y=%f" %
 #                  (hit_vertex,
 #                   event.xdata, event.ydata,
 #                   xdata[hit_vertex], ydata[hit_vertex]))
+        e = None
+        if hit_edge is not None:
+            h = hit_edge
+#            print("edge selected", hit_list, min_hit_dist,
+#                  xdata[h:h+2], ydata[h:h+2])
+            e = (hit_edge, event.xdata, event.ydata,
+                 xdata[h:h+2], ydata[h:h+2], '')
+
+        return (v, e)
 
     def on_press(self, event):
         # on button press we will see if the mouse is over us and store
         #  some data
+#        print("eline.on_press")
         if event.inaxes != self.line.axes:
             return
 
@@ -76,9 +119,9 @@ class EditableLine:
             return
 
         hit_list = attrd['ind']
-        xd, yd, mkr = self.process_hit_location(event, hit_list)
+        v, e = self.process_hit_location(event, hit_list)
 
-        self.press = xd, yd, event.xdata, event.ydata
+        self.press = v, e
 
     def on_motion(self, event):
         'on motion we will highlight a vertex of edge if the mouse is over it '
@@ -91,13 +134,21 @@ class EditableLine:
             self.line.figure.canvas.draw()
             return
 
+#        print("eline.on_motion")
         hit_list = props['ind']
-        xd, yd, mkr = self.process_hit_location(event, hit_list)
-        self.markers.set_xdata(xd)
-        self.markers.set_ydata(yd)
-        self.markers.set_marker(mkr)
-        self.markers.set_linestyle('solid')
-        self.line.figure.canvas.draw()
+        v, e = self.process_hit_location(event, hit_list)
+
+        if v:
+            hit_vertex, x_hit, y_hit, x_data, y_data, mkr = v
+        elif e:
+            hit_vertex, x_hit, y_hit, x_data, y_data, mkr = e
+
+        if v or e:
+            self.markers.set_xdata(x_data)
+            self.markers.set_ydata(y_data)
+            self.markers.set_marker(mkr)
+            self.markers.set_linestyle('solid')
+            self.line.figure.canvas.draw()
 
     def on_release(self, event):
         'on release we reset the press data'
@@ -113,8 +164,10 @@ class EditableLine:
 
 class ParaxialDesignFigure(Figure):
 
-    def __init__(self, seq_model, refresh_gui, dgm_type, **kwargs):
-        self.seq_model = seq_model
+    def __init__(self, opt_model, refresh_gui, dgm_type, **kwargs):
+        self.actions = {}
+        self.opt_model = opt_model
+        self.parax_model = opt_model.parax_model
         self.refresh_gui = refresh_gui
         self.setup_dgm_type(dgm_type)
         self.skip_build = False
@@ -123,6 +176,7 @@ class ParaxialDesignFigure(Figure):
 
         self.vertex = None
         self.update_data()
+        self.select_point()
 
     def setup_dgm_type(self, dgm_type):
         if dgm_type == Dgm.ht:
@@ -130,14 +184,14 @@ class ParaxialDesignFigure(Figure):
             self.data_slice = slice(1, None)
             self.x_label = r'$\overline{y}$'
             self.y_label = 'y'
-            self.apply_data = pd.apply_ht_dgm_data
+            self.apply_data = self.parax_model.apply_ht_dgm_data
             self.header = r'$y-\overline{y}$ Diagram'
         elif dgm_type == Dgm.slp:
             self.type_sel = slp
             self.data_slice = slice(0, -1)
             self.x_label = r'$\overline{\omega}$'
             self.y_label = r'$\omega$'
-            self.apply_data = pd.apply_slope_dgm_data
+            self.apply_data = self.parax_model.apply_slope_dgm_data
             self.header = r'$\omega-\overline{\omega}$ Diagram'
 
     def refresh(self):
@@ -146,7 +200,7 @@ class ParaxialDesignFigure(Figure):
 
     def update_data(self):
         if not self.skip_build:
-            self.lens = pd.build_lens(self.seq_model)
+            self.parax_model.build_lens()
         self.skip_build = False
         return self
 
@@ -157,8 +211,13 @@ class ParaxialDesignFigure(Figure):
         self.ax.axhline(0, c='black', lw=1)
         self.ax.set_title(self.header, pad=10.0, fontsize=18)
 
-        x_data = self.lens[pr][self.type_sel][self.data_slice]
-        y_data = self.lens[ax][self.type_sel][self.data_slice]
+        x_data = []
+        y_data = []
+        for x, y in zip(self.parax_model.pr[self.data_slice],
+                        self.parax_model.ax[self.data_slice]):
+            x_data.append(x[self.type_sel])
+            y_data.append(y[self.type_sel])
+
         self.line, = self.ax.plot(x_data, y_data, marker='s', picker=6)
         self.ax.set_xlabel(self.x_label)
         self.ax.set_ylabel(self.y_label)
@@ -173,57 +232,74 @@ class ParaxialDesignFigure(Figure):
 
         return self
 
+    def select_point(self):
+        def on_press_select_point(pdfig, press):
+            hit_vertex, x_hit, y_hit, x_data, y_data, mkr = press
+            pdfig.vertex = hit_vertex + pdfig.data_slice.start
+        self.actions['press'] = on_press_select_point
+
+        def on_drag_select_point(pdfig, event):
+            pdfig.apply_data(pdfig.vertex, (event.xdata, event.ydata))
+            pdfig.parax_model.paraxial_lens_to_seq_model()
+            pdfig.skip_build = True
+            pdfig.refresh_gui()
+        self.actions['drag'] = on_drag_select_point
+
+        def on_release_select_point(pdfig, event):
+            pdfig.apply_data(pdfig.vertex, (event.xdata, event.ydata))
+            pdfig.parax_model.paraxial_lens_to_seq_model()
+            pdfig.skip_build = True
+            pdfig.refresh_gui()
+            pdfig.vertex = None
+        self.actions['release'] = on_release_select_point
+
+        self.move_action = None
+
+    def add_point(self, factory=None, **kwargs):
+        def on_press_add_point(pdfig, press):
+            hit_vertex, x_hit, y_hit, x_data, y_data, mkr = press
+            new_vertex = hit_vertex + pdfig.data_slice.start
+#            print("add_point:", new_vertex)
+            pdfig.parax_model.add_node(new_vertex, (x_hit, y_hit),
+                                       pdfig.type_sel, factory)
+#            pdfig.opt_model.seq_model.set_cur_surface(new_vertex)
+            new_vertex += 1
+            pdfig.apply_data(new_vertex)
+            pdfig.parax_model.paraxial_lens_to_seq_model()
+            pdfig.skip_build = True
+            pdfig.refresh_gui()
+        self.actions['press'] = on_press_add_point
+
     def on_press(self, event):
+#        print("on_press")
         hit, props = self.line.contains(event)
         if hit:
-            hit_list = props['ind']
-#            print("event.inaxes", event.inaxes)
-            x_data = self.lens[pr][self.type_sel][self.data_slice]
-            y_data = self.lens[ax][self.type_sel][self.data_slice]
-            line_hits = [[x_data[i], y_data[i]] for i in hit_list]
-            dsp_hits = self.ax.transData.transform(line_hits)
-            hit_pt = [event.x, event.y]
-            pick_radius_sqr = self.line.get_pickradius()**2
-            hit_vertex = None
-            min_hit_dist = 1e10
-            for i, pt in enumerate(dsp_hits):
-                hit_dist = distance_sqr_2d(pt, hit_pt)
-#                print("distance_sqr", hit_list[i], hit_dist)
-                if hit_dist < min_hit_dist:
-                    min_hit_dist = hit_dist
-                    if hit_dist < pick_radius_sqr:
-                        hit_vertex = hit_list[i]
-            if hit_vertex is None:
-                pass
-#                print("edge selected", hit_list, min_hit_dist)
-            else:
-                self.vertex = hit_vertex + self.data_slice.start
-#                print("vertex selected", hit_vertex, min_hit_dist)
+            if self.eline.press is None:
+                self.eline.on_press(event)
+            if self.eline.press:
+                v, e = self.eline.press
+                if v:
+                    self.actions['press'](self, v)
+                    hit_vertex, x_hit, y_hit, x_data, y_data, mkr = v
+                    self.vertex = hit_vertex + self.data_slice.start
+#                    print("vertex selected", hit_vertex)
+                elif e:
+                    hit_edge, x_hit, y_hit, x_data, y_data, mkr = e
+                    self.actions['press'](self, e)
+#                    print("edge selected", e[0])
+
 #            print('on_press', event.button, event.x, event.y,
 #                  event.xdata, event.ydata, event.key,
 #                  len(hit_list), hit_list)
 
     def on_motion(self, event):
         if self.vertex:
-            self.lens[pr][self.type_sel][self.vertex] = event.xdata
-            self.lens[ax][self.type_sel][self.vertex] = event.ydata
-#            print("on_motion", self.vertex, event.xdata, event.ydata)
-            self.apply_data(self.lens, self.vertex)
-            self.seq_model.paraxial_lens_to_seq_model(self.lens)
-            self.skip_build = True
-            self.refresh_gui()
+            self.actions['drag'](self, event)
 
     def on_release(self, event):
         'on release we reset the press data'
         if self.vertex:
-            self.lens[pr][self.type_sel][self.vertex] = event.xdata
-            self.lens[ax][self.type_sel][self.vertex] = event.ydata
-#            print("on_release", self.vertex, event.xdata, event.ydata)
-            self.apply_data(self.lens, self.vertex)
-            self.seq_model.paraxial_lens_to_seq_model(self.lens)
-            self.skip_build = True
-            self.refresh_gui()
-            self.vertex = None
+            self.actions['release'](self, event)
 
     def on_pick(self, event):
         line = event.artist

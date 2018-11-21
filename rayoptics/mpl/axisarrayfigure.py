@@ -40,13 +40,13 @@ def clip_to_range(rgb_list, lower, upper):
 
 class AxisArrayFigure(Figure):
 
-    def __init__(self, seq_model,
+    def __init__(self, opt_model,
                  num_rays=21,
                  scale_type=Fit.All,
                  user_scale_value=0.1,
                  num_rows=1, num_cols=1,
                  eval_fct=None, **kwargs):
-        self.seq_model = seq_model
+        self.opt_model = opt_model
         self.num_rays = num_rays
         self.user_scale_value = user_scale_value
         self.scale_type = scale_type
@@ -81,7 +81,7 @@ class AxisArrayFigure(Figure):
         return arr
 
     def wvl_to_sys_units(self, wvl):
-        return self.seq_model.parent.nm_to_sys_units(wvl)
+        return self.opt_model.nm_to_sys_units(wvl)
 
     def refresh(self):
         self.update_data()
@@ -96,8 +96,10 @@ class AxisArrayFigure(Figure):
 
 class RayFanFigure(AxisArrayFigure):
 
-    def __init__(self, seq_model, data_type, **kwargs):
+    def __init__(self, opt_model, data_type, **kwargs):
         self.max_value_all = 0.0
+        seq_model = opt_model.seq_model
+        osp = opt_model.optical_spec
 
         def ray_abr(p, xy, ray_pkg, fld, wvl):
             image_pt = fld.ref_sphere[0][0]
@@ -110,25 +112,25 @@ class RayFanFigure(AxisArrayFigure):
 
         def opd(p, xy, ray_pkg, fld, wvl):
             if ray_pkg[mc.ray] is not None:
-                opd = wave_abr(self.seq_model, fld, wvl, ray_pkg)
+                opd = wave_abr(fld, wvl, ray_pkg)
                 return opd[0]/self.wvl_to_sys_units(wvl)
             else:
                 return None
 
         def eval_abr_fan(i, j):
-            fld, wvl, foc = seq_model.lookup_fld_wvl_focus(i)
+            fld, wvl, foc = osp.lookup_fld_wvl_focus(i)
             return seq_model.trace_fan(ray_abr, i, j, num_rays=self.num_rays)
 
         def eval_opd_fan(i, j):
-            fld, wvl, foc = seq_model.lookup_fld_wvl_focus(i)
+            fld, wvl, foc = osp.lookup_fld_wvl_focus(i)
             return seq_model.trace_fan(opd, i, j, num_rays=self.num_rays)
 
         if data_type == 'Ray':
             eval_fan = eval_abr_fan
         elif data_type == 'OPD':
             eval_fan = eval_opd_fan
-        num_flds = len(seq_model.optical_spec.field_of_view.fields)
-        super().__init__(seq_model, eval_fct=eval_fan,
+        num_flds = len(osp.field_of_view.fields)
+        super().__init__(opt_model, eval_fct=eval_fan,
                          num_rows=num_flds, num_cols=2, **kwargs)
 
     def update_data(self):
@@ -188,8 +190,10 @@ class RayFanFigure(AxisArrayFigure):
 
 class SpotDiagramFigure(AxisArrayFigure):
 
-    def __init__(self, seq_model, **kwargs):
+    def __init__(self, opt_model, **kwargs):
         self.max_value_all = 0.0
+        seq_model = opt_model.seq_model
+        osp = opt_model.optical_spec
 
         def spot(p, wi, ray_pkg, fld, wvl):
             image_pt = fld.ref_sphere[0][0]
@@ -203,12 +207,12 @@ class SpotDiagramFigure(AxisArrayFigure):
                 return None
 
         def eval_grid(i, j):
-            fld, wvl, foc = seq_model.lookup_fld_wvl_focus(i, wl=j)
+            fld, wvl, foc = osp.lookup_fld_wvl_focus(i, wl=j)
             return seq_model.trace_grid(spot, i, num_rays=self.num_rays,
                                         form='list', append_if_none=False)
 
-        num_flds = len(seq_model.optical_spec.field_of_view.fields)
-        super().__init__(seq_model, eval_fct=eval_grid,
+        num_flds = len(osp.field_of_view.fields)
+        super().__init__(opt_model, eval_fct=eval_grid,
                          num_rows=num_flds, num_cols=1, **kwargs)
 
     def init_axis(self, ax):
@@ -274,27 +278,29 @@ class SpotDiagramFigure(AxisArrayFigure):
 
 class WavefrontFigure(AxisArrayFigure):
 
-    def __init__(self, seq_model, **kwargs):
+    def __init__(self, opt_model, **kwargs):
         self.max_value_all = 0.0
+        seq_model = opt_model.seq_model
+        osp = opt_model.optical_spec
 
         def wave(p, wi, ray_pkg, fld, wvl):
             x = p[0]
             y = p[1]
             if ray_pkg is not None:
-                opd_pkg = wave_abr(self.seq_model, fld, wvl, ray_pkg)
+                opd_pkg = wave_abr(fld, wvl, ray_pkg)
                 opd = opd_pkg[0]/self.wvl_to_sys_units(wvl)
             else:
                 opd = 0.0
             return np.array([x, y, opd])
 
         def eval_grid(i, j):
-            fld, wvl, foc = seq_model.lookup_fld_wvl_focus(i, wl=j)
+            fld, wvl, foc = osp.lookup_fld_wvl_focus(i, wl=j)
             return seq_model.trace_grid(wave, i, wl=j, num_rays=self.num_rays,
                                         form='grid', append_if_none=True)
 
-        num_flds = len(seq_model.optical_spec.field_of_view.fields)
-        num_wvls = len(seq_model.optical_spec.spectral_region.wavelengths)
-        super().__init__(seq_model, eval_fct=eval_grid,
+        num_flds = len(osp.field_of_view.fields)
+        num_wvls = len(osp.spectral_region.wavelengths)
+        super().__init__(opt_model, eval_fct=eval_grid,
                          num_rows=num_flds, num_cols=num_wvls, **kwargs)
 
     def init_axis(self, ax):

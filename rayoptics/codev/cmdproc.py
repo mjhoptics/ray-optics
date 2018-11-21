@@ -24,7 +24,7 @@ def read_lens(optm, filename):
     for i, c in enumerate(cmds):
         cmd_fct, tla, qlist, dlist = process_command(c)
         if cmd_fct:
-            eval_str = cmd_fct + '(optm.seq_model, tla, qlist, dlist)'
+            eval_str = cmd_fct + '(optm, tla, qlist, dlist)'
             eval(eval_str)
         else:
             logging.info('Line %d: Command %s not supported', i+1, c[0])
@@ -84,35 +84,37 @@ def log_cmd(label, tla, qlist, dlist):
     logging.debug("%s: %s %s %s", label, tla, str(qlist), str(dlist))
 
 
-def wvl_spec_data(seqm, tla, qlist, dlist):
+def wvl_spec_data(optm, tla, qlist, dlist):
+    osp = optm.optical_spec
     if tla == "WL":
-        seqm.optical_spec.spectral_region.wavelengths = dlist
-        seqm.optical_spec.spectral_region.calc_colors()
+        osp.spectral_region.wavelengths = dlist
+        osp.spectral_region.calc_colors()
     elif tla == "WTW":
-        seqm.optical_spec.spectral_region.spectral_wts = dlist
+        osp.spectral_region.spectral_wts = dlist
     elif tla == "REF":
-        seqm.optical_spec.spectral_region.reference_wvl = dlist[0]-1
+        osp.spectral_region.reference_wvl = dlist[0]-1
     elif tla == "CWL":
-        seqm.optical_spec.spectral_region.coating_wvl = dlist
+        osp.spectral_region.coating_wvl = dlist
 
 
-def pupil_spec_data(seqm, tla, qlist, dlist):
-    seqm.optical_spec.pupil.type = tla
-    seqm.optical_spec.pupil.value = dlist[0]
+def pupil_spec_data(optm, tla, qlist, dlist):
+    osp = optm.optical_spec
+    osp.pupil.type = tla
+    osp.pupil.value = dlist[0]
     logging.debug("pupil_spec_data: %s %f", tla, dlist[0])
 
 
-def field_spec_data(seqm, tla, qlist, dlist):
+def field_spec_data(optm, tla, qlist, dlist):
+    osp = optm.optical_spec
     if tla == "WID":
-        seqm.optical_spec.field_of_view.wide_angle = dlist[0]
+        osp.field_of_view.wide_angle = dlist[0]
     else:
-        seqm.optical_spec.field_of_view.update_fields_cv_input(tla, dlist)
+        osp.field_of_view.update_fields_cv_input(tla, dlist)
 
     log_cmd("field_spec_data", tla, qlist, dlist)
 
 
-def spec_data(seqm, tla, qlist, dlist):
-    optm = seqm.parent
+def spec_data(optm, tla, qlist, dlist):
     if tla == "LEN":
         optm.reset()
     elif tla == "RDM":
@@ -139,8 +141,9 @@ def spec_data(seqm, tla, qlist, dlist):
     log_cmd("spec_data", tla, qlist, dlist)
 
 
-def get_index_qualifier(seqm, qtype, qlist):
+def get_index_qualifier(optm, qtype, qlist):
     def num_or_alpha(idx):
+        seqm = optm.seq_model
         if idx.isdigit():
             return int(idx)
         elif idx.isalpha():
@@ -163,12 +166,14 @@ def get_index_qualifier(seqm, qtype, qlist):
                 return num_or_alpha(q[1]),
 
 
-def surface_cmd(seqm, tla, qlist, dlist):
-    idx, = get_index_qualifier(seqm, 'S', qlist)
+def surface_cmd(optm, tla, qlist, dlist):
+    seqm = optm.seq_model
+    idx, = get_index_qualifier(optm, 'S', qlist)
     seqm.update_surface_and_gap_from_cv_input(dlist, idx)
 
 
-def surface_data(seqm, tla, qlist, dlist):
+def surface_data(optm, tla, qlist, dlist):
+    seqm = optm.seq_model
     idx = get_index_qualifier(seqm, 'S', qlist)
     if not idx:
         idx = seqm.cur_surface
@@ -185,7 +190,8 @@ def surface_data(seqm, tla, qlist, dlist):
     log_cmd("surface_data", tla, qlist, dlist)
 
 
-def profile_data(seqm, tla, qlist, dlist):
+def profile_data(optm, tla, qlist, dlist):
+    seqm = optm.seq_model
     idx = get_index_qualifier(seqm, 'S', qlist)
     if not idx:
         idx = seqm.cur_surface
@@ -226,11 +232,12 @@ def profile_data(seqm, tla, qlist, dlist):
     log_cmd("profile_data", tla, qlist, dlist)
 
 
-def aperture_data(seqm, tla, qlist, dlist):
+def aperture_data(optm, tla, qlist, dlist):
     log_cmd("aperture_data", tla, qlist, dlist)
 
 
-def decenter_data(seqm, tla, qlist, dlist):
+def decenter_data(optm, tla, qlist, dlist):
+    seqm = optm.seq_model
     idx = get_index_qualifier(seqm, 'S', qlist)
     if not idx:
         idx = seqm.cur_surface

@@ -82,8 +82,8 @@ class LensLayoutFigure(Figure):
         return self
 
     def system_length(self):
-        seq_model = self.opt_model.seq_model
-        img_dist = abs(seq_model.optical_spec.parax_data[2].img_dist)
+        osp = self.opt_model.optical_spec
+        img_dist = abs(osp.parax_data[2].img_dist)
         ele_length = self.ele_bbox[1][0] - self.ele_bbox[0][0]
         return ele_length+img_dist
 
@@ -117,10 +117,10 @@ class LensLayoutFigure(Figure):
         start_offset = 0.05*self.system_length()
 
         ray_bundles = []
-        fov = self.opt_model.seq_model.optical_spec.field_of_view
+        fov = self.opt_model.optical_spec.field_of_view
         wvl = self.opt_model.seq_model.central_wavelength()
         for fld in fov.fields:
-            rb = layout.RayBundle(self.opt_model.seq_model,
+            rb = layout.RayBundle(self.opt_model,
                                   fld, wvl, start_offset)
             ray_bundles.append((self.update_ray_fan_shape, rb))
         return ray_bundles

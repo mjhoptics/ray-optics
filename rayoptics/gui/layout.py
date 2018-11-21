@@ -56,7 +56,7 @@ def setup_shift_of_ray_bundle(seq_model, start_offset):
     return r, t
 
 
-def shift_start_of_rayset(seq_model, rayset, start_offset):
+def shift_start_of_rayset(opt_model, rayset, start_offset):
     """ modify rayset so that rays begin "start_offset" from 1st surface
 
     rayset: list of ray bundles, i.e. for a list of fields
@@ -64,7 +64,7 @@ def shift_start_of_rayset(seq_model, rayset, start_offset):
                   positive if to left of first surface
     return: transformation rotation and translation
     """
-    r, t = seq_model.setup_shift_of_ray_bundle(start_offset)
+    r, t = self.setup_shift_of_ray_bundle(opt_model, start_offset)
     for ray_bundle in rayset:
         shift_start_of_ray_bundle(ray_bundle, start_offset, r, t)
     return r, t
@@ -101,25 +101,26 @@ class OpticalElement():
 
 class RayBundle():
     """ class for ray bundle from a single field point """
-    def __init__(self, seq_model, fld, wvl, start_offset):
-        self.seq_model = seq_model
+    def __init__(self, opt_model, fld, wvl, start_offset):
+        self.opt_model = opt_model
         self.fld = fld
         self.wvl = wvl
         self.start_offset = start_offset
 
     def update_shape(self):
-        rayset = trace_boundary_rays_at_field(self.seq_model,
+        rayset = trace_boundary_rays_at_field(self.opt_model,
                                               self.fld, self.wvl)
 
         # If the object distance (tfrms[0][1][2]) is greater than the
         #  start_offset, then modify rayset start to match start_offset.
         # Remember object transformation for resetting at the end.
-        tfrms = self.seq_model.transforms
+        seq_model = self.opt_model.seq_model
+        tfrms = seq_model.transforms
         tfrtm0 = tfrms[0]
 
         try:
             if abs(tfrms[0][1][2]) > self.start_offset:
-                r, t = setup_shift_of_ray_bundle(self.seq_model,
+                r, t = setup_shift_of_ray_bundle(seq_model,
                                                  self.start_offset)
                 tfrms[0] = (r, t)
                 shift_start_of_ray_bundle(rayset, self.start_offset,
@@ -164,8 +165,8 @@ class LensLayout():
         self.update_data()
 
     def system_length(self):
-        seq_model = self.opt_model.seq_model
-        img_dist = abs(seq_model.optical_spec.parax_data[2].img_dist)
+        osp = self.opt_model.optical_spec
+        img_dist = abs(osp.parax_data[2].img_dist)
         ele_length = self.ele_bbox[1][0] - self.ele_bbox[0][0]
         return ele_length+img_dist
 
@@ -194,7 +195,8 @@ class LensLayout():
         start_offset = 0.05*self.system_length()
 
         bbox_list = []
-        fov = self.opt_model.seq_model.optical_spec.field_of_view
+        osp = self.opt_model.optical_spec
+        fov = osp.field_of_view
         for fi, f in enumerate(fov.fields):
             p, bbox = self.update_ray_fan_shape(fi, start_offset)
             self.patches.append(p)

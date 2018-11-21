@@ -58,10 +58,19 @@ def list_ray(ray):
                                          r[mc.dst]))
 
 
-def trace_base(seq_model, pupil, fld, wvl, **kwargs):
+def trace(sequence, pt0, dir0, wvl, **kwargs):
+    """ returns (ray, ray_opl, wvl)
+    Args:
+        sequence: a Sequence or generator that returns a list containing:
+            Intfc, Gap, Index, Trfm, Z_Dir
+    """
+    return rt.trace(sequence, pt0, dir0, wvl, **kwargs)
+
+
+def trace_base(opt_model, pupil, fld, wvl, **kwargs):
     """ returns (ray, ray_opl, wvl) """
     vig_pupil = fld.apply_vignetting(pupil)
-    osp = seq_model.optical_spec
+    osp = opt_model.optical_spec
     fod = osp.parax_data.fod
     eprad = fod.enp_radius
     pt1 = np.array([eprad*vig_pupil[0], eprad*vig_pupil[1],
@@ -70,67 +79,59 @@ def trace_base(seq_model, pupil, fld, wvl, **kwargs):
     dir0 = pt1 - pt0
     length = norm(dir0)
     dir0 = dir0/length
-    return rt.trace(seq_model, pt0, dir0, wvl, **kwargs)
+    return rt.trace(opt_model.seq_model, pt0, dir0, wvl, **kwargs)
 
 
-def trace_with_opd(seq_model, pupil, fld, wvl, foc, **kwargs):
+def trace_with_opd(opt_model, pupil, fld, wvl, foc, **kwargs):
     """ returns (ray, ray_opl, wvl, opd) """
-    ray_pkg = trace_base(seq_model, pupil, fld, wvl, **kwargs)
+    ray_pkg = trace_base(opt_model, pupil, fld, wvl, **kwargs)
 
-    rs_pkg, cr_pkg = setup_pupil_coords(seq_model, fld, wvl, foc)
+    rs_pkg, cr_pkg = setup_pupil_coords(opt_model, fld, wvl, foc)
     fld.chief_ray = cr_pkg
     fld.ref_sphere = rs_pkg
 
-    opd_pkg = rt.wave_abr(seq_model, fld, wvl, ray_pkg)
+    opd_pkg = rt.wave_abr(fld, wvl, ray_pkg)
     ray, ray_op, wvl = ray_pkg
     return ray, ray_op, wvl, opd_pkg[0]
 
 
-def trace(seq_model, pupil, fi, wl=None, **kwargs):
-    """ returns (ray, ray_opl, wvl) """
-    osp = seq_model.optical_spec
-    fld, wvl, foc = osp.lookup_fld_wvl_focus(fi, wl, 0.0)
-    ray, ray_op, wvl = trace_base(seq_model, pupil, fld, wvl, **kwargs)
-    return ray, ray_op, wvl
-
-
-def trace_boundary_rays_at_field(seq_model, fld, wvl):
+def trace_boundary_rays_at_field(opt_model, fld, wvl):
     """ returns a list of (ray, opl, wvl) for the boundary rays
         for field fld
     """
     rim_rays = []
-    osp = seq_model.optical_spec
+    osp = opt_model.optical_spec
     for p in osp.pupil.pupil_rays:
-        ray, op, wvl = trace_base(seq_model, p, fld, wvl)
+        ray, op, wvl = trace_base(opt_model, p, fld, wvl)
         rim_rays.append((ray, op, wvl))
     return rim_rays
 
 
-def trace_ray_list_at_field(seq_model, ray_list, fld, wvl, foc):
+def trace_ray_list_at_field(opt_model, ray_list, fld, wvl, foc):
     rayset = pd.DataFrame(data=np.nan)
     for p in ray_list:
-        ray, op, wvl = trace_base(seq_model, p, fld, wvl)
+        ray, op, wvl = trace_base(opt_model, p, fld, wvl)
         rayset[(fld, wvl, foc, p)] = ray
     return rayset
 
 
-def trace_field(seq_model, fld, wvl):
+def trace_field(opt_model, fld, wvl):
     """ returns a DataFrame with the boundary rays for field fld """
-    osp = seq_model.optical_spec
-    rayset = trace_boundary_rays_at_field(seq_model, fld, wvl)
+    osp = opt_model.optical_spec
+    rayset = trace_boundary_rays_at_field(opt_model, fld, wvl)
     rdf_list = [ray_df(r[0]) for r in rayset]
     rset = pd.concat(rdf_list, keys=osp.pupil.ray_labels,
                      names=['pupil'])
     return rset
 
 
-def trace_all_fields(seq_model):
+def trace_all_fields(opt_model):
     """ returns a DataFrame with the boundary rays for all fields """
-    osp = seq_model.optical_spec
+    osp = opt_model.optical_spec
     fld, wvl, foc = osp.lookup_fld_wvl_focus(0)
     fset = []
     for f in osp.field_of_view.fields:
-        rset = trace_field(seq_model, f, wvl)
+        rset = trace_field(opt_model, f, wvl)
         fset.append(rset)
 
     fdf = pd.concat(fset, keys=osp.field_of_view.index_labels,
@@ -138,23 +139,22 @@ def trace_all_fields(seq_model):
     return fdf
 
 
-def trace_chief_ray(seq_model, fld, wvl, foc):
-    osp = seq_model.optical_spec
+def trace_chief_ray(opt_model, fld, wvl, foc):
+    osp = opt_model.optical_spec
     fod = osp.parax_data.fod
 
-    ray, op, wvl = trace_base(seq_model, [0., 0.], fld, wvl)
+    ray, op, wvl = trace_base(opt_model, [0., 0.], fld, wvl)
     cr = RayPkg(ray, op, wvl)
 
     # cr_exp_pt: E upper bar prime: pupil center for pencils from Q
     # cr_exp_pt, cr_b4_dir, cr_exp_dist
-    cr_exp_seg = rt.transfer_to_exit_pupil(seq_model.ifcs[-2],
+    cr_exp_seg = rt.transfer_to_exit_pupil(opt_model.seq_model.ifcs[-2],
                                            (cr.ray[-2][mc.p],
-                                            cr.ray[-2][mc.d]),
-                                           fod.exp_dist)
+                                            cr.ray[-2][mc.d]), fod.exp_dist)
     return cr, cr_exp_seg
 
 
-def trace_fan(seq_model, fan_rng, fld, wvl, foc, img_filter=None,
+def trace_fan(opt_model, fan_rng, fld, wvl, foc, img_filter=None,
               **kwargs):
     start = np.array(fan_rng[0])
     stop = fan_rng[1]
@@ -163,7 +163,7 @@ def trace_fan(seq_model, fan_rng, fld, wvl, foc, img_filter=None,
     fan = []
     for r in range(num):
         pupil = np.array(start)
-        ray_pkg = trace_base(seq_model, pupil, fld, wvl, **kwargs)
+        ray_pkg = trace_base(opt_model, pupil, fld, wvl, **kwargs)
 
         if img_filter:
             result = img_filter(pupil, ray_pkg)
@@ -175,7 +175,7 @@ def trace_fan(seq_model, fan_rng, fld, wvl, foc, img_filter=None,
     return fan
 
 
-def trace_grid(seq_model, grid_rng, fld, wvl, foc, img_filter=None,
+def trace_grid(opt_model, grid_rng, fld, wvl, foc, img_filter=None,
                form='grid', append_if_none=True, **kwargs):
     start = np.array(grid_rng[0])
     stop = grid_rng[1]
@@ -192,7 +192,7 @@ def trace_grid(seq_model, grid_rng, fld, wvl, foc, img_filter=None,
         for j in range(num):
             pupil = np.array(start)
             if (pupil[0]**2 + pupil[1]**2) < 1.0:
-                ray_pkg = trace_base(seq_model, pupil, fld, wvl, **kwargs)
+                ray_pkg = trace_base(opt_model, pupil, fld, wvl, **kwargs)
                 if img_filter:
                     result = img_filter(pupil, ray_pkg)
                     working_grid.append(result)
@@ -215,12 +215,12 @@ def trace_grid(seq_model, grid_rng, fld, wvl, foc, img_filter=None,
     return np.array(grid)
 
 
-def setup_pupil_coords(seq_model, fld, wvl, foc,
+def setup_pupil_coords(opt_model, fld, wvl, foc,
                        chief_ray_pkg=None, image_pt=None):
     if chief_ray_pkg is None:
-        chief_ray_pkg = trace_chief_ray(seq_model, fld, wvl, foc)
+        chief_ray_pkg = trace_chief_ray(opt_model, fld, wvl, foc)
     elif chief_ray_pkg[2] != wvl:
-        chief_ray_pkg = trace_chief_ray(seq_model, fld, wvl, foc)
+        chief_ray_pkg = trace_chief_ray(opt_model, fld, wvl, foc)
 
     cr, cr_exp_seg = chief_ray_pkg
 
@@ -232,6 +232,7 @@ def setup_pupil_coords(seq_model, fld, wvl, foc,
     cr_exp_pt = cr_exp_seg[mc.p]
     cr_exp_dist = cr_exp_seg[mc.dst]
 
+    seq_model = opt_model.seq_model
     img_dist = seq_model.gaps[-1].thi
     img_pt = np.array(image_pt)
     img_pt[2] += img_dist
@@ -247,18 +248,19 @@ def setup_pupil_coords(seq_model, fld, wvl, foc,
     z_dir = seq_model.z_dir[-1]
     n_obj = seq_model.rndx[wvl].iloc[0]
     n_img = seq_model.rndx[wvl].iloc[-1]
-    ref_sphere_pkg = (ref_sphere, seq_model.optical_spec.parax_data,
+    ref_sphere_pkg = (ref_sphere, opt_model.optical_spec.parax_data,
                       n_obj, n_img, z_dir)
 
     return ref_sphere_pkg, chief_ray_pkg
 
 
-def setup_canonical_coords(seq_model, fld, wvl, image_pt=None):
-    osp = seq_model.optical_spec
+def setup_canonical_coords(opt_model, fld, wvl, image_pt=None):
+    osp = opt_model.optical_spec
+    seq_model = opt_model.seq_model
     fod = osp.parax_data.fod
 
     if fld.chief_ray is None:
-        ray, op, wvl = trace_base(seq_model, [0., 0.], fld, wvl)
+        ray, op, wvl = trace_base(opt_model, [0., 0.], fld, wvl)
         fld.chief_ray = RayPkg(ray, op, wvl)
     cr = fld.chief_ray
 

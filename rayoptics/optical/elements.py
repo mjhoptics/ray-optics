@@ -8,20 +8,54 @@ Created on Sun Jan 28 16:27:01 2018
 @author: Michael J. Hayford
 """
 
+import numpy as np
+
 import rayoptics.util.rgbtable as rgbt
 import rayoptics.optical.thinlens as thinlens
+from rayoptics.optical.profiles import Spherical, Conic
+from rayoptics.optical.surface import Surface
+
+
+def create_thinlens(power=0., indx=1.5):
+    tl = thinlens.ThinLens(power=power)
+    tle = ThinElement(tl)
+    return tl, tle
+
+
+def create_mirror(c=0.0, r=None, cc=0.0, ec=None):
+    if r:
+        cv = 1.0/r
+    else:
+        cv = c
+
+    if ec:
+        k = ec - 1.0
+    else:
+        k = cc
+
+    if k == 0.0:
+        profile = Spherical(c=cv)
+    else:
+        profile = Conic(c=cv, cc=k)
+
+    m = Surface(profile=profile, refract_mode='REFL')
+    me = Mirror(m)
+    return m, me
 
 
 class Element():
     clut = rgbt.RGBTable(filename='red_blue64.csv',
                          data_range=[10.0, 100.])
 
-    def __init__(self, tfrm, s1, s1_indx, g, s2, s2_indx, sd):
-        self.tfrm = tfrm
+    def __init__(self, s1, s2, g, tfrm=None, idx=0, idx2=1, sd=1.):
+        if tfrm is not None:
+            self.tfrm = tfrm
+        else:
+            self.trfm = (np.identity(3), np.array([0., 0., 0.]))
         self.s1 = s1
-        self.s1_indx = s1_indx
+        self.s1_indx = idx
         self.s2 = s2
-        self.s2_indx = s2_indx
+        self.s2_indx = idx2
         self.g = g
         self.sd = sd
         self.flat1 = None
@@ -80,11 +114,14 @@ class Element():
 
 
 class Mirror():
-    def __init__(self, tfrm, s, s_indx, sd, thi=None):
+    def __init__(self, ifc, tfrm=None, idx=0, sd=1., thi=None):
         self.render_color = (192, 192, 192)
-        self.tfrm = tfrm
-        self.s = s
-        self.s_indx = s_indx
+        if tfrm is not None:
+            self.tfrm = tfrm
+        else:
+            self.trfm = (np.identity(3), np.array([0., 0., 0.]))
+        self.s = ifc
+        self.s_indx = idx
         self.sd = sd
         self.flat = None
         if thi is None:
@@ -123,12 +160,15 @@ class Mirror():
 
 
 class ThinElement():
-    def __init__(self, tfrm, intrfc, intrfc_indx):
+    def __init__(self, ifc, tfrm=None, idx=0):
         self.render_color = (192, 192, 192)
-        self.tfrm = tfrm
-        self.intrfc = intrfc
-        self.intrfc_indx = intrfc_indx
-        self.sd = intrfc.od
+        if tfrm is not None:
+            self.tfrm = tfrm
+        else:
+            self.trfm = (np.identity(3), np.array([0., 0., 0.]))
+        self.intrfc = ifc
+        self.intrfc_indx = idx
+        self.sd = ifc.od
 
     def __json_encode__(self):
         attrs = dict(vars(self))
@@ -158,7 +198,7 @@ class ThinElement():
 class ElementModel:
 
     def __init__(self, opt_model):
-        self.parent = opt_model
+        self.opt_model = opt_model
         self.elements = []
 
     def reset(self):
@@ -166,7 +206,7 @@ class ElementModel:
 
     def __json_encode__(self):
         attrs = dict(vars(self))
-        del attrs['parent']
+        del attrs['opt_model']
         return attrs
 
     def elements_from_sequence(self, seq_model):
@@ -179,7 +219,7 @@ class ElementModel:
         tfrms = seq_model.compute_global_coords(1)
         for i, g in enumerate(seq_model.gaps):
             if isinstance(seq_model.ifcs[i], thinlens.ThinLens):
-                te = ThinElement(tfrms[i], seq_model.ifcs[i], i)
+                te = ThinElement(seq_model.ifcs[i], tfrm=tfrms[i], idx=i)
                 self.elements.append(te)
                 continue
 
@@ -189,16 +229,17 @@ class ElementModel:
                 if s2.refract_mode is 'REFL':
                     tfrm = tfrms[i+1]
                     sd = s2.surface_od()
-                    self.elements.append(Mirror(tfrm, s2, i+1, sd))
+                    self.elements.append(Mirror(s2, sd=sd, tfrm=tfrm, idx=i+1))
             else:
                 tfrm = tfrms[i]
                 s1 = seq_model.ifcs[i]
                 s2 = seq_model.ifcs[i+1]
                 sd = max(s1.surface_od(), s2.surface_od())
-                self.elements.append(Element(tfrm, s1, i, g, s2, i+1, sd))
+                self.elements.append(Element(s1, s2, g, sd=sd, tfrm=tfrm,
+                                             idx=i, idx2=i+1))
 
     def sync_to_restore(self, opt_model):
-        self.parent = opt_model
+        self.opt_model = opt_model
         seq_model = opt_model.seq_model
         surfs = seq_model.ifcs
         gaps = seq_model.gaps
@@ -207,7 +248,7 @@ class ElementModel:
             e.sync_to_restore(surfs, gaps, tfrms)
 
     def update_model(self):
-        seq_model = self.parent.seq_model
+        seq_model = self.opt_model.seq_model
         tfrms = seq_model.compute_global_coords(1)
         for e in self.elements:
             e.update_size()

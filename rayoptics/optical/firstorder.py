@@ -155,8 +155,9 @@ def paraxial_trace(path, start, start_yu, start_yu_bar, wl):
     return p_ray, p_ray_bar
 
 
-def compute_first_order(seq_model, stop, wl):
+def compute_first_order(opt_model, stop, wl):
     """ Returns paraxial axial and chief rays, plus first order data. """
+    seq_model = opt_model.seq_model
     p_ray, q_ray = paraxial_trace(seq_model.path(), 1, [1., 0.], [0., 1.], wl)
 
     n_k = seq_model.central_rndx(-1)
@@ -187,7 +188,7 @@ def compute_first_order(seq_model, stop, wl):
     obj2enp_dist = thi0 + enp_dist
 
     yu = [0., 1.]
-    pupil = seq_model.optical_spec.pupil
+    pupil = opt_model.optical_spec.pupil
     if pupil.type == 'EPD':
         slp0 = 0.5*pupil.value/obj2enp_dist
     if pupil.type == 'NAO':
@@ -201,7 +202,7 @@ def compute_first_order(seq_model, stop, wl):
     yu = [0., slp0]
 
     yu_bar = [1., 0.]
-    fov = seq_model.optical_spec.field_of_view
+    fov = opt_model.optical_spec.field_of_view
     max_fld, fn = fov.max_field()
     if max_fld == 0.0:
         max_fld = 1.0
@@ -253,8 +254,9 @@ def compute_first_order(seq_model, stop, wl):
     return ParaxData(ax_ray, pr_ray, fod)
 
 
-def list_parax_trace(seq_model):
-    ax_ray, pr_ray, fod = seq_model.optical_spec.parax_data
+def list_parax_trace(opt_model):
+    seq_model = opt_model.seq_model
+    ax_ray, pr_ray, fod = opt_model.optical_spec.parax_data
     print("stop surface:", seq_model.stop_surface)
     print("           y           u           n*i         ybar         ubar"
           "        n*ibar")

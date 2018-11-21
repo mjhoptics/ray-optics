@@ -8,7 +8,6 @@
 
 import itertools
 import logging
-from . import opticalspec
 from . import surface
 from . import profiles
 from . import gap
@@ -16,16 +15,11 @@ from . import medium as m
 from . import raytrace as rt
 from . import trace as trace
 from . import transform as trns
-import rayoptics.optical.model_constants as mc
 from rayoptics.optical.model_constants import Surf, Gap
-from rayoptics.optical.model_constants import ax, pr, lns
-from rayoptics.optical.model_constants import ht, slp, aoi
-from rayoptics.optical.model_constants import pwr, tau, indx, rmd
 from opticalglass import glassfactory as gfact
 from opticalglass import glasserror as ge
 import numpy as np
 import pandas as pd
-import transforms3d as t3d
 from math import copysign
 from rayoptics.util.misc_math import isanumber
 
@@ -58,7 +52,7 @@ class SequentialModel:
     """
 
     def __init__(self, opt_model):
-        self.parent = opt_model
+        self.opt_model = opt_model
         self.ifcs = []
         self.gaps = []
         self.transforms = []
@@ -66,7 +60,6 @@ class SequentialModel:
         self.z_dir = []
         self.stop_surface = 1
         self.cur_surface = 0
-        self.optical_spec = opticalspec.OpticalSpecs()
         self.rndx = []
         self.ifcs.append(surface.Surface('Obj'))
         self.ifcs.append(surface.Surface('Img'))
@@ -74,7 +67,7 @@ class SequentialModel:
 
     def __json_encode__(self):
         attrs = dict(vars(self))
-        del attrs['parent']
+        del attrs['opt_model']
         del attrs['transforms']
         del attrs['lcl_tfrms']
         del attrs['z_dir']
@@ -103,7 +96,7 @@ class SequentialModel:
         return pd.DataFrame(indices, columns=wvls)
 
     def central_wavelength(self):
-        return self.optical_spec.spectral_region.central_wvl()
+        return self.opt_model.optical_spec.spectral_region.central_wvl()
 
     def central_rndx(self, i):
         central_wvl = self.central_wavelength()
@@ -149,7 +142,10 @@ class SequentialModel:
         self.insert(*self.create_surface_and_gap(surf))
 
     def sync_to_restore(self, opt_model):
-        self.parent = opt_model
+        self.opt_model = opt_model
+        if hasattr(self, 'optical_spec'):
+            opt_model.optical_spec = self.optical_spec
+            delattr(self, 'optical_spec')
         for sg in self.path():
             if hasattr(sg[Surf], 'sync_to_restore'):
                 sg[Surf].sync_to_restore(self)
@@ -160,9 +156,10 @@ class SequentialModel:
     def update_model(self):
         # delta n across each surface interface must be set to some
         #  reasonable default value. use the index at the central wavelength
-        ref_wl = self.optical_spec.spectral_region.reference_wvl
+        osp = self.opt_model.optical_spec
+        ref_wl = osp.spectral_region.reference_wvl
 
-        wvlns = self.optical_spec.spectral_region.wavelengths
+        wvlns = osp.spectral_region.wavelengths
         self.rndx = self.calc_ref_indices_for_spectrum(wvlns)
         n_before = self.rndx.iloc[0]
 
@@ -186,7 +183,7 @@ class SequentialModel:
 
         self.transforms = self.compute_global_coords()
         self.lcl_tfrms = self.compute_local_transforms()
-        self.optical_spec.update_model(self)
+        osp.update_model()
 
         self.set_clear_apertures()
 
@@ -202,7 +199,7 @@ class SequentialModel:
         else:
             s, g = self.insert_surface_and_gap()
 
-        if self.parent.radius_mode:
+        if self.opt_model.radius_mode:
             if dlist[0] != 0.0:
                 s.profile.cv = 1.0/dlist[0]
             else:
@@ -256,7 +253,7 @@ class SequentialModel:
             [curvature, thickness, refractive_index, v-number] """
         s = surface.Surface()
 
-        if self.parent.radius_mode:
+        if self.opt_model.radius_mode:
             if surf_data[0] != 0.0:
                 s.profile.cv = 1.0/surf_data[0]
             else:
@@ -308,52 +305,6 @@ class SequentialModel:
                 labels.append(s.label)
         return labels
 
-    def seq_model_to_paraxial_lens(self):
-        """ returns lists of power, reduced thickness, signed index and refract mode
-        """
-        nom_indx = self.rndx[self.central_wavelength()]
-        pwr = []
-        tau = []
-        ref_mode = []
-        for i, sg in enumerate(self.path()):
-            if sg[Gap]:
-                n_after = nom_indx.iloc[i]
-                tau.append(sg[Gap].thi/n_after)
-
-                rmode = sg[Surf].refract_mode
-                ref_mode.append(rmode)
-
-                power = sg[Surf].optical_power
-                pwr.append(power)
-            else:
-                tau.append(0.0)
-                ref_mode.append(rmode)
-                pwr.append(0.0)
-        return [pwr, tau, nom_indx, ref_mode]
-
-    def paraxial_lens_to_seq_model(self, lens):
-        """ Applies a paraxial lens spec (power, reduced distance) to the model
-
-        Args:
-        lens: list of paraxial axial, chief and lens data
-        """
-        power = lens[lns][pwr]
-        rindx = lens[lns][indx]
-        n_before = rindx[0]
-        slp_before = lens[ax][slp][0]
-        for i, sg in enumerate(self.path()):
-            if sg[Gap]:
-                n_after = rindx[i]
-                slp_after = lens[ax][slp][i]
-                sg[Gap].thi = n_after*lens[lns][tau][i]
-
-                sg[Surf].set_optical_power(power[i], n_before, n_after)
-                sg[Surf].from_first_order(slp_before, slp_after,
-                                          lens[ax][ht][i])
-
-                n_before = n_after
-                slp_before = slp_after
-
     def list_model(self):
         for i, sg in enumerate(self.path()):
             if sg[Gap]:
@@ -373,7 +324,7 @@ class SequentialModel:
     def list_surface_and_gap(self, i):
         s = self.ifcs[i]
         cvr = s.profile.cv
-        if self.parent.radius_mode:
+        if self.opt_model.radius_mode:
             if cvr != 0.0:
                 cvr = 1.0/cvr
         sd = s.surface_od()
@@ -404,23 +355,20 @@ class SequentialModel:
                       self.ifcs[i+1].profile,
                       gp)
 
-    def lookup_fld_wvl_focus(self, fi, wl=None, fr=0.0):
-        fld, wvl, foc = self.optical_spec.lookup_fld_wvl_focus(fi, wl, fr)
-        return fld, wvl, foc
-
     def trace_fan(self, fct, fi, xy, num_rays=21):
         """ xy determines whether x (=0) or y (=1) fan """
-        osp = self.optical_spec
+        osp = self.opt_model.optical_spec
         fld = osp.field_of_view.fields[fi]
         wvl = self.central_wavelength()
         foc = 0.0
 #        trace.setup_canonical_coords(self, fld, wvl)
-        rs_pkg, cr_pkg = trace.setup_pupil_coords(self, fld, wvl, foc)
+        rs_pkg, cr_pkg = trace.setup_pupil_coords(self.opt_model,
+                                                  fld, wvl, foc)
         fld.chief_ray = cr_pkg
         fld.ref_sphere = rs_pkg
         img_pt = cr_pkg[0].ray[-1][0]
 
-        wvls = self.optical_spec.spectral_region
+        wvls = osp.spectral_region
         fans_x = []
         fans_y = []
         fan_start = np.array([0., 0.])
@@ -433,11 +381,12 @@ class SequentialModel:
         for wi, wvl in enumerate(wvls.wavelengths):
             rc.append(wvls.render_colors[wi])
 
-            rs_pkg, cr_pkg = trace.setup_pupil_coords(self, fld, wvl, foc,
+            rs_pkg, cr_pkg = trace.setup_pupil_coords(self.opt_model,
+                                                      fld, wvl, foc,
                                                       image_pt=img_pt)
             fld.chief_ray = cr_pkg
             fld.ref_sphere = rs_pkg
-            fan = trace.trace_fan(self, fan_def, fld, wvl, foc,
+            fan = trace.trace_fan(self.opt_model, fan_def, fld, wvl, foc,
                                   img_filter=lambda p, ray_pkg:
                                   fct(p, xy, ray_pkg, fld, wvl))
             f_x = []
@@ -456,14 +405,15 @@ class SequentialModel:
     def trace_grid(self, fct, fi, wl=None, num_rays=21, form='grid',
                    append_if_none=True):
         """ fct is applied to the raw grid and returned as a grid  """
-        osp = self.optical_spec
+        osp = self.opt_model.optical_spec
         wvls = osp.spectral_region
         wvl = self.central_wavelength()
         wv_list = wvls.wavelengths if wl is None else [wvl]
         fld = osp.field_of_view.fields[fi]
         foc = 0.0
 
-        rs_pkg, cr_pkg = trace.setup_pupil_coords(self, fld, wvl, foc)
+        rs_pkg, cr_pkg = trace.setup_pupil_coords(self.opt_model,
+                                                  fld, wvl, foc)
         fld.chief_ray = cr_pkg
         fld.ref_sphere = rs_pkg
 
@@ -474,7 +424,7 @@ class SequentialModel:
         grid_stop = np.array([origin+delta, origin+delta])
         grid_def = [grid_start, grid_stop, num_rays]
         for wi, wvl in enumerate(wv_list):
-            grid = trace.trace_grid(self, grid_def, fld, wvl, foc,
+            grid = trace.trace_grid(self.opt_model, grid_def, fld, wvl, foc,
                                     form=form, append_if_none=append_if_none,
                                     img_filter=lambda p, ray_pkg:
                                     fct(p, wi, ray_pkg, fld, wvl))
@@ -488,13 +438,14 @@ class SequentialModel:
             x = p[0]
             y = p[1]
             if ray_pkg is not None:
-                opd_pkg = rt.wave_abr(self, fld, wvl, ray_pkg)
-                opd = opd_pkg[0]/self.parent.nm_to_sys_units(wvl)
+                opd_pkg = rt.wave_abr(fld, wvl, ray_pkg)
+                opd = opd_pkg[0]/self.opt_model.nm_to_sys_units(wvl)
             else:
                 opd = 0.0
             return np.array([x, y, opd])
 
-        rs_pkg, cr_pkg = trace.setup_pupil_coords(self, fld, wvl, foc)
+        rs_pkg, cr_pkg = trace.setup_pupil_coords(self.opt_model,
+                                                  fld, wvl, foc)
         fld.chief_ray = cr_pkg
         fld.ref_sphere = rs_pkg
 
@@ -502,7 +453,7 @@ class SequentialModel:
         grid_stop = np.array([1., 1.])
         grid_def = (grid_start, grid_stop, num_rays)
 
-        grid = trace.trace_grid(self, grid_def, fld, wvl, foc,
+        grid = trace.trace_grid(self.opt_model, grid_def, fld, wvl, foc,
                                 img_filter=lambda p, ray_pkg:
                                 wave(p, ray_pkg, fld, wvl), form='grid')
         return grid
@@ -512,7 +463,7 @@ class SequentialModel:
             """ take 2d length of input vector v """
             return np.sqrt(v[0]*v[0]+v[1]*v[1])
 
-        fields_df = trace.trace_all_fields(self)
+        fields_df = trace.trace_all_fields(self.opt_model)
         # a) Select the inc_pt data from the unstacked result and transpose so
         #    that intrfcs are the index
         inc_pts = fields_df.unstack()['inc_pt'].T

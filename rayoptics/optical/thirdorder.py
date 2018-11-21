@@ -13,10 +13,12 @@ import pandas as pd
 from rayoptics.optical.model_constants import ht, slp, aoi
 
 
-def compute_third_order(seq_model):
+def compute_third_order(opt_model):
     """ Compute Seidel aberration coefficents. """
+    seq_model = opt_model.seq_model
     n_before = seq_model.central_rndx(0)
-    ax_ray, pr_ray, fod = seq_model.optical_spec.parax_data
+    parax_data = opt_model.optical_spec.parax_data
+    ax_ray, pr_ray, fod = parax_data
     opt_inv = fod.opt_inv
     opt_inv_sqr = opt_inv*opt_inv
 
@@ -47,7 +49,7 @@ def compute_third_order(seq_model):
 
         # handle case of aspheric profile
         if hasattr(seq_model.ifcs[c], 'profile'):
-            to_asp = aspheric_seidel_contribution(seq_model, c)
+            to_asp = aspheric_seidel_contribution(seq_model, parax_data, c)
             if to_asp:
                 ascoef = pd.Series(to_asp, index=pd_index)
                 third_order[col+'.asp'] = ascoef
@@ -74,10 +76,10 @@ def calc_4th_order_aspheric_term(p):
     return G
 
 
-def aspheric_seidel_contribution(seq_model, i):
+def aspheric_seidel_contribution(seq_model, parax_data, i):
     def delta_E(z, y, u, n):
         return -z/(n*y*(y + z*u))
-    ax_ray, pr_ray, fod = seq_model.optical_spec.parax_data
+    ax_ray, pr_ray, fod = parax_data
     z = -pr_ray[i][ht]/pr_ray[i][slp]
     e = fod.opt_inv*delta_E(z, ax_ray[i][ht], ax_ray[i][slp],
                             seq_model.central_rndx(i))

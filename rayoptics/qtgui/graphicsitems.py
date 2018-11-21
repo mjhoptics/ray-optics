@@ -44,10 +44,10 @@ class OpticalElement(QGraphicsPolygonItem):
 
 class RayBundle(QGraphicsPolygonItem):
     """ QGraphicsItem subclass for ray bundle from a single field point """
-    def __init__(self, seq_model, field_num, start_offset):
+    def __init__(self, opt_model, field_num, start_offset):
         super(RayBundle, self).__init__()
-        fld, wvl, foc = seq_model.optical_spec.lookup_fld_wvl_focus(field_num)
-        self.rb = layout.RayBundle(seq_model, fld, wvl, start_offset)
+        fld, wvl, foc = opt_model.optical_spec.lookup_fld_wvl_focus(field_num)
+        self.rb = layout.RayBundle(opt_model, fld, wvl, start_offset)
         self.update_shape()
 
         self.setBrush(QColor(254, 197, 254, 64))  # magenta, 25%
