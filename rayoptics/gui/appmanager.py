@@ -83,7 +83,8 @@ class AppManager:
         self.model.update_model()
         for mi in self.view_dict.values():
             if mi.model == self.model:
-                mi.fct(*mi.args, **mi.kwargs)
+                if mi.fct is not None:
+                    mi.fct(*mi.args, **mi.kwargs)
 
     def on_view_activated(self, view):
         """ Makes the model associated with input view the active model
