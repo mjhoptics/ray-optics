@@ -21,6 +21,7 @@ from PyQt5.QtWidgets import (QApplication, QAction, QMainWindow, QMdiArea,
                              QVBoxLayout, QWidget, QGraphicsView,
                              QGraphicsScene)
 from PyQt5.QtCore import pyqtSlot
+from traitlets.config.configurable import MultipleInstanceError
 
 import rayoptics as ro
 import rayoptics.gui.appcmds as cmds
@@ -28,6 +29,7 @@ from rayoptics.gui.appmanager import ModelInfo, AppManager
 from rayoptics.optical.opticalmodel import OpticalModel
 from rayoptics.mpl.paraxdgnfigure import Dgm
 from rayoptics.qtgui.graphicsitems import OpticalElement, RayBundle
+from rayoptics.qtgui.ipyconsole import create_ipython_console
 from rayoptics.optical import trace as trace
 
 
@@ -112,6 +114,17 @@ class MainWindow(QMainWindow):
 #            self.open_file(path / "test/Sasian Triplet.roa")
 #            self.open_file(path / "test/singlet_f5.roa")
             self.open_file(path / "test/Ritchey_Chretien.roa")
+        finally:
+#            try:
+                create_ipython_console(self, 'iPython console', 600, 400)
+#            except MultipleInstanceError:
+#                logging.debug("Unable to open iPython console. "
+#                              "MultipleInstanceError")
+#            except Exception as inst:
+#                print(type(inst))    # the exception instance
+#                print(inst.args)     # arguments stored in .args
+#                print(inst)          # __str__ allows args to be printed directly,
+#                pass                 # but may be overridden in exception subclasses
 
     def add_subwindow(self, widget, model_info):
             sub_wind = self.mdi.addSubWindow(widget)
