@@ -14,6 +14,8 @@ import rayoptics.util.rgbtable as rgbt
 import rayoptics.optical.thinlens as thinlens
 from rayoptics.optical.profiles import Spherical, Conic
 from rayoptics.optical.surface import Surface
+from rayoptics.optical.gap import Gap
+from rayoptics.optical.medium import Glass
 
 
 def create_thinlens(power=0., indx=1.5):
@@ -41,6 +43,16 @@ def create_mirror(c=0.0, r=None, cc=0.0, ec=None):
     m = Surface(profile=profile, refract_mode='REFL')
     me = Mirror(m)
     return m, me
+
+
+def create_lens(power=0., bending=0., th=0., sd=1., med=None):
+    s1 = Surface()
+    s2 = Surface()
+    if med is None:
+        med = Glass()
+    g = Gap(t=th, med=med)
+    le = Element(s1, s2, g, sd=sd)
+    return (s1, s2, g), le
 
 
 class Element():

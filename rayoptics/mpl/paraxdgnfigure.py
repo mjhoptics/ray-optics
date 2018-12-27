@@ -13,7 +13,8 @@ import numpy as np
 from matplotlib.figure import Figure
 
 from rayoptics.optical.model_constants import ht, slp, aoi
-from rayoptics.optical.elements import create_thinlens, create_mirror
+from rayoptics.optical.elements import (create_thinlens, create_mirror,
+                                        create_lens)
 from rayoptics.util.misc_math import distance_sqr_2d, perpendicular_distance_2d
 
 
@@ -30,7 +31,7 @@ def create_parax_design_commands(fig):
     cmds.append(('Add Thin Lens',
                  (fig.add_point, (), {'factory': create_thinlens})))
     # Add lens
-    cmds.append(('Add Lens', (fig.add_point, (), {})))
+    cmds.append(('Add Lens', (fig.add_point, (), {'factory': create_lens})))
     # Add mirror
     cmds.append(('Add Mirror',
                  (fig.add_point, (), {'factory': create_mirror})))
@@ -181,7 +182,8 @@ class ParaxialDesignFigure(Figure):
     def setup_dgm_type(self, dgm_type):
         if dgm_type == Dgm.ht:
             self.type_sel = ht
-            self.data_slice = slice(1, None)
+            self.data_slice = slice(0, None)
+#            self.data_slice = slice(1, None)
             self.x_label = r'$\overline{y}$'
             self.y_label = 'y'
             self.apply_data = self.parax_model.apply_ht_dgm_data
@@ -204,6 +206,25 @@ class ParaxialDesignFigure(Figure):
         self.skip_build = False
         return self
 
+    def fit_data_range(self, x_data, margin=0.05, range_trunc=0.25):
+        x_min = min(0., min(x_data))
+        x_max = max(0., max(x_data))
+        x_range = x_max - x_min
+        if x_range != 0.0 and len(x_data) > 2:
+            x1_min = min(0., min(x_data[1:]))
+            x1_max = max(0., max(x_data[1:]))
+            x1_range = x1_max - x1_min
+            if abs(x1_range/x_range) < range_trunc:
+                x_min = x1_min
+                x_max = x1_max
+                x_range = x1_range
+
+        if x_range > 0.:
+            x_margin = margin*x_range
+        else:
+            x_margin = 0.01
+        return x_min-x_margin, x_max+x_margin
+
     def plot(self):
         self.clf()
         self.ax = self.add_subplot(1, 1, 1)
@@ -213,14 +234,26 @@ class ParaxialDesignFigure(Figure):
 
         x_data = []
         y_data = []
-        for x, y in zip(self.parax_model.pr[self.data_slice],
-                        self.parax_model.ax[self.data_slice]):
+        for x, y in zip(self.parax_model.pr,
+                        self.parax_model.ax):
             x_data.append(x[self.type_sel])
             y_data.append(y[self.type_sel])
 
-        self.line, = self.ax.plot(x_data, y_data, marker='s', picker=6)
+        x_min, x_max = self.fit_data_range(x_data)
+        y_min, y_max = self.fit_data_range(y_data)
+
+        self.line, = self.ax.plot(x_data,
+                                  y_data,
+                                  marker='s', picker=6)
         self.ax.set_xlabel(self.x_label)
         self.ax.set_ylabel(self.y_label)
+        self.ax.set_xlim(x_min, x_max)
+        self.ax.set_ylim(y_min, y_max)
+
+        xl, xr = self.ax.get_xlim()
+        yl, yu = self.ax.get_ylim()
+        xlb, xrb = self.ax.get_xbound()
+        ylb, yub = self.ax.get_ybound()
 
         self.eline = EditableLine(self.line)
         self.eline.connect()

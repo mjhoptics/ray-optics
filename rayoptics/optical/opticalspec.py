@@ -12,6 +12,7 @@ import math
 import numpy as np
 
 from rayoptics.optical.firstorder import compute_first_order
+from rayoptics.optical.model_enums import PupilType, FieldType
 import rayoptics.util.colour_system as cs
 srgb = cs.cs_srgb
 
@@ -27,8 +28,8 @@ class OpticalSpecs:
     def __init__(self, opt_model):
         self.opt_model = opt_model
         self.spectral_region = WvlSpec()
-        self.pupil = PupilSpec()
-        self.field_of_view = FieldSpec()
+        self.pupil = PupilSpec(self)
+        self.field_of_view = FieldSpec(self)
         self.defocus = FocusRange(0.0)
         self.parax_data = None
 
@@ -50,7 +51,7 @@ class OpticalSpecs:
         self.pupil.update_model()
         self.field_of_view.update_model()
         stop = self.opt_model.seq_model.stop_surface
-        wvl = self.spectral_region.central_wvl()
+        wvl = self.spectral_region.central_wvl
         if not hasattr(self, 'defocus'):
             self.defocus = FocusRange(0.0)
 
@@ -58,7 +59,7 @@ class OpticalSpecs:
 
     def lookup_fld_wvl_focus(self, fi, wl=None, fr=0.0):
         if wl is None:
-            wvl = self.spectral_region.central_wvl()
+            wvl = self.spectral_region.central_wvl
         else:
             wvl = self.spectral_region.wavelengths[wl]
         fld = self.field_of_view.fields[fi]
@@ -68,11 +69,11 @@ class OpticalSpecs:
     def obj_coords(self, fld):
         fov = self.field_of_view
         fod = self.parax_data.fod
-        if fov.type == 'OBJ_ANG':
+        if fov.field_type == FieldType.OBJ_ANG:
             ang_dg = np.array([fld.x, fld.y, 0.0])
             dir_tan = np.tan(np.deg2rad(ang_dg))
             obj_pt = -dir_tan*(fod.obj_dist+fod.enp_dist)
-        elif fov.type == 'IMG_HT':
+        elif fov.field_type == FieldType.IMG_HT:
             img_pt = np.array([fld.x, fld.y, 0.0])
             obj_pt = -fod.red*img_pt
         else:
@@ -93,8 +94,13 @@ class WvlSpec:
         self.reference_wvl = ref_wl
         self.coating_wvl = 550.0
 
+    @property
     def central_wvl(self):
         return self.wavelengths[self.reference_wvl]
+
+    @central_wvl.setter
+    def central_wvl(self, wvl):
+        self.wavelengths[self.reference_wvl] = wvl
 
     def set_from_list(self, wlwts):
         self.wavelengths = []
@@ -130,24 +136,43 @@ class WvlSpec:
 
 
 class PupilSpec:
-    types = ('EPD', 'NA', 'NAO', 'FNO')
     default_pupil_rays = [[0., 0.], [1., 0.], [-1., 0.], [0., 1.], [0., -1.]]
     default_ray_labels = ['00', '+X', '-X', '+Y', '-Y']
 
-    def __init__(self, type='EPD', value=1.0):
-        self.type = type
+    def __init__(self, parent, pupil_type=PupilType.EPD, value=1.0):
+        self.optical_spec = parent
+        self.pupil_type = pupil_type
         self.value = value
         self.pupil_rays = PupilSpec.default_pupil_rays
         self.ray_labels = PupilSpec.default_ray_labels
 
+    def __json_encode__(self):
+        attrs = dict(vars(self))
+        del attrs['optical_spec']
+        return attrs
+
     def set_from_list(self, ppl_spec):
-        self.type = ppl_spec[0]
+        self.pupil_type = ppl_spec[0]
         self.value = ppl_spec[1]
 
     def update_model(self):
         if not hasattr(self, 'pupil_rays'):
             self.pupil_rays = PupilSpec.default_pupil_rays
             self.ray_labels = PupilSpec.default_ray_labels
+
+    def mutate_pupil_type(self, new_pupil_type):
+        if self.optical_spec is not None:
+            if self.optical_spec.parax_data is not None:
+                fod = self.optical_spec.parax_data.fod
+                if new_pupil_type == PupilType.FNO:
+                    self.value = fod.fno
+                elif new_pupil_type == PupilType.EPD:
+                    self.value = 2*fod.enp_radius
+                elif new_pupil_type == PupilType.NAO:
+                    self.value = fod.obj_na
+                elif new_pupil_type == PupilType.NA:
+                    self.value = fod.img_na
+        self.pupil_type = new_pupil_type
 
 
 class FieldSpec:
@@ -159,12 +184,15 @@ class FieldSpec:
     """
     types = ('OBJ_ANG', 'OBJ_HT', 'IMG_HT')
 
-    def __init__(self, type='OBJ_ANG', flds=[0.], wide_angle=False):
-        self.type = type
-        self.fields = [Field() for f in range(len(flds))]
-        for i, f in enumerate(self.fields):
-            f.y = flds[i]
-        self.wide_angle = wide_angle
+    def __init__(self, parent, field_type=FieldType.OBJ_ANG, flds=[0.]):
+        self.optical_spec = parent
+        self.field_type = field_type
+        self.set_from_list(flds)
+
+    def __json_encode__(self):
+        attrs = dict(vars(self))
+        del attrs['optical_spec']
+        return attrs
 
     def set_from_list(self, flds):
         self.fields = [Field() for f in range(len(flds))]
@@ -175,6 +203,9 @@ class FieldSpec:
         for f in self.fields:
             f.update()
 
+        # recalculate max_field and relabel fields.
+        #  relabeling really assumes the fields are radial, specifically,
+        #  y axis only
         max_field, fi = self.max_field()
         field_norm = 1.0 if max_field == 0 else 1.0/max_field
         self.index_labels = [str(field_norm*f.y)+'F' for f in self.fields]
@@ -183,13 +214,25 @@ class FieldSpec:
             self.index_labels[-1] = 'edge'
         return self
 
+    def mutate_field_type(self, new_field_type):
+        if self.optical_spec is not None:
+            if self.optical_spec.parax_data is not None:
+                fod = self.optical_spec.parax_data.fod
+                if new_field_type == FieldType.OBJ_HT:
+                    self.value = fod.fno
+                elif new_field_type == FieldType.OBJ_ANG:
+                    self.value = 2*fod.enp_radius
+                elif new_field_type == FieldType.IMG_HT:
+                    self.value = fod.obj_na
+        self.field_type = new_field_type
+
     def update_fields_cv_input(self, tla, dlist):
         if tla == 'XOB' or tla == 'YOB':
-            self.type = 'OBJ_HT'
+            self.field_type = FieldType.OBJ_HT
         elif tla == 'XAN' or tla == 'YAN':
-            self.type = 'OBJ_ANG'
+            self.field_type = FieldType.OBJ_ANG
         elif tla == 'XIM' or tla == 'YIM':
-            self.type = 'IMG_HT'
+            self.field_type = FieldType.IMG_HT
 
         if len(self.fields) != len(dlist):
             self.fields = [Field() for f in range(len(dlist))]

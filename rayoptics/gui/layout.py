@@ -108,46 +108,52 @@ class RayBundle():
         self.start_offset = start_offset
 
     def update_shape(self):
-        rayset = trace_boundary_rays_at_field(self.opt_model,
-                                              self.fld, self.wvl)
-
-        # If the object distance (tfrms[0][1][2]) is greater than the
-        #  start_offset, then modify rayset start to match start_offset.
-        # Remember object transformation for resetting at the end.
-        seq_model = self.opt_model.seq_model
-        tfrms = seq_model.transforms
-        tfrtm0 = tfrms[0]
-
         try:
-            if abs(tfrms[0][1][2]) > self.start_offset:
-                r, t = setup_shift_of_ray_bundle(seq_model,
-                                                 self.start_offset)
-                tfrms[0] = (r, t)
-                shift_start_of_ray_bundle(rayset, self.start_offset,
-                                          r, t)
-
-            poly1 = []
-            for i, r in enumerate(rayset[3][mc.ray][0:]):
-                rot, trns = tfrms[i]
-                p = rot.dot(r[mc.p]) + trns
-    #            print(i, r[0], rot, trns, p)
-    #            print("r3", i, p[2], p[1])
-                poly1.append([p[2], p[1]])
-
-            poly2 = []
-            for i, r in enumerate(rayset[4][mc.ray][0:]):
-                rot, trns = tfrms[i]
-                p = rot.dot(r[mc.p]) + trns
-    #            print(i, r[0], rot, trns, p)
-    #            print("r4", i, p[2], p[1])
-                poly2.append([p[2], p[1]])
-
-            poly2.reverse()
-            poly1.extend(poly2)
-            bbox = bbox_from_poly(poly1)
-
+            rayset = trace_boundary_rays_at_field(self.opt_model,
+                                                  self.fld, self.wvl)
+        except:
+            wvl = self.opt_model.optical_spec.spectral_region.central_wvl
+            self.wvl = wvl
+            rayset = trace_boundary_rays_at_field(self.opt_model,
+                                                  self.fld, wvl)
         finally:
-            tfrms[0] = tfrtm0
+            # If the object distance (tfrms[0][1][2]) is greater than the
+            #  start_offset, then modify rayset start to match start_offset.
+            # Remember object transformation for resetting at the end.
+            seq_model = self.opt_model.seq_model
+            tfrms = seq_model.transforms
+            tfrtm0 = tfrms[0]
+    
+            try:
+                if abs(tfrms[0][1][2]) > self.start_offset:
+                    r, t = setup_shift_of_ray_bundle(seq_model,
+                                                     self.start_offset)
+                    tfrms[0] = (r, t)
+                    shift_start_of_ray_bundle(rayset, self.start_offset,
+                                              r, t)
+    
+                poly1 = []
+                for i, r in enumerate(rayset[3][mc.ray][0:]):
+                    rot, trns = tfrms[i]
+                    p = rot.dot(r[mc.p]) + trns
+        #            print(i, r[0], rot, trns, p)
+        #            print("r3", i, p[2], p[1])
+                    poly1.append([p[2], p[1]])
+    
+                poly2 = []
+                for i, r in enumerate(rayset[4][mc.ray][0:]):
+                    rot, trns = tfrms[i]
+                    p = rot.dot(r[mc.p]) + trns
+        #            print(i, r[0], rot, trns, p)
+        #            print("r4", i, p[2], p[1])
+                    poly2.append([p[2], p[1]])
+    
+                poly2.reverse()
+                poly1.extend(poly2)
+                bbox = bbox_from_poly(poly1)
+    
+            finally:
+                tfrms[0] = tfrtm0
 
         return poly1, bbox
 

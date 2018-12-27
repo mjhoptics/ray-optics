@@ -12,6 +12,8 @@ import logging
 from . import tla
 from . import reader as cvr
 
+from rayoptics.optical.model_enums import PupilType
+from rayoptics.optical.model_enums import DimensionType as dt
 
 _tla = tla.MapTLA()
 
@@ -99,7 +101,7 @@ def wvl_spec_data(optm, tla, qlist, dlist):
 
 def pupil_spec_data(optm, tla, qlist, dlist):
     osp = optm.optical_spec
-    osp.pupil.type = tla
+    osp.pupil.pupil_type = PupilType[tla]
     osp.pupil.value = dlist[0]
     logging.debug("pupil_spec_data: %s %f", tla, dlist[0])
 
@@ -126,11 +128,11 @@ def spec_data(optm, tla, qlist, dlist):
     elif tla == "DIM":
         dim = dlist[0].upper()
         if dim == 'M':
-            dim = 'MM'
+            dim = dt.MM
         elif dim == 'C':
-            dim = 'CM'
+            dim = dt.CM
         elif dim == 'I':
-            dim = 'IN'
+            dim = dt.IN
         optm.system_spec.dimensions = dim
     elif tla == "CA":
         optm.system_spec.aperture_override = ''

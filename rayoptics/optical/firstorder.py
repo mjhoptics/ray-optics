@@ -11,6 +11,7 @@ import math
 from collections import namedtuple
 from rayoptics.optical.model_constants import Surf, Gap
 from rayoptics.optical.model_constants import ht, slp, aoi
+from rayoptics.optical.model_enums import PupilType, FieldType
 
 ParaxData = namedtuple('ParaxData', ['ax_ray', 'pr_ray', 'fod'])
 
@@ -189,14 +190,14 @@ def compute_first_order(opt_model, stop, wl):
 
     yu = [0., 1.]
     pupil = opt_model.optical_spec.pupil
-    if pupil.type == 'EPD':
+    if pupil.pupil_type == PupilType.EPD:
         slp0 = 0.5*pupil.value/obj2enp_dist
-    if pupil.type == 'NAO':
+    if pupil.pupil_type == PupilType.NAO:
         slp0 = n_0*math.tan(math.asin(pupil.value/n_0))
-    if pupil.type == 'FNO':
+    if pupil.pupil_type == PupilType.FNO:
         slpk = -1./(2.0*pupil.value)
         slp0 = slpk/red
-    if pupil.type == 'NA':
+    if pupil.pupil_type == PupilType.NA:
         slpk = n_k*math.tan(math.asin(pupil.value/n_k))
         slp0 = slpk/red
     yu = [0., slp0]
@@ -206,11 +207,11 @@ def compute_first_order(opt_model, stop, wl):
     max_fld, fn = fov.max_field()
     if max_fld == 0.0:
         max_fld = 1.0
-    if fov.type == 'OBJ_ANG':
+    if fov.field_type == FieldType.OBJ_ANG:
         ang = math.radians(max_fld)
         slpbar0 = math.tan(ang)
         ybar0 = -slpbar0*obj2enp_dist
-    elif fov.type == 'IMG_HT':
+    elif fov.field_type == FieldType.IMG_HT:
         ybar0 = red*max_fld
         slpbar0 = -ybar0/obj2enp_dist
     else:

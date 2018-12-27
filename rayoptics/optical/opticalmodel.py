@@ -13,6 +13,8 @@ import json_tricks
 
 import rayoptics.codev.cmdproc as cvp
 
+from rayoptics.optical.model_enums import DimensionType as dt
+
 from rayoptics.optical.elements import ElementModel
 from rayoptics.optical.paraxialdesign import ParaxialModel
 from rayoptics.optical.sequential import SequentialModel
@@ -35,26 +37,24 @@ def open_model(file_name):
 
 
 class SystemSpec:
-    dims = ('M', 'CM', 'MM', 'IN', 'FT')
-
     def __init__(self):
         self.title = ''
         self.initials = ''
-        self.dimensions = 'MM'
+        self.dimensions = dt.MM
         self.aperture_override = ''
         self.temperature = 20.0
         self.pressure = 760.0
 
     def nm_to_sys_units(self, nm):
-        if self.dimensions == 'M':
+        if self.dimensions == dt.M:
             return 1e-9 * nm
-        elif self.dimensions == 'CM':
+        elif self.dimensions == dt.CM:
             return 1e-7 * nm
-        elif self.dimensions == 'MM':
+        elif self.dimensions == dt.MM:
             return 1e-6 * nm
-        elif self.dimensions == 'IN':
+        elif self.dimensions == dt.IN:
             return 1e-6 * nm/25.4
-        elif self.dimensions == 'FT':
+        elif self.dimensions == dt.FT:
             return 1e-6 * nm/304.8
         else:
             return nm

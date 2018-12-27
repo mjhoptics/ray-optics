@@ -17,17 +17,16 @@ from pathlib import Path
 from PyQt5.QtCore import Qt as qt
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (QApplication, QAction, QMainWindow, QMdiArea,
-                             QMdiSubWindow, QTextEdit, QFileDialog, QTableView,
-                             QVBoxLayout, QWidget, QGraphicsView,
-                             QGraphicsScene)
+                             QMdiSubWindow, QFileDialog, QTableView, QWidget,
+                             QVBoxLayout, QGraphicsView, QGraphicsScene)
 from PyQt5.QtCore import pyqtSlot
 from traitlets.config.configurable import MultipleInstanceError
 
 import rayoptics as ro
 import rayoptics.gui.appcmds as cmds
 from rayoptics.gui.appmanager import ModelInfo, AppManager
-from rayoptics.optical.opticalmodel import OpticalModel
 from rayoptics.mpl.paraxdgnfigure import Dgm
+import rayoptics.qtgui.dockpanels as dock
 from rayoptics.qtgui.graphicsitems import OpticalElement, RayBundle
 from rayoptics.qtgui.ipyconsole import create_ipython_console
 from rayoptics.optical import trace as trace
@@ -61,6 +60,7 @@ class MainWindow(QMainWindow):
         file.addAction("Save As...")
         file.addAction("Close")
         file.triggered[QAction].connect(self.file_action)
+
         view = bar.addMenu("View")
         view.addAction("Lens Table")
         view.addAction("Lens View")
@@ -76,21 +76,29 @@ class MainWindow(QMainWindow):
         view.addAction("Wavefront Map")
         view.addSeparator()
         view.triggered[QAction].connect(self.view_action)
+
         wnd = bar.addMenu("Window")
         wnd.addAction("Cascade")
         wnd.addAction("Tiled")
+        wnd.addSeparator()
+
+        dock.create_dock_windows(self)
+        for pi in dock.panels.values():
+            wnd.addAction(pi.menu_action)
+
         wnd.triggered[QAction].connect(self.window_action)
+
 
         self.setWindowTitle("Ray Optics")
         self.show()
 
         pth = Path(__file__).resolve()
-#        try:
-#            root_pos = pth.parts.index('rayoptics')
-#        except ValueError:
-#            logging.debug("Can't find rayoptics: path is %s", pth)
-#        else:
-#            path = Path(*pth.parts[:root_pos+1])
+        try:
+            root_pos = pth.parts.index('rayoptics')
+        except ValueError:
+            logging.debug("Can't find rayoptics: path is %s", pth)
+        else:
+            path = Path(*pth.parts[:root_pos+1])
 #            self.open_file(path / "codev/test/asp46.seq")
 #            self.open_file(path / "codev/test/paraboloid.seq")
 #            self.open_file(path / "codev/test/paraboloid_f8.seq")
@@ -99,21 +107,21 @@ class MainWindow(QMainWindow):
 #            self.open_file(path / "codev/test/conic_mirror.seq")
 #            self.open_file(path / "codev/test/rc_f16.seq")
 #            self.open_file(path / "codev/test/ag_dblgauss.seq")
-#            self.open_file(path / "codev/test/landscape_lens.seq")
+            self.open_file(path / "codev/test/landscape_lens.seq")
 #            self.open_file(path / "optical/test/cell_phone_camera.roa")
 #            self.open_file(path / "optical/test/singlet_f3.roa")
 
-        try:
-            root_pos = pth.parts.index('ray-optics')
-        except ValueError:
-            logging.debug("Can't find ray-optics: path is %s", pth)
-        else:
-            path = Path(*pth.parts[:root_pos+1])
+#        try:
+#            root_pos = pth.parts.index('ray-optics')
+#        except ValueError:
+#            logging.debug("Can't find ray-optics: path is %s", pth)
+#        else:
+#            path = Path(*pth.parts[:root_pos+1])
 #            self.open_file(path / "test/TwoMirror.roa")
 #            self.open_file(path / "test/TwoSphericalMirror.roa")
 #            self.open_file(path / "test/Sasian Triplet.roa")
 #            self.open_file(path / "test/singlet_f5.roa")
-            self.open_file(path / "test/Ritchey_Chretien.roa")
+#            self.open_file(path / "test/Ritchey_Chretien.roa")
         finally:
             try:
                 create_ipython_console(self, 'iPython console', 600, 400)
@@ -146,11 +154,12 @@ class MainWindow(QMainWindow):
 
     def file_action(self, q):
         if q.text() == "New":
-            opt_model = OpticalModel()
-            sub = self.add_subwindow(QTextEdit(),
-                                     ModelInfo(opt_model))
-            sub.setWindowTitle("subwindow"+str(MainWindow.count))
-            sub.show()
+            cmds.create_new_model(self.app_manager, gui_parent=self)
+            opt_model = self.app_manager.model
+            self.create_lens_table()
+#            self.create_2D_lens_view()
+            cmds.create_paraxial_design_view(opt_model, Dgm.ht,
+                                             gui_parent=self)
 
         if q.text() == "Open...":
             options = QFileDialog.Options()
@@ -358,6 +367,9 @@ class MainWindow(QMainWindow):
 
     def refresh_gui(self):
         self.app_manager.refresh_gui()
+        for pi in dock.panels.values():
+            if pi.menu_action.isChecked():
+                pi.panel_widget.update(self.app_manager.model)
 
     @pyqtSlot(object, int)
     def on_data_changed(self, rootObj, index):

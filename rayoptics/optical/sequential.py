@@ -96,7 +96,7 @@ class SequentialModel:
         return pd.DataFrame(indices, columns=wvls)
 
     def central_wavelength(self):
-        return self.opt_model.optical_spec.spectral_region.central_wvl()
+        return self.opt_model.optical_spec.spectral_region.central_wvl
 
     def central_rndx(self, i):
         central_wvl = self.central_wavelength()
@@ -463,17 +463,18 @@ class SequentialModel:
             """ take 2d length of input vector v """
             return np.sqrt(v[0]*v[0]+v[1]*v[1])
 
-        fields_df = trace.trace_all_fields(self.opt_model)
-        # a) Select the inc_pt data from the unstacked result and transpose so
-        #    that intrfcs are the index
-        inc_pts = fields_df.unstack()['inc_pt'].T
-        # b) applymap() is used to apply the function rd() to each element in
-        #    the dataframe
-        inc_pts_rd = inc_pts.applymap(rd)
-        # c) apply max() function to each row (i.e. across columns, axis=1)
-        semi_ap = inc_pts_rd.max(axis=1)
-        for s, max_ap in zip(self.ifcs[1:-1], semi_ap[1:-1]):
-            s.set_max_aperture(max_ap)
+        if self.get_num_surfaces() > 2:
+            fields_df = trace.trace_all_fields(self.opt_model)
+            # a) Select the inc_pt data from the unstacked result and transpose
+            #    so that intrfcs are the index
+            inc_pts = fields_df.unstack()['inc_pt'].T
+            # b) applymap() is used to apply the function rd() to each element
+            #    in the dataframe
+            inc_pts_rd = inc_pts.applymap(rd)
+            # c) apply max() function to each row (i.e. across columns, axis=1)
+            semi_ap = inc_pts_rd.max(axis=1)
+            for s, max_ap in zip(self.ifcs[1:-1], semi_ap[1:-1]):
+                s.set_max_aperture(max_ap)
 
     def trace(self, pt0, dir0, wvl, **kwargs):
         return rt.trace(self, pt0, dir0, wvl, **kwargs)
