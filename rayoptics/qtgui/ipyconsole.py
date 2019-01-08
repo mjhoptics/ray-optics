@@ -3,12 +3,11 @@
 # Copyright © 2018 Michael J. Hayford
 """ Support creation of an iPython console, with rayoptics environment
 
-Created on Wed Nov 21 21:48:02 2018
+.. Created on Wed Nov 21 21:48:02 2018
 
-@author: Michael J. Hayford
+.. codeauthor: Michael J. Hayford
 """
 
-from PyQt5.QtWidgets import QVBoxLayout
 from qtconsole.rich_jupyter_widget import RichJupyterWidget
 from qtconsole.inprocess import QtInProcessKernelManager
 from IPython.lib import guisupport
@@ -17,6 +16,7 @@ from rayoptics.gui.appmanager import ModelInfo
 
 
 def create_ipython_console(app, title, view_width, view_ht):
+    """ create a iPython console with a rayoptics environment """
     opt_model = app.app_manager.model
     ro_env = {
             'app': app,
@@ -33,12 +33,6 @@ def create_ipython_console(app, title, view_width, view_ht):
     # load the environment
     ipy_console.execute_command(ro_setup)
     ipy_console.push_vars(ro_env)
-
-    # construct the top level layout
-    layout = QVBoxLayout(ipy_console)
-
-    # set the layout on the widget
-    ipy_console.setLayout(layout)
 
     mi = ModelInfo(opt_model)
     sub_window = app.add_subwindow(ipy_console, mi)
