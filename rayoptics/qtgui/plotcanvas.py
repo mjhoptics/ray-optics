@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 # Copyright © 2018 Michael J. Hayford
 """
-Created on Fri Mar  2 09:36:19 2018
 
-@author: Michael J. Hayford
+.. Created on Fri Mar  2 09:36:19 2018
+
+.. codeauthor: Michael J. Hayford
 """
 
 from PyQt5.QtCore import Qt

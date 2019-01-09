@@ -3,9 +3,9 @@
 # Copyright © 2018 Michael J. Hayford
 """ Top level model classes
 
-Created on Wed Mar 14 11:08:28 2018
+.. Created on Wed Mar 14 11:08:28 2018
 
-@author: Michael J. Hayford
+.. codeauthor: Michael J. Hayford
 """
 
 import os.path
@@ -22,6 +22,17 @@ from rayoptics.optical.opticalspec import OpticalSpecs
 
 
 def open_model(file_name):
+    """ open a file and populate an optical model with the data
+
+    Args:
+        file_name (str): a filename of a supported file type
+
+            - .roa - a rayoptics JSON encoded file
+            - .seq - a CODE V (TM) sequence file
+
+    Returns:
+        if successful, an OpticalModel instance, otherwise, None
+    """
     file_extension = os.path.splitext(file_name)[1]
     opm = None
     if file_extension == '.seq':
@@ -37,15 +48,31 @@ def open_model(file_name):
 
 
 class SystemSpec:
+    """ Container for units and other system level constants
+
+    Attributes:
+        title (str): a short description of the model
+        initials (str): user initials or other id
+        dimensions: a DimensionType enum of the model linear units
+        temperature (double): model temperature in degrees Celsius
+        pressure (double): model pressure in mm/Hg
+    """
     def __init__(self):
         self.title = ''
         self.initials = ''
         self.dimensions = dt.MM
-        self.aperture_override = ''
         self.temperature = 20.0
         self.pressure = 760.0
 
     def nm_to_sys_units(self, nm):
+        """ convert nm to system units
+
+        Args:
+            nm (double): value in nm
+
+        Returns:
+            double: value converted to system units
+        """
         if self.dimensions == dt.M:
             return 1e-9 * nm
         elif self.dimensions == dt.CM:
@@ -61,7 +88,16 @@ class SystemSpec:
 
 
 class OpticalModel:
-    """ Top level container for optical model. """
+    """ Top level container for optical model.
+
+    The OpticalModel serves as a top level container of model properties.
+    Key aspects are built-in element and surface based repesentations of the
+    optical surfaces.
+    A sequential optical model is a sequence of surfaces and gaps.
+    Additionally, it includes optical usage information to specify the
+    aperture, field of view, spectrum and focus.
+    """
+
     def __init__(self):
         self.radius_mode = False
         self.system_spec = SystemSpec()
@@ -109,4 +145,12 @@ class OpticalModel:
         self.ele_model.update_model()
 
     def nm_to_sys_units(self, nm):
+        """ convert nm to system units
+
+        Args:
+            nm (double): value in nm
+
+        Returns:
+            double: value converted to system units
+        """
         return self.system_spec.nm_to_sys_units(nm)

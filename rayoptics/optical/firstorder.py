@@ -3,9 +3,9 @@
 # Copyright © 2018 Michael J. Hayford
 """ Functions to support paraxial ray tracing a sequential optical model
 
-Created on Tue Feb 13 10:48:19 2018
+.. Created on Tue Feb 13 10:48:19 2018
 
-@author: Michael J. Hayford
+.. codeauthor: Michael J. Hayford
 """
 import math
 from collections import namedtuple
@@ -17,6 +17,33 @@ ParaxData = namedtuple('ParaxData', ['ax_ray', 'pr_ray', 'fod'])
 
 
 class FirstOrderData:
+    """ Container class for first order optical properties
+
+    All quantities are based on paraxial ray tracing. The last interface is
+    the image-1 interface.
+
+    Attributes:
+        opt_inv: optical invariant
+        efl: effective focal length
+        pp1: distance of front principle plane from 1st interface
+        ppk: distance of rear principle plane from last interface
+        ffl: front focal length
+        bfl: back focal length
+        fno: focal ratio at working conjugates, f/#
+        red: reduction ratio
+        n_obj: refractive index at central wavelength in object space
+        n_img: refractive index at central wavelength in image space
+        obj_dist: object distance
+        img_dist: image distance
+        obj_ang: maximum object angle (degrees)
+        img_ht: image height
+        enp_dist: entrance pupil distance from 1st interface
+        enp_radius: entrance pupil radius
+        exp_dist: exit pupil distance from last interface
+        exp_radius: exit pupil radius
+        obj_na: numerical aperture in object space
+        img_na: numerical aperture in image space
+    """
     def __init__(self):
         self.opt_inv = None
         self.efl = None
@@ -40,6 +67,7 @@ class FirstOrderData:
         self.img_na = None
 
     def list_first_order_data(self):
+        """ list the first order properties """
         print("efl        {:12.4g}".format(self.efl))
         print("ffl        {:12.4g}".format(self.ffl))
         print("pp1        {:12.4g}".format(self.pp1))
@@ -256,6 +284,7 @@ def compute_first_order(opt_model, stop, wl):
 
 
 def list_parax_trace(opt_model):
+    """ list the paraxial axial and chief ray data """
     seq_model = opt_model.seq_model
     ax_ray, pr_ray, fod = opt_model.optical_spec.parax_data
     print("stop surface:", seq_model.stop_surface)

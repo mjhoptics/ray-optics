@@ -3,9 +3,9 @@
 # Copyright © 2018 Michael J. Hayford
 """ Module for element modeling
 
-Created on Sun Jan 28 16:27:01 2018
+.. Created on Sun Jan 28 16:27:01 2018
 
-@author: Michael J. Hayford
+.. codeauthor: Michael J. Hayford
 """
 
 import numpy as np

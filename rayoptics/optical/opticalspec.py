@@ -3,9 +3,9 @@
 # Copyright © 2018 Michael J. Hayford
 """ Container class for optical usage information
 
-Created on Thu Jan 25 11:01:04 2018
+.. Created on Thu Jan 25 11:01:04 2018
 
-@author: Michael J. Hayford
+.. codeauthor: Michael J. Hayford
 """
 
 import math
@@ -58,6 +58,20 @@ class OpticalSpecs:
         self.parax_data = compute_first_order(self.opt_model, stop, wvl)
 
     def lookup_fld_wvl_focus(self, fi, wl=None, fr=0.0):
+        """ returns field, wavelength and defocus data
+
+        Args:
+            fi (int): index into the field_of_view list of Fields
+            wl (int): index into the spectral_region list of wavelengths
+            fr (double): focus range parameter, -1.0 to 1.0
+
+        Returns:
+            (**fld**, **wvl**, **foc**)
+
+            - **fld** - :class:`Field` instance for field_of_view[fi]
+            - **wvl** - wavelength in nm
+            - **foc** - focus shift from image interface
+        """
         if wl is None:
             wvl = self.spectral_region.central_wvl
         else:
@@ -318,7 +332,7 @@ class FocusRange:
         """ return focus position for input focus range parameter
 
         Args:
-            fr: focus range parameter, -1.0 to 1.0
+            fr (double): focus range parameter, -1.0 to 1.0
 
         Returns:
             focus position for input focus range parameter

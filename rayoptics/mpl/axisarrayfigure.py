@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 # Copyright © 2018 Michael J. Hayford
 """
-Created on Fri Apr  13 10:43:19 2018
 
-@author: Michael J. Hayford
+.. Created on Fri Apr  13 10:43:19 2018
+
+.. codeauthor: Michael J. Hayford
 """
 
 from enum import Enum, auto

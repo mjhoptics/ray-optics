@@ -3,9 +3,9 @@
 # Copyright © 2018 Michael J. Hayford
 """ generic ray optics commands for creating plots and tables
 
-Created on Thu Nov  8 21:21:57 2018
+.. Created on Thu Nov  8 21:21:57 2018
 
-@author: Michael J. Hayford
+.. codeauthor: Michael J. Hayford
 """
 
 import rayoptics as ro

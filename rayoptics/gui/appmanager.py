@@ -3,16 +3,26 @@
 # Copyright © 2018 Michael J. Hayford
 """ Lightweight manager class to connect a model+actions to windows
 
-Created on Fri Aug 17 11:35:01 2018
+.. Created on Fri Aug 17 11:35:01 2018
 
-@author: Michael J. Hayford
+.. codeauthor: Michael J. Hayford
 """
 import logging
 
 from collections import namedtuple
 
 ModelInfo = namedtuple('ModelInfo', ['model', 'fct', 'args', 'kwargs'])
-# model is required; fct, args and kwargs are optional
+""" package of a model and a update function with args and kwargs
+
+    Attributes:
+        model: object asssociated with view update function
+        fct: view update function, can be None
+        args: list of fct arguments
+        kwargs: list of fct keyword arguments
+
+    Note:
+        ``model`` is required; ``fct``, ``args`` and ``kwargs`` are optional
+"""
 ModelInfo.__new__.__defaults__ = (None, (), {})
 
 
@@ -28,12 +38,18 @@ class AppManager:
 
     Attributes:
         model: the model of the currently active/frontmost ui view
+
             model is expected to respond to:
-            update_model()
-            name()
+
+                - update_model()
+                - name()
+
         view_dict: keys are ui views, values are ModelInfo tuples
+
             view is expected to implement:
-                windowTitle() - only for debug logging
+
+                - windowTitle() - only for debug logging
+
     """
 
     def __init__(self, model):
@@ -79,7 +95,7 @@ class AppManager:
                     view_close_fct(view)
 
     def refresh_gui(self):
-        """ update the active model and refresh it's dependent  ui views """
+        """ update the active model and refresh its dependent ui views """
         self.model.update_model()
         for mi in self.view_dict.values():
             if mi.model == self.model:

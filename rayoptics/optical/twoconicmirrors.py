@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Copyright © 2018 Michael J. Hayford
-"""
-Created on Tue Jun 26 16:11:58 2018
+""" calculate conic constants for different 2 mirror configurations
 
-@author: Michael J. Hayford
+.. Created on Tue Jun 26 16:11:58 2018
+
+.. codeauthor: Michael J. Hayford
 """
 
 from rayoptics.optical.model_constants import ht, slp

@@ -3,9 +3,9 @@
 # Copyright © 2018 Michael J. Hayford
 """ Module for thin lens interface type
 
-Created on Wed May 16 14:05:38 2018
+.. Created on Wed May 16 14:05:38 2018
 
-@author: Michael J. Hayford
+.. codeauthor: Michael J. Hayford
 """
 
 

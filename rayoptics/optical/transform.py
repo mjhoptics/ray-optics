@@ -3,9 +3,9 @@
 # Copyright © 2018 Michael J. Hayford
 """ Useful transforms for processing sequential models
 
-Created on Fri Feb  9 10:09:58 2018
+.. Created on Fri Feb  9 10:09:58 2018
 
-@author: Michael J. Hayford
+.. codeauthor: Michael J. Hayford
 """
 
 import numpy as np

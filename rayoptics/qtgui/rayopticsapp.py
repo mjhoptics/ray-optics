@@ -5,9 +5,9 @@
 
 Relies on PyQt5
 
-Created on Mon Feb 12 09:24:01 2018
+.. Created on Mon Feb 12 09:24:01 2018
 
-@author: Michael J. Hayford
+.. codeauthor: Michael J. Hayford
 """
 
 import sys

@@ -3,9 +3,9 @@
 # Copyright © 2018 Michael J. Hayford
 """ Table model supporting data content via python eval() fct
 
-Created on Wed Mar 14 21:59:43 2018
+.. Created on Wed Mar 14 21:59:43 2018
 
-@author: Michael J. Hayford
+.. codeauthor: Michael J. Hayford
 """
 import logging
 

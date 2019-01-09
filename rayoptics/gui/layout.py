@@ -3,9 +3,9 @@
 # Copyright © 2018 Michael J. Hayford
 """ Wireframe rendering routines for 2D lens picture
 
-Created on Tue Sep 18 14:23:28 2018
+.. Created on Tue Sep 18 14:23:28 2018
 
-@author: Michael J. Hayford
+.. codeauthor: Michael J. Hayford
 """
 
 import numpy as np
@@ -19,12 +19,15 @@ import rayoptics.optical.model_constants as mc
 def shift_start_of_ray_bundle(ray_bundle, start_offset, r, t):
     """ modify ray_bundle so that rays begin "start_offset" from 1st surface
 
-    ray_bundle: list of rays in a bundle, i.e. all for one field. ray_bundle[0]
-            is assumed to be the chief ray
-    start_offset: z distance rays should start wrt first surface.
-                  positive if to left of first surface
-    r, t: transformation rotation and translation
+    Args:
+        ray_bundle: list of rays in a bundle, i.e. all for one field.
+                    ray_bundle[0] is assumed to be the chief ray
+        start_offset: z distance rays should start wrt first surface.
+                      positive if to left of first surface
+        r: transformation rotation
+        t: transformation translation
     """
+
     for ri, ray in enumerate(ray_bundle):
         b4_pt = r.dot(ray[mc.ray][1][mc.p]) - t
         b4_dir = r.dot(ray[mc.ray][0][mc.d])
@@ -45,10 +48,15 @@ def shift_start_of_ray_bundle(ray_bundle, start_offset, r, t):
 def setup_shift_of_ray_bundle(seq_model, start_offset):
     """ compute transformation for rays "start_offset" from 1st surface
 
-    start_offset: z distance rays should start wrt first surface.
-                  positive if to left of first surface
-    return: transformation rotation and translation
+    Args:
+        seq_model: the sequential model
+        start_offset: z distance rays should start wrt first surface.
+                      positive if to left of first surface
+    Returns:
+        transformation rotation and translation::
+            (r, t)
     """
+
     s1 = seq_model.ifcs[1]
     s0 = seq_model.ifcs[0]
     g0 = gap.Gap(start_offset, seq_model.gaps[0].medium)
@@ -59,12 +67,16 @@ def setup_shift_of_ray_bundle(seq_model, start_offset):
 def shift_start_of_rayset(opt_model, rayset, start_offset):
     """ modify rayset so that rays begin "start_offset" from 1st surface
 
-    rayset: list of ray bundles, i.e. for a list of fields
-    start_offset: z distance rays should start wrt first surface.
-                  positive if to left of first surface
-    return: transformation rotation and translation
+    Args:
+        opt_model: the optical model
+        rayset: list of ray bundles, i.e. for a list of fields
+        start_offset: z distance rays should start wrt first surface.
+                      positive if to left of first surface
+    Returns:
+        transformation rotation and translation
     """
-    r, t = self.setup_shift_of_ray_bundle(opt_model, start_offset)
+
+    r, t = setup_shift_of_ray_bundle(opt_model.seq_model, start_offset)
     for ray_bundle in rayset:
         shift_start_of_ray_bundle(ray_bundle, start_offset, r, t)
     return r, t

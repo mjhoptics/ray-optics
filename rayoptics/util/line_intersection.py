@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 # Copyright © 2018 Michael J. Hayford
 """
-Created on Wed Apr 18 11:04:53 2018
+.. Created on Wed Apr 18 11:04:53 2018
 
-@author: Michael J. Hayford
+.. codeauthor: Michael J. Hayford
 """
 
 import numpy as np

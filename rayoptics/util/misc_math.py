@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 # Copyright © 2018 Michael J. Hayford
 """ miscellaneous functions for working with numpy vectors and floats
-Created on Wed May 23 15:27:06 2018
 
-@author: Michael J. Hayford
+.. Created on Wed May 23 15:27:06 2018
+
+.. codeauthor: Michael J. Hayford
 """
 import numpy as np
 from numpy.linalg import norm

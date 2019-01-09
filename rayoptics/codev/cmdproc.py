@@ -3,9 +3,9 @@
 # Copyright © 2018 Michael J. Hayford
 """ Functions to read a CODE V .seq file and populate a sequential model
 
-Created on Tue Jan 16 10:14:12 2018
+.. Created on Tue Jan 16 10:14:12 2018
 
-@author: Michael J. Hayford
+.. codeauthor: Michael J. Hayford
 """
 import logging
 
@@ -134,8 +134,6 @@ def spec_data(optm, tla, qlist, dlist):
         elif dim == 'I':
             dim = dt.IN
         optm.system_spec.dimensions = dim
-    elif tla == "CA":
-        optm.system_spec.aperture_override = ''
     elif tla == "TEM":
         optm.system_spec.temperature = dlist[0]
     elif tla == "PRE":

@@ -1,5 +1,10 @@
-# ray-optics
-## Tools for image forming optical design and analysis  
+============
+Introduction
+============
+
+---------------------------------------------------
+Tools for image forming optical design and analysis
+--------------------------------------------------- 
 
 The **ray-optics** project has several goals, both in the optical domain and in the software development domain  
 

@@ -3,9 +3,9 @@
 # Copyright © 2018 Michael J. Hayford
 """ Functions to support ray tracing a sequential optical model
 
-Created on Thu Jan 25 11:01:04 2018
+.. Created on Thu Jan 25 11:01:04 2018
 
-@author: Michael J. Hayford
+.. codeauthor: Michael J. Hayford
 """
 
 import itertools
@@ -55,17 +55,21 @@ def trace(seq_model, pt0, dir0, wvl, **kwargs):
         wvl: wavelength in nm
         eps: accuracy tolerance for surface intersection calculation
 
-    Returns: ray, op_delta
-    where ray is:
-        [pt, after_dir, after_dst]
-        where
-        pt: the intersection point of the ray in interface coordinates
-        after_dir: the ray direction cosine following the interface in
-                   interface coordinates
-        after_dst: the geometric distance to the next interface
-    and
-        op_delta: optical path wrt equally inclined chords to the optical axis
-        wvl: wavelength (in nm) that the ray was traced in
+    Returns:
+        (**ray**, **op_delta**, **wvl**)
+
+        - **ray** is a list for each interface in **path_pkg** of these
+          elements: [pt, after_dir, after_dst, normal]
+
+            - pt: the intersection point of the ray
+            - after_dir: the ray direction cosine following the interface
+            - after_dst: after_dst: the geometric distance to the next
+              interface
+            - normal: the surface normal at the intersection point
+
+        - **op_delta** - optical path wrt equally inclined chords to the
+          optical axis
+        - **wvl** - wavelength (in nm) that the ray was traced in
     """
     path = itertools.zip_longest(seq_model.ifcs, seq_model.gaps,
                                  seq_model.rndx[wvl], seq_model.lcl_tfrms,
@@ -85,19 +89,20 @@ def trace_raw(path_pkg, pt0, dir0, wvl, eps=1.0e-12):
         eps: accuracy tolerance for surface intersection calculation
 
     Returns:
-        ray, op_delta, wvl
-        where ray is a list of these elements:
-            [pt, after_dir, after_dst, normal]
-            where
-            pt: the intersection point of the ray in interface coordinates
-            after_dir: the ray direction cosine following the interface in
-                       interface coordinates
-            after_dst: after_dst: the geometric distance to the next interface
-            normal: the surface normal at the intersection point
-        and
-            op_delta: optical path wrt equally inclined chords to the
-                      optical axis
-            wvl: wavelength (in nm) that the ray was traced in
+        (**ray**, **op_delta**, **wvl**)
+
+        - **ray** is a list for each interface in **path_pkg** of these
+          elements: [pt, after_dir, after_dst, normal]
+
+            - pt: the intersection point of the ray
+            - after_dir: the ray direction cosine following the interface
+            - after_dst: after_dst: the geometric distance to the next
+              interface
+            - normal: the surface normal at the intersection point
+
+        - **op_delta** - optical path wrt equally inclined chords to the
+          optical axis
+        - **wvl** - wavelength (in nm) that the ray was traced in
     """
     ray = []
     eic = []
@@ -187,8 +192,14 @@ def trace_raw(path_pkg, pt0, dir0, wvl, eps=1.0e-12):
 
 def calc_path_length(eic, offset=0):
     """ given eic array, compute path length between outer surfaces
-        offset is beginning index of eic array wrt the object interface
-        """
+
+    Args:
+        eic: equally inclined chord array
+        offset (int): beginning index of eic array wrt the object interface
+
+    Returns:
+        double: path length
+    """
     P1k = -eic[1-offset][2]*eic[1-offset][3] + eic[-2][0]*eic[-2][1]
     Ps = 0.
     for i in range(2-offset, len(eic)-2):
@@ -208,7 +219,7 @@ def eic_distance(r, r0):
             cosine of r0
 
     Returns:
-        e: distance along r from equally inclined chord point to p
+        double: distance along r from equally inclined chord point to p
     """
     # eq 3.9
     e = (np.dot(r[1] + r0[1], r[0] - r0[0]) / (1. + np.dot(r[1], r0[1])))
@@ -381,25 +392,21 @@ def transfer_to_exit_pupil(interface, ray_seg, exp_dst_parax):
 
 
 def eic_path_accumulation(ray, rndx, lcl_tfrms, z_dir):
-    """ fundamental raytrace function
+    """ computes equally inclined chords and path info for ray
 
-    inputs:
-        path: an iterator containing interfaces and gaps to be traced
-        pt0: starting point in coords of first interface
-        dir0: starting direction cosines in coords of first interface
-        wl: wavelength in nm
-        eps: accuracy tolerance for surface intersection calculation
+    Args:
+        ray: ray data for traced ray
+        rndx: refractive index array
+        lcl_tfrms: local surface interface transformation data
+        z_dir: z direction array
 
-    returns ray, op_delta
-    where ray is:
-        [pt, after_dir, dst_b4]
-        where
-        pt: the intersection point of the ray in interface coordinates
-        after_dir: the ray direction cosine following the interface in
-                   interface coordinates
-        dst_b4: the geometric distance from the previous interface
-    and
-        op_delta: optical path wrt equally inclined chords to the optical axis
+    Returns:
+        (**eic**, **op_delta**)
+
+        - **eic** - list of [n_before, eic_dst_before, n_after, eic_dst_after,
+          dW]
+        - **op_delta** - optical path wrt equally inclined chords to the
+          optical axis
     """
     eic = []
 

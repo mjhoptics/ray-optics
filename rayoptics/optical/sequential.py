@@ -3,11 +3,12 @@
 # Copyright © 2018 Michael J. Hayford
 """ Manager class for a sequential optical model
 
-@author: Michael J. Hayford
+.. codeauthor: Michael J. Hayford
 """
 
 import itertools
 import logging
+
 from . import surface
 from . import profiles
 from . import gap
@@ -27,17 +28,19 @@ from rayoptics.util.misc_math import isanumber
 class SequentialModel:
     """ Manager class for a sequential optical model
 
-    A sequential optical model is a sequence of surfaces and gaps. It includes
-    optical usage information to specify the aperture, field of view and
-    spectrum.
+    A sequential optical model is a sequence of surfaces and gaps.
 
-    The sequential model has this structure:
+    The sequential model has this structure
+    ::
+
         IfcObj  Ifc1  Ifc2  Ifc3 ... Ifci-1   IfcImg
              \  /  \  /  \  /             \   /
              GObj   G1    G2              Gi-1
-    where:
-        Ifc is a Interface instance
-        G   is a Gap instance
+
+    where
+
+        - Ifc is a :class:`~rayoptics.optical.surface.Interface` instance
+        - G   is a :class:`~rayoptics.optical.gap.Gap` instance
 
     There are N interfaces and N-1 gaps. The initial configuration has an
     object and image Surface and an object gap.

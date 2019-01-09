@@ -3,9 +3,9 @@
 # Copyright © 2018 Michael J. Hayford
 """ First order paraxial design space
 
-Created on Sat Mar 31 21:14:42 2018
+.. Created on Sat Mar 31 21:14:42 2018
 
-@author: Michael J. Hayford
+.. codeauthor: Michael J. Hayford
 """
 
 from rayoptics.optical.model_constants import ht, slp, aoi

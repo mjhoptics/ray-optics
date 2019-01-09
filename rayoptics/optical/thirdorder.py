@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Copyright © 2018 Michael J. Hayford
-"""
-Created on Fri Jul  6 07:24:40 2018
+"""thirder order aberration calculation
 
-@author: Michael J. Hayford
+.. Created on Fri Jul  6 07:24:40 2018
+
+.. codeauthor: Michael J. Hayford
 """
 
 import numpy as np

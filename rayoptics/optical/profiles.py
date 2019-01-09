@@ -3,9 +3,9 @@
 # Copyright © 2017 Michael J. Hayford
 """ Module for different surface profile shapes
 
-Created on Tue Aug  1 13:18:57 2017
+.. Created on Tue Aug  1 13:18:57 2017
 
-@author: Michael J. Hayford
+.. codeauthor: Michael J. Hayford
 """
 
 import numpy as np
@@ -41,6 +41,7 @@ def intersect_parabola(cv, p, d, z_dir=1.0):
     p1 = p + s*d
     return s, p1
 
+
 class SurfaceProfile:
     def __repr__(self):
         return "{!s}()".format(type(self).__name__)
@@ -62,7 +63,7 @@ class SurfaceProfile:
 
     def intersect(self, p0, d, eps, z_dir):
         ''' Intersect a profile, starting from an arbitrary point.
-    
+
         Args:
             cv: vertex curvature
             p0:  start point of the ray in the profile's coordinate system

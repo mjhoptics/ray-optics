@@ -20,5 +20,13 @@ wheels/
 *.egg
 MANIFEST
 
+# Documentation
+_build
+_static
+_templates
+
 # Jupyter Notebook
 .ipynb_checkpoints
+
+# Testing
+*.xlsx

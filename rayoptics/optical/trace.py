@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Copyright © 2018 Michael J. Hayford
-"""
-Created on Mon Sep 17 23:10:59 2018
+""" Supports model ray tracing in terms of relative aperture and field.
 
-Supports model ray tracing in terms of relative
-aperture and field.
+.. Created on Mon Sep 17 23:10:59 2018
 
-@author: Michael J. Hayford
+.. codeauthor: Michael J. Hayford
 """
 
 import itertools
@@ -26,12 +24,12 @@ RayPkg = namedtuple('RayPkg', ['ray', 'op', 'wvl'])
 
 
 def ray_pkg(ray_pkg):
-    """ return a Series containing a ray package (RayPkg) """
+    """ return a |Series| containing a ray package (RayPkg) """
     return pd.Series(ray_pkg, index=['ray', 'op', 'wvl'])
 
 
 def ray_df(ray):
-    """ return a DataFrame containing ray data """
+    """ return a |DataFrame| containing ray data """
     r = pd.DataFrame(ray, columns=['inc_pt', 'after_dir',
                                    'after_dst', 'normal'])
     r.index.names = ['intrfc']
@@ -60,9 +58,30 @@ def list_ray(ray):
 
 def trace(sequence, pt0, dir0, wvl, **kwargs):
     """ returns (ray, ray_opl, wvl)
+
     Args:
         sequence: a Sequence or generator that returns a list containing:
             Intfc, Gap, Index, Trfm, Z_Dir
+        pt0: starting coordinate at object interface
+        dir0: starting direction cosines following object interface
+        wvl: ray trace wavelength in nm
+        **kwargs: keyword arguments
+
+    Returns:
+        (**ray**, **op_delta**, **wvl**)
+
+        - **ray** is a list for each interface in **path_pkg** of these
+          elements: [pt, after_dir, after_dst, normal]
+
+            - pt: the intersection point of the ray
+            - after_dir: the ray direction cosine following the interface
+            - after_dst: after_dst: the geometric distance to the next
+              interface
+            - normal: the surface normal at the intersection point
+
+        - **op_delta** - optical path wrt equally inclined chords to the
+          optical axis
+        - **wvl** - wavelength (in nm) that the ray was traced in
     """
     return rt.trace(sequence, pt0, dir0, wvl, **kwargs)
 
@@ -116,7 +135,7 @@ def trace_ray_list_at_field(opt_model, ray_list, fld, wvl, foc):
 
 
 def trace_field(opt_model, fld, wvl):
-    """ returns a DataFrame with the boundary rays for field fld """
+    """ returns a |DataFrame| with the boundary rays for field fld """
     osp = opt_model.optical_spec
     rayset = trace_boundary_rays_at_field(opt_model, fld, wvl)
     rdf_list = [ray_df(r[0]) for r in rayset]
@@ -126,7 +145,7 @@ def trace_field(opt_model, fld, wvl):
 
 
 def trace_all_fields(opt_model):
-    """ returns a DataFrame with the boundary rays for all fields """
+    """ returns a |DataFrame| with the boundary rays for all fields """
     osp = opt_model.optical_spec
     fld, wvl, foc = osp.lookup_fld_wvl_focus(0)
     fset = []

@@ -3,7 +3,7 @@
 # Copyright © 2018 Michael J. Hayford
 """ Support for CODE V TLAs
 
-@author: Michael J. Hayford
+.. codeauthor: Michael J. Hayford
 """
 import csv
 from pathlib import Path

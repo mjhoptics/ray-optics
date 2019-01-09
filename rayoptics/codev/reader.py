@@ -3,7 +3,7 @@
 # Copyright © 2017 Michael J. Hayford
 """ Support for reading CODE V .seq files
 
-@author: Michael J. Hayford
+.. codeauthor: Michael J. Hayford
 """
 
 import re

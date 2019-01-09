@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 # Copyright © 2018 Michael J. Hayford
 """
-Created on Sat Jun 30 10:15:37 2018
 
-@author: Michael J. Hayford
+.. Created on Sat Jun 30 10:15:37 2018
+
+.. codeauthor: Michael J. Hayford
 """
 
 import warnings

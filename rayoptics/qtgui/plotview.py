@@ -3,9 +3,9 @@
 # Copyright © 2018 Michael J. Hayford
 """ Support for fully featured QT windows for plotting/matplotlib
 
-Created on Wed Nov  7 15:04:19 2018
+.. Created on Wed Nov  7 15:04:19 2018
 
-@author: Michael J. Hayford
+.. codeauthor: Michael J. Hayford
 """
 from PyQt5.QtCore import Qt as qt
 from PyQt5.QtWidgets import (QHBoxLayout, QVBoxLayout, QWidget, QLineEdit,

@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 # Copyright © 2018 Michael J. Hayford
 """ optical model enums
-Created on Tue Dec  4 11:32:57 2018
 
-@author: Michael J. Hayford
+.. Created on Tue Dec  4 11:32:57 2018
+
+.. codeauthor: Michael J. Hayford
 """
 
 from enum import Enum

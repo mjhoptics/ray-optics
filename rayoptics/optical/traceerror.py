@@ -3,9 +3,9 @@
 # Copyright © 2018 Michael J. Hayford
 """ Support for ray trace exception handling
 
-Created on Wed Oct 24 15:22:40 2018
+.. Created on Wed Oct 24 15:22:40 2018
 
-@author: Michael J. Hayford
+.. codeauthor: Michael J. Hayford
 """
 
 

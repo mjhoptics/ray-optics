@@ -3,9 +3,9 @@
 # Copyright © 2018 Michael J. Hayford
 """ Qt GraphicsItem subclasses for 2D graphics views
 
-Created on Tue Mar 20 10:39:27 2018
+.. Created on Tue Mar 20 10:39:27 2018
 
-@author: Michael J. Hayford
+.. codeauthor: Michael J. Hayford
 """
 
 from PyQt5.QtCore import QPointF

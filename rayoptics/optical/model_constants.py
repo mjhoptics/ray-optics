@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 # Copyright © 2018 Michael J. Hayford
 """ optical model constants
-Created on Wed May 23 16:00:55 2018
 
-@author: Michael J. Hayford
+.. Created on Wed May 23 16:00:55 2018
+
+.. codeauthor: Michael J. Hayford
 """
 
 # sequential model data structures

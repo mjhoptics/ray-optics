@@ -3,9 +3,9 @@
 # Copyright © 2017 Michael J. Hayford
 """ Gap container class
 
-Created on Fri Sep 15 17:06:17 2017
+.. Created on Fri Sep 15 17:06:17 2017
 
-@author: Michael J. Hayford
+.. codeauthor: Michael J. Hayford
 """
 
 
