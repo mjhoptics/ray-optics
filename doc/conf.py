@@ -25,9 +25,9 @@ copyright = '2018-2019, Michael J. Hayford'
 author = 'Michael J. Hayford'
 
 # The short X.Y version
-version = '0.1.5'
+version = '0.2.0'
 # The full version, including alpha/beta/rc tags
-release = '0.1.5'
+release = '0.2.0'
 
 
 # -- General configuration ---------------------------------------------------
@@ -41,7 +41,6 @@ release = '0.1.5'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
-#    'sphinx.ext.viewcode',
     'sphinx.ext.intersphinx',
     'sphinx.ext.napoleon',
     'sphinx.ext.autosummary',

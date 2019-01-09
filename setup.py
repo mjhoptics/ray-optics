@@ -1,11 +1,11 @@
 import setuptools
 
-with open("README.md", "r") as fh:
+with open("README.rst", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
     name="rayoptics",
-    version="0.1.5",
+    version="0.2.0",
     author="Michael J Hayford",
     author_email="mjhoptics@gmail.com",
     description="Tools for image forming optical design and analysis",
