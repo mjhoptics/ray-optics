@@ -1,13 +1,13 @@
 .. currentmodule:: rayoptics.optical
 
+.. _seq_model:
+
 ****************
 Sequential Model
 ****************
 
-.. _seq_model:
-
-Sequential Model Overview
-=========================
+Overview
+========
 
     The Sequential model abstracts the essential parts of a physical optical system when using ray tracing to compute imaging performance. For many use cases, this only requires a minimum of information (curvature, thickness, refractive index) to usefully describe an optical system. Similarly, the needs of ray tracing for performance evaluation is satisfied by having the sequence of optical surfaces involved in image formation.
     

@@ -1,13 +1,13 @@
 .. currentmodule:: rayoptics.optical
 
+.. _opt_model:
+
 *************
 Optical Model
 *************
 
-.. _opt_model:
-
-Optical Model Overview
-======================
+Overview
+========
 
    The :class:`~opticalmodel.OpticalModel` serves as a top level container of model properties. Key aspects are built-in element and surface based repesentations of the optical surfaces.
 

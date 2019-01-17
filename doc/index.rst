@@ -3,70 +3,48 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-:tocdepth: 4
+:tocdepth: 3
 
 #######################
 RayOptics Documentation
 #######################
 
+.. image:: DBGauss.png
+   :align: center
+
 .. toctree::
-   :caption: Contents:
+   :maxdepth: 1
+   :caption: Contents
 
    Introduction
 
 .. _getting-started:
 
 .. toctree::
-   :caption: Getting Started:
+   :maxdepth: 1
+   :caption: Getting Started
 
    install
+   examples/TripletExample
 
 .. _user-docs:
 
-**********
-User Guide
-**********
-
 .. toctree::
-   :caption: User Guide:
+   :maxdepth: 1
+   :caption: User Guide
 
-.. toctree::
-   :caption: Models and Representations:
-
-   rayoptics/optical/optmodel
-   rayoptics/optical/sequential
-   rayoptics/optical/opticalspec
-
-.. toctree::
-   :caption: Optical Calculations and Analysis:
-
-   rayoptics/optical/paraxdesign
-   rayoptics/optical/raytrace
-
-.. toctree::
-   :caption: Data, Commands and Views:
-
-   rayoptics/gui/index
-
-.. toctree::
-   :caption: IPython usage:
-
-   rayoptics/gui/ipython
-
-.. toctree::
-   :caption: Jupiter notebook:
-
-   rayoptics/gui/jupyter
-
-.. toctree::
-   :caption: Qt application:
-
-   rayoptics/qtgui/index
+   userguide/models
+   userguide/calc
+   userguide/gui
+   userguide/ipython
+   userguide/jupyter
+   userguide/qt
 
 .. _dev-guide:
 
 .. toctree::
-   :caption: Developers Guide:
+   :maxdepth: 1
+   :caption: Developer Guide
 
    source/rayoptics.optical
    source/rayoptics.codev

@@ -1,9 +1,5 @@
 .. currentmodule:: rayoptics.gui
 
-***********
-GUI Support
-***********
-
 .. _gui_overview:
 
 Generic GUI Overview
