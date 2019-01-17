@@ -33,4 +33,4 @@ class Gap:
 
     def sync_to_restore(self, seq_model):
         if hasattr(self.medium, 'sync_to_restore'):
-            self.medium.sync_to_restore(seq_model)
+            self.medium.sync_to_restore()
