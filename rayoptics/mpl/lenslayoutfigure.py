@@ -41,6 +41,7 @@ class LensLayoutFigure(Figure):
                  scale_type=Fit_All,
                  user_scale_value=1.0,
                  oversize_factor=0.05,
+                 offset_factor=0.05,
                  do_draw_rays=True,
                  **kwargs):
         self.opt_model = opt_model
@@ -50,6 +51,7 @@ class LensLayoutFigure(Figure):
         self.do_draw_frame = do_draw_frame
         self.do_draw_rays = do_draw_rays
         self.oversize_factor = oversize_factor
+        self.offset_factor = offset_factor
 
         Figure.__init__(self, **kwargs)
 
@@ -72,7 +74,8 @@ class LensLayoutFigure(Figure):
         self.ele_bbox = self.update_patches(self.ele_shapes)
 
         if self.do_draw_rays:
-            self.ray_shapes = self.create_ray_model()
+            offset = self.offset_factor
+            self.ray_shapes = self.create_ray_model(offset_factor=offset)
             self.ray_bbox = self.update_patches(self.ray_shapes)
 
             concat_bbox = np.concatenate((self.ele_bbox, self.ray_bbox))
@@ -114,8 +117,8 @@ class LensLayoutFigure(Figure):
         p.set_linewidth(self.linewidth)
         return p, bbox
 
-    def create_ray_model(self, start_surf=1):
-        start_offset = 0.05*self.system_length()
+    def create_ray_model(self, start_surf=1, offset_factor=0.05):
+        start_offset = offset_factor*self.system_length()
 
         ray_bundles = []
         fov = self.opt_model.optical_spec.field_of_view
