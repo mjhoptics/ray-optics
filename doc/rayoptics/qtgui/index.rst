@@ -15,6 +15,8 @@ Qt5 app version of rayoptics
 Running the app
 ===============
 
+A desktop application is installed as part of ``rayoptics``. It is invoked by running ``rayoptics`` at the command line.
+
 .. code::
 
-   python3 rayoptics/qtgui/rayopticsapp.py
+   MacBook-Pro:docs Mike$ rayoptics

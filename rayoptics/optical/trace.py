@@ -387,7 +387,7 @@ def trace_coddington_fan(opt_model, ray_pkg, foc=None):
 def intersect_2_lines(P1, V1, P2, V2):
     """ intersect 2 non-parallel lines, returning distance from P1
 
-    s = ((P2 - P1) x V1).(V1 x V2)/|(V1 x V2)|**2
+    s = ((P2 - P1) x V1).(V1 x V2)/\|(V1 x V2)\|**2
 
     `Weisstein, Eric W. "Line-Line Intersection." From MathWorld--A Wolfram Web
     Resource. <http://mathworld.wolfram.com/Line-LineIntersection.html>`_
@@ -413,8 +413,7 @@ def trace_astigmatism(opt_model, fld, wvl, foc, dx=0.001, dy=0.001):
         dy: delta in pupil coordinates for y/tangential direction
 
     Returns:
-        s_foc: sagittal focus shift at **fld**
-        t_foc: tangential focus shift at **fld**
+        s focus shift, t focus shift: sagittal and tangential focus shifts at **fld**
     """
     rlist = []
     rlist.append(RayPkg(*trace_base(opt_model, [0., 0.], fld, wvl)))
