@@ -10,6 +10,7 @@
 
 import rayoptics as ro
 from rayoptics.mpl.axisarrayfigure import Fit
+from rayoptics.mpl.analysisplots import FieldCurveFigure
 import rayoptics.mpl.paraxdgnfigure as pdfig
 import rayoptics.qtgui.plotview as plotview
 from rayoptics.qtgui.pytablemodel import PyTableModel
@@ -84,6 +85,14 @@ def create_wavefront_view(opt_model, gui_parent=None):
     view_width = num_wvls * view_box
     view_ht = num_flds * view_box
     title = "Wavefront Map"
+    plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht)
+
+
+def create_field_curves(opt_model, gui_parent=None):
+    fig = FieldCurveFigure(opt_model, dpi=100)
+    view_width = 600
+    view_ht = 600
+    title = "Field Curves"
     plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht)
 
 

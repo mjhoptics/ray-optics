@@ -208,6 +208,10 @@ class FieldSpec:
         del attrs['optical_spec']
         return attrs
 
+    def __str__(self):
+        return "type={}, max field={}".format(self.field_type,
+                                              self.max_field()[0])
+
     def set_from_list(self, flds):
         self.fields = [Field() for f in range(len(flds))]
         for i, f in enumerate(self.fields):
@@ -298,6 +302,9 @@ class Field:
     def __str__(self):
         return "{}, {}".format(self.x, self.y)
 
+    def __repr__(self):
+        return "Field(x={}, y={}, wt={})".format(self.x, self.y, self.wt)
+
     def update(self):
         self.chief_ray = None
         self.ref_sphere = None
@@ -320,9 +327,16 @@ class Field:
 
 
 class FocusRange:
-    def __init__(self, defocus, infocus=0.0):
-        self.infocus = infocus
-        self.defocus = defocus
+    """ Focus range specification
+
+    Attributes:
+        focus_shift: focus shift (z displacement) from nominal image interface
+        defocus_range: +/- half the total focal range, from the focus_shift
+                       position
+    """
+    def __init__(self, defocus_range, focus_shift=0.0):
+        self.focus_shift = focus_shift
+        self.defocus_range = defocus_range
 
     def update(self):
         self.chief_ray = None
@@ -337,4 +351,4 @@ class FocusRange:
         Returns:
             focus position for input focus range parameter
         """
-        return self.infocus + fr*self.defocus
+        return self.focus_shift + fr*self.defocus_range
