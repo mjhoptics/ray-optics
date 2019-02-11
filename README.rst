@@ -21,4 +21,4 @@ Optical calculation technology can be considered a mature field. There is a long
 
 The advent of scripting environments like Python make a fresh look at optical design calculations worthwhile. Python has many advantages for scientific and engineering applications, including libraries for numerical calculations, a variety of graphics options including a very full featured plotting library, and support for data science applications that look promising for managing data generated during extensive analysis of optical systems. There is also good support for unit testing of Python software, as well as debugging and performance profiling.
 
-Finally, computational notebooks, such as those of the Jupyter project, provide the ability to document ***reproducibly*** the implementation of an algorithm and results produced by the algorithm.
+Finally, computational notebooks, such as those of the Jupyter project, provide the ability to document **reproducibly** the implementation of an algorithm and results produced by the algorithm.
