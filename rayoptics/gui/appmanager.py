@@ -44,6 +44,12 @@ class AppManager:
                 - update_model()
                 - name()
 
+        gui_parent: the top level gui manager (optional)
+
+            gui_parent is expected to implement:
+
+                - refresh_app_ui()
+
         view_dict: keys are ui views, values are ModelInfo tuples
 
             view is expected to implement:
@@ -52,8 +58,9 @@ class AppManager:
 
     """
 
-    def __init__(self, model):
+    def __init__(self, model, gui_parent=None):
         self.model = model
+        self.gui_parent = gui_parent
         self.view_dict = {}
 
     def add_view(self, view, model_info):
@@ -97,6 +104,12 @@ class AppManager:
     def refresh_gui(self):
         """ update the active model and refresh its dependent ui views """
         self.model.update_model()
+        self.refresh_views()
+
+    def refresh_views(self):
+        """ refresh the dependent ui views of the active model """
+        if self.gui_parent is not None:
+            self.gui_parent.refresh_app_ui()
         for mi in self.view_dict.values():
             if mi.model == self.model:
                 if mi.fct is not None:
@@ -120,4 +133,5 @@ class AppManager:
                               (model.name(), view.windowTitle()))
                 if model and model != self.model:
                     self.model = model
+                    self.refresh_views()
                     logging.debug("switch model to", model.name())

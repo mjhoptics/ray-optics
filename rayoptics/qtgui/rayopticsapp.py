@@ -40,7 +40,7 @@ class MainWindow(QMainWindow):
         self.mdi = QMdiArea()
         self.setCentralWidget(self.mdi)
 
-        self.app_manager = AppManager(None)
+        self.app_manager = AppManager(None, gui_parent=self)
         self.mdi.subWindowActivated.connect(self.app_manager.
                                             on_view_activated)
 
@@ -74,6 +74,7 @@ class MainWindow(QMainWindow):
         view.addAction("OPD Fans")
         view.addAction("Spot Diagram")
         view.addAction("Wavefront Map")
+        view.addAction("Astigmatism Curves")
         view.addSeparator()
         view.triggered[QAction].connect(self.view_action)
 
@@ -87,7 +88,6 @@ class MainWindow(QMainWindow):
             wnd.addAction(pi.menu_action)
 
         wnd.triggered[QAction].connect(self.window_action)
-
 
         self.setWindowTitle("Ray Optics")
         self.show()
@@ -106,8 +106,8 @@ class MainWindow(QMainWindow):
 #            self.open_file(path / "codev/test/questar35.seq")
 #            self.open_file(path / "codev/test/conic_mirror.seq")
 #            self.open_file(path / "codev/test/rc_f16.seq")
-#            self.open_file(path / "codev/test/ag_dblgauss.seq")
-            self.open_file(path / "codev/test/landscape_lens.seq")
+            self.open_file(path / "codev/test/ag_dblgauss.seq")
+#            self.open_file(path / "codev/test/landscape_lens.seq")
 #            self.open_file(path / "optical/test/cell_phone_camera.roa")
 #            self.open_file(path / "optical/test/singlet_f3.roa")
 
@@ -160,6 +160,7 @@ class MainWindow(QMainWindow):
 #            self.create_2D_lens_view()
             cmds.create_paraxial_design_view(opt_model, Dgm.ht,
                                              gui_parent=self)
+            self.refresh_app_ui()
 
         if q.text() == "Open...":
             options = QFileDialog.Options()
@@ -195,6 +196,7 @@ class MainWindow(QMainWindow):
         self.create_lens_table()
 #        self.create_lens_layout_view()
         self.create_2D_lens_view()
+        self.refresh_app_ui()
 
     def save_file(self, file_name):
         self.app_manager.model.save_model(file_name)
@@ -228,6 +230,9 @@ class MainWindow(QMainWindow):
         if q.text() == "Wavefront Map":
             cmds.create_wavefront_view(opt_model, gui_parent=self)
 
+        if q.text() == "Astigmatism Curves":
+            cmds.create_field_curves(opt_model, gui_parent=self)
+
         if q.text() == "Paraxial Height View":
             cmds.create_paraxial_design_view(opt_model, Dgm.ht,
                                              gui_parent=self)
@@ -257,12 +262,15 @@ class MainWindow(QMainWindow):
 
     def create_ray_table(self, opt_model):
         osp = opt_model.optical_spec
-        pupil = [0., 1.]
-        fi = 0
+        pupil = [0., 0.]
+        fi = 1
         wl = osp.spectral_region.reference_wvl
         fld, wvl, foc = osp.lookup_fld_wvl_focus(fi, wl)
         ray, ray_op, wvl, opd = trace.trace_with_opd(opt_model, pupil,
                                                      fld, wvl, foc)
+
+        cr = trace.RayPkg(ray, ray_op, wvl)
+        s, t = trace.trace_coddington_fan(opt_model, cr, foc)
 
         model = cmds.create_ray_table_model(opt_model, ray)
         self.create_table_view(model, "Ray Table")
@@ -367,17 +375,13 @@ class MainWindow(QMainWindow):
 
     def refresh_gui(self):
         self.app_manager.refresh_gui()
-        for pi in dock.panels.values():
-            if pi.menu_action.isChecked():
-                pi.panel_widget.update(self.app_manager.model)
+
+    def refresh_app_ui(self):
+        dock.update_dock_windows(self)
 
     @pyqtSlot(object, int)
     def on_data_changed(self, rootObj, index):
         self.refresh_gui()
-
-    @pyqtSlot(QMdiSubWindow)
-    def on_subwindow_activated(self, window):
-        self.app_manager.on_view_activated(window)
 
 
 def main():

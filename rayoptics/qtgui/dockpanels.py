@@ -10,6 +10,7 @@
 import logging
 from collections import namedtuple
 
+from PyQt5 import QtCore
 from PyQt5.QtCore import QDate, QSize, Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QCheckBox, QComboBox, QDateTimeEdit, QAction,
@@ -30,26 +31,34 @@ panels = {}
 def create_dock_windows(gui_app):
     panels['wavelengths'] = create_dock_widget(gui_app,
                                                'wavelengths', 'Wavelengths',
-                                               SpectrumWavelengthsPanel)
+                                               SpectrumWavelengthsPanel, False)
     panels['aperture'] = create_dock_widget(gui_app,
                                             'aperture', 'Aperture',
-                                            AperturePanel)
+                                            AperturePanel, False)
     panels['system'] = create_dock_widget(gui_app,
                                           'system', 'System Info',
-                                          SystemSpecPanel)
+                                          SystemSpecPanel, False)
 
 
-def create_dock_widget(gui_app, item_key, label, panel):
+def create_dock_widget(gui_app, item_key, label, panel, state):
     dock = QDockWidget(item_key, gui_app)
     panel_widget = panel(gui_app, dock)
     dock.setWidget(panel_widget)
-    menu_action = create_menu_action(gui_app, item_key, label)
+    menu_action = create_menu_action(gui_app, item_key, label, state)
+    gui_app.addDockWidget(Qt.RightDockWidgetArea, dock)
+    dock.setVisible(state)
     return PanelInfo(dock, panel_widget, menu_action)
 
 
-def create_menu_action(gui_app, item_key, label):
+def update_dock_windows(gui_app):
+    for pi in panels.values():
+        if pi.menu_action.isChecked():
+            pi.panel_widget.update(gui_app.app_manager.model)
+
+
+def create_menu_action(gui_app, item_key, label, state=False):
     menu_action = QAction(label, gui_app, checkable=True)
-    menu_action.setChecked(False)
+    menu_action.setChecked(state)
     menu_action.triggered.connect(lambda state:
                                   togglePanel(gui_app, state, item_key))
     return menu_action
@@ -57,11 +66,9 @@ def create_menu_action(gui_app, item_key, label):
 
 def togglePanel(gui_app, state, item_key):
     panel_info = panels[item_key]
+    panel_info.dock.setVisible(state)
     if state:
-        gui_app.addDockWidget(Qt.RightDockWidgetArea, panel_info.dock)
         panel_info.panel_widget.update(gui_app.app_manager.model)
-    else:
-        gui_app.removeDockWidget(panel_info.dock)
 
 
 class UIWidget():
@@ -132,6 +139,7 @@ class TextFieldWidget(UIWidget):
                                               get_eval_str, set_eval_str)
         self.valueFormat = valueFormat
         self.widget.editingFinished.connect(self.updateData)
+        self.widget.setAlignment(QtCore.Qt.AlignLeft)
 
     def updateData(self):
         """ push widget data to backend """
@@ -201,7 +209,10 @@ class SpectrumWavelengthsPanel(QWidget):
         num_wvls = len(opt_model.optical_spec.spectral_region.wavelengths)
         if num_wvls == 1:
             self.ctrl_wvl_edit.refresh()
+            self.red_wvl_edit.widget.setText('')
+            self.blue_wvl_edit.widget.setText('')
         elif num_wvls == 2:
+            self.ctrl_wvl_edit.widget.setText('')
             self.red_wvl_edit.refresh()
             self.blue_wvl_edit.refresh()
         elif num_wvls > 2:
