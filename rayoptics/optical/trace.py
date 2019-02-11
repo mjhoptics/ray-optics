@@ -9,6 +9,7 @@
 """
 
 import itertools
+import math
 import numpy as np
 from numpy.linalg import norm
 from collections import namedtuple
@@ -313,3 +314,125 @@ def setup_canonical_coords(opt_model, fld, wvl, image_pt=None):
     ref_sphere_pkg = (ref_sphere, osp.parax_data, n_obj, n_img, z_dir)
     fld.ref_sphere = ref_sphere_pkg
     return ref_sphere_pkg, cr
+
+
+def trace_astigmatism_coddington_fan(opt_model, fld, wvl, foc):
+    """ calculate astigmatism by Coddington trace at **fld** """
+    cr = RayPkg(*trace_base(opt_model, [0., 0.], fld, wvl))
+    s_dfoc, t_dfoc = trace_coddington_fan(opt_model, cr, foc=foc)
+    return s_dfoc, t_dfoc
+
+
+def trace_coddington_fan(opt_model, ray_pkg, foc=None):
+    """ astigmatism calculation via Coddington trace
+
+.. note:: spherical surfaces only
+    """
+    seq_model = opt_model.seq_model
+    wvl = ray_pkg.wvl
+
+    path = itertools.zip_longest(ray_pkg.ray, seq_model.ifcs,
+                                 seq_model.rndx[wvl], seq_model.lcl_tfrms,
+                                 seq_model.z_dir)
+
+    before_rind = seq_model.rndx[wvl][0]
+    before_dir = None
+    for r, ifc, after_rind, tfrm, z_dir in path:
+        pt, after_dir, after_dst, normal = r
+        if before_dir is not None:
+            normal_len = norm(normal)
+            cosI_prime = np.dot(after_dir, normal)/normal_len
+            sinI_prime = math.sqrt(1.0 - cosI_prime**2)
+            sinI = after_rind*sinI_prime/before_rind
+            cosI = math.sqrt(1.0 - sinI**2)
+
+            obl_power = ifc.optical_power
+            if obl_power != 0.0:
+                obl_power *= ((after_rind*cosI_prime - before_rind*cosI) /
+                              (after_rind - before_rind))
+#                print("pwr, obl_pwr, after_dst:",
+#                      ifc.optical_power/(after_rind - before_rind),
+#                      obl_power, after_dst)
+#            else:
+#                print("pwr, obl_pwr, after_dst:",
+#                      ifc.optical_power, obl_power, after_dst)
+
+            n_by_s_prime = before_rind/s_before + obl_power
+            s_prime = after_rind/n_by_s_prime
+#            print("s, s':", s_before, s_prime)
+            s_before = s_prime - after_dst
+
+            n_cosIp2_by_t_prime = before_rind*cosI**2/t_before + obl_power
+            t_prime = after_rind*cosI_prime**2/n_cosIp2_by_t_prime
+#            print("t, t':", t_before, t_prime)
+            t_before = t_prime - after_dst
+        else:
+            s_before = -after_dst
+            t_before = -after_dst
+
+        before_rind = after_rind
+        before_dir = after_dir
+
+    s_dfoc = s_prime*after_dir[2] + pt[2]
+    t_dfoc = t_prime*after_dir[2] + pt[2]
+    if foc is not None:
+        focus_shift = foc
+        s_dfoc -= focus_shift
+        t_dfoc -= focus_shift
+
+#    print("delta s, t:", s_dfoc, t_dfoc)
+    return s_dfoc, t_dfoc
+
+
+def intersect_2_lines(P1, V1, P2, V2):
+    """ intersect 2 non-parallel lines, returning distance from P1
+
+    s = ((P2 - P1) x V1).(V1 x V2)/|(V1 x V2)|**2
+
+    `Weisstein, Eric W. "Line-Line Intersection." From MathWorld--A Wolfram Web
+    Resource. <http://mathworld.wolfram.com/Line-LineIntersection.html>`_
+    """
+    Vx = np.cross(V1, V2)
+    s = np.dot(np.cross(P2 - P1, V1), Vx)/np.dot(Vx, Vx)
+    return s
+
+
+def trace_astigmatism(opt_model, fld, wvl, foc, dx=0.001, dy=0.001):
+    """ calculate astigmatism by tracing close rays about the chief ray at **fld**
+
+    This function implicitly assumes that the **fld** point is on a plane of
+    symmetry, i.e. the system is rotationally symmetric, bilaterally symmetric,
+    or quad symmetric. No check is done to ensure this.
+
+    Args:
+        opt_model: the optical model
+        fld: a Field object
+        wvl: wavelength in nm
+        foc: defocus amount
+        dx: delta in pupil coordinates for x/sagittal direction
+        dy: delta in pupil coordinates for y/tangential direction
+
+    Returns:
+        s_foc: sagittal focus shift at **fld**
+        t_foc: tangential focus shift at **fld**
+    """
+    rlist = []
+    rlist.append(RayPkg(*trace_base(opt_model, [0., 0.], fld, wvl)))
+    rlist.append(RayPkg(*trace_base(opt_model, [dx, 0.], fld, wvl)))
+    rlist.append(RayPkg(*trace_base(opt_model, [0., dy], fld, wvl)))
+    rlist.append(RayPkg(*trace_base(opt_model, [-dx, 0.], fld, wvl)))
+    rlist.append(RayPkg(*trace_base(opt_model, [0., -dy], fld, wvl)))
+
+    s = intersect_2_lines(rlist[1].ray[-1][mc.p], rlist[1].ray[-1][mc.d],
+                          rlist[3].ray[-1][mc.p], rlist[3].ray[-1][mc.d])
+    s_foc = s * rlist[1].ray[-1][mc.d][2]
+
+    t = intersect_2_lines(rlist[2].ray[-1][mc.p], rlist[2].ray[-1][mc.d],
+                          rlist[4].ray[-1][mc.p], rlist[4].ray[-1][mc.d])
+    t_foc = t * rlist[2].ray[-1][mc.d][2]
+
+    if foc is not None:
+        focus_shift = foc
+        s_foc -= focus_shift
+        t_foc -= focus_shift
+    return s_foc, t_foc
