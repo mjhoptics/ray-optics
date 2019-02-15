@@ -16,8 +16,8 @@ import rayoptics.qtgui.plotview as plotview
 from rayoptics.qtgui.pytablemodel import PyTableModel
 
 
-def create_new_model(app, gui_parent=None):
-    app.model = opt_model = ro.OpticalModel()
+def create_new_model():
+    opt_model = ro.OpticalModel()
 
     # put in minimum calculation defaults
     opt_model.seq_model.gaps[0].thi = 1.0
@@ -25,6 +25,8 @@ def create_new_model(app, gui_parent=None):
     opt_model.optical_spec.field_of_view.set_from_list([0., 1.])
 
     opt_model.update_model()
+
+    return opt_model
 
 
 def create_lens_layout_view(opt_model, gui_parent=None):

@@ -154,8 +154,8 @@ class MainWindow(QMainWindow):
 
     def file_action(self, q):
         if q.text() == "New":
-            cmds.create_new_model(self.app_manager, gui_parent=self)
-            opt_model = self.app_manager.model
+            opt_model = cmds.create_new_model()
+            self.app_manager.model = opt_model
             self.create_lens_table()
 #            self.create_2D_lens_view()
             cmds.create_paraxial_design_view(opt_model, Dgm.ht,
