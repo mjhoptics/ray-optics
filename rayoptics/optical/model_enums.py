@@ -12,21 +12,24 @@ from enum import Enum
 
 
 class PupilType(Enum):
-    FNO = 0
-    EPD = 1
-    NA = 2
-    NAO = 3
+    """ enum for different aperture specifications """
+    FNO = 0  #: image space f/#
+    EPD = 1  #: entrance pupil diameter
+    NA = 2   #: image space numerical aperture
+    NAO = 3  #: object space numerical aperture
 
 
 class FieldType(Enum):
-    OBJ_ANG = 0
-    OBJ_HT = 1
-    IMG_HT = 2
+    """ enum for different field specifications """
+    OBJ_ANG = 0  #: object space angle in degrees
+    OBJ_HT = 1   #: object height
+    IMG_HT = 2   #: image height
 
 
 class DimensionType(Enum):
-    MM = 0
-    CM = 1
-    M = 2
-    IN = 3
-    FT = 4
+    """ enum for different linear dimensions """
+    MM = 0  #: millimeters
+    CM = 1  #: centimeters
+    M = 2   #: meters
+    IN = 3  #: inches
+    FT = 4  #: feet

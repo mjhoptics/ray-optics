@@ -46,6 +46,7 @@ RayOptics Documentation
    :maxdepth: 1
    :caption: Developer Guide
 
+   source/rayoptics
    source/rayoptics.optical
    source/rayoptics.codev
    source/rayoptics.gui

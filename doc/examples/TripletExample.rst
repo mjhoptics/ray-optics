@@ -11,52 +11,14 @@ This triplet design, used in Jose Sasian's `Lens Design OPTI 517 <https://wp.opt
 
     %matplotlib inline
 
+Setup the rayoptics environment
+-------------------------------
+
+The ``environment.py`` module imports many useful classes and functions. All the symbols defined in the module are intended to be imported into a rayoptics interactive session.
+
 .. code:: ipython3
 
-    # initialization
-    import math
-    import numpy as np
-    import matplotlib as mpl
-    import matplotlib.pyplot as plt
-    
-    import ipywidgets as widgets
-    from ipywidgets import interact, interactive, fixed, interact_manual
-    from IPython.display import display
-    
-    import rayoptics as ro
-    from rayoptics.gui.appmanager import AppManager, ModelInfo
-    
-    import rayoptics.optical.opticalmodel as om
-    
-    import rayoptics.optical.surface as srf
-    from rayoptics.optical.gap import Gap
-    from rayoptics.optical.thinlens import ThinLens
-    from rayoptics.optical.profiles import Spherical, Conic
-    from rayoptics.optical.opticalspec import FieldSpec, PupilSpec, WvlSpec
-    from rayoptics.optical.model_enums import PupilType, FieldType
-    
-    import rayoptics.optical.firstorder as fo
-    from rayoptics.optical.firstorder import compute_first_order
-    
-    import rayoptics.optical.paraxialdesign as pxd
-    from rayoptics.optical.model_constants import ax, pr, lns
-    from rayoptics.optical.model_constants import ht, slp, aoi
-    from rayoptics.optical.model_constants import pwr, tau, indx, rmd
-    
-    import rayoptics.optical.thirdorder as to
-    from rayoptics.optical.thirdorder import compute_third_order
-    from rayoptics.util.misc_math import transpose
-    
-    import rayoptics.mpl.paraxdgnfigure as prx
-    from rayoptics.mpl.paraxdgnfigure import ParaxialDesignFigure, Dgm
-    
-    from rayoptics.mpl.axisarrayfigure import Fit
-    from rayoptics.mpl.axisarrayfigure import RayFanFigure
-    from rayoptics.mpl.axisarrayfigure import SpotDiagramFigure
-    from rayoptics.mpl.axisarrayfigure import WavefrontFigure
-    
-    import rayoptics.mpl.lenslayoutfigure as lay
-    from rayoptics.mpl.lenslayoutfigure import LensLayoutFigure
+    from rayoptics.environment import *
 
 Create a new model
 ------------------
@@ -65,7 +27,7 @@ Create a new :class:`~opticalmodel.OpticalModel` instance and set up some conven
 
 .. code:: ipython3
 
-    opm = om.OpticalModel()
+    opm = OpticalModel()
     sm  = opm.seq_model
     osp = opm.optical_spec
     pm = opm.parax_model
@@ -91,7 +53,7 @@ Define interface and gap data for the sequential model
     sm.add_surface([23.713, 4.831, 'N-LAK9', 'Schott'])
     sm.add_surface([7331.288, 5.86])
     sm.add_surface([-24.456, .975, 'N-SF5', 'Schott'])
-    sm.stop_surface = 3
+    sm.set_stop()
     sm.add_surface([21.896, 4.822])
     sm.add_surface([86.759, 3.127, 'N-LAK9', 'Schott'])
     sm.add_surface([-20.4942, 41.2365])
@@ -113,7 +75,7 @@ Draw a lens picture
 
 
 
-.. image:: output_12_0.png
+.. image:: output_13_0.png
 
 
 Draw a |ybar| diagram
@@ -125,7 +87,7 @@ Draw a |ybar| diagram
 
 
 
-.. image:: output_14_0.png
+.. image:: output_15_0.png
 
 
 Plot the transverse ray aberrations
@@ -137,7 +99,7 @@ Plot the transverse ray aberrations
 
 
 
-.. image:: output_16_0.png
+.. image:: output_17_0.png
 
 
 Plot the wavefront aberration
@@ -149,7 +111,7 @@ Plot the wavefront aberration
 
 
 
-.. image:: output_18_0.png
+.. image:: output_19_0.png
 
 
 List the optical specifications
@@ -344,7 +306,7 @@ Bar chart for surface by surface third order aberrations
 
 
 
-.. image:: output_26_0.png
+.. image:: output_27_0.png
 
 
 convert aberration sums to transverse measure
@@ -354,7 +316,7 @@ convert aberration sums to transverse measure
 
     ax_ray, pr_ray, fod = osp.parax_data
     n_last = sm.central_rndx(-1)
-    u_last = ax_ray[-1][slp]
+    u_last = ax_ray[-1][mc.slp]
     to.seidel_to_transverse_aberration(to_pkg.loc['sum',:], n_last, u_last)
 
 

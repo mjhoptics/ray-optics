@@ -1,10 +1,8 @@
 rayoptics.mpl package
 =====================
 
-.. automodule:: rayoptics.mpl
-    :members:
-    :undoc-members:
-    :show-inheritance:
+Submodules
+----------
 
 rayoptics.mpl.analysisplots module
 ----------------------------------
@@ -39,3 +37,10 @@ rayoptics.mpl.paraxdgnfigure module
     :show-inheritance:
 
 
+Module contents
+---------------
+
+.. automodule:: rayoptics.mpl
+    :members:
+    :undoc-members:
+    :show-inheritance:

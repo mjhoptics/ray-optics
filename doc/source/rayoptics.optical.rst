@@ -1,10 +1,8 @@
 rayoptics.optical package
 =========================
 
-.. automodule:: rayoptics.optical
-    :members:
-    :undoc-members:
-    :show-inheritance:
+Submodules
+----------
 
 rayoptics.optical.elements module
 ---------------------------------
@@ -159,3 +157,10 @@ rayoptics.optical.twoconicmirrors module
     :show-inheritance:
 
 
+Module contents
+---------------
+
+.. automodule:: rayoptics.optical
+    :members:
+    :undoc-members:
+    :show-inheritance:

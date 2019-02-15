@@ -150,6 +150,14 @@ class WvlSpec:
 
 
 class PupilSpec:
+    """ Aperture specification
+
+    Attributes:
+        pupil_type: :class:`~.PupilType` enum
+        value: size of the pupil
+        pupil_rays: list of relative pupil coordinates for pupil limiting rays
+        ray_labels: list of string labels for pupil_rays
+    """
     default_pupil_rays = [[0., 0.], [1., 0.], [-1., 0.], [0., 1.], [0., -1.]]
     default_ray_labels = ['00', '+X', '-X', '+Y', '-Y']
 
@@ -193,11 +201,9 @@ class FieldSpec:
     """ Field of view specification
 
     Attributes:
-        type: string with field specification type
+        field_type: :class:`~.FieldType` enum
         fields: list of Field instances
     """
-    types = ('OBJ_ANG', 'OBJ_HT', 'IMG_HT')
-
     def __init__(self, parent, field_type=FieldType.OBJ_ANG, flds=[0.]):
         self.optical_spec = parent
         self.field_type = field_type
@@ -282,6 +288,23 @@ class FieldSpec:
 
 
 class Field:
+    """ a single field point
+
+    Attributes:
+        x: x field component in absolute units
+        y: y field component in absolute units
+        vux: +x vignetting factor
+        vuy: +y vignetting factor
+        vlx: -x vignetting factor
+        vly: -y vignetting factor
+        wt: field weight
+        chief_ray: ray package for the ray from the field point throught the
+                   center of the aperture stop, traced in the central
+                   wavelength
+        ref_sphere: a tuple containing (image_pt, cr_exp_pt, cr_exp_dist,
+                    ref_dir, ref_sphere_radius)
+
+    """
     def __init__(self, x=0., y=0., wt=1.):
         self.x = x
         self.y = y

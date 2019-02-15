@@ -174,7 +174,9 @@ class ParaxialModel():
     #                (surface 0) to image.  The last operation is a
     #                transfer to the image surface.
     def paraxial_trace(self):
-
+        """ regenerate paraxial axial and chief rays from power and reduced
+            distance
+        """
         sys = self.sys
         ax_ray = self.ax
         pr_ray = self.pr
@@ -203,6 +205,8 @@ class ParaxialModel():
                 pr_ray[s][ht] = pr_ray[c][ht] + sys[c][tau]*pr_ray[c][slp]
 
     def list_lens(self):
+        """ list the paraxial axial and chief rays, and power, reduced distance
+        """
         sys = self.sys
         ax_ray = self.ax
         pr_ray = self.pr
@@ -223,7 +227,8 @@ class ParaxialModel():
                   sys[i][pwr], sys[i][tau], sys[i][indx], sys[i][rmd]))
 
     def seq_model_to_paraxial_lens(self):
-        """ returns lists of power, reduced thickness, signed index and refract mode
+        """ returns lists of power, reduced thickness, signed index and refract
+            mode
         """
         sys = []
         for i, sg in enumerate(self.seq_model.path()):
@@ -239,9 +244,6 @@ class ParaxialModel():
 
     def paraxial_lens_to_seq_model(self):
         """ Applies a paraxial lens spec (power, reduced distance) to the model
-
-        Args:
-        lens: list of paraxial axial, chief and lens data
         """
         sys = self.sys
         ax_ray = self.ax

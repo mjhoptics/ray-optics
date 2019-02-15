@@ -1,10 +1,8 @@
 rayoptics.gui package
 =====================
 
-.. automodule:: rayoptics.gui
-    :members:
-    :undoc-members:
-    :show-inheritance:
+Submodules
+----------
 
 rayoptics.gui.appcmds module
 ----------------------------
@@ -31,3 +29,10 @@ rayoptics.gui.layout module
     :show-inheritance:
 
 
+Module contents
+---------------
+
+.. automodule:: rayoptics.gui
+    :members:
+    :undoc-members:
+    :show-inheritance:

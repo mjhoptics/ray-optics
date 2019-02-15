@@ -1,10 +1,8 @@
 rayoptics.qtgui package
 =======================
 
-.. automodule:: rayoptics.qtgui
-    :members:
-    :undoc-members:
-    :show-inheritance:
+Submodules
+----------
 
 rayoptics.qtgui.dockpanels module
 ---------------------------------
@@ -63,3 +61,10 @@ rayoptics.qtgui.rayopticsapp module
     :show-inheritance:
 
 
+Module contents
+---------------
+
+.. automodule:: rayoptics.qtgui
+    :members:
+    :undoc-members:
+    :show-inheritance:

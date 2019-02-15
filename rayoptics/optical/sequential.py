@@ -87,6 +87,11 @@ class SequentialModel:
         return itertools.zip_longest(self.ifcs, self.gaps)
 
     def calc_ref_indices_for_spectrum(self, wvls):
+        """ returns a |DataFrame| with refractive indices for all **wvls**
+
+        Args:
+            wvls: list of wavelengths in nm
+        """
         indices = []
         for g in self.gaps:
             ri = []
@@ -99,9 +104,11 @@ class SequentialModel:
         return pd.DataFrame(indices, columns=wvls)
 
     def central_wavelength(self):
+        """ returns the central wavelength in nm of the model's ``WvlSpec`` """
         return self.opt_model.optical_spec.spectral_region.central_wvl
 
     def central_rndx(self, i):
+        """ returns the central refractive index of the model's ``WvlSpec`` """
         central_wvl = self.central_wavelength()
         return self.rndx[central_wvl].iloc[i]
 
@@ -117,6 +124,11 @@ class SequentialModel:
 
     def set_cur_surface(self, s):
         self.cur_surface = s
+
+    def set_stop(self):
+        """ sets the stop surface to the current surface """
+        self.stop_surface = self.cur_surface
+        return self.stop_surface
 
     def __iadd__(self, node):
         if isinstance(node, gap.Gap):

@@ -4,6 +4,7 @@
 """ calculate conic constants for different 2 mirror configurations
 
 .. Created on Tue Jun 26 16:11:58 2018
+.. |ParaxialModel| replace:: :class:`~.paraxialdesign.ParaxialModel`
 
 .. codeauthor: Michael J. Hayford
 """
@@ -15,16 +16,14 @@ def __decode_lens__(lens_package):
     """ decode the lens_package tuple into its constituents
 
         Args:
-            lens_package: a tuple or a ParaxialModel
-                if it's a tuple:
-                    the first element is a ParaxialModel
-                    the second element is a tuple with the begining and ending
-                    indicies into lens model lists
-                else its just a ParaxialModel
-                    return it and some range defaults
+            lens_package: a tuple or a |ParaxialModel|. If it's a tuple:
+
+               - the first element is a |ParaxialModel|
+               - the second element is a tuple with the begining and ending
+                 indicies into lens model lists
 
         Returns:
-            ParaxialModel, beginning and ending indicies into paraxial model
+            |ParaxialModel|, beginning and ending indicies into paraxial model
     """
     if type(lens_package) is tuple:
         parax_model = lens_package[0]
@@ -35,7 +34,7 @@ def __decode_lens__(lens_package):
     return parax_model, bgn, end
 
 
-def separation_ratio(lens_package):
+def _separation_ratio(lens_package):
     """ the ratio of the backfocus to the mirror separation
 
         Args:
@@ -51,7 +50,7 @@ def separation_ratio(lens_package):
     return s
 
 
-def mag(lens_package):
+def _mag(lens_package):
     """ the magnification of the input paraxial lens over the specified range
 
         Args:
@@ -64,29 +63,59 @@ def mag(lens_package):
 
 
 def cassegrain(lens_package):
-    """ function to calculate the conic constants for an input paraxial lens
+    """ calculate the conic constants for a cassegrain telescope
+
+        Args:
+            lens_package: a tuple or a |ParaxialModel|. If it's a tuple:
+
+               - the first element is a |ParaxialModel|
+               - the second element is a tuple with the begining and ending
+                 indicies into lens model lists
+
+        Returns:
+            the conic constants of the primary and secondary mirrors
     """
-    m = mag(lens_package)
+    m = _mag(lens_package)
     k_pri = -1.0
     k_sec = -4.0*m/(m - 1.0)**2 - 1.0
     return k_pri, k_sec
 
 
 def dall_kirkham(lens_package):
-    """ function to calculate the conic constants for an input paraxial lens
+    """ calculate the conic constants for a dall-kirkham telescope
+
+        Args:
+            lens_package: a tuple or a |ParaxialModel|. If it's a tuple:
+
+               - the first element is a |ParaxialModel|
+               - the second element is a tuple with the begining and ending
+                 indicies into lens model lists
+
+        Returns:
+            the conic constants of the primary and secondary mirrors
     """
-    m = mag(lens_package)
-    s = separation_ratio(lens_package)
+    m = _mag(lens_package)
+    s = _separation_ratio(lens_package)
     k_pri = (s*(m - 1.)*(m + 1.)**2)/((m + s)*m**3) - 1.
     k_sec = 0.0
     return k_pri, k_sec
 
 
 def ritchey_chretien(lens_package):
-    """ function to calculate the conic constants for an input paraxial lens
+    """ calculate the conic constants for a ritchey-chretien telescope
+
+        Args:
+            lens_package: a tuple or a |ParaxialModel|. If it's a tuple:
+
+               - the first element is a |ParaxialModel|
+               - the second element is a tuple with the begining and ending
+                 indicies into lens model lists
+
+        Returns:
+            the conic constants of the primary and secondary mirrors
     """
-    m = mag(lens_package)
-    s = separation_ratio(lens_package)
+    m = _mag(lens_package)
+    s = _separation_ratio(lens_package)
     k_pri = -2.0*s/m**3 - 1.0
     k_sec = -(4.0*m*(m - 1.0) + 2.0*(m + s))/(m - 1.0)**3 - 1.0
     return k_pri, k_sec
@@ -94,6 +123,16 @@ def ritchey_chretien(lens_package):
 
 def spheres(lens_package):
     """ function to revert the conic constants to spherical surfaces
+
+        Args:
+            lens_package: a tuple or a |ParaxialModel|. If it's a tuple:
+
+               - the first element is a |ParaxialModel|
+               - the second element is a tuple with the begining and ending
+                 indicies into lens model lists
+
+        Returns:
+            the conic constants of the primary and secondary mirrors
     """
     k_pri = 0.0
     k_sec = 0.0
