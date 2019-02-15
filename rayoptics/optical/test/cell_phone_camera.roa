@@ -1028,8 +1028,8 @@
        "FocusRange"
       ],
       "attributes":{
-       "infocus":0.0,
-       "defocus":0.0
+       "focus_shift":0.0,
+       "defocus_range":0.0
       }
      }
     }
