@@ -45,7 +45,8 @@ import rayoptics.optical.thirdorder as to
 from rayoptics.optical.thirdorder import compute_third_order
 
 # ray tracing
-from rayoptics.optical.trace import list_ray, trace, trace_base, trace_with_opd
+from rayoptics.optical.trace import (list_ray, trace, trace_base,
+                                     trace_with_opd, trace_astigmatism)
 import rayoptics.optical.raytrace as rt
 
 # paraxial design
