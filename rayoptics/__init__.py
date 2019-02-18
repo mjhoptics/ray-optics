@@ -16,3 +16,7 @@ from .mpl.axisarrayfigure import SpotDiagramFigure
 from .mpl.axisarrayfigure import WavefrontFigure
 
 from .mpl.lenslayoutfigure import LensLayoutFigure
+
+from ._version import get_versions
+__version__ = get_versions()['version']
+del get_versions

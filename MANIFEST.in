@@ -3,3 +3,5 @@ include README.rst
 
 # Include the license file
 include LICENSE
+include versioneer.py
+include rayoptics/_version.py
