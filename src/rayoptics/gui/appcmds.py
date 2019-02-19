@@ -8,16 +8,22 @@
 .. codeauthor: Michael J. Hayford
 """
 
-import rayoptics as ro
+from rayoptics.optical.opticalmodel import OpticalModel, open_model
+
+from rayoptics.mpl.lenslayoutfigure import LensLayoutFigure
 from rayoptics.mpl.axisarrayfigure import Fit
+from rayoptics.mpl.axisarrayfigure import (RayFanFigure, SpotDiagramFigure,
+                                           WavefrontFigure)
+
 from rayoptics.mpl.analysisplots import FieldCurveFigure
-import rayoptics.mpl.paraxdgnfigure as pdfig
+from rayoptics.mpl.paraxdgnfigure import (ParaxialDesignFigure,
+                                          create_parax_design_commands)
 import rayoptics.qtgui.plotview as plotview
 from rayoptics.qtgui.pytablemodel import PyTableModel
 
 
 def create_new_model():
-    opt_model = ro.OpticalModel()
+    opt_model = OpticalModel()
 
     # put in minimum calculation defaults
     opt_model.seq_model.gaps[0].thi = 1.0
@@ -30,7 +36,7 @@ def create_new_model():
 
 
 def create_lens_layout_view(opt_model, gui_parent=None):
-    fig = ro.LensLayoutFigure(opt_model)
+    fig = LensLayoutFigure(opt_model)
     view_width = 660
     view_ht = 440
     title = "Lens Layout View"
@@ -39,9 +45,9 @@ def create_lens_layout_view(opt_model, gui_parent=None):
 
 
 def create_paraxial_design_view(opt_model, dgm_type, gui_parent=None):
-    fig = ro.ParaxialDesignFigure(opt_model, gui_parent.refresh_gui, dgm_type,
-                                  figsize=(5, 4))
-    cmds = pdfig.create_parax_design_commands(fig)
+    fig = ParaxialDesignFigure(opt_model, gui_parent.refresh_gui, dgm_type,
+                               figsize=(5, 4))
+    cmds = create_parax_design_commands(fig)
     view_width = 650
     view_ht = 500
     title = "Paraxial Design View"
@@ -50,9 +56,9 @@ def create_paraxial_design_view(opt_model, dgm_type, gui_parent=None):
 
 
 def create_ray_fan_view(opt_model, data_type, gui_parent=None):
-    fig = ro.RayFanFigure(opt_model, data_type,
-                          scale_type=Fit.All_Same,
-                          figsize=(5, 4), dpi=100)
+    fig = RayFanFigure(opt_model, data_type,
+                       scale_type=Fit.All_Same,
+                       figsize=(5, 4), dpi=100)
     view_width = 600
     view_ht = 600
     if data_type == "Ray":
@@ -67,8 +73,8 @@ def create_ray_fan_view(opt_model, data_type, gui_parent=None):
 def create_ray_grid_view(opt_model, gui_parent=None):
     num_flds = len(opt_model.optical_spec.field_of_view.fields)
 
-    fig = ro.SpotDiagramFigure(opt_model, scale_type=Fit.All_Same,
-                               num_rays=11, dpi=100)
+    fig = SpotDiagramFigure(opt_model, scale_type=Fit.All_Same,
+                            num_rays=11, dpi=100)
     view_box = 300
     view_width = view_box
     view_ht = num_flds * view_box
@@ -80,8 +86,8 @@ def create_wavefront_view(opt_model, gui_parent=None):
     num_flds = len(opt_model.optical_spec.field_of_view.fields)
     num_wvls = len(opt_model.optical_spec.spectral_region.wavelengths)
 
-    fig = ro.WavefrontFigure(opt_model, scale_type=Fit.All_Same,
-                             num_rays=32, dpi=100)
+    fig = WavefrontFigure(opt_model, scale_type=Fit.All_Same,
+                          num_rays=32, dpi=100)
 #                                 figsize=(2*num_wvls, 2*num_flds))
     view_box = 300
     view_width = num_wvls * view_box
