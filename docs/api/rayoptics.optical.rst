@@ -1,13 +1,6 @@
 rayoptics.optical package
 =========================
 
-Subpackages
------------
-
-.. toctree::
-
-    rayoptics.optical.tests
-
 Submodules
 ----------
 
