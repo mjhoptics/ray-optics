@@ -46,13 +46,25 @@ RayOptics Documentation
    :maxdepth: 1
    :caption: Developer Guide
 
-   source/rayoptics
-   source/rayoptics.optical
-   source/rayoptics.codev
-   source/rayoptics.gui
-   source/rayoptics.mpl
-   source/rayoptics.qtgui
-   source/rayoptics.util
+   api/rayoptics
+   api/rayoptics.optical
+   api/rayoptics.codev
+   api/rayoptics.gui
+   api/rayoptics.mpl
+   api/rayoptics.qtgui
+   api/rayoptics.util
+
+********
+Contents
+********
+
+.. toctree::
+   :maxdepth: 2
+
+   License <license>
+   Authors <authors>
+   Changelog <changelog>
+   Module Reference <api/modules>
 
 *****
 Index

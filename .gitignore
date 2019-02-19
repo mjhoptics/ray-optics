@@ -1,6 +1,9 @@
 *.log
 *.ipynb
 
+# IDE settings
+.vscode
+
 # Distribution / packaging
 .Python
 build/

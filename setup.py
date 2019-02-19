@@ -1,50 +1,28 @@
-import setuptools
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+    Setup file for rayoptics.
+    Use setup.cfg to configure your project.
+
+    This file was generated with PyScaffold 3.1.
+    PyScaffold helps you to put up the scaffold of your new Python project.
+    Learn more under: https://pyscaffold.org/
+"""
+import sys
+
+from pkg_resources import require, VersionConflict
+from setuptools import setup
 import versioneer
 
-with open("README.rst", "r") as fh:
-    long_description = fh.read()
+try:
+    require('setuptools>=38.3')
+except VersionConflict:
+    print("Error: version of setuptools is too old (<38.3)!")
+    sys.exit(1)
 
-setuptools.setup(
-    name="rayoptics",
-    version=versioneer.get_version(),
-    cmdclass=versioneer.get_cmdclass(),
-    author="Michael J Hayford",
-    author_email="mjhoptics@gmail.com",
-    description="Tools for image forming optical design and analysis",
-    long_description=long_description,
-    long_description_content_type="text/x-rst",
-    license="BSD-3-Clause",
-    url="https://github.com/mjhoptics/ray-optics",
-    packages=setuptools.find_packages(),
-    classifiers=[
-        "Programming Language :: Python :: 3.6",
-        "License :: OSI Approved :: BSD License",
-        "Operating System :: OS Independent",
-        "Topic :: Scientific/Engineering :: Physics",
-    ],
-    keywords=['geometric optics', 'ray tracing', 'image forming optics',
-              'paraxial optics', 'optical design', 'lens design',
-              'aberrations', 'opd', 'psf'],
-    install_requires=[
-        "opticalglass",
-        "numpy>=1.15.0",
-        "scipy>=1.1.0",
-        "matplotlib>=2.2.3",
-        "json_tricks>=3.12.1",
-        "pandas>=0.23.4",
-        "attrs>=18.1.0",
-        "transforms3d>=0.3.1"
-        ],
-    extras_require={
-        'QtGUI':  ["pyqt5"],
-    },
-    entry_points={
-        'gui_scripts': [
-            'rayoptics = rayoptics.qtgui.rayopticsapp:main [QtGUI]',
-        ],
-    },
-    data_files=[
-        ('codev', ['tla_mapping.csv', 'test/*.seq', 'test/*.roa']),
-        ('util', ['cie-cmf.txt', '*.csv']),
-        ],
-)
+
+if __name__ == "__main__":
+    setup(use_pyscaffold=True)
+#    setup(use_pyscaffold=True,
+#          version=versioneer.get_version(),
+#          cmdclass=versioneer.get_cmdclass())
