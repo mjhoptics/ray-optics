@@ -4,11 +4,18 @@ Installation
 
 .. _install:
 
-Requirements
-============
+rayoptics makes use of PyQt5 for the **desktop** version GUI. This software is automatically installed and available when using `Anaconda <https://www.anaconda.com/>`_. Alternatively, PyQt5 may be downloaded using ``pip3``
 
-   Rayoptics has the following strict requirements:
+.. code::
 
-- `Python <https://www.python.org/>`_ |minimum_python_version| or later
+    pip3 install pyqt5
 
-- `Numpy <https://www.numpy.org/>`_ |minimum_numpy_version| or later
+rayoptics itself is installed using ``pip3`` as well.
+
+.. code::
+
+    pip3 install rayoptics
+
+.. todo::
+
+    Add conda distribution for rayoptics

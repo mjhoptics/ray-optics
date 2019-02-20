@@ -75,6 +75,8 @@ napoleon_numpy_docstring = False
 # autodoc settings
 autodoc_member_order = 'bysource'
 
+todo_include_todos = True
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
@@ -89,7 +91,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'ray-optics'
-copyright = u'2018-2019, Michael J. Hayford'
+copyright = u'2017-2019, Michael J. Hayford'
 author = u'Michael J. Hayford'
 
 # The version info for the project you're documenting, acts as replacement for

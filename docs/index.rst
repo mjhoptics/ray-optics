@@ -25,6 +25,8 @@ RayOptics Documentation
    :caption: Getting Started
 
    install
+   userguide/interactive
+   userguide/qt
    examples/TripletExample
 
 .. _user-docs:
@@ -36,35 +38,24 @@ RayOptics Documentation
    userguide/models
    userguide/calc
    userguide/gui
-   userguide/ipython
-   userguide/jupyter
-   userguide/qt
 
 .. _dev-guide:
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: Developer Guide
 
-   api/rayoptics
-   api/rayoptics.optical
-   api/rayoptics.codev
-   api/rayoptics.gui
-   api/rayoptics.mpl
-   api/rayoptics.qtgui
-   api/rayoptics.util
+   Module Reference <api/modules>
 
-********
-Contents
-********
+.. _misc-items:
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
+   :caption: Miscellaneous
 
-   License <license>
    Authors <authors>
+   License <license>
    Changelog <changelog>
-   Module Reference <api/modules>
 
 *****
 Index
