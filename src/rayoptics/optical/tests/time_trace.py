@@ -13,13 +13,14 @@ import timeit
 
 # ray-optics
 import rayoptics as ro
+from rayoptics.optical.opticalmodel import open_model
 import rayoptics.optical.raytrace as rt
 from rayoptics.util.misc_math import normalize
 
 
 def setup(filename):
     root_pth = Path(ro.__file__).resolve().parent
-    opm = ro.open_model(root_pth/filename)
+    opm = open_model(root_pth/filename)
     sm = opm.seq_model
     osp = opm.optical_spec
     fld, wvl, foc = osp.lookup_fld_wvl_focus(1)
@@ -60,73 +61,73 @@ if __name__ == '__main__':
     rpt = 5
 
     root_pth = Path(ro.__file__).resolve().parent
-    with open(root_pth/'optical/test/trace_results.txt', mode='w') as f:
+    with open(root_pth/'optical/tests/trace_results.txt', mode='w') as f:
 
         tst_name = 'singlet'
         trials = trials100
-        setup_stmt = setup_str.format("codev/test/singlet.seq")
+        setup_stmt = setup_str.format("codev/tests/singlet.seq")
         results.append(run_test(tst_name, setup_stmt, trials, file=f,
                                 repeat=rpt))
 
         tst_name = 'landscape lens'
         trials = trials80
-        setup_stmt = setup_str.format("codev/test/landscape_lens.seq")
+        setup_stmt = setup_str.format("codev/tests/landscape_lens.seq")
         results.append(run_test(tst_name, setup_stmt, trials, file=f,
                                 repeat=rpt))
 
         tst_name = 'Sasian triplet'
         trials = trials50
-        setup_stmt = setup_str.format("../test/Sasian Triplet.roa")
+        setup_stmt = setup_str.format("../models/Sasian Triplet.roa")
         results.append(run_test(tst_name, setup_stmt, trials, file=f,
                                 repeat=rpt))
 
         tst_name = 'double gauss'
         trials = trials30
-        setup_stmt = setup_str.format("codev/test/ag_dblgauss.seq")
+        setup_stmt = setup_str.format("codev/tests/ag_dblgauss.seq")
         results.append(run_test(tst_name, setup_stmt, trials, file=f,
                                 repeat=rpt))
 
         tst_name = '2 spherical mirrors (spheres)'
         trials = trials100
-        setup_stmt = setup_str.format("../test/TwoSphericalMirror.roa")
+        setup_stmt = setup_str.format("../models/TwoSphericalMirror.roa")
         results.append(run_test(tst_name, setup_stmt, trials, file=f,
                                 repeat=rpt))
 
         tst_name = '2 spherical mirrors (conics)'
         trials = trials100
-        setup_stmt = setup_str.format("../test/TwoMirror.roa")
+        setup_stmt = setup_str.format("../models/TwoMirror.roa")
         results.append(run_test(tst_name, setup_stmt, trials, file=f,
                                 repeat=rpt))
 
         tst_name = 'paraboloid'
         trials = trials100
-        setup_stmt = setup_str.format("codev/test/paraboloid.seq")
+        setup_stmt = setup_str.format("codev/tests/paraboloid.seq")
         results.append(run_test(tst_name, setup_stmt, trials, file=f,
                                 repeat=rpt))
 
         tst_name = 'Cassegrain'
         trials = trials100
-        setup_stmt = setup_str.format("../test/Cassegrain.roa")
+        setup_stmt = setup_str.format("../models/Cassegrain.roa")
         results.append(run_test(tst_name, setup_stmt, trials, file=f,
                                 repeat=rpt))
 
         tst_name = 'Ritchey-Chretien'
         trials = trials100
-        setup_stmt = setup_str.format("../test/Ritchey_Chretien.roa")
+        setup_stmt = setup_str.format("../models/Ritchey_Chretien.roa")
         results.append(run_test(tst_name, setup_stmt, trials, file=f,
                                 repeat=rpt))
 
         tst_name = 'cell phone camera'
         trials = trials10
-        setup_stmt = setup_str.format("optical/test/cell_phone_camera.roa")
+        setup_stmt = setup_str.format("optical/tests/cell_phone_camera.roa")
         results.append(run_test(tst_name, setup_stmt, trials, file=f,
                                 repeat=rpt))
 
-    with open(root_pth/'optical/test/trace_data.csv', mode='w') as f:
+    with open(root_pth/'optical/tests/trace_data.csv', mode='w') as f:
         w = csv.writer(f, delimiter=',', quotechar='"',
                        quoting=csv.QUOTE_MINIMAL)
         for tst in results:
             w.writerow(tst[:5])
 
-    with open(root_pth/'optical/test/trace_data.txt', mode='w') as f:
+    with open(root_pth/'optical/tests/trace_data.txt', mode='w') as f:
         print(results, file=f)
