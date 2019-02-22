@@ -5,13 +5,7 @@ ray-optics
 Installation
 ------------
 
-rayoptics makes use of PyQt5 for the **desktop** version GUI. This software is automatically installed and available when using `Anaconda <https://www.anaconda.com/>`_. Alternatively, PyQt5 may be downloaded using ``pip3``
-
-.. code::
-
-    > pip3 install pyqt5
-
-rayoptics itself is installed using ``pip3`` as well.
+rayoptics is installed using ``pip3``.
 
 .. code::
 
@@ -20,7 +14,7 @@ rayoptics itself is installed using ``pip3`` as well.
 Documentation
 -------------
 
-The documentation for **ray-optics** is hosted at `Read the Docs <https://rayoptics.readthedocs.io>`_
+The documentation for **ray-optics** is hosted at `Read the Docs <https://ray-optics.readthedocs.io>`_
 
 Tools for image forming optical design and analysis
 ---------------------------------------------------
