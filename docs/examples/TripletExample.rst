@@ -7,7 +7,7 @@ Triplet example
 
 This triplet design, used in Jose Sasian's `Lens Design OPTI 517 <https://wp.optics.arizona.edu/jsasian/courses/opti-517/>`_ course at the Univ. of Arizona, is attributed to Geiser.
 
-.. code:: ipython3
+.. code:: python
 
     %matplotlib inline
 
@@ -16,7 +16,7 @@ Setup the rayoptics environment
 
 The ``environment.py`` module imports many useful classes and functions. All the symbols defined in the module are intended to be imported into a rayoptics interactive session.
 
-.. code:: ipython3
+.. code:: python
 
     from rayoptics.environment import *
 
@@ -25,7 +25,7 @@ Create a new model
 
 Create a new :class:`~opticalmodel.OpticalModel` instance and set up some convenient aliases to important constituents of the model.
 
-.. code:: ipython3
+.. code:: python
 
     opm = OpticalModel()
     sm  = opm.seq_model
@@ -35,7 +35,7 @@ Create a new :class:`~opticalmodel.OpticalModel` instance and set up some conven
 Define first order aperture and field for system
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. code:: ipython3
+.. code:: python
 
     osp.pupil = PupilSpec(osp, pupil_type=PupilType.EPD, value=12.5)
     osp.field_of_view = FieldSpec(osp, field_type=FieldType.OBJ_ANG, flds=[0., 20.0])
@@ -44,7 +44,7 @@ Define first order aperture and field for system
 Define interface and gap data for the sequential model
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. code:: ipython3
+.. code:: python
 
     opm.radius_mode = True
     
@@ -62,14 +62,14 @@ Define interface and gap data for the sequential model
 Update the model
 ~~~~~~~~~~~~~~~~
 
-.. code:: ipython3
+.. code:: python
 
     opm.update_model()
 
 Draw a lens picture
 -------------------
 
-.. code:: ipython3
+.. code:: python
 
     layout_plt = plt.figure(FigureClass=LensLayoutFigure, opt_model=opm).plot()
 
@@ -81,7 +81,7 @@ Draw a lens picture
 Draw a |ybar| diagram
 ---------------------
 
-.. code:: ipython3
+.. code:: python
 
     yybar_plt = plt.figure(FigureClass=ParaxialDesignFigure, opt_model=opm, dgm_type=Dgm.ht, refresh_gui=None).plot()
 
@@ -93,7 +93,7 @@ Draw a |ybar| diagram
 Plot the transverse ray aberrations
 -----------------------------------
 
-.. code:: ipython3
+.. code:: python
 
     abr_plt = plt.figure(FigureClass=RayFanFigure, opt_model=opm, data_type='Ray', scale_type=Fit.All_Same).plot()
 
@@ -105,7 +105,7 @@ Plot the transverse ray aberrations
 Plot the wavefront aberration
 -----------------------------
 
-.. code:: ipython3
+.. code:: python
 
     wav_plt = plt.figure(FigureClass=RayFanFigure, opt_model=opm, data_type='OPD', scale_type=Fit.All_Same).plot()
 
@@ -117,7 +117,7 @@ Plot the wavefront aberration
 List the optical specifications
 -------------------------------
 
-.. code:: ipython3
+.. code:: python
 
     osp.parax_data.fod.list_first_order_data()
 
@@ -149,7 +149,7 @@ List the optical specifications
 List the paraxial model
 -----------------------
 
-.. code:: ipython3
+.. code:: python
 
     pm.list_lens()
 
@@ -193,7 +193,7 @@ Third Order Seidel aberrations
 Computation and tabular display
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. code:: ipython3
+.. code:: python
 
     to_pkg = compute_third_order(opm)
     to_pkg
@@ -294,7 +294,7 @@ Computation and tabular display
 Bar chart for surface by surface third order aberrations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. code:: ipython3
+.. code:: python
 
     fig, ax = plt.subplots()
     ax.set_xlabel('Surface')
@@ -312,7 +312,7 @@ Bar chart for surface by surface third order aberrations
 convert aberration sums to transverse measure
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. code:: ipython3
+.. code:: python
 
     ax_ray, pr_ray, fod = osp.parax_data
     n_last = sm.central_rndx(-1)
@@ -337,7 +337,7 @@ convert aberration sums to transverse measure
 convert sums to wavefront measure
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. code:: ipython3
+.. code:: python
 
     central_wv = opm.nm_to_sys_units(sm.central_wavelength())
     to.seidel_to_wavefront(to_pkg.loc['sum',:], central_wv).T
@@ -359,7 +359,7 @@ convert sums to wavefront measure
 compute Petzval, sagittal and tangential field curvature
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. code:: ipython3
+.. code:: python
 
     to.seidel_to_field_curv(to_pkg.loc['sum',:], n_last, fod.opt_inv)
 
@@ -378,6 +378,6 @@ compute Petzval, sagittal and tangential field curvature
 Save the model
 --------------
 
-.. code:: ipython3
+.. code:: python
 
     opm.save_model('Sasian Triplet')

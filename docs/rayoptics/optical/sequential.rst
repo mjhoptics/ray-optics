@@ -27,6 +27,6 @@ Overview
 
     There are N interfaces and N-1 gaps. The initial configuration has an object and image :class:`surface.Surface` and an object gap.
 
-    The :class:`surface.Interface` API supports implementation of an optical action, such as refraction, reflection, scatter, diffraction, etc. The :class:`~surface.Interface` may be realized as a physical profile separating the adjacent gaps or an idealized object, such as a thin lens or 2 point HOE.
+    The :class:`~surface.Interface` API supports implementation of an optical action, such as refraction, reflection, scatter, diffraction, etc. The :class:`~surface.Interface` may be realized as a physical profile separating the adjacent gaps or an idealized object, such as a thin lens or 2 point HOE.
 
-    The :class:`gap.Gap` class maintains a simple separation (z translation) and the medium filling the gap. More complex coordinate transformations are handled through the Interface API.
+    The :class:`~gap.Gap` class maintains a simple separation (z translation) and the medium filling the gap. More complex coordinate transformations are handled through the Interface API. The medium in the ``Gap`` is provided via classes that implement :meth:`~medium.Medium.rindex`. For simple modeling, the :mod:`medium` provides constant refractive index classes for :class:`~medium.Air` and :class:`~medium.Glass`. Commercial optical glasses are supported by the `opticalglass <https://opticalglass.readthedocs.io>`_ package.

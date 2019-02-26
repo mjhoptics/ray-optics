@@ -5,7 +5,7 @@
 Qt5 app version of rayoptics
 ============================
 
-    The :mod:`rayoptics.qtgui` subpackage provides a desktop app, :obj:`rayopticsapp`, that runs under Anaconda. It also provides a series of higher level interfaces used by rayoptics. These include:
+    The :mod:`rayoptics.qtgui` subpackage provides a desktop app, :obj:`rayopticsapp`. It provides an integration of rayoptics with the Qt GUI toolkit. Capabilities include:
 
         - an interface that hosts matplotlib graphics
         - a table grid for numeric model displays (template-based)
@@ -19,4 +19,10 @@ A desktop application is installed as part of ``rayoptics``. It is invoked by ru
 
 .. code::
 
-   MacBook-Pro:docs Mike$ rayoptics
+   > rayoptics
+
+On a Windows machine, the ``rayoptics`` command will be located in a Scripts directory underneath the install directory. For example, if using a virtual environment named ``optics``, the command would be
+
+.. code::
+
+   > \optics\Scripts\rayoptics

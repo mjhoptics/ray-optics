@@ -26,7 +26,7 @@ CODE V sequence files can be imported
 
    > opm = open_model('ag_dblgauss.seq')
 
-Whether created new or restored from a file, setting up the following names makes reuse of code snippets much easier>
+Whether created new or restored from a file, setting up the following names makes reuse of code snippets much easier
 
 .. code::
 

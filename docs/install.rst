@@ -8,7 +8,7 @@ rayoptics is installed using ``pip3``.
 
 .. code::
 
-    pip3 install rayoptics
+    > pip3 install rayoptics
 
 .. todo::
 

@@ -30,6 +30,14 @@ class Medium:
         return self.label
 
     def rindex(self, wv_nm):
+        """ returns the interpolated refractive index at wv_nm
+
+        Args:
+            wv_nm: the wavelength in nm for the refractive index query
+
+        Returns:
+            float: the refractive index at wv_nm
+        """
         return self.n
 
 
