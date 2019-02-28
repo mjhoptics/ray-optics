@@ -57,7 +57,7 @@ class HolographicElement:
 
 class ThinLens(Interface):
     def __init__(self, lbl='', power=0.0, **kwargs):
-        super(ThinLens, self).__init__(refract_mode='PHASE', **kwargs)
+        super().__init__(refract_mode='PHASE', **kwargs)
         self.label = lbl
         self.power = power
         self.ref_index = 1.5
@@ -78,7 +78,7 @@ class ThinLens(Interface):
             return "ThinLens(power=%r)" % (self.power)
 
     def update(self):
-        super(ThinLens, self).update()
+        super().update()
 
     def full_profile(self, sd, flat_id=None, dir=1, steps=6):
         prf = []
@@ -90,6 +90,7 @@ class ThinLens(Interface):
         return self.od
 
     def set_max_aperture(self, max_ap):
+        super().set_max_aperture(max_ap)
         self.od = 2.0*max_ap
 
     @property

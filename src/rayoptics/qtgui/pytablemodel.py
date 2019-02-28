@@ -43,7 +43,7 @@ class PyTableModel(QAbstractTableModel):
             get_row_headers: if not None, a function that returns the row
                              headers for the table
         """
-        super(PyTableModel, self).__init__()
+        super().__init__()
         self.root = rootObj
         self.rootEvalStr = rootEvalStr
         self.colEvalStr = colEvalStr

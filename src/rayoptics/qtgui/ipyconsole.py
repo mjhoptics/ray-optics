@@ -46,7 +46,7 @@ def create_ipython_console(app, title, view_width, view_ht):
 class ConsoleWidget(RichJupyterWidget):
 
     def __init__(self, customBanner=None, *args, **kwargs):
-        super(ConsoleWidget, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         if customBanner is not None:
             self.banner = customBanner

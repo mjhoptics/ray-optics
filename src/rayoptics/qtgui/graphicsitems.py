@@ -18,7 +18,7 @@ import rayoptics.gui.layout as layout
 class OpticalElement(QGraphicsPolygonItem):
     """ QGraphicsItem subclass for 2D lens element graphics """
     def __init__(self, element):
-        super(OpticalElement, self).__init__()
+        super().__init__()
 
         self.oe = layout.OpticalElement(element)
         self.update_shape()
@@ -30,7 +30,7 @@ class OpticalElement(QGraphicsPolygonItem):
         self.setPen(pen)
 
     def update(self):
-        super(OpticalElement, self).update()
+        super().update()
         print("in update")
 
     def update_shape(self):
@@ -45,7 +45,7 @@ class OpticalElement(QGraphicsPolygonItem):
 class RayBundle(QGraphicsPolygonItem):
     """ QGraphicsItem subclass for ray bundle from a single field point """
     def __init__(self, opt_model, field_num, start_offset):
-        super(RayBundle, self).__init__()
+        super().__init__()
         fld, wvl, foc = opt_model.optical_spec.lookup_fld_wvl_focus(field_num)
         self.rb = layout.RayBundle(opt_model, fld, wvl, start_offset)
         self.update_shape()

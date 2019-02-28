@@ -86,7 +86,7 @@ class AnalysisPlot():
 class AstigmatismCurvePlot(AnalysisPlot):
     def __init__(self, ax, opt_model,
                  eval_fct=trace_astigmatism, **kwargs):
-        super(AnalysisPlot, self).__init__(ax, opt_model)
+        super().__init__(ax, opt_model)
         self.scale_type = Fit.All
         self.eval_fct = eval_fct
 

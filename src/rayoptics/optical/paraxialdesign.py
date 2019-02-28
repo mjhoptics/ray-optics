@@ -31,7 +31,7 @@ class ParaxialModel():
         return attrs
 
     def sync_to_restore(self, opt_model):
-        self.parent = opt_model
+        self.opt_model = opt_model
 
     def update_model(self):
         self.parax_data = self.opt_model.optical_spec.parax_data

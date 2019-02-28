@@ -134,9 +134,8 @@ class UIWidget():
 class TextFieldWidget(UIWidget):
     def __init__(self, gui_app, widgetLabel, widgetClass,
                  rootEvalStr, get_eval_str, valueFormat, set_eval_str=None):
-        super(TextFieldWidget, self).__init__(gui_app, widgetLabel,
-                                              widgetClass, rootEvalStr,
-                                              get_eval_str, set_eval_str)
+        super().__init__(gui_app, widgetLabel, widgetClass, rootEvalStr,
+                         get_eval_str, set_eval_str)
         self.valueFormat = valueFormat
         self.widget.editingFinished.connect(self.updateData)
         self.widget.setAlignment(QtCore.Qt.AlignLeft)
@@ -155,9 +154,8 @@ class TextFieldWidget(UIWidget):
 class ChoiceWidget(UIWidget):
     def __init__(self, gui_app, widgetLabel, widgetClass,
                  rootEvalStr, get_eval_str, combo_items, set_eval_str=None):
-        super(ChoiceWidget, self).__init__(gui_app, widgetLabel,
-                                           widgetClass, rootEvalStr,
-                                           get_eval_str, set_eval_str)
+        super().__init__(gui_app, widgetLabel, widgetClass, rootEvalStr,
+                         get_eval_str, set_eval_str)
         for item in combo_items:
             self.widget.addItem(item)
         self.widget.currentIndexChanged.connect(self.updateData)
@@ -177,7 +175,7 @@ class SpectrumWavelengthsPanel(QWidget):
     evalStr = '.central_wvl', '.wavelengths[0]', '.wavelengths[-1]'
 
     def __init__(self, gui_app, parent=None):
-        super(SpectrumWavelengthsPanel, self).__init__(parent)
+        super().__init__(parent)
 
         self.ctrl_wvl_edit = TextFieldWidget(gui_app, 'central', QLineEdit,
                                         SpectrumWavelengthsPanel.rootEvalStr,
@@ -228,7 +226,7 @@ class AperturePanel(QWidget):
     set_combo_str = '.mutate_pupil_type(PupilType({}))'
 
     def __init__(self, gui_app, parent=None):
-        super(AperturePanel, self).__init__(parent)
+        super().__init__(parent)
 
         apertureLayout = QFormLayout()
 
@@ -263,7 +261,7 @@ class SystemSpecPanel(QWidget):
     set_text_str = ".title='{:s}'", ".initials='{:s}'"
 
     def __init__(self, gui_app, parent=None):
-        super(SystemSpecPanel, self).__init__(parent)
+        super().__init__(parent)
 
         systemLayout = QFormLayout()
 

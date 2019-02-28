@@ -36,7 +36,7 @@ class MainWindow(QMainWindow):
     count = 0
 
     def __init__(self, parent=None):
-        super(MainWindow, self).__init__(parent)
+        super().__init__(parent)
         self.mdi = QMdiArea()
         self.setCentralWidget(self.mdi)
 
