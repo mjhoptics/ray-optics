@@ -12,6 +12,7 @@ import math
 import numpy as np
 
 from rayoptics.optical.firstorder import compute_first_order
+from rayoptics.optical.trace import aim_chief_ray
 from rayoptics.optical.model_enums import PupilType, FieldType
 import rayoptics.util.colour_system as cs
 srgb = cs.cs_srgb
@@ -25,6 +26,8 @@ class OpticalSpecs:
 
     It maintains a repository of paraxial data.
     """
+    
+    do_aiming_default = True
     def __init__(self, opt_model):
         self.opt_model = opt_model
         self.spectral_region = WvlSpec()
@@ -32,11 +35,13 @@ class OpticalSpecs:
         self.field_of_view = FieldSpec(self)
         self.defocus = FocusRange(0.0)
         self.parax_data = None
+        self.do_aiming = OpticalSpecs.do_aiming_default
 
     def __json_encode__(self):
         attrs = dict(vars(self))
         del attrs['opt_model']
         del attrs['parax_data']
+        del attrs['do_aiming']
         return attrs
 
     def set_from_list(self, dl):
@@ -46,16 +51,22 @@ class OpticalSpecs:
 
     def sync_to_restore(self, opt_model):
         self.opt_model = opt_model
+        if not hasattr(self, 'defocus'):
+            self.defocus = FocusRange(0.0)
+        if not hasattr(self, 'do_aiming'):
+            self.do_aiming = OpticalSpecs.do_aiming_default
 
     def update_model(self):
         self.pupil.update_model()
         self.field_of_view.update_model()
         stop = self.opt_model.seq_model.stop_surface
         wvl = self.spectral_region.central_wvl
-        if not hasattr(self, 'defocus'):
-            self.defocus = FocusRange(0.0)
 
         self.parax_data = compute_first_order(self.opt_model, stop, wvl)
+        if self.do_aiming:
+            for i, fld in enumerate(self.field_of_view.fields):
+                aim_pt = aim_chief_ray(self.opt_model, fld, wvl)
+                fld.aim_pt = aim_pt
 
     def lookup_fld_wvl_focus(self, fi, wl=None, fr=0.0):
         """ returns field, wavelength and defocus data
@@ -232,7 +243,17 @@ class FieldSpec:
         #  y axis only
         max_field, fi = self.max_field()
         field_norm = 1.0 if max_field == 0 else 1.0/max_field
-        self.index_labels = [str(field_norm*f.y)+'F' for f in self.fields]
+        self.index_labels = []
+        for i, f in enumerate(self.fields):
+            if f.x != 0.0:
+                fldx = '{:5.2f}x'.format(field_norm*f.x)
+            else:
+                fldx = ''
+            if f.y != 0.0:
+                fldy = '{:5.2f}y'.format(field_norm*f.y)
+            else:
+                fldy = ''
+            self.index_labels.append(fldx + fldy)
         self.index_labels[0] = 'axis'
         if len(self.index_labels) > 1:
             self.index_labels[-1] = 'edge'
@@ -298,6 +319,7 @@ class Field:
         vlx: -x vignetting factor
         vly: -y vignetting factor
         wt: field weight
+        aim_pt: x, y chief ray coords on the paraxial entrance pupil plane
         chief_ray: ray package for the ray from the field point throught the
                    center of the aperture stop, traced in the central
                    wavelength
@@ -313,6 +335,7 @@ class Field:
         self.vlx = 0.0
         self.vly = 0.0
         self.wt = wt
+        self.aim_pt = None
         self.chief_ray = None
         self.ref_sphere = None
 
