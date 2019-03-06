@@ -193,15 +193,25 @@ class Spherical(SurfaceProfile):
 
     def profile(self, sd, dir=1, steps=6):
         prf = []
+        if len(sd) == 1:
+            sd_lwr = -sd[0]
+            sd_upr = sd[0]
+        else:
+            sd_lwr = sd[0]
+            sd_upr = sd[1]
+
         if self.cv != 0.0:
             r = 1/self.cv
-            adj = sqrt(r*r - sd*sd)
-            ang = atan2(sd, adj)
+            adj_upr = sqrt(r*r - sd_upr*sd_upr)
+            ang_upr = atan2(sd_upr, adj_upr)
+            adj_lwr = sqrt(r*r - sd_lwr*sd_lwr)
+            ang_lwr = atan2(sd_lwr, adj_lwr)
+            ang = 0.5*(ang_upr - ang_lwr)
             da = dir*copysign(ang/steps, self.cv)
             sa = sin(da)
             ca = sqrt(1.0 - sa*sa)
-            sab = sb = -dir*(sd/r)
-            cab = cb = abs(adj/r)
+            sab = sb = -dir*(sd_upr/r)
+            cab = cb = abs(adj_upr/r)
             for i in range(2*steps):
                 prf.append([r*(1-cab), r*sab])
                 # print(i, r*(1-cab), r*sab)
@@ -212,8 +222,8 @@ class Spherical(SurfaceProfile):
             prf.append([r*(1-cab), r*sab])
             # print(2*steps, r*(1-cab), r*sab)
         else:
-            prf.append([0, -dir*sd])
-            prf.append([0, dir*sd])
+            prf.append([0, dir*sd_lwr])
+            prf.append([0, dir*sd_upr])
         return prf
 
 
@@ -361,9 +371,37 @@ class Conic(SurfaceProfile):
                 prf.append([z, y])
                 # print(i, z, y)
         else:
-            prf.append([0, -dir*sd])
-            prf.append([0, dir*sd])
+            prf.append([0, dir*sd_lwr])
+            prf.append([0, dir*sd_upr])
         return prf
+
+
+def aspheric_profile(surface_profile, sd, dir=1, steps=21):
+    if steps < 21:
+        steps = 21
+
+    prf = []
+    if len(sd) == 1:
+        sd_lwr = -sd[0]
+        sd_upr = sd[0]
+    else:
+        sd_lwr = sd[0]
+        sd_upr = sd[1]
+
+    if surface_profile.max_nonzero_coef > 0 or surface_profile.cv != 0.0:
+        delta = dir*(sd_upr-sd_lwr)/(2*steps)
+        y = sd_lwr if dir > 0 else sd_upr
+        z = surface_profile.sag(0., y)
+        prf.append([z, y])
+        for i in range(2*steps):
+            y += delta
+            z = surface_profile.sag(0., y)
+            prf.append([z, y])
+            # print(i, z, y)
+    else:
+        prf.append([0, dir*sd_lwr])
+        prf.append([0, dir*sd_upr])
+    return prf
 
 
 class EvenPolynomial(SurfaceProfile):
@@ -515,23 +553,7 @@ class EvenPolynomial(SurfaceProfile):
         return p[2] - self.sag(p[0], p[1])
 
     def profile(self, sd, dir=1, steps=21):
-        if steps < 21:
-            steps = 21
-        prf = []
-        if self.max_nonzero_coef > 0 or self.cv != 0.0:
-            delta = dir*sd/steps
-            y = -dir*sd
-            z = self.sag(0., y)
-            prf.append([z, y])
-            for i in range(2*steps):
-                y += delta
-                z = self.sag(0., y)
-                prf.append([z, y])
-                # print(i, z, y)
-        else:
-            prf.append([0, -dir*sd])
-            prf.append([0, dir*sd])
-        return prf
+        return aspheric_profile(self, sd, dir, steps)
 
 
 class RadialPolynomial(SurfaceProfile):
@@ -714,23 +736,7 @@ class RadialPolynomial(SurfaceProfile):
         return p[2] - self.sag(p[0], p[1])
 
     def profile(self, sd, dir=1, steps=21):
-        if steps < 21:
-            steps = 21
-        prf = []
-        if self.max_nonzero_coef > 0 or self.cv != 0.0:
-            delta = dir*sd/steps
-            y = -dir*sd
-            z = self.sag(0., y)
-            prf.append([z, y])
-            for i in range(2*steps):
-                y += delta
-                z = self.sag(0., y)
-                prf.append([z, y])
-                # print(i, z, y)
-        else:
-            prf.append([0, -dir*sd])
-            prf.append([0, dir*sd])
-        return prf
+        return aspheric_profile(self, sd, dir, steps)
 
 
 dispatch = {

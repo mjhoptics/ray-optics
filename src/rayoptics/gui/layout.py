@@ -101,9 +101,17 @@ class OpticalElement():
         self.e = e
 
     def update_shape(self):
-        t = np.array([self.e.tfrm[1][2], -self.e.tfrm[1][1]])
         poly = np.array(self.e.shape())
+        coord_flip = np.array([[0., 1.], [1., 0.]])
+
+        poly = np.matmul(coord_flip, poly.T)
+        poly = np.matmul(self.e.tfrm[0][1:, 1:], poly).T
+
+        t = np.array([self.e.tfrm[1][1], self.e.tfrm[1][2]])
         poly += t
+
+        # flip coordinates back to 2D plot coordinates, +y points up
+        poly = np.matmul(poly, coord_flip)
         bbox = bbox_from_poly(poly)
         return poly, bbox
 
@@ -135,7 +143,7 @@ class RayBundle():
             seq_model = self.opt_model.seq_model
             tfrms = seq_model.transforms
             tfrtm0 = tfrms[0]
-    
+
             try:
                 if abs(tfrms[0][1][2]) > self.start_offset:
                     r, t = setup_shift_of_ray_bundle(seq_model,
@@ -143,7 +151,7 @@ class RayBundle():
                     tfrms[0] = (r, t)
                     shift_start_of_ray_bundle(rayset, self.start_offset,
                                               r, t)
-    
+
                 poly1 = []
                 for i, r in enumerate(rayset[3][mc.ray][0:]):
                     rot, trns = tfrms[i]
@@ -151,7 +159,7 @@ class RayBundle():
         #            print(i, r[0], rot, trns, p)
         #            print("r3", i, p[2], p[1])
                     poly1.append([p[2], p[1]])
-    
+
                 poly2 = []
                 for i, r in enumerate(rayset[4][mc.ray][0:]):
                     rot, trns = tfrms[i]
@@ -159,11 +167,11 @@ class RayBundle():
         #            print(i, r[0], rot, trns, p)
         #            print("r4", i, p[2], p[1])
                     poly2.append([p[2], p[1]])
-    
+
                 poly2.reverse()
                 poly1.extend(poly2)
                 bbox = bbox_from_poly(poly1)
-    
+
             finally:
                 tfrms[0] = tfrtm0
 

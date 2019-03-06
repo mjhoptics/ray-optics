@@ -37,7 +37,9 @@ class OpticalElement(QGraphicsPolygonItem):
         poly, bbox = self.oe.update_shape()
         polygon = QPolygonF()
         for p in poly:
-            polygon.append(QPointF(p[0], p[1]))
+            # Qt canvas coordinates have 0,0 at top left of window, i.e. +y is
+            #  pointing down
+            polygon.append(QPointF(p[0], -p[1]))
 
         self.setPolygon(polygon)
 
@@ -59,6 +61,8 @@ class RayBundle(QGraphicsPolygonItem):
         poly, bbox = self.rb.update_shape()
         polygon = QPolygonF()
         for p in poly:
+            # Qt canvas coordinates have 0,0 at top left of window, i.e. +y is
+            #  pointing down
             polygon.append(QPointF(p[0], -p[1]))
 
         self.setPolygon(polygon)

@@ -82,8 +82,16 @@ class ThinLens(Interface):
 
     def full_profile(self, sd, flat_id=None, dir=1, steps=6):
         prf = []
-        prf.append([0, -dir*sd])
-        prf.append([0, dir*sd])
+        if len(sd) == 1:
+            sd_lwr = -sd[0]
+            sd_upr = sd[0]
+        else:
+            sd_lwr = sd[0]
+            sd_upr = sd[1]
+
+        prf.append([0, dir*sd_lwr])
+        prf.append([0, dir*sd_upr])
+
         return prf
 
     def surface_od(self):

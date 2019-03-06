@@ -33,3 +33,11 @@ class DimensionType(Enum):
     M = 2   #: meters
     IN = 3  #: inches
     FT = 4  #: feet
+
+
+class DecenterType(Enum):
+    """ enum for different tilt and decenter types """
+    LOCAL = 0  #: pos and orientation applied prior to surface
+    REV = 1    #: pos and orientation applied following surface in reverse
+    DAR = 2    #: pos and orientation applied prior to surface and then returned to initial frame
+    BEND = 3   #: used for fold mirrors, orientation applied before and after surface

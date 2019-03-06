@@ -116,8 +116,8 @@ class Element():
             return Element.clut.get_color(vnbr)
 
     def shape(self):
-        poly = self.s1.full_profile(self.sd, self.flat1)
-        poly2 = self.s2.full_profile(self.sd, self.flat2, -1)
+        poly = self.s1.full_profile((self.sd,), self.flat1)
+        poly2 = self.s2.full_profile((self.sd,), self.flat2, -1)
         for p in poly2:
             p[0] += self.g.thi
         poly += poly2
@@ -162,8 +162,8 @@ class Mirror():
         return self.sd
 
     def shape(self):
-        poly = self.s.full_profile(self.sd, self.flat)
-        poly2 = self.s.full_profile(self.sd, self.flat, -1)
+        poly = self.s.full_profile((self.sd,), self.flat)
+        poly2 = self.s.full_profile((self.sd,), self.flat, -1)
         for p in poly2:
             p[0] += self.thi
         poly += poly2
@@ -203,7 +203,7 @@ class ThinElement():
         return self.sd
 
     def shape(self):
-        poly = self.intrfc.full_profile(self.sd)
+        poly = self.intrfc.full_profile((self.sd,))
         return poly
 
 

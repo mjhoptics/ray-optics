@@ -31,13 +31,16 @@ from . import profiles
 from math import sqrt
 import numpy as np
 import transforms3d as t3d
+from .model_enums import DecenterType as dec
 
 
 class Interface:
-    def __init__(self, refract_mode='', delta_n=0.0, decenter=None):
+    def __init__(self, refract_mode='', delta_n=0.0,
+                 max_ap=1.0, decenter=None):
         self.refract_mode = refract_mode
         self.delta_n = delta_n
         self.decenter = decenter
+        self.max_aperture = max_ap
 
     def update(self):
         if self.decenter is not None:
@@ -45,6 +48,10 @@ class Interface:
 
     def interface_type(self):
         return type(self).__name__
+
+    def sync_to_restore(self, opt_model):
+        if not hasattr(self, 'max_aperture'):
+            self.max_aperture = 1.0
 
     def profile_cv(self):
         return 0.0
@@ -56,7 +63,8 @@ class Interface:
         pass
 
     def set_max_aperture(self, max_ap):
-        pass
+        """ max_ap is the max aperture radius """
+        self.max_aperture = max_ap
 
     def intersect(self, p0, d, eps=1.0e-12):
         pass
@@ -72,7 +80,7 @@ class Surface(Interface):
     """ Container of profile, extent, position and orientation. """
 
     def __init__(self, lbl='', profile=None, **kwargs):
-        super(Surface, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.label = lbl
         if profile:
             self.profile = profile
@@ -94,21 +102,50 @@ class Surface(Interface):
         return type(self.profile).__name__
 
     def update(self):
-        super(Surface, self).update()
+        super().update()
         self.profile.update()
 
     def profile_cv(self):
         return self.profile.cv
 
+    def get_y_aperture_extent(self):
+        """ returns [y_min, y_max] for the union of apertures """
+        od = [1.0e10, -1.0e10]
+        if len(self.edge_apertures) > 0:
+            for e in self.edge_apertures:
+                edg = e.bounding_box()
+                if edg[0][1] < od[0]:
+                    od[0] = edg[0][1]
+                if edg[1][1] > od[1]:
+                    od[1] = edg[1][1]
+        elif len(self.clear_apertures) > 0:
+            for ca in self.clear_apertures:
+                ap = ca.bounding_box()
+                if ap[0][1] < od[0]:
+                    od[0] = ap[0][1]
+                if ap[1][1] > od[1]:
+                    od[1] = ap[1][1]
+        else:
+            od = [-self.max_aperture, self.max_aperture]
+
+        return od
+
     def full_profile(self, sd, flat_id=None, dir=1, steps=6):
+        extent = self.get_y_aperture_extent()
         if flat_id is None:
-            return self.profile.profile(sd, dir, steps)
+            return self.profile.profile(extent, dir, steps)
         else:
             prf = []
+            if len(sd) == 1:
+                sd_upr = sd[0]
+                sd_lwr = sd[0]
+            else:
+                sd_upr = sd[0]
+                sd_lwr = sd[1]
             sag = self.profile.sag(0, flat_id)
-            prf.append([sag, -dir*sd])
-            prf += self.profile.profile(flat_id, dir, steps)
-            prf.append([sag, dir*sd])
+            prf.append([sag, -dir*sd_upr])
+            prf += self.profile.profile((flat_id,), dir, steps)
+            prf.append([sag, dir*sd_lwr])
             return prf
 
     @property
@@ -138,15 +175,10 @@ class Surface(Interface):
                 ap = ca.max_dimension()
                 if ap > od:
                     od = ap
-        return od
-
-    def set_max_aperture(self, max_ap):
-        """ max_ap is the max aperture radius """
-        cir_ap = Circular(max_ap)
-        if len(self.clear_apertures):
-            self.clear_apertures[0] = cir_ap
         else:
-            self.clear_apertures.append(cir_ap)
+            od = self.max_aperture
+
+        return od
 
     def intersect(self, p0, d, eps=1.0e-12, z_dir=1.0):
         return self.profile.intersect(p0, d, eps, z_dir)
@@ -164,21 +196,21 @@ class DecenterData():
         - DEC: pos and orientation applied prior to surface
         - REV: pos and orientation applied following surface in reverse
         - DAR: pos and orientation applied prior to surface and then returned to initial frame
-        - BEN: used for fold mirrors, orientation applied before and after surface
+        - BEND: used for fold mirrors, orientation applied before and after surface
 
     """
-    def __init__(self):
-        self.type = 'DEC'
+    def __init__(self, dtype, x=0., y=0., alpha=0., beta=0., gamma=0.):
+        self.dtype = dtype
         # x, y, z vertex decenter
-        self.dec = np.array([0, 0, 0])
+        self.dec = np.array([x, y, 0.])
         # alpha, beta, gamma euler angles
-        self.euler = np.array([0, 0, 0])
+        self.euler = np.array([alpha, beta, gamma])
         # x, y, z rotation point offset
-        self.rot_pt = np.array([0, 0, 0])
+        self.rot_pt = np.array([0., 0., 0.])
         self.rot_mat = None
 
     def __repr__(self):
-        return "%r: Decenter: %r, Tilt: %r" % (self.type, self.dec,
+        return "%r: Decenter: %r, Tilt: %r" % (self.dtype.name, self.dec,
                                                self.euler)
 
     def update(self):
@@ -190,25 +222,25 @@ class DecenterData():
             self.rot_mat = None
 
     def tform_before_surf(self):
-        if self.type is not 'REV':
+        if self.dtype is not dec.REV:
             return self.rot_mat, self.dec
         else:
             return None, np.array([0., 0., 0.])
 
     def tform_after_surf(self):
-        if self.type is 'REV' or self.type is 'DAR':
+        if self.dtype is dec.REV or self.dtype is dec.DAR:
             return self.rot_mat.transpose(), -self.dec
-        elif self.type is 'BEN':
+        elif self.dtype is dec.BEND:
             return self.rot_mat, np.array([0., 0., 0.])
         else:
             return None, np.array([0., 0., 0.])
 
 
 class Aperture():
-    def __init__(self):
-        self.x_offset = 0.0
-        self.y_offset = 0.0
-        self.rotation = 0.0
+    def __init__(self, x_offset=0.0, y_offset=0.0, rotation=0.0):
+        self.x_offset = x_offset
+        self.y_offset = y_offset
+        self.rotation = rotation
 
     def dimension(self):
         pass
@@ -220,10 +252,16 @@ class Aperture():
         x, y = self.dimension()
         return sqrt(x*x + y*y)
 
+    def bounding_box(self):
+        center = np.array([self.x_offset, self.y_offset])
+        extent = np.array(self.dimension())
+        return center-extent, center+extent
+
 
 class Circular(Aperture):
-    def __init__(self, r_=1.0):
-        self.radius = r_
+    def __init__(self, radius=1.0, **kwargs):
+        super().__init__(**kwargs)
+        self.radius = radius
 
     def dimension(self):
         return (self.radius, self.radius)
@@ -236,9 +274,10 @@ class Circular(Aperture):
 
 
 class Rectangular(Aperture):
-    def __init__(self, x_=1.0, y_=1.0):
-        self.x_half_width = x_
-        self.y_half_width = y_
+    def __init__(self, x_half_width=1.0, y_half_width=1.0, **kwargs):
+        super().__init__(**kwargs)
+        self.x_half_width = x_half_width
+        self.y_half_width = y_half_width
 
     def dimension(self):
         return (self.x_half_width, self.y_half_width)
@@ -249,9 +288,10 @@ class Rectangular(Aperture):
 
 
 class Elliptical(Aperture):
-    def __init__(self, x_=1.0, y_=1.0):
-        self.x_half_width = x_
-        self.y_half_width = y_
+    def __init__(self, x_half_width=1.0, y_half_width=1.0, **kwargs):
+        super().__init__(**kwargs)
+        self.x_half_width = x_half_width
+        self.y_half_width = y_half_width
 
     def dimension(self):
         return (self.x_half_width, self.y_half_width)

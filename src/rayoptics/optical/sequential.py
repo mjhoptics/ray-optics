@@ -10,7 +10,6 @@ import itertools
 import logging
 
 from . import surface
-from . import profiles
 from . import gap
 from . import medium as m
 from . import raytrace as rt
@@ -207,61 +206,6 @@ class SequentialModel:
         g = gap.Gap()
         self.insert(s, g)
         return s, g
-
-    def update_surface_and_gap_from_cv_input(self, dlist, idx=None):
-        if isinstance(idx, int):
-            s, g = self.get_surface_and_gap(idx)
-        else:
-            s, g = self.insert_surface_and_gap()
-
-        if self.opt_model.radius_mode:
-            if dlist[0] != 0.0:
-                s.profile.cv = 1.0/dlist[0]
-            else:
-                s.profile.cv = 0.0
-        else:
-            s.profile.cv = dlist[0]
-
-        if g:
-            g.thi = dlist[1]
-            if len(dlist) < 3:
-                g.medium = m.Air()
-            elif dlist[2].upper() == 'REFL':
-                s.refract_mode = 'REFL'
-                g.medium = self.gaps[self.cur_surface-1].medium
-            elif isanumber(dlist[2]):
-                n, v = m.glass_decode(float(dlist[2]))
-                g.medium = m.Glass(n, v, '')
-            else:
-                name, cat = dlist[2].split('_')
-                if cat.upper() == 'SCHOTT' and name[:1].upper() == 'N':
-                    name = name[:1]+'-'+name[1:]
-                try:
-                    g.medium = gfact.create_glass(name, cat)
-                except ge.GlassNotFoundError as gerr:
-                    logging.info('%s glass data type %s not found',
-                                 gerr.catalog,
-                                 gerr.name)
-                    logging.info('Replacing material with air.')
-                    g.medium = m.Air()
-        else:
-            # at image surface, apply defocus to previous thickness
-            self.gaps[idx-1].thi += dlist[1]
-
-    def update_surface_profile_cv_input(self, profile_type, idx=None):
-        if not isinstance(idx, int):
-            idx = self.cur_surface
-        cur_profile = self.ifcs[idx].profile
-        new_profile = profiles.mutate_profile(cur_profile, profile_type)
-        self.ifcs[idx].profile = new_profile
-        return self.ifcs[idx].profile
-
-    def update_surface_decenter_cv_input(self, idx=None):
-        if not isinstance(idx, int):
-            idx = self.cur_surface
-        if not self.ifcs[idx].decenter:
-            self.ifcs[idx].decenter = surface.DecenterData()
-        return self.ifcs[idx].decenter
 
     def create_surface_and_gap(self, surf_data):
         """ create a surface and gap where surf_data is a list that contains:

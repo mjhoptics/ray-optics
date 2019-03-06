@@ -106,7 +106,9 @@ class MainWindow(QMainWindow):
 #            self.open_file(path / "codev/tests/questar35.seq")
 #            self.open_file(path / "codev/tests/conic_mirror.seq")
 #            self.open_file(path / "codev/tests/rc_f16.seq")
-            self.open_file(path / "codev/tests/ag_dblgauss.seq")
+#            self.open_file(path / "codev/tests/ag_dblgauss.seq")
+            self.open_file(path / "codev/tests/threemir.seq")
+#            self.open_file(path / "codev/tests/dec_tilt_test.seq")
 #            self.open_file(path / "codev/tests/landscape_lens.seq")
 #            self.open_file(path / "optical/tests/cell_phone_camera.roa")
 #            self.open_file(path / "optical/tests/singlet_f3.roa")
@@ -194,8 +196,8 @@ class MainWindow(QMainWindow):
         self.app_manager.model = open_model(file_name)
         self.is_changed = True
         self.create_lens_table()
-#        self.create_lens_layout_view()
-        self.create_2D_lens_view()
+        cmds.create_lens_layout_view(self.app_manager.model, gui_parent=self)
+#        self.create_2D_lens_view()
         self.refresh_app_ui()
 
     def save_file(self, file_name):
@@ -266,11 +268,12 @@ class MainWindow(QMainWindow):
         fi = 1
         wl = osp.spectral_region.reference_wvl
         fld, wvl, foc = osp.lookup_fld_wvl_focus(fi, wl)
-        ray, ray_op, wvl, opd = trace.trace_with_opd(opt_model, pupil,
-                                                     fld, wvl, foc)
+        ray, ray_op, wvl = trace.trace_base(opt_model, pupil, fld, wvl)
+#        ray, ray_op, wvl, opd = trace.trace_with_opd(opt_model, pupil,
+#                                                     fld, wvl, foc)
 
-        cr = trace.RayPkg(ray, ray_op, wvl)
-        s, t = trace.trace_coddington_fan(opt_model, cr, foc)
+#        cr = trace.RayPkg(ray, ray_op, wvl)
+#        s, t = trace.trace_coddington_fan(opt_model, cr, foc)
 
         model = cmds.create_ray_table_model(opt_model, ray)
         self.create_table_view(model, "Ray Table")
