@@ -9,9 +9,11 @@
 """
 
 import itertools
+import logging
 import math
 import numpy as np
 from numpy.linalg import norm
+from scipy.optimize import newton, fsolve
 from collections import namedtuple
 import pandas as pd
 import attr
@@ -45,16 +47,32 @@ class RaySeg():
     phase = attr.ib(default=0.0)
 
 
-def list_ray(ray):
-    print("            X            Y            Z           L"
-          "            M            N               Len")
-    r = None
+def list_ray(ray_obj, tfrms=None):
+    """ pretty print a ray either in local or global coordinates """
+    if type(ray_obj) is tuple:
+        ray = ray_obj[0]
+    else:
+        ray = ray_obj
+
+    colHeader = "            X            Y            Z           L" \
+                "            M            N               Len"
+    print(colHeader)
+
+    colFormats = "{:3d}: {:12.5f} {:12.5f} {:12.5g} {:12.6f} {:12.6f} " \
+                 "{:12.6f} {:12.5g}"
+
     for i, r in enumerate(ray):
-        print("{:3d}: {:12.5f} {:12.5f} {:12.5f} {:12.6f} {:12.6f} "
-              "{:12.6f} {:12.5g}".format(i,
-                                         r[mc.p][0], r[mc.p][1], r[mc.p][2],
-                                         r[mc.d][0], r[mc.d][1], r[mc.d][2],
-                                         r[mc.dst]))
+        if tfrms is None:
+            print(colFormats.format(i,
+                                    r[mc.p][0], r[mc.p][1], r[mc.p][2],
+                                    r[mc.d][0], r[mc.d][1], r[mc.d][2],
+                                    r[mc.dst]))
+        else:
+            rot, trns = tfrms[i]
+            p = rot.dot(r[mc.p]) + trns
+            d = rot.dot(r[mc.d])
+            print(colFormats.format(i, p[0], p[1], p[2], d[0], d[1], d[2],
+                                    r[mc.dst]))
 
 
 def trace(sequence, pt0, dir0, wvl, **kwargs):
@@ -93,13 +111,65 @@ def trace_base(opt_model, pupil, fld, wvl, **kwargs):
     osp = opt_model.optical_spec
     fod = osp.parax_data.fod
     eprad = fod.enp_radius
-    pt1 = np.array([eprad*vig_pupil[0], eprad*vig_pupil[1],
+    aim_pt = np.array([0., 0.])
+    if hasattr(fld, 'aim_pt') and fld.aim_pt is not None:
+        aim_pt = fld.aim_pt
+    pt1 = np.array([eprad*vig_pupil[0]+aim_pt[0], eprad*vig_pupil[1]+aim_pt[1],
                     fod.obj_dist+fod.enp_dist])
     pt0 = osp.obj_coords(fld)
     dir0 = pt1 - pt0
     length = norm(dir0)
     dir0 = dir0/length
     return rt.trace(opt_model.seq_model, pt0, dir0, wvl, **kwargs)
+
+
+def iterate_ray(opt_model, ifcx, xy_target, fld, wvl, **kwargs):
+    """ returns numpy array with x, y coordinates on an object space plane """
+    def y_stop_coordinate(y1, *args):
+        seq_model, ifcx, pt0, dist, wvl, y_target = args
+        pt1 = np.array([0., y1, dist])
+        dir0 = pt1 - pt0
+        length = norm(dir0)
+        dir0 = dir0/length
+        ray, _, _ = rt.trace(seq_model, pt0, dir0, wvl)
+        y_ray = ray[ifcx][mc.p][1]
+#        print(y1, y_ray)
+        return y_ray - y_target
+
+    def surface_coordinate(coord, *args):
+        seq_model, ifcx, pt0, dist, wvl, target = args
+        pt1 = np.array([coord[0], coord[1], dist])
+        dir0 = pt1 - pt0
+        length = norm(dir0)
+        dir0 = dir0/length
+        ray, _, _ = rt.trace(seq_model, pt0, dir0, wvl)
+        xy_ray = np.array([ray[ifcx][mc.p][0], ray[ifcx][mc.p][1]])
+#        print(coord[0], coord[1], xy_ray[0], xy_ray[1])
+        return xy_ray - target
+
+    seq_model = opt_model.seq_model
+    osp = opt_model.optical_spec
+
+    fod = osp.parax_data.fod
+    dist = fod.obj_dist + fod.enp_dist
+
+    pt0 = osp.obj_coords(fld)
+    if pt0[0] == 0.0 and xy_target[0] == 0.0:
+        # do 1D iteration if field and target points are zero in x
+        y_target = xy_target[1]
+        logging.captureWarnings(True)
+        start_y = newton(y_stop_coordinate, 0.,
+                         args=(seq_model, ifcx, pt0, dist,
+                               wvl, y_target))
+        start_coords = np.array([0., start_y])
+    else:
+        # do 2D iteration. epsfcn is a parameter increment,
+        #  make proportional to  pupil radius
+        start_coords = fsolve(surface_coordinate, np.array([0., 0.]),
+                              epsfcn=0.0001*fod.enp_radius,
+                              args=(seq_model, ifcx, pt0, dist,
+                                    wvl, xy_target))
+    return start_coords
 
 
 def trace_with_opd(opt_model, pupil, fld, wvl, foc, **kwargs):
@@ -235,9 +305,20 @@ def trace_grid(opt_model, grid_rng, fld, wvl, foc, img_filter=None,
     return np.array(grid)
 
 
+def aim_chief_ray(opt_model, fld, wvl=None):
+    """ aim chief ray at center of stop surface and save results on **fld** """
+    seq_model = opt_model.seq_model
+    if wvl is None:
+        wvl = seq_model.central_wavelength()
+    stop = seq_model.stop_surface
+    aim_pt = iterate_ray(opt_model, stop, np.array([0., 0.]), fld, wvl)
+    return aim_pt
+
+
 def setup_pupil_coords(opt_model, fld, wvl, foc,
                        chief_ray_pkg=None, image_pt=None):
     if chief_ray_pkg is None:
+        aim_chief_ray(opt_model, fld, wvl=wvl)
         chief_ray_pkg = trace_chief_ray(opt_model, fld, wvl, foc)
     elif chief_ray_pkg[2] != wvl:
         chief_ray_pkg = trace_chief_ray(opt_model, fld, wvl, foc)
@@ -413,7 +494,8 @@ def trace_astigmatism(opt_model, fld, wvl, foc, dx=0.001, dy=0.001):
         dy: delta in pupil coordinates for y/tangential direction
 
     Returns:
-        s focus shift, t focus shift: sagittal and tangential focus shifts at **fld**
+        s focus shift, t focus shift: sagittal and tangential focus shifts
+                                      at **fld**
     """
     rlist = []
     rlist.append(RayPkg(*trace_base(opt_model, [0., 0.], fld, wvl)))
