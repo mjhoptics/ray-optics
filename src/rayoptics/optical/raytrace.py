@@ -14,6 +14,7 @@ from numpy.linalg import norm
 from math import sqrt, copysign
 
 import rayoptics.optical.model_constants as mc
+from .traceerror import TraceMissedSurfaceError, TraceTIRError
 
 
 Intfc, Gap, Index, Trfm, Z_Dir = range(5)
@@ -22,13 +23,16 @@ Intfc, Gap, Index, Trfm, Z_Dir = range(5)
 
 def bend(d_in, normal, n_in, n_out):
     """ refract incoming direction, d_in, about normal """
-    normal_len = norm(normal)
-    cosI = np.dot(d_in, normal)/normal_len
-    sinI_sqr = 1.0 - cosI*cosI
-    n_cosIp = copysign(sqrt(n_out*n_out - n_in*n_in*sinI_sqr), cosI)
-    alpha = n_cosIp - n_in*cosI
-    d_out = (n_in*d_in + alpha*normal)/n_out
-    return d_out
+    try:
+        normal_len = norm(normal)
+        cosI = np.dot(d_in, normal)/normal_len
+        sinI_sqr = 1.0 - cosI*cosI
+        n_cosIp = copysign(sqrt(n_out*n_out - n_in*n_in*sinI_sqr), cosI)
+        alpha = n_cosIp - n_in*cosI
+        d_out = (n_in*d_in + alpha*normal)/n_out
+        return d_out
+    except ValueError:
+        raise TraceTIRError
 
 
 def reflect(d_in, normal):
@@ -142,6 +146,9 @@ def trace_raw(path_pkg, pt0, dir0, wvl, eps=1.0e-12):
             # intersect ray with profile
             pp_dst_intrsct, inc_pt = ifc.intersect(pp_pt_before, b4_dir,
                                                    eps=eps, z_dir=z_dir_before)
+            dst_b4 = pp_dst + pp_dst_intrsct
+            ray.append([before_pt, before_dir, dst_b4, before_normal])
+
             normal = ifc.normal(inc_pt)
 
             eic_dst_before = ((inc_pt.dot(b4_dir) + z_dir_before*inc_pt[2]) /
@@ -166,8 +173,6 @@ def trace_raw(path_pkg, pt0, dir0, wvl, eps=1.0e-12):
             eic.append([n_before, eic_dst_before,
                         n_after, eic_dst_after, dW])
 
-            dst_b4 = pp_dst + pp_dst_intrsct
-            ray.append([before_pt, before_dir, dst_b4, before_normal])
 #            print("after:", surf, inc_pt, after_dir)
 #            print("e{}= {:12.5g} e{}'= {:12.5g} dW={:10.8g} n={:8.5g}"
 #                  " n'={:8.5g}".format(surf, eic_dst_before,
@@ -180,6 +185,16 @@ def trace_raw(path_pkg, pt0, dir0, wvl, eps=1.0e-12):
             z_dir_before = z_dir_after
             before = after
             tfrm_from_before = before[Trfm]
+
+        except TraceMissedSurfaceError as ray_miss:
+            ray.append([before_pt, before_dir, pp_dst, before_normal])
+            ray_miss.ray = ray
+            raise ray_miss
+
+        except TraceTIRError as ray_tir:
+            ray.append([inc_pt, before_dir, 0.0, normal])
+            ray_tir.ray = ray
+            raise ray_tir
 
         except StopIteration:
             ray.append([inc_pt, after_dir, 0.0, normal])

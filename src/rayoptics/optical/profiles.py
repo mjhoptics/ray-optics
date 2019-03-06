@@ -65,7 +65,6 @@ class SurfaceProfile:
         ''' Intersect a profile, starting from an arbitrary point.
 
         Args:
-            cv: vertex curvature
             p0:  start point of the ray in the profile's coordinate system
             d:  direction cosine of the ray in the profile's coordinate system
             z_dir: +1 if propagation positive direction, -1 if otherwise
@@ -74,6 +73,9 @@ class SurfaceProfile:
         Returns:
             s1: distance to intersection point
             p: intersection point
+
+        Raises:
+            TraceMissedSurfaceError
         '''
         p = p1 = p0
         s1 = -self.f(p1)/np.dot(d, self.normal(p1))
@@ -145,7 +147,10 @@ class Spherical(SurfaceProfile):
         # Welford's 4.8, 4.9 and 4.12
         F = self.cv*(p0[0]*p0[0] + p0[1]*p0[1])
         G = d[2] - self.cv*(d[0]*p0[0] + d[1]*p0[1])
-        s1 = F/(G + sqrt(G*G - F*self.cv))
+        try:
+            s1 = F/(G + sqrt(G*G - F*self.cv))
+        except ValueError:
+            raise TraceMissedSurfaceError
 
         s = s0 + s1
 
@@ -162,8 +167,11 @@ class Spherical(SurfaceProfile):
         ax2 = self.cv
         cx2 = self.cv * p.dot(p) - 2.0*p[2]
         b = 2.0*self.cv * d.dot(p) - d[2]
-        # Use z_dir to pick correct root
-        s = cx2/(z_dir*sqrt(b*b - ax2*cx2) - b)
+        try:
+            # Use z_dir to pick correct root
+            s = cx2/(z_dir*sqrt(b*b - ax2*cx2) - b)
+        except ValueError:
+            raise TraceMissedSurfaceError
 
         p1 = p + s*d
         return s, p1
@@ -293,7 +301,10 @@ class Conic(SurfaceProfile):
         ax2 = self.cv*(1. + self.cc*d[2]*d[2])
         F = self.cv*(p0[0]*p0[0] + p0[1]*p0[1])
         G = d[2] - self.cv*(d[0]*p0[0] + d[1]*p0[1])
-        s1 = F/(G + z_dir*sqrt(G*G - F*ax2))
+        try:
+            s1 = F/(G + z_dir*sqrt(G*G - F*ax2))
+        except ValueError:
+            raise TraceMissedSurfaceError
 
         s = s0 + s1
         p1 = p + s*d
@@ -308,8 +319,11 @@ class Conic(SurfaceProfile):
         ax2 = self.cv*(1. + self.cc*d[2]*d[2])
         cx2 = self.cv*(p[0]*p[0] + p[1]*p[1] + self.ec*p[2]*p[2]) - 2.0*p[2]
         b = self.cv*(d[0]*p[0] + d[1]*p[1] + self.ec*d[2]*p[2]) - d[2]
-        # Use z_dir to pick correct root
-        s = cx2/(z_dir*sqrt(b*b - ax2*cx2) - b)
+        try:
+            # Use z_dir to pick correct root
+            s = cx2/(z_dir*sqrt(b*b - ax2*cx2) - b)
+        except ValueError:
+            raise TraceMissedSurfaceError
 
         p1 = p + s*d
         return s, p1
@@ -321,14 +335,24 @@ class Conic(SurfaceProfile):
 
     def sag(self, x, y):
         r2 = x*x + y*y
-        z = self.cv*r2/(1. + sqrt(1. - (self.cc+1.0)*self.cv*self.cv*r2))
+        try:
+            z = self.cv*r2/(1. + sqrt(1. - (self.cc+1.0)*self.cv*self.cv*r2))
+        except ValueError:
+            raise TraceMissedSurfaceError
         return z
 
     def profile(self, sd, dir=1, steps=6):
         prf = []
+        if len(sd) == 1:
+            sd_lwr = -sd[0]
+            sd_upr = sd[0]
+        else:
+            sd_lwr = sd[0]
+            sd_upr = sd[1]
+
         if self.cv != 0.0:
-            delta = dir*sd/steps
-            y = -dir*sd
+            delta = dir*(sd_upr-sd_lwr)/(2*steps)
+            y = sd_lwr if dir > 0 else sd_upr
             z = self.sag(0., y)
             prf.append([z, y])
             for i in range(2*steps):
@@ -471,8 +495,11 @@ class EvenPolynomial(SurfaceProfile):
 
     def sag(self, x, y):
         r2 = x*x + y*y
-        # sphere + conic contribution
-        z = self.cv*r2/(1. + sqrt(1. - (self.cc+1.0)*self.cv*self.cv*r2))
+        try:
+            # sphere + conic contribution
+            z = self.cv*r2/(1. + sqrt(1. - (self.cc+1.0)*self.cv*self.cv*r2))
+        except ValueError:
+            raise TraceMissedSurfaceError
 
         # polynomial asphere contribution
         z_asp = 0.0
@@ -667,8 +694,11 @@ class RadialPolynomial(SurfaceProfile):
     def sag(self, x, y):
         r2 = x*x + y*y
         r = sqrt(r2)
-        # sphere + conic contribution
-        z = self.cv*r2/(1. + sqrt(1. - self.ec*self.cv*self.cv*r2))
+        try:
+            # sphere + conic contribution
+            z = self.cv*r2/(1. + sqrt(1. - self.ec*self.cv*self.cv*r2))
+        except ValueError:
+            raise TraceMissedSurfaceError
 
         # polynomial asphere contribution
         z_asp = 0.0

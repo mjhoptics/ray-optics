@@ -15,7 +15,7 @@ class TraceError(Exception):
 
 class TraceMissedSurfaceError(TraceError):
     """ Exception raised when ray misses a surface """
-    def __init__(self, ifc, prev_seg):
+    def __init__(self, ifc=None, prev_seg=None):
         self.ifc = ifc
         self.prev_seg = prev_seg
 
