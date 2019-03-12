@@ -108,6 +108,7 @@ class MainWindow(QMainWindow):
 #            self.open_file(path / "codev/tests/rc_f16.seq")
 #            self.open_file(path / "codev/tests/ag_dblgauss.seq")
             self.open_file(path / "codev/tests/threemir.seq")
+#            self.open_file(path / "codev/tests/folded_lenses.seq")
 #            self.open_file(path / "codev/tests/dec_tilt_test.seq")
 #            self.open_file(path / "codev/tests/landscape_lens.seq")
 #            self.open_file(path / "optical/tests/cell_phone_camera.roa")

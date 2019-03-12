@@ -4,16 +4,12 @@ dim m
 rdm n
 so 0. 1e+11
 s 0 5
-s 0 -2.25 refl
+s 0 -5 refl
 ade 60
 ben
-s -.67 -.25 nbk7_schott
-s 0. -2.5
-s 0 2.5 refl
+s 0 5 refl
 ade -60
 ben
-s 0 .25 nbk7_schott
-s -.67 2.25
 s 0 -5 refl
 ade -45
 ben
