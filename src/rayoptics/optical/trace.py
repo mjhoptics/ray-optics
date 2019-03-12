@@ -197,6 +197,16 @@ def trace_boundary_rays_at_field(opt_model, fld, wvl):
     return rim_rays
 
 
+def trace_boundary_rays(opt_model):
+    rayset = []
+    wvl = opt_model.seq_model.central_wavelength()
+    fov = opt_model.optical_spec.field_of_view
+    for fi, fld in enumerate(fov.fields):
+        rim_rays = trace_boundary_rays_at_field(opt_model, fld, wvl)
+        rayset.append(rim_rays)
+    return rayset
+
+
 def trace_ray_list_at_field(opt_model, ray_list, fld, wvl, foc):
     rayset = pd.DataFrame(data=np.nan)
     for p in ray_list:

@@ -20,7 +20,7 @@ from opticalglass import glassfactory as gfact
 from opticalglass import glasserror as ge
 import numpy as np
 import pandas as pd
-from math import copysign
+from math import copysign, sqrt
 from rayoptics.util.misc_math import isanumber
 
 
@@ -417,23 +417,34 @@ class SequentialModel:
                                 wave(p, ray_pkg, fld, wvl), form='grid')
         return grid
 
-    def set_clear_apertures(self):
-        def rd(v):
-            """ take 2d length of input vector v """
-            return np.sqrt(v[0]*v[0]+v[1]*v[1])
+#    def set_clear_apertures(self):
+#        def rd(v):
+#            """ take 2d length of input vector v """
+#            return np.sqrt(v[0]*v[0]+v[1]*v[1])
+#
+#        if self.get_num_surfaces() > 2:
+#            fields_df = trace.trace_all_fields(self.opt_model)
+#            # a) Select the inc_pt data from the unstacked result and transpose
+#            #    so that intrfcs are the index
+#            inc_pts = fields_df.unstack()['inc_pt'].T
+#            # b) applymap() is used to apply the function rd() to each element
+#            #    in the dataframe
+#            inc_pts_rd = inc_pts.applymap(rd)
+#            # c) apply max() function to each row (i.e. across columns, axis=1)
+#            semi_ap = inc_pts_rd.max(axis=1)
+#            for s, max_ap in zip(self.ifcs[1:-1], semi_ap[1:-1]):
+#                s.set_max_aperture(max_ap)
 
-        if self.get_num_surfaces() > 2:
-            fields_df = trace.trace_all_fields(self.opt_model)
-            # a) Select the inc_pt data from the unstacked result and transpose
-            #    so that intrfcs are the index
-            inc_pts = fields_df.unstack()['inc_pt'].T
-            # b) applymap() is used to apply the function rd() to each element
-            #    in the dataframe
-            inc_pts_rd = inc_pts.applymap(rd)
-            # c) apply max() function to each row (i.e. across columns, axis=1)
-            semi_ap = inc_pts_rd.max(axis=1)
-            for s, max_ap in zip(self.ifcs[1:-1], semi_ap[1:-1]):
-                s.set_max_aperture(max_ap)
+    def set_clear_apertures(self):
+        rayset = trace.trace_boundary_rays(self.opt_model)
+        for i, s in enumerate(self.ifcs):
+            max_ap = -1.0e+10
+            for f in rayset:
+                for p in f:
+                    ap = sqrt(p[0][i][0][0]**2 + p[0][i][0][1]**2)
+                    if ap > max_ap:
+                        max_ap = ap
+            s.set_max_aperture(max_ap)
 
     def trace(self, pt0, dir0, wvl, **kwargs):
         return rt.trace(self, pt0, dir0, wvl, **kwargs)
