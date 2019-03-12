@@ -108,46 +108,6 @@ class Surface(Interface):
     def profile_cv(self):
         return self.profile.cv
 
-    def get_y_aperture_extent(self):
-        """ returns [y_min, y_max] for the union of apertures """
-        od = [1.0e10, -1.0e10]
-        if len(self.edge_apertures) > 0:
-            for e in self.edge_apertures:
-                edg = e.bounding_box()
-                if edg[0][1] < od[0]:
-                    od[0] = edg[0][1]
-                if edg[1][1] > od[1]:
-                    od[1] = edg[1][1]
-        elif len(self.clear_apertures) > 0:
-            for ca in self.clear_apertures:
-                ap = ca.bounding_box()
-                if ap[0][1] < od[0]:
-                    od[0] = ap[0][1]
-                if ap[1][1] > od[1]:
-                    od[1] = ap[1][1]
-        else:
-            od = [-self.max_aperture, self.max_aperture]
-
-        return od
-
-    def full_profile(self, sd, flat_id=None, dir=1, steps=6):
-        extent = self.get_y_aperture_extent()
-        if flat_id is None:
-            return self.profile.profile(extent, dir, steps)
-        else:
-            prf = []
-            if len(sd) == 1:
-                sd_upr = sd[0]
-                sd_lwr = sd[0]
-            else:
-                sd_upr = sd[0]
-                sd_lwr = sd[1]
-            sag = self.profile.sag(0, flat_id)
-            prf.append([sag, -dir*sd_upr])
-            prf += self.profile.profile((flat_id,), dir, steps)
-            prf.append([sag, dir*sd_lwr])
-            return prf
-
     @property
     def optical_power(self):
         return self.delta_n * self.profile.cv
@@ -180,6 +140,47 @@ class Surface(Interface):
 
         return od
 
+    def get_y_aperture_extent(self):
+        """ returns [y_min, y_max] for the union of apertures """
+        od = [1.0e10, -1.0e10]
+        if len(self.edge_apertures) > 0:
+            for e in self.edge_apertures:
+                edg = e.bounding_box()
+                if edg[0][1] < od[0]:
+                    od[0] = edg[0][1]
+                if edg[1][1] > od[1]:
+                    od[1] = edg[1][1]
+        elif len(self.clear_apertures) > 0:
+            for ca in self.clear_apertures:
+                ap = ca.bounding_box()
+                if ap[0][1] < od[0]:
+                    od[0] = ap[0][1]
+                if ap[1][1] > od[1]:
+                    od[1] = ap[1][1]
+        else:
+            od = [-self.max_aperture, self.max_aperture]
+
+        return od
+
+    def full_profile(self, edge_extent, flat_id=None, dir=1, steps=6):
+        if flat_id is None:
+            return self.profile.profile(edge_extent, dir, steps)
+        else:
+            if len(edge_extent) == 1:
+                sd_upr = edge_extent[0]
+                sd_lwr = -edge_extent[0]
+            else:
+                sd_upr = edge_extent[1]
+                sd_lwr = edge_extent[0]
+            if dir<0:
+                sd_lwr, sd_upr = sd_upr, sd_lwr
+            sag = self.profile.sag(0, flat_id)
+            prf = []
+            prf.append([sag, sd_lwr])
+            prf += self.profile.profile((flat_id,), dir, steps)
+            prf.append([sag, sd_upr])
+            return prf
+
     def intersect(self, p0, d, eps=1.0e-12, z_dir=1.0):
         return self.profile.intersect(p0, d, eps, z_dir)
 
@@ -193,10 +194,10 @@ class Surface(Interface):
 class DecenterData():
     """ Maintains data and actions for position and orientation changes.
 
-        - DEC: pos and orientation applied prior to surface
-        - REV: pos and orientation applied following surface in reverse
-        - DAR: pos and orientation applied prior to surface and then returned to initial frame
-        - BEND: used for fold mirrors, orientation applied before and after surface
+        - LOCAL: pos and orientation applied prior to surface
+        - REV:   pos and orientation applied following surface in reverse
+        - DAR:   pos and orientation applied prior to surface and then returned to initial frame
+        - BEND:  used for fold mirrors, orientation applied before and after surface
 
     """
     def __init__(self, dtype, x=0., y=0., alpha=0., beta=0., gamma=0.):

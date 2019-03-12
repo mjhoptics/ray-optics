@@ -82,6 +82,11 @@ class Element():
         del attrs['g']
         return attrs
 
+    def __str__(self):
+        fmt = 'Element: {!r}, {!r}, t={:.4f}, sd={:.4f}, glass: {}'
+        return fmt.format(self.s1.profile, self.s2.profile, self.g.thi,
+                          self.sd, self.g.medium.name())
+
     def sync_to_restore(self, surfs, gaps, tfrms):
         # when restoring, we want to use the stored indices to look up the
         # new object instances
@@ -102,6 +107,9 @@ class Element():
         return self.s1
 
     def update_size(self):
+        extents = np.union1d(self.s1.get_y_aperture_extent(),
+                             self.s2.get_y_aperture_extent())
+        self.edge_extent = (extents[0], extents[-1])
         self.sd = max(self.s1.surface_od(), self.s2.surface_od())
         return self.sd
 
@@ -115,9 +123,27 @@ class Element():
             vnbr = round(100.0*(gc - int(gc)), 3)
             return Element.clut.get_color(vnbr)
 
+    def compute_flat(self, s):
+        ca = s.surface_od()
+        if (1.0 - ca/self.sd) >= 0.05:
+            flat = ca
+        else:
+            flat = None
+        return flat
+
+    def extent(self):
+        if hasattr(self, 'edge_extent'):
+            return self.edge_extent
+        else:
+            return (self.sd,)
+
     def shape(self):
-        poly = self.s1.full_profile((self.sd,), self.flat1)
-        poly2 = self.s2.full_profile((self.sd,), self.flat2, -1)
+        if self.s1.profile_cv() < 0.0:
+            self.flat1 = self.compute_flat(self.s1)
+        poly = self.s1.full_profile(self.extent(), self.flat1)
+        if self.s2.profile_cv() > 0.0:
+            self.flat2 = self.compute_flat(self.s2)
+        poly2 = self.s2.full_profile(self.extent(), self.flat2, -1)
         for p in poly2:
             p[0] += self.g.thi
         poly += poly2
@@ -126,7 +152,7 @@ class Element():
 
 
 class Mirror():
-    def __init__(self, ifc, tfrm=None, idx=0, sd=1., thi=None):
+    def __init__(self, ifc, tfrm=None, idx=0, sd=1., thi=None, z_dir=1.0):
         self.render_color = (192, 192, 192)
         if tfrm is not None:
             self.tfrm = tfrm
@@ -134,18 +160,27 @@ class Mirror():
             self.trfm = (np.identity(3), np.array([0., 0., 0.]))
         self.s = ifc
         self.s_indx = idx
+        self.z_dir = z_dir
         self.sd = sd
         self.flat = None
-        if thi is None:
-            self.thi = 0.05*self.sd
-        else:
-            self.thi = thi
+        self.thi = thi
+
+    def get_thi(self):
+        thi = self.thi
+        if self.thi is None:
+            thi = 0.05*self.sd
+        return thi
 
     def __json_encode__(self):
         attrs = dict(vars(self))
         del attrs['tfrm']
         del attrs['s']
         return attrs
+
+    def __str__(self):
+        thi = self.get_thi()
+        fmt = 'Mirror: {!r}, t={:.4f}, sd={:.4f}'
+        return fmt.format(self.s.profile, thi, self.sd)
 
     def sync_to_restore(self, surfs, gaps, tfrms):
         self.tfrm = tfrms[self.s_indx]
@@ -158,14 +193,26 @@ class Mirror():
         self.s_indx = seq_model.ifcs.index(self.s)
 
     def update_size(self):
+        self.edge_extent = self.s.get_y_aperture_extent()
         self.sd = self.s.surface_od()
         return self.sd
 
+    def extent(self):
+        if hasattr(self, 'edge_extent'):
+            return self.edge_extent
+        else:
+            self.edge_extent = self.s.get_y_aperture_extent()
+            return self.edge_extent
+
     def shape(self):
-        poly = self.s.full_profile((self.sd,), self.flat)
-        poly2 = self.s.full_profile((self.sd,), self.flat, -1)
+        poly = self.s.full_profile(self.extent(), self.flat)
+        poly2 = self.s.full_profile(self.extent(), self.flat, -1)
+
+        thi = self.get_thi()
+        offset = thi*self.z_dir
+
         for p in poly2:
-            p[0] += self.thi
+            p[0] += offset
         poly += poly2
         poly.append(poly[0])
         return poly
@@ -187,6 +234,9 @@ class ThinElement():
         del attrs['tfrm']
         del attrs['intrfc']
         return attrs
+
+    def __str__(self):
+        return str(self.intrfc)
 
     def sync_to_restore(self, surfs, gaps, tfrms):
         self.tfrm = tfrms[self.intrfc_indx]
@@ -235,13 +285,15 @@ class ElementModel:
                 self.elements.append(te)
                 continue
 
+            z_dir = seq_model.z_dir[i]
             if g.medium.name().lower() == 'air':
                 # close off element
                 s2 = seq_model.ifcs[i+1]
                 if s2.refract_mode is 'REFL':
                     tfrm = tfrms[i+1]
                     sd = s2.surface_od()
-                    self.elements.append(Mirror(s2, sd=sd, tfrm=tfrm, idx=i+1))
+                    self.elements.append(Mirror(s2, sd=sd, tfrm=tfrm, idx=i+1,
+                                                z_dir=z_dir))
             else:
                 tfrm = tfrms[i]
                 s1 = seq_model.ifcs[i]
@@ -278,10 +330,4 @@ class ElementModel:
 
     def list_elements(self):
         for i, ele in enumerate(self.elements):
-            if ele.s1 is not None:
-                print(ele.s1.profile,
-                      ele.s2.profile,
-                      ele.g.thi, ele.sd, ele.g.medium.name())
-            else:
-                print('REFL',
-                      ele.s2.profile, ele.sd)
+            print(str(ele))
