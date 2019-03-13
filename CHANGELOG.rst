@@ -2,6 +2,11 @@
 Changelog
 =========
 
+Version 0.3.5
+=============
+
+Update aperture import and layout rendering for y-z plane tilts and decenters
+
 Version 0.3.0
 =============
 
