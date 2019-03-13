@@ -1,161 +1,132 @@
 {
  "optical_model":{
   "__instance_type__":[
-   "optical.opticalmodel",
+   "rayoptics.optical.opticalmodel",
    "OpticalModel"
   ],
   "attributes":{
    "radius_mode":false,
    "system_spec":{
     "__instance_type__":[
-     "optical.opticalmodel",
+     "rayoptics.optical.opticalmodel",
      "SystemSpec"
     ],
     "attributes":{
      "title":"singlet",
      "initials":"",
-     "dimensions":"MM",
-     "aperture_override":"",
+     "dimensions":{
+      "__enum__":{
+       "__enum_instance_type__":[
+        "rayoptics.optical.model_enums",
+        "DimensionType"
+       ],
+       "name":"MM"
+      }
+     },
      "temperature":20.0,
      "pressure":760.0
     }
    },
    "seq_model":{
     "__instance_type__":[
-     "optical.sequential",
+     "rayoptics.optical.sequential",
      "SequentialModel"
     ],
     "attributes":{
      "ifcs":[
       {
        "__instance_type__":[
-        "optical.surface",
+        "rayoptics.optical.surface",
         "Surface"
        ],
        "attributes":{
         "refract_mode":"",
         "delta_n":0.0,
         "decenter":null,
+        "max_aperture":6.647393186689435,
         "label":"Obj",
         "profile":{
          "__instance_type__":[
-          "optical.profiles",
+          "rayoptics.optical.profiles",
           "Spherical"
          ],
          "attributes":{
           "cv":0.0
          }
         },
-        "clear_apertures":[
-         {
-          "__instance_type__":[
-           "optical.surface",
-           "Circular"
-          ],
-          "attributes":{
-           "radius":6.662541557981888
-          }
-         }
-        ],
+        "clear_apertures":[],
         "edge_apertures":[]
        }
       },
       {
        "__instance_type__":[
-        "optical.surface",
+        "rayoptics.optical.surface",
         "Surface"
        ],
        "attributes":{
         "refract_mode":"",
         "delta_n":0.5145203085647796,
         "decenter":null,
+        "max_aperture":1.5137427510080066,
         "label":"",
         "profile":{
          "__instance_type__":[
-          "optical.profiles",
+          "rayoptics.optical.profiles",
           "Spherical"
          ],
          "attributes":{
           "cv":0.1
          }
         },
-        "clear_apertures":[
-         {
-          "__instance_type__":[
-           "optical.surface",
-           "Circular"
-          ],
-          "attributes":{
-           "radius":1.5102928044425308
-          }
-         }
-        ],
+        "clear_apertures":[],
         "edge_apertures":[]
        }
       },
       {
        "__instance_type__":[
-        "optical.surface",
+        "rayoptics.optical.surface",
         "Surface"
        ],
        "attributes":{
         "refract_mode":"",
         "delta_n":-0.5145203085647796,
         "decenter":null,
+        "max_aperture":1.5148072492171922,
         "label":"",
         "profile":{
          "__instance_type__":[
-          "optical.profiles",
+          "rayoptics.optical.profiles",
           "Spherical"
          ],
          "attributes":{
-          "cv":-0.05030270224644697
+          "cv":-0.05
          }
         },
-        "clear_apertures":[
-         {
-          "__instance_type__":[
-           "optical.surface",
-           "Circular"
-          ],
-          "attributes":{
-           "radius":1.5115216477017983
-          }
-         }
-        ],
+        "clear_apertures":[],
         "edge_apertures":[]
        }
       },
       {
        "__instance_type__":[
-        "optical.surface",
+        "rayoptics.optical.surface",
         "Surface"
        ],
        "attributes":{
         "refract_mode":"",
         "delta_n":0.0,
         "decenter":null,
+        "max_aperture":1.1084073918299753,
         "label":"Img",
         "profile":{
          "__instance_type__":[
-          "optical.profiles",
+          "rayoptics.optical.profiles",
           "Spherical"
          ],
          "attributes":{
           "cv":0.0
          }
         },
-        "clear_apertures":[
-         {
-          "__instance_type__":[
-           "optical.surface",
-           "Circular"
-          ],
-          "attributes":{
-           "radius":1.0464285884709053
-          }
-         }
-        ],
+        "clear_apertures":[],
         "edge_apertures":[]
        }
       }
@@ -163,14 +134,14 @@
      "gaps":[
       {
        "__instance_type__":[
-        "optical.gap",
+        "rayoptics.optical.gap",
         "Gap"
        ],
        "attributes":{
         "thi":100.0,
         "medium":{
          "__instance_type__":[
-          "optical.medium",
+          "rayoptics.optical.medium",
           "Air"
          ],
          "attributes":{
@@ -182,32 +153,33 @@
       },
       {
        "__instance_type__":[
-        "optical.gap",
+        "rayoptics.optical.gap",
         "Gap"
        ],
        "attributes":{
-        "thi":0.9999999999999999,
+        "thi":1.0,
         "medium":{
          "__instance_type__":[
-          "glass.schott",
+          "opticalglass.schott",
           "SchottGlass"
          ],
          "attributes":{
-          "gindex":25
+          "gindex":25,
+          "gname":"N-BK7"
          }
         }
        }
       },
       {
        "__instance_type__":[
-        "optical.gap",
+        "rayoptics.optical.gap",
         "Gap"
        ],
        "attributes":{
-        "thi":14.59849,
+        "thi":15.0,
         "medium":{
          "__instance_type__":[
-          "optical.medium",
+          "rayoptics.optical.medium",
           "Air"
          ],
          "attributes":{
@@ -219,118 +191,186 @@
       }
      ],
      "stop_surface":1,
-     "cur_surface":2,
-     "optical_spec":{
+     "cur_surface":2
+    }
+   },
+   "optical_spec":{
+    "__instance_type__":[
+     "rayoptics.optical.opticalspec",
+     "OpticalSpecs"
+    ],
+    "attributes":{
+     "spectral_region":{
       "__instance_type__":[
-       "optical.opticalspec",
-       "OpticalSpecs"
+       "rayoptics.optical.opticalspec",
+       "WvlSpec"
       ],
       "attributes":{
-       "spectral_region":{
-        "__instance_type__":[
-         "optical.opticalspec",
-         "WvlSpec"
-        ],
-        "attributes":{
-         "wavelengths":[
-          650.0,
-          550.0,
-          450.0
+       "wavelengths":[
+        650.0,
+        550.0,
+        450.0
+       ],
+       "spectral_wts":[
+        1.0
+       ],
+       "render_colors":[
+        "red",
+        "green",
+        "blue"
+       ],
+       "reference_wvl":0,
+       "coating_wvl":550.0
+      }
+     },
+     "pupil":{
+      "__instance_type__":[
+       "rayoptics.optical.opticalspec",
+       "PupilSpec"
+      ],
+      "attributes":{
+       "pupil_type":{
+        "__enum__":{
+         "__enum_instance_type__":[
+          "rayoptics.optical.model_enums",
+          "PupilType"
          ],
-         "spectral_wts":[
-          1.0
-         ],
-         "render_colors":[
-          "blue",
-          "green",
-          "red"
-         ],
-         "reference_wvl":0,
-         "coating_wvl":550.0
+         "name":"FNO"
         }
        },
-       "pupil":{
-        "__instance_type__":[
-         "optical.opticalspec",
-         "PupilSpec"
+       "value":5.0,
+       "pupil_rays":[
+        [
+         0.0,
+         0.0
         ],
-        "attributes":{
-         "type":"FNO",
-         "value":5.0
+        [
+         1.0,
+         0.0
+        ],
+        [
+         -1.0,
+         0.0
+        ],
+        [
+         0.0,
+         1.0
+        ],
+        [
+         0.0,
+         -1.0
+        ]
+       ],
+       "ray_labels":[
+        "00",
+        "+X",
+        "-X",
+        "+Y",
+        "-Y"
+       ]
+      }
+     },
+     "field_of_view":{
+      "__instance_type__":[
+       "rayoptics.optical.opticalspec",
+       "FieldSpec"
+      ],
+      "attributes":{
+       "field_type":{
+        "__enum__":{
+         "__enum_instance_type__":[
+          "rayoptics.optical.model_enums",
+          "FieldType"
+         ],
+         "name":"IMG_HT"
         }
        },
-       "field_of_view":{
-        "__instance_type__":[
-         "optical.opticalspec",
-         "FieldSpec"
-        ],
-        "attributes":{
-         "type":"IMG_HT",
-         "fields":[
-          {
-           "__instance_type__":[
-            "optical.opticalspec",
-            "Field"
+       "fields":[
+        {
+         "__instance_type__":[
+          "rayoptics.optical.opticalspec",
+          "Field"
+         ],
+         "attributes":{
+          "x":0.0,
+          "y":0.0,
+          "vux":0.0,
+          "vuy":0.0,
+          "vlx":0.0,
+          "vly":0.0,
+          "wt":1.0,
+          "aim_pt":{
+           "__ndarray__":[
+            0.0,
+            0.0
            ],
-           "attributes":{
-            "x":0.0,
-            "y":0.0,
-            "vux":0.0,
-            "vuy":0.0,
-            "vlx":0.0,
-            "vly":0.0,
-            "wt":1.0
-           }
-          },
-          {
-           "__instance_type__":[
-            "optical.opticalspec",
-            "Field"
-           ],
-           "attributes":{
-            "x":0.0,
-            "y":1.0,
-            "vux":0.0,
-            "vuy":0.0,
-            "vlx":0.0,
-            "vly":0.0,
-            "wt":1.0
-           }
+           "dtype":"float64",
+           "shape":[
+            2
+           ]
           }
+         }
+        },
+        {
+         "__instance_type__":[
+          "rayoptics.optical.opticalspec",
+          "Field"
          ],
-         "wide_angle":false
+         "attributes":{
+          "x":0.0,
+          "y":1.0,
+          "vux":0.0,
+          "vuy":0.0,
+          "vlx":0.0,
+          "vly":0.0,
+          "wt":1.0,
+          "aim_pt":{
+           "__ndarray__":[
+            0.0,
+            2.258791831475771e-16
+           ],
+           "dtype":"float64",
+           "shape":[
+            2
+           ]
+          }
+         }
         }
-       }
+       ],
+       "index_labels":[
+        "axis",
+        "edge"
+       ]
+      }
+     },
+     "defocus":{
+      "__instance_type__":[
+       "rayoptics.optical.opticalspec",
+       "FocusRange"
+      ],
+      "attributes":{
+       "focus_shift":0.0,
+       "defocus_range":0.0
       }
      }
     }
    },
    "ele_model":{
     "__instance_type__":[
-     "optical.elements",
+     "rayoptics.optical.elements",
      "ElementModel"
     ],
     "attributes":{
      "elements":[
       {
        "__instance_type__":[
-        "optical.elements",
+        "rayoptics.optical.elements",
         "Element"
        ],
        "attributes":{
         "s1_indx":1,
         "s2_indx":2,
-        "thi":1.0,
-        "medium":{
-         "__instance_type__":[
-          "glass.schott",
-          "SchottGlass"
-         ],
-         "attributes":{
-          "gindex":25
-         }
-        },
-        "sd":1.5115216477017983,
+        "sd":1.5148072492171922,
         "flat1":null,
         "flat2":null,
         "render_color":[

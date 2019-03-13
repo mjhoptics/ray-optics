@@ -43,6 +43,7 @@
         "refract_mode":"",
         "delta_n":0.0,
         "decenter":null,
+        "max_aperture":832499999.6499999,
         "label":"Obj",
         "profile":{
          "__instance_type__":[
@@ -66,11 +67,12 @@
         "refract_mode":"PHASE",
         "delta_n":0.0,
         "decenter":null,
+        "max_aperture":0.500000210762644,
         "label":"L1",
         "power":0.095,
         "ref_index":1.5,
         "bending":0.0,
-        "od":1.000000103943473,
+        "od":1.000000421525288,
         "phase_mapper":{
          "__instance_type__":[
           "rayoptics.optical.thinlens",
@@ -116,11 +118,12 @@
         "refract_mode":"PHASE",
         "delta_n":0.0,
         "decenter":null,
+        "max_aperture":0.6066169214480992,
         "label":"L2",
         "power":0.09999999999999996,
         "ref_index":1.5,
         "bending":0.0,
-        "od":1.2132335017556668,
+        "od":1.2132338428961984,
         "phase_mapper":{
          "__instance_type__":[
           "rayoptics.optical.thinlens",
@@ -166,6 +169,7 @@
         "refract_mode":"",
         "delta_n":0.0,
         "decenter":null,
+        "max_aperture":0.5059546708914623,
         "label":"Img",
         "profile":{
          "__instance_type__":[
@@ -344,7 +348,17 @@
           "vuy":0.0,
           "vlx":0.0,
           "vly":0.0,
-          "wt":1.0
+          "wt":1.0,
+          "aim_pt":{
+           "__ndarray__":[
+            0.0,
+            0.0
+           ],
+           "dtype":"float64",
+           "shape":[
+            2
+           ]
+          }
          }
         },
         {
@@ -359,7 +373,17 @@
           "vuy":0.0,
           "vlx":0.0,
           "vly":0.0,
-          "wt":1.0
+          "wt":1.0,
+          "aim_pt":{
+           "__ndarray__":[
+            0.0,
+            -6.146897935266206e-08
+           ],
+           "dtype":"float64",
+           "shape":[
+            2
+           ]
+          }
          }
         }
        ],
@@ -400,7 +424,7 @@
          192
         ],
         "intrfc_indx":1,
-        "sd":1.000000103943473
+        "sd":1.000000421525288
        }
       },
       {
@@ -415,7 +439,7 @@
          192
         ],
         "intrfc_indx":2,
-        "sd":1.2132335017556668
+        "sd":1.2132338428961984
        }
       }
      ]

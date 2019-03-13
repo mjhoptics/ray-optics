@@ -43,6 +43,7 @@
         "refract_mode":"",
         "delta_n":0.0,
         "decenter":null,
+        "max_aperture":65999999.16999999,
         "label":"Obj",
         "profile":{
          "__instance_type__":[
@@ -66,6 +67,7 @@
         "refract_mode":"REFL",
         "delta_n":-2.0,
         "decenter":null,
+        "max_aperture":3.7885294694549274,
         "label":"M1",
         "profile":{
          "__instance_type__":[
@@ -76,17 +78,7 @@
           "cv":-0.013727272717823692
          }
         },
-        "clear_apertures":[
-         {
-          "__instance_type__":[
-           "rayoptics.optical.surface",
-           "Circular"
-          ],
-          "attributes":{
-           "radius":3.7885294694549274
-          }
-         }
-        ],
+        "clear_apertures":[],
         "edge_apertures":[]
        }
       },
@@ -99,6 +91,7 @@
         "refract_mode":"REFL",
         "delta_n":2.0,
         "decenter":null,
+        "max_aperture":1.644351190122899,
         "label":"M2",
         "profile":{
          "__instance_type__":[
@@ -109,17 +102,7 @@
           "cv":-0.017998163738521585
          }
         },
-        "clear_apertures":[
-         {
-          "__instance_type__":[
-           "rayoptics.optical.surface",
-           "Circular"
-          ],
-          "attributes":{
-           "radius":1.6443511871778966
-          }
-         }
-        ],
+        "clear_apertures":[],
         "edge_apertures":[]
        }
       },
@@ -132,6 +115,7 @@
         "refract_mode":"",
         "delta_n":0.0,
         "decenter":null,
+        "max_aperture":0.5086038581446032,
         "label":"Img",
         "profile":{
          "__instance_type__":[
@@ -310,7 +294,17 @@
           "vuy":0.0,
           "vlx":0.0,
           "vly":0.0,
-          "wt":1.0
+          "wt":1.0,
+          "aim_pt":{
+           "__ndarray__":[
+            0.0,
+            0.0
+           ],
+           "dtype":"float64",
+           "shape":[
+            2
+           ]
+          }
          }
         },
         {
@@ -325,7 +319,17 @@
           "vuy":0.0,
           "vlx":0.0,
           "vly":0.0,
-          "wt":1.0
+          "wt":1.0,
+          "aim_pt":{
+           "__ndarray__":[
+            0.0,
+            -4.62516524537237e-09
+           ],
+           "dtype":"float64",
+           "shape":[
+            2
+           ]
+          }
          }
         }
        ],
@@ -366,9 +370,14 @@
          192
         ],
         "s_indx":1,
+        "z_dir":1.0,
         "sd":3.7885294694549274,
         "flat":null,
-        "thi":0.18941763031301817
+        "thi":null,
+        "edge_extent":[
+         -3.7885294694549274,
+         3.7885294694549274
+        ]
        }
       },
       {
@@ -383,9 +392,14 @@
          192
         ],
         "s_indx":2,
-        "sd":1.6443511871778966,
+        "z_dir":-1.0,
+        "sd":1.644351190122899,
         "flat":null,
-        "thi":0.07527276315062166
+        "thi":null,
+        "edge_extent":[
+         -1.644351190122899,
+         1.644351190122899
+        ]
        }
       }
      ]

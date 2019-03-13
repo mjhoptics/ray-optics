@@ -35,6 +35,7 @@
         "refract_mode":"",
         "delta_n":0.0,
         "decenter":null,
+        "max_aperture":6264461389.327506,
         "label":"Obj",
         "profile":{
          "__instance_type__":[
@@ -58,6 +59,7 @@
         "refract_mode":"",
         "delta_n":0.0,
         "decenter":null,
+        "max_aperture":0.9234416308817883,
         "label":"",
         "profile":{
          "__instance_type__":[
@@ -68,17 +70,7 @@
           "cv":0.0
          }
         },
-        "clear_apertures":[
-         {
-          "__instance_type__":[
-           "rayoptics.optical.surface",
-           "Circular"
-          ],
-          "attributes":{
-           "radius":0.9234416308817883
-          }
-         }
-        ],
+        "clear_apertures":[],
         "edge_apertures":[]
        }
       },
@@ -91,6 +83,7 @@
         "refract_mode":"",
         "delta_n":0.4710000000000001,
         "decenter":null,
+        "max_aperture":0.9434579726017993,
         "label":"",
         "profile":{
          "__instance_type__":[
@@ -126,17 +119,7 @@
           "coef10":0.0
          }
         },
-        "clear_apertures":[
-         {
-          "__instance_type__":[
-           "rayoptics.optical.surface",
-           "Circular"
-          ],
-          "attributes":{
-           "radius":0.9434579726017993
-          }
-         }
-        ],
+        "clear_apertures":[],
         "edge_apertures":[]
        }
       },
@@ -149,6 +132,7 @@
         "refract_mode":"",
         "delta_n":-0.4710000000000001,
         "decenter":null,
+        "max_aperture":1.0863183163224912,
         "label":"",
         "profile":{
          "__instance_type__":[
@@ -184,17 +168,7 @@
           "coef10":0.0
          }
         },
-        "clear_apertures":[
-         {
-          "__instance_type__":[
-           "rayoptics.optical.surface",
-           "Circular"
-          ],
-          "attributes":{
-           "radius":1.0863183163224912
-          }
-         }
-        ],
+        "clear_apertures":[],
         "edge_apertures":[]
        }
       },
@@ -207,6 +181,7 @@
         "refract_mode":"",
         "delta_n":0.603,
         "decenter":null,
+        "max_aperture":1.1336762299942154,
         "label":"",
         "profile":{
          "__instance_type__":[
@@ -242,17 +217,7 @@
           "coef10":0.0
          }
         },
-        "clear_apertures":[
-         {
-          "__instance_type__":[
-           "rayoptics.optical.surface",
-           "Circular"
-          ],
-          "attributes":{
-           "radius":1.1336762299942154
-          }
-         }
-        ],
+        "clear_apertures":[],
         "edge_apertures":[]
        }
       },
@@ -265,6 +230,7 @@
         "refract_mode":"",
         "delta_n":-0.603,
         "decenter":null,
+        "max_aperture":1.5362279831866577,
         "label":"",
         "profile":{
          "__instance_type__":[
@@ -300,17 +266,7 @@
           "coef10":0.0
          }
         },
-        "clear_apertures":[
-         {
-          "__instance_type__":[
-           "rayoptics.optical.surface",
-           "Circular"
-          ],
-          "attributes":{
-           "radius":1.5362279831866577
-          }
-         }
-        ],
+        "clear_apertures":[],
         "edge_apertures":[]
        }
       },
@@ -323,6 +279,7 @@
         "refract_mode":"",
         "delta_n":0.51,
         "decenter":null,
+        "max_aperture":1.8592866743247831,
         "label":"",
         "profile":{
          "__instance_type__":[
@@ -358,17 +315,7 @@
           "coef10":0.0
          }
         },
-        "clear_apertures":[
-         {
-          "__instance_type__":[
-           "rayoptics.optical.surface",
-           "Circular"
-          ],
-          "attributes":{
-           "radius":1.8592866743247831
-          }
-         }
-        ],
+        "clear_apertures":[],
         "edge_apertures":[]
        }
       },
@@ -381,6 +328,7 @@
         "refract_mode":"",
         "delta_n":-0.51,
         "decenter":null,
+        "max_aperture":2.3609459764272107,
         "label":"",
         "profile":{
          "__instance_type__":[
@@ -416,17 +364,7 @@
           "coef10":0.0
          }
         },
-        "clear_apertures":[
-         {
-          "__instance_type__":[
-           "rayoptics.optical.surface",
-           "Circular"
-          ],
-          "attributes":{
-           "radius":2.3609459764272107
-          }
-         }
-        ],
+        "clear_apertures":[],
         "edge_apertures":[]
        }
       },
@@ -439,6 +377,7 @@
         "refract_mode":"",
         "delta_n":0.51,
         "decenter":null,
+        "max_aperture":2.4379206145923282,
         "label":"",
         "profile":{
          "__instance_type__":[
@@ -474,17 +413,7 @@
           "coef10":0.0
          }
         },
-        "clear_apertures":[
-         {
-          "__instance_type__":[
-           "rayoptics.optical.surface",
-           "Circular"
-          ],
-          "attributes":{
-           "radius":2.4379206145923282
-          }
-         }
-        ],
+        "clear_apertures":[],
         "edge_apertures":[]
        }
       },
@@ -497,6 +426,7 @@
         "refract_mode":"",
         "delta_n":-0.51,
         "decenter":null,
+        "max_aperture":2.876521780103687,
         "label":"",
         "profile":{
          "__instance_type__":[
@@ -532,17 +462,7 @@
           "coef10":0.0
          }
         },
-        "clear_apertures":[
-         {
-          "__instance_type__":[
-           "rayoptics.optical.surface",
-           "Circular"
-          ],
-          "attributes":{
-           "radius":2.876521780103687
-          }
-         }
-        ],
+        "clear_apertures":[],
         "edge_apertures":[]
        }
       },
@@ -555,6 +475,7 @@
         "refract_mode":"",
         "delta_n":0.516,
         "decenter":null,
+        "max_aperture":3.2055190447630184,
         "label":"",
         "profile":{
          "__instance_type__":[
@@ -565,17 +486,7 @@
           "cv":0.0
          }
         },
-        "clear_apertures":[
-         {
-          "__instance_type__":[
-           "rayoptics.optical.surface",
-           "Circular"
-          ],
-          "attributes":{
-           "radius":3.2055190447630184
-          }
-         }
-        ],
+        "clear_apertures":[],
         "edge_apertures":[]
        }
       },
@@ -588,6 +499,7 @@
         "refract_mode":"",
         "delta_n":-0.516,
         "decenter":null,
+        "max_aperture":3.2985067566910504,
         "label":"",
         "profile":{
          "__instance_type__":[
@@ -598,17 +510,7 @@
           "cv":0.0
          }
         },
-        "clear_apertures":[
-         {
-          "__instance_type__":[
-           "rayoptics.optical.surface",
-           "Circular"
-          ],
-          "attributes":{
-           "radius":3.2985067566910504
-          }
-         }
-        ],
+        "clear_apertures":[],
         "edge_apertures":[]
        }
       },
@@ -621,6 +523,7 @@
         "refract_mode":"",
         "delta_n":0.0,
         "decenter":null,
+        "max_aperture":3.5438205453889724,
         "label":"Img",
         "profile":{
          "__instance_type__":[
@@ -981,7 +884,17 @@
           "vuy":0.0,
           "vlx":0.0,
           "vly":0.0,
-          "wt":1.0
+          "wt":1.0,
+          "aim_pt":{
+           "__ndarray__":[
+            0.0,
+            0.0
+           ],
+           "dtype":"float64",
+           "shape":[
+            2
+           ]
+          }
          }
         },
         {
@@ -996,7 +909,17 @@
           "vuy":0.0,
           "vlx":0.0,
           "vly":0.0,
-          "wt":1.0
+          "wt":1.0,
+          "aim_pt":{
+           "__ndarray__":[
+            0.0,
+            3.269552536555298e-07
+           ],
+           "dtype":"float64",
+           "shape":[
+            2
+           ]
+          }
          }
         },
         {
@@ -1011,13 +934,23 @@
           "vuy":0.0,
           "vlx":0.0,
           "vly":0.0,
-          "wt":1.0
+          "wt":1.0,
+          "aim_pt":{
+           "__ndarray__":[
+            0.0,
+            7.360059251766637e-07
+           ],
+           "dtype":"float64",
+           "shape":[
+            2
+           ]
+          }
          }
         }
        ],
        "index_labels":[
         "axis",
-        "0.7071F",
+        " 0.71y",
         "edge"
        ]
       }
@@ -1051,7 +984,7 @@
         "s2_indx":3,
         "sd":1.25,
         "flat1":null,
-        "flat2":null,
+        "flat2":1.0863183163224912,
         "render_color":[
          91,
          174,
@@ -1068,7 +1001,7 @@
         "s1_indx":4,
         "s2_indx":5,
         "sd":1.75,
-        "flat1":1.275,
+        "flat1":1.1336762299942154,
         "flat2":null,
         "render_color":[
          255,
@@ -1087,7 +1020,7 @@
         "s2_indx":7,
         "sd":2.5,
         "flat1":2.1,
-        "flat2":null,
+        "flat2":2.3609459764272107,
         "render_color":[
          200,
          254,

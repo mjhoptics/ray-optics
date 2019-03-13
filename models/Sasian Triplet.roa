@@ -43,6 +43,7 @@
         "refract_mode":"",
         "delta_n":0.0,
         "decenter":null,
+        "max_aperture":3639702346.9129076,
         "label":"Obj",
         "profile":{
          "__instance_type__":[
@@ -66,6 +67,7 @@
         "refract_mode":"",
         "delta_n":0.6910020663241183,
         "decenter":null,
+        "max_aperture":10.008722865946494,
         "label":"",
         "profile":{
          "__instance_type__":[
@@ -76,17 +78,7 @@
           "cv":0.042170961076202926
          }
         },
-        "clear_apertures":[
-         {
-          "__instance_type__":[
-           "rayoptics.optical.surface",
-           "Circular"
-          ],
-          "attributes":{
-           "radius":9.739326248732008
-          }
-         }
-        ],
+        "clear_apertures":[],
         "edge_apertures":[]
        }
       },
@@ -99,6 +91,7 @@
         "refract_mode":"",
         "delta_n":-0.6910020663241183,
         "decenter":null,
+        "max_aperture":8.948204701140009,
         "label":"",
         "profile":{
          "__instance_type__":[
@@ -109,17 +102,7 @@
           "cv":0.00013640168003221264
          }
         },
-        "clear_apertures":[
-         {
-          "__instance_type__":[
-           "rayoptics.optical.surface",
-           "Circular"
-          ],
-          "attributes":{
-           "radius":8.645345728335384
-          }
-         }
-        ],
+        "clear_apertures":[],
         "edge_apertures":[]
        }
       },
@@ -132,6 +115,7 @@
         "refract_mode":"",
         "delta_n":0.6727070351743674,
         "decenter":null,
+        "max_aperture":4.791917243610325,
         "label":"",
         "profile":{
          "__instance_type__":[
@@ -142,17 +126,7 @@
           "cv":-0.04088976120379457
          }
         },
-        "clear_apertures":[
-         {
-          "__instance_type__":[
-           "rayoptics.optical.surface",
-           "Circular"
-          ],
-          "attributes":{
-           "radius":4.791917243610325
-          }
-         }
-        ],
+        "clear_apertures":[],
         "edge_apertures":[]
        }
       },
@@ -165,6 +139,7 @@
         "refract_mode":"",
         "delta_n":-0.6727070351743674,
         "decenter":null,
+        "max_aperture":4.735792747572924,
         "label":"",
         "profile":{
          "__instance_type__":[
@@ -175,17 +150,7 @@
           "cv":0.04567044208987943
          }
         },
-        "clear_apertures":[
-         {
-          "__instance_type__":[
-           "rayoptics.optical.surface",
-           "Circular"
-          ],
-          "attributes":{
-           "radius":4.893204981060925
-          }
-         }
-        ],
+        "clear_apertures":[],
         "edge_apertures":[]
        }
       },
@@ -198,6 +163,7 @@
         "refract_mode":"",
         "delta_n":0.6910020663241183,
         "decenter":null,
+        "max_aperture":8.021734189321279,
         "label":"",
         "profile":{
          "__instance_type__":[
@@ -208,17 +174,7 @@
           "cv":0.011526181721781025
          }
         },
-        "clear_apertures":[
-         {
-          "__instance_type__":[
-           "rayoptics.optical.surface",
-           "Circular"
-          ],
-          "attributes":{
-           "radius":8.288651130785727
-          }
-         }
-        ],
+        "clear_apertures":[],
         "edge_apertures":[]
        }
       },
@@ -231,6 +187,7 @@
         "refract_mode":"",
         "delta_n":-0.6910020663241183,
         "decenter":null,
+        "max_aperture":8.332054119806525,
         "label":"",
         "profile":{
          "__instance_type__":[
@@ -241,17 +198,7 @@
           "cv":-0.04879429301948844
          }
         },
-        "clear_apertures":[
-         {
-          "__instance_type__":[
-           "rayoptics.optical.surface",
-           "Circular"
-          ],
-          "attributes":{
-           "radius":8.560443029293259
-          }
-         }
-        ],
+        "clear_apertures":[],
         "edge_apertures":[]
        }
       },
@@ -264,6 +211,7 @@
         "refract_mode":"",
         "delta_n":0.0,
         "decenter":null,
+        "max_aperture":18.216759235932503,
         "label":"Img",
         "profile":{
          "__instance_type__":[
@@ -524,7 +472,17 @@
           "vuy":0.0,
           "vlx":0.0,
           "vly":0.0,
-          "wt":1.0
+          "wt":1.0,
+          "aim_pt":{
+           "__ndarray__":[
+            0.0,
+            0.0
+           ],
+           "dtype":"float64",
+           "shape":[
+            2
+           ]
+          }
          }
         },
         {
@@ -539,7 +497,17 @@
           "vuy":0.0,
           "vlx":0.0,
           "vly":0.0,
-          "wt":1.0
+          "wt":1.0,
+          "aim_pt":{
+           "__ndarray__":[
+            0.0,
+            -0.3143050762972411
+           ],
+           "dtype":"float64",
+           "shape":[
+            2
+           ]
+          }
          }
         }
        ],
@@ -576,9 +544,9 @@
        "attributes":{
         "s1_indx":1,
         "s2_indx":2,
-        "sd":9.739326248732008,
+        "sd":10.008722865946494,
         "flat1":null,
-        "flat2":null,
+        "flat2":8.948204701140009,
         "render_color":[
          255,
          254,
@@ -594,7 +562,7 @@
        "attributes":{
         "s1_indx":3,
         "s2_indx":4,
-        "sd":4.893204981060925,
+        "sd":4.791917243610325,
         "flat1":null,
         "flat2":null,
         "render_color":[
@@ -612,7 +580,7 @@
        "attributes":{
         "s1_indx":5,
         "s2_indx":6,
-        "sd":8.560443029293259,
+        "sd":8.332054119806525,
         "flat1":null,
         "flat2":null,
         "render_color":[
