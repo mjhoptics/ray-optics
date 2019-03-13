@@ -51,13 +51,24 @@ class SequentialModel:
     The Gap class maintains a simple separation (z translation) and the medium
     filling the gap. More complex coordinate transformations are handled
     through the Interface API.
+
+    Attributes:
+        opt_model: parent optical model
+        ifcs: list of :class:`~rayoptics.optical.surface.Interface`
+        gaps: list of :class:`~rayoptics.optical.gap.Gap`
+        lcl_tfrms: forward transform, interface to interface
+        rndx: a |DataFrame| with refractive indices for all **wvls**
+        z_dir: -1 if gap follows an odd number of reflections, otherwise +1
+        gbl_tfrms: global coordinates of each interface wrt the 1st interface
+        stop_surface (int): index of stop interface
+        cur_surface (int): insertion index for next interface
     """
 
     def __init__(self, opt_model):
         self.opt_model = opt_model
         self.ifcs = []
         self.gaps = []
-        self.transforms = []
+        self.gbl_tfrms = []
         self.lcl_tfrms = []
         self.z_dir = []
         self.stop_surface = 1
@@ -70,7 +81,7 @@ class SequentialModel:
     def __json_encode__(self):
         attrs = dict(vars(self))
         del attrs['opt_model']
-        del attrs['transforms']
+        del attrs['gbl_tfrms']
         del attrs['lcl_tfrms']
         del attrs['z_dir']
         del attrs['rndx']
@@ -195,7 +206,7 @@ class SequentialModel:
             # call update() on the surface interface
             s.update()
 
-        self.transforms = self.compute_global_coords()
+        self.gbl_tfrms = self.compute_global_coords()
         self.lcl_tfrms = self.compute_local_transforms()
         osp.update_model()
 

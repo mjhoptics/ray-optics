@@ -141,7 +141,7 @@ class RayBundle():
             #  start_offset, then modify rayset start to match start_offset.
             # Remember object transformation for resetting at the end.
             seq_model = self.opt_model.seq_model
-            tfrms = seq_model.transforms
+            tfrms = seq_model.gbl_tfrms
             tfrtm0 = tfrms[0]
 
             try:
