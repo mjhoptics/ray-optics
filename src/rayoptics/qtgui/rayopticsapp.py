@@ -107,10 +107,10 @@ class MainWindow(QMainWindow):
 #            self.open_file(path / "codev/tests/conic_mirror.seq")
 #            self.open_file(path / "codev/tests/rc_f16.seq")
 #            self.open_file(path / "codev/tests/ag_dblgauss.seq")
-            self.open_file(path / "codev/tests/threemir.seq")
+#            self.open_file(path / "codev/tests/threemir.seq")
 #            self.open_file(path / "codev/tests/folded_lenses.seq")
 #            self.open_file(path / "codev/tests/dec_tilt_test.seq")
-#            self.open_file(path / "codev/tests/landscape_lens.seq")
+            self.open_file(path / "codev/tests/landscape_lens.seq")
 #            self.open_file(path / "optical/tests/cell_phone_camera.roa")
 #            self.open_file(path / "optical/tests/singlet_f3.roa")
 
@@ -197,7 +197,9 @@ class MainWindow(QMainWindow):
         self.app_manager.model = open_model(file_name)
         self.is_changed = True
         self.create_lens_table()
-        cmds.create_lens_layout_view(self.app_manager.model, gui_parent=self)
+        cmds.create_paraxial_layout_view(self.app_manager.model,
+                                         gui_parent=self)
+#        cmds.create_lens_layout_view(self.app_manager.model, gui_parent=self)
 #        self.create_2D_lens_view()
         self.refresh_app_ui()
 

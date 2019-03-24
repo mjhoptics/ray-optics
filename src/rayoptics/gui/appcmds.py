@@ -11,6 +11,7 @@
 from rayoptics.optical.opticalmodel import OpticalModel, open_model
 
 from rayoptics.mpl.lenslayoutfigure import LensLayoutFigure
+from rayoptics.mpl.interactivelayout import InteractiveLayout
 from rayoptics.mpl.axisarrayfigure import Fit
 from rayoptics.mpl.axisarrayfigure import (RayFanFigure, SpotDiagramFigure,
                                            WavefrontFigure)
@@ -40,6 +41,15 @@ def create_lens_layout_view(opt_model, gui_parent=None):
     view_width = 660
     view_ht = 440
     title = "Lens Layout View"
+    plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht,
+                              add_scale_panel=False)
+
+
+def create_paraxial_layout_view(opt_model, gui_parent=None):
+    fig = InteractiveLayout(opt_model)
+    view_width = 660
+    view_ht = 440
+    title = "Optical Layout"
     plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht,
                               add_scale_panel=False)
 

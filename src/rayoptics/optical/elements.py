@@ -138,6 +138,14 @@ class Element():
             return (self.sd,)
 
     def shape(self):
+        try:
+            shape_handle = self.handles['shape']
+        except (KeyError, AttributeError):
+            self.render_handles()
+            shape_handle = self.handles['shape']
+        return shape_handle[0]
+
+    def render_shape(self):
         if self.s1.profile_cv() < 0.0:
             self.flat1 = self.compute_flat(self.s1)
         poly = self.s1.full_profile(self.extent(), self.flat1)
@@ -149,6 +157,28 @@ class Element():
         poly += poly2
         poly.append(poly[0])
         return poly
+
+    def render_handles(self):
+        self.handles = {}
+        self.handles['shape'] = (self.render_shape(), self, 'polygon')
+
+        poly_s1 = self.s1.full_profile(self.extent(), None)
+        self.handles['s1_profile'] = (poly_s1, self.s1, 'polyline')
+
+        poly_s2 = self.s2.full_profile(self.extent(), None, -1)
+        self.handles['s2_profile'] = (poly_s2, self.s2, 'polyline')
+
+        poly_sd_upr = []
+        poly_sd_upr.append(poly_s1[-1])
+        poly_sd_upr.append(poly_s2[0])
+        self.handles['sd_upr'] = (poly_sd_upr, self, 'polyline')
+
+        poly_sd_lwr = []
+        poly_sd_lwr.append(poly_s2[-1])
+        poly_sd_lwr.append(poly_s1[0])
+        self.handles['sd_lwr'] = (poly_sd_lwr, self, 'polyline')
+
+        return self.handles
 
 
 class Mirror():
@@ -205,6 +235,14 @@ class Mirror():
             return self.edge_extent
 
     def shape(self):
+        try:
+            shape_handle = self.handles['shape']
+        except (KeyError, AttributeError):
+            self.render_handles()
+            shape_handle = self.handles['shape']
+        return shape_handle[0]
+
+    def render_shape(self):
         poly = self.s.full_profile(self.extent(), self.flat)
         poly2 = self.s.full_profile(self.extent(), self.flat, -1)
 
@@ -216,6 +254,28 @@ class Mirror():
         poly += poly2
         poly.append(poly[0])
         return poly
+
+    def render_handles(self):
+        self.handles = {}
+        self.handles['shape'] = (self.render_shape(), self, 'polygon')
+
+        poly = self.s.full_profile(self.extent(), None)
+        self.handles['s_profile'] = (poly, self.s, 'polyline')
+
+        thi = self.get_thi()
+        offset = thi*self.z_dir
+
+        poly_sd_upr = []
+        poly_sd_upr.append(poly[-1])
+        poly_sd_upr.append([poly[-1][0]+offset, poly[-1][1]])
+        self.handles['sd_upr'] = (poly_sd_upr, self, 'polyline')
+
+        poly_sd_lwr = []
+        poly_sd_lwr.append(poly[0])
+        poly_sd_lwr.append([poly[0][0]+offset, poly[0][1]])
+        self.handles['sd_lwr'] = (poly_sd_lwr, self, 'polyline')
+
+        return self.handles
 
 
 class ThinElement():

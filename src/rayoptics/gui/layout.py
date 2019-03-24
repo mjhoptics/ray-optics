@@ -10,6 +10,7 @@
 
 import numpy as np
 
+import rayoptics.optical.elements as ele
 import rayoptics.optical.gap as gap
 import rayoptics.optical.transform as trns
 from rayoptics.optical.trace import trace_boundary_rays_at_field
@@ -96,24 +97,75 @@ def scale_bounds(bbox, oversize_factor):
                      [bbox[1][0]+incr, bbox[1][1]+incr]])
 
 
-class OpticalElement():
-    def __init__(self, e):
-        self.e = e
-
-    def update_shape(self):
-        poly = np.array(self.e.shape())
+def transform_poly(tfrm, poly):
         coord_flip = np.array([[0., 1.], [1., 0.]])
 
         poly = np.matmul(coord_flip, poly.T)
-        poly = np.matmul(self.e.tfrm[0][1:, 1:], poly).T
+        poly = np.matmul(tfrm[0][1:, 1:], poly).T
 
-        t = np.array([self.e.tfrm[1][1], self.e.tfrm[1][2]])
+        t = np.array([tfrm[1][1], tfrm[1][2]])
         poly += t
 
         # flip coordinates back to 2D plot coordinates, +y points up
         poly = np.matmul(poly, coord_flip)
         bbox = bbox_from_poly(poly)
         return poly, bbox
+
+
+def create_optical_element(e):
+    if isinstance(e, ele.Element):
+        return LensElement(e)
+    elif isinstance(e, ele.Mirror):
+        return MirrorElement(e)
+    else:
+        return OpticalElement(e)
+
+
+class OpticalElement():
+    def __init__(self, e):
+        self.e = e
+
+    def update_shape(self):
+        poly = np.array(self.e.shape())
+        return transform_poly(self.e.tfrm, poly)
+
+    def render_color(self):
+        return self.e.render_color
+
+    def update_element_shape(self, view):
+        poly, bbox = self.update_shape()
+        p = view.create_polygon(poly, self.render_color())
+        return p, bbox
+
+
+class LensElement(OpticalElement):
+    def __init__(self, e):
+        super().__init__(e)
+        self.handles = {}
+
+    def update_shape(self):
+        self.e.render_handles()
+        for key, value in self.e.handles.items():
+            poly = np.array(value[0])
+            self.handles[key] = transform_poly(self.e.tfrm, poly)
+        return self.handles['shape']
+
+    def update_element_shape(self, view):
+        poly, bbox = self.update_shape()
+        p = view.create_polygon(poly, self.render_color())
+        return p, bbox
+
+    def render_color(self):
+        return self.e.render_color
+
+
+class MirrorElement(OpticalElement):
+    def __init__(self, e):
+        super().__init__(e)
+
+    def update_shape(self):
+        poly = np.array(self.e.shape())
+        return transform_poly(self.e.tfrm, poly)
 
     def render_color(self):
         return self.e.render_color
@@ -177,58 +229,43 @@ class RayBundle():
 
         return poly1, bbox
 
+    def update_ray_fan_shape(self, view):
+        rndr_clr = [254, 197, 254, 64]  # magenta, 25%
+
+        poly, bbox = self.update_shape()
+        p = view.create_polygon(poly, rndr_clr)
+
+        return p, bbox
+
 
 # TODO (mjhoptics@gmail.com): additional refactoring needed in clients
 class LensLayout():
-
-    def __init__(self, opt_model,
-                 **kwargs):
+    def __init__(self, opt_model, **kwargs):
         self.opt_model = opt_model
 
-        om = self.opt_model
-        if len(om.ele_model.elements) == 0:
-            om.ele_model.elements_from_sequence(om.seq_model)
-        self.update_data()
+        ele_model = self.opt_model.ele_model
+        if len(ele_model.elements) == 0:
+            ele_model.elements_from_sequence(self.opt_model.seq_model)
 
-    def system_length(self):
+    def system_length(self, ele_bbox):
         osp = self.opt_model.optical_spec
         img_dist = abs(osp.parax_data[2].img_dist)
-        ele_length = self.ele_bbox[1][0] - self.ele_bbox[0][0]
+        ele_length = ele_bbox[1][0] - ele_bbox[0][0]
         return ele_length+img_dist
 
-    def update_data(self):
-        om = self.opt_model
-        self.patches = []
-        self.ele_bbox = self.update_element_model(om.ele_model)
-        self.ray_bbox = self.update_ray_model()
-        self.sys_bbox = bbox_from_poly(np.concatenate((self.ele_bbox,
-                                                       self.ray_bbox)))
-        return self
-
-    def update_element_model(self, ele_model):
-        bbox_list = []
+    def create_element_model(self, view):
+        elements = []
+        ele_model = self.opt_model.ele_model
         for e in ele_model.elements:
-            p, bbox = self.update_element_shape(e)
-            self.patches.append(p)
-            if len(bbox_list) == 0:
-                bbox_list = bbox
-            else:
-                bbox_list = np.vstack((bbox_list, bbox))
-        ele_bbox = bbox_from_poly(bbox_list)
-        return ele_bbox
+            oe = create_optical_element(e)
+            elements.append((oe.update_element_shape, view))
+        return elements
 
-    def update_ray_model(self, start_surf=1):
-        start_offset = 0.05*self.system_length()
-
-        bbox_list = []
-        osp = self.opt_model.optical_spec
-        fov = osp.field_of_view
-        for fi, f in enumerate(fov.fields):
-            p, bbox = self.update_ray_fan_shape(fi, start_offset)
-            self.patches.append(p)
-            if len(bbox_list) == 0:
-                bbox_list = bbox
-            else:
-                bbox_list = np.vstack((bbox_list, bbox))
-        ray_bbox = bbox_from_poly(bbox_list)
-        return ray_bbox
+    def create_ray_model(self, view, start_offset):
+        ray_bundles = []
+        fov = self.opt_model.optical_spec.field_of_view
+        wvl = self.opt_model.seq_model.central_wavelength()
+        for fld in fov.fields:
+            rb = RayBundle(self.opt_model, fld, wvl, start_offset)
+            ray_bundles.append((rb.update_ray_fan_shape, view))
+        return ray_bundles
