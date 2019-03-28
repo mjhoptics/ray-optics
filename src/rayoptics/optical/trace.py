@@ -24,6 +24,7 @@ from rayoptics.util.misc_math import normalize
 
 
 RayPkg = namedtuple('RayPkg', ['ray', 'op', 'wvl'])
+RaySeg = namedtuple('RaySeg', ['p', 'd', 'dst', 'nrml'])
 
 
 def ray_pkg(ray_pkg):
@@ -40,10 +41,11 @@ def ray_df(ray):
 
 
 @attr.s
-class RaySeg():
+class RSeg():
     inc_pt = attr.ib()
     after_dir = attr.ib()
     after_dst = attr.ib()
+    normal = attr.ib()
     phase = attr.ib(default=0.0)
 
 
@@ -185,15 +187,16 @@ def trace_with_opd(opt_model, pupil, fld, wvl, foc, **kwargs):
     return ray, ray_op, wvl, opd_pkg[0]
 
 
-def trace_boundary_rays_at_field(opt_model, fld, wvl):
-    """ returns a list of (ray, opl, wvl) for the boundary rays
-        for field fld
+def trace_boundary_rays_at_field(opt_model, fld, wvl, use_named_tuples=False):
+    """ returns a list of RayPkgs for the boundary rays for field fld
     """
     rim_rays = []
     osp = opt_model.optical_spec
     for p in osp.pupil.pupil_rays:
         ray, op, wvl = trace_base(opt_model, p, fld, wvl)
-        rim_rays.append((ray, op, wvl))
+        if use_named_tuples:
+            ray = [RaySeg(*rs) for rs in ray]
+        rim_rays.append(RayPkg(ray, op, wvl))
     return rim_rays
 
 
