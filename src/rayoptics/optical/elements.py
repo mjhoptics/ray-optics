@@ -160,12 +160,16 @@ class Element():
 
     def render_handles(self):
         self.handles = {}
-        self.handles['shape'] = (self.render_shape(), self, 'polygon')
+
+        shape = self.render_shape()
+        self.handles['shape'] = (shape, self, 'polygon')
 
         poly_s1 = self.s1.full_profile(self.extent(), None)
         self.handles['s1_profile'] = (poly_s1, self.s1, 'polyline')
 
         poly_s2 = self.s2.full_profile(self.extent(), None, -1)
+        for p in poly_s2:
+            p[0] += self.g.thi
         self.handles['s2_profile'] = (poly_s2, self.s2, 'polyline')
 
         poly_sd_upr = []

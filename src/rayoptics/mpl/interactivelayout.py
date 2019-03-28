@@ -13,6 +13,7 @@ import warnings
 import matplotlib.cbook
 
 from matplotlib.figure import Figure
+from matplotlib.lines import Line2D
 from matplotlib.patches import Polygon
 
 import numpy as np
@@ -63,12 +64,12 @@ class InteractiveLayout(Figure):
     def connect(self):
         'connect to all the events we need'
         self.cidpick = self.canvas.mpl_connect('pick_event', self.on_pick)
-#        self.cidpress = self.canvas.mpl_connect('button_press_event',
-#                                                self.on_press)
+        self.cidpress = self.canvas.mpl_connect('button_press_event',
+                                                self.on_press)
         self.cidrelease = self.canvas.mpl_connect('button_release_event',
                                                   self.on_release)
-#        self.cidmotion = self.canvas.mpl_connect('motion_notify_event',
-#                                                 self.on_motion)
+        self.cidmotion = self.canvas.mpl_connect('motion_notify_event',
+                                                 self.on_motion)
 
     def disconnect(self):
         'disconnect all the stored connection ids'
@@ -82,7 +83,7 @@ class InteractiveLayout(Figure):
         self.plot()
 
     def update_data(self):
-        self.patches = []
+        self.artists = []
 
         self.ele_shapes = self.layout.create_element_model(self)
         self.ele_bbox = self.update_patches(self.ele_shapes)
@@ -103,12 +104,16 @@ class InteractiveLayout(Figure):
     def update_patches(self, shapes):
         bbox_list = []
         for shape in shapes:
-            poly, bbox = shape[0](shape[1])
-            self.patches.append(poly)
-            if len(bbox_list) == 0:
-                bbox_list = bbox
-            else:
-                bbox_list = np.vstack((bbox_list, bbox))
+#            poly, bbox = shape[0](shape[1])
+            handles = shape.update_shape(self)
+            for key, value in handles.items():
+                poly, bbox = value
+                poly.shape = (shape, key)
+                self.artists.append(poly)
+                if len(bbox_list) == 0:
+                    bbox_list = bbox
+                else:
+                    bbox_list = np.vstack((bbox_list, bbox))
         bbox = layout.bbox_from_poly(bbox_list)
         return bbox
 
@@ -119,8 +124,9 @@ class InteractiveLayout(Figure):
         return p
 
     def create_polyline(self, poly, **kwargs):
-        p = Polygon(poly, closed=False, ec='black', **kwargs)
-        p.set_linewidth(self.linewidth)
+        x = poly.T[0]
+        y = poly.T[1]
+        p = Line2D(x, y, linewidth=2)
         return p
 
     def scale_bounds(self, oversize_factor):
@@ -142,9 +148,9 @@ class InteractiveLayout(Figure):
         except AttributeError:
             self.ax = self.add_subplot(1, 1, 1, aspect=1.0)
 
-        for p in self.patches:
-            p.set_picker(True)
-            self.ax.add_patch(p)
+        for a in self.artists:
+            a.set_picker(5)
+            self.ax.add_artist(a)
 
         self.scale_bounds(self.oversize_factor)
         self.draw_frame(self.do_draw_frame)
@@ -190,7 +196,8 @@ class InteractiveLayout(Figure):
 
     def on_pick(self, event):
         obj = event.artist
+        shape, handle = obj.shape
         me = event.mouseevent
-        id = obj.get_gid()
-        print("on_pick", type(obj).__name__, id, me.name, me.x, me.y,
-              me.button, me.key, me.xdata, me.ydata, me.dblclick)
+        print("on_pick", type(shape).__name__, handle, event.name, me.name,
+              event.guiEvent, me.x, me.y, me.button, me.key,
+              me.xdata, me.ydata, me.dblclick)
