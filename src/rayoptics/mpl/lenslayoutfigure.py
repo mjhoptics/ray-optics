@@ -12,6 +12,7 @@ import warnings
 import matplotlib.cbook
 
 from matplotlib.figure import Figure
+from matplotlib.lines import Line2D
 from matplotlib.patches import Polygon
 
 import numpy as np
@@ -111,6 +112,8 @@ class LensLayoutFigure(Figure):
         return elements
 
     def update_element_shape(self, oe):
+#        handles = oe.update_shape()
+#        return handles['shape']
         poly, bbox = oe.update_shape()
         p = Polygon(poly, closed=True, fc=rgb2mpl(oe.render_color()),
                     ec='black')
@@ -123,20 +126,35 @@ class LensLayoutFigure(Figure):
         ray_bundles = []
         fov = self.opt_model.optical_spec.field_of_view
         wvl = self.opt_model.seq_model.central_wavelength()
-        for fld in fov.fields:
-            rb = layout.RayBundle(self.opt_model,
-                                  fld, wvl, start_offset)
+        for i, fld in enumerate(fov.fields):
+            fld_label = fov.index_labels[i]
+            rb = layout.RayBundle(self.opt_model, fld, fld_label,
+                                  wvl, start_offset)
             ray_bundles.append((self.update_ray_fan_shape, rb))
         return ray_bundles
+
+    def create_polygon(self, poly, rgb_color, **kwargs):
+        p = Polygon(poly, closed=True, fc=rgb2mpl(rgb_color),
+                    ec='black', **kwargs)
+        p.set_linewidth(self.linewidth)
+        return p
+
+    def create_polyline(self, poly, **kwargs):
+        x = poly.T[0]
+        y = poly.T[1]
+        p = Line2D(x, y, linewidth=2)
+        return p
 
     def update_ray_fan_shape(self, rb):
         rndr_clr = rgb2mpl([254, 197, 254, 64])  # magenta, 25%
 
-        poly, bbox = rb.update_shape()
-        p = Polygon(poly, fc=rndr_clr, ec='black')
-        p.set_linewidth(self.linewidth)
-
-        return p, bbox
+        handles = rb.update_shape(self)
+        return handles['shape']
+#        poly, bbox = rb.update_shape()
+#        p = Polygon(poly, fc=rndr_clr, ec='black')
+#        p.set_linewidth(self.linewidth)
+#
+#        return p, bbox
 
     def scale_bounds(self, oversize_factor):
         bbox = layout.scale_bounds(self.sys_bbox, oversize_factor)

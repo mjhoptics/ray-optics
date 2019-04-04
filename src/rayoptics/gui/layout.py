@@ -125,6 +125,11 @@ class OpticalElement():
         p = view.create_polygon(poly, self.render_color())
         return p, bbox
 
+    def get_label(self):
+        if not hasattr(self.e, 'label'):
+            self.e.label = 'element'
+        return self.e.label
+
 
 class LensElement(OpticalElement):
     def __init__(self, e):
@@ -143,11 +148,10 @@ class LensElement(OpticalElement):
             poly = np.array(value[0])
             poly_gbl, bbox = transform_poly(self.e.tfrm, poly)
             if value[2] == 'polygon':
-                p = view.create_polygon(poly_gbl, self.render_color())
-#                continue
+                p = view.create_polygon(poly_gbl, self.render_color(),
+                                        zorder=2.5)
             elif value[2] == 'polyline':
                 p = view.create_polyline(poly_gbl)
-#                continue
             else:
                 break
             self.handles[key] = (p, bbox)
@@ -161,9 +165,20 @@ class MirrorElement(OpticalElement):
     def __init__(self, e):
         super().__init__(e)
 
-    def update_shape(self):
-        poly = np.array(self.e.shape())
-        return transform_poly(self.e.tfrm, poly)
+    def update_shape(self, view):
+        self.e.render_handles()
+        for key, value in self.e.handles.items():
+            poly = np.array(value[0])
+            poly_gbl, bbox = transform_poly(self.e.tfrm, poly)
+            if value[2] == 'polygon':
+                p = view.create_polygon(poly_gbl, self.render_color(),
+                                        zorder=2.5)
+            elif value[2] == 'polyline':
+                p = view.create_polyline(poly_gbl)
+            else:
+                break
+            self.handles[key] = (p, bbox)
+        return self.handles
 
     def render_color(self):
         return self.e.render_color
@@ -178,6 +193,9 @@ class RayBundle():
         self.wvl = wvl
         self.start_offset = start_offset
         self.handles = {}
+
+    def get_label(self):
+        return self.fld_label
 
     def render_ray(self, ray, start_seg, tfrms):
         poly = []

@@ -15,7 +15,8 @@ import rayoptics.optical.thinlens as thinlens
 from rayoptics.optical.profiles import Spherical, Conic
 from rayoptics.optical.surface import Surface
 from rayoptics.optical.gap import Gap
-from rayoptics.optical.medium import Glass
+from rayoptics.optical.medium import Glass, glass_decode
+import opticalglass.glasspolygons as gp
 
 
 def create_thinlens(power=0., indx=1.5):
@@ -59,7 +60,9 @@ class Element():
     clut = rgbt.RGBTable(filename='red_blue64.csv',
                          data_range=[10.0, 100.])
 
-    def __init__(self, s1, s2, g, tfrm=None, idx=0, idx2=1, sd=1.):
+    def __init__(self, s1, s2, g, tfrm=None, idx=0, idx2=1, sd=1.,
+                 label='Lens'):
+        self.label = label
         if tfrm is not None:
             self.tfrm = tfrm
         else:
@@ -120,8 +123,10 @@ class Element():
             return (255, 255, 255)  # white
         else:
             # set element color based on V-number
-            vnbr = round(100.0*(gc - int(gc)), 3)
-            return Element.clut.get_color(vnbr)
+            indx, vnbr = glass_decode(gc)
+            dsg, rgb = gp.find_glass_designation(indx, vnbr)
+#            rgb = Element.clut.get_color(vnbr)
+            return rgb
 
     def compute_flat(self, s):
         ca = s.surface_od()
@@ -135,7 +140,7 @@ class Element():
         if hasattr(self, 'edge_extent'):
             return self.edge_extent
         else:
-            return (self.sd,)
+            return (-self.sd, self.sd)
 
     def shape(self):
         try:
@@ -164,29 +169,40 @@ class Element():
         shape = self.render_shape()
         self.handles['shape'] = (shape, self, 'polygon')
 
-        poly_s1 = self.s1.full_profile(self.extent(), None)
+        extent = self.extent()
+        if self.flat1 is not None:
+            extent_s1 = self.flat1,
+        else:
+            extent_s1 = extent
+        poly_s1 = self.s1.full_profile(extent_s1, None)
         self.handles['s1_profile'] = (poly_s1, self.s1, 'polyline')
 
-        poly_s2 = self.s2.full_profile(self.extent(), None, -1)
+        if self.flat2 is not None:
+            extent_s2 = self.flat2,
+        else:
+            extent_s2 = extent
+        poly_s2 = self.s2.full_profile(extent_s2, None, -1)
         for p in poly_s2:
             p[0] += self.g.thi
         self.handles['s2_profile'] = (poly_s2, self.s2, 'polyline')
 
         poly_sd_upr = []
-        poly_sd_upr.append(poly_s1[-1])
-        poly_sd_upr.append(poly_s2[0])
+        poly_sd_upr.append([poly_s1[-1][0], extent[1]])
+        poly_sd_upr.append([poly_s2[0][0], extent[1]])
         self.handles['sd_upr'] = (poly_sd_upr, self, 'polyline')
 
         poly_sd_lwr = []
-        poly_sd_lwr.append(poly_s2[-1])
-        poly_sd_lwr.append(poly_s1[0])
+        poly_sd_lwr.append([poly_s2[-1][0], extent[0]])
+        poly_sd_lwr.append([poly_s1[0][0], extent[0]])
         self.handles['sd_lwr'] = (poly_sd_lwr, self, 'polyline')
 
         return self.handles
 
 
 class Mirror():
-    def __init__(self, ifc, tfrm=None, idx=0, sd=1., thi=None, z_dir=1.0):
+    def __init__(self, ifc, tfrm=None, idx=0, sd=1., thi=None, z_dir=1.0,
+                 label='Mirror'):
+        self.label = label
         self.render_color = (192, 192, 192)
         if tfrm is not None:
             self.tfrm = tfrm
@@ -283,7 +299,8 @@ class Mirror():
 
 
 class ThinElement():
-    def __init__(self, ifc, tfrm=None, idx=0):
+    def __init__(self, ifc, tfrm=None, idx=0, label='ThinLens'):
+        self.label = label
         self.render_color = (192, 192, 192)
         if tfrm is not None:
             self.tfrm = tfrm
@@ -342,10 +359,12 @@ class ElementModel:
         if len(self.elements) > 0:
             return
 
+        num_elements = 0
         tfrms = seq_model.compute_global_coords(1)
         for i, g in enumerate(seq_model.gaps):
             if isinstance(seq_model.ifcs[i], thinlens.ThinLens):
                 te = ThinElement(seq_model.ifcs[i], tfrm=tfrms[i], idx=i)
+                te.label = 'E' + str(++num_elements)
                 self.elements.append(te)
                 continue
 
@@ -356,15 +375,17 @@ class ElementModel:
                 if s2.refract_mode is 'REFL':
                     tfrm = tfrms[i+1]
                     sd = s2.surface_od()
-                    self.elements.append(Mirror(s2, sd=sd, tfrm=tfrm, idx=i+1,
-                                                z_dir=z_dir))
+                    m = Mirror(s2, sd=sd, tfrm=tfrm, idx=i+1, z_dir=z_dir)
+                    m.label = 'E' + str(++num_elements)
+                    self.elements.append(m)
             else:
                 tfrm = tfrms[i]
                 s1 = seq_model.ifcs[i]
                 s2 = seq_model.ifcs[i+1]
                 sd = max(s1.surface_od(), s2.surface_od())
-                self.elements.append(Element(s1, s2, g, sd=sd, tfrm=tfrm,
-                                             idx=i, idx2=i+1))
+                e = Element(s1, s2, g, sd=sd, tfrm=tfrm, idx=i, idx2=i+1)
+                e.label = 'E' + str(++num_elements)
+                self.elements.append(e)
 
     def sync_to_restore(self, opt_model):
         self.opt_model = opt_model

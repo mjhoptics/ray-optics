@@ -8,7 +8,7 @@
 .. codeauthor: Michael J. Hayford
 """
 
-
+import logging
 import warnings
 import matplotlib.cbook
 
@@ -54,6 +54,8 @@ class InteractiveLayout(Figure):
         self.do_draw_rays = do_draw_rays
         self.oversize_factor = oversize_factor
         self.offset_factor = offset_factor
+        self.hilited_artist = None
+        self.selected_artist = None
 
         Figure.__init__(self, **kwargs)
 
@@ -63,7 +65,6 @@ class InteractiveLayout(Figure):
 
     def connect(self):
         'connect to all the events we need'
-        self.cidpick = self.canvas.mpl_connect('pick_event', self.on_pick)
         self.cidpress = self.canvas.mpl_connect('button_press_event',
                                                 self.on_press)
         self.cidrelease = self.canvas.mpl_connect('button_release_event',
@@ -73,7 +74,6 @@ class InteractiveLayout(Figure):
 
     def disconnect(self):
         'disconnect all the stored connection ids'
-        self.canvas.mpl_disconnect(self.cidpick)
         self.canvas.mpl_disconnect(self.cidpress)
         self.canvas.mpl_disconnect(self.cidrelease)
         self.canvas.mpl_disconnect(self.cidmotion)
@@ -104,7 +104,6 @@ class InteractiveLayout(Figure):
     def update_patches(self, shapes):
         bbox_list = []
         for shape in shapes:
-#            poly, bbox = shape[0](shape[1])
             handles = shape.update_shape(self)
             for key, value in handles.items():
                 poly, bbox = value
@@ -118,15 +117,45 @@ class InteractiveLayout(Figure):
         return bbox
 
     def create_polygon(self, poly, rgb_color, **kwargs):
+        def highlight(p):
+            fc = p.get_facecolor()
+            ec = p.get_edgecolor()
+            lw = p.get_linewidth()
+            p.unhilite = (fc, ec, lw)
+            alpha = fc[3]+0.5
+            p.set_facecolor((fc[0], fc[1], fc[2], alpha))
+
+        def unhighlight(p):
+            fc, ec, lw = p.unhilite
+            p.set_facecolor(fc)
+            p.set_edgecolor(ec)
+            p.set_linewidth(lw)
+            p.unhilite = None
         p = Polygon(poly, closed=True, fc=rgb2mpl(rgb_color),
                     ec='black', **kwargs)
         p.set_linewidth(self.linewidth)
+        p.highlight = highlight
+        p.unhighlight = unhighlight
         return p
 
     def create_polyline(self, poly, **kwargs):
+        def highlight(p):
+            lw = p.get_linewidth()
+            c = p.get_color()
+            p.unhilite = (c, lw)
+            p.set_linewidth(2)
+            p.set_color('red')
+
+        def unhighlight(p):
+            c, lw = p.unhilite
+            p.set_linewidth(lw)
+            p.set_color(c)
+            p.unhilite = None
         x = poly.T[0]
         y = poly.T[1]
-        p = Line2D(x, y, linewidth=2)
+        p = Line2D(x, y, linewidth=self.linewidth)
+        p.highlight = highlight
+        p.unhighlight = unhighlight
         return p
 
     def scale_bounds(self, oversize_factor):
@@ -162,8 +191,19 @@ class InteractiveLayout(Figure):
         return self
 
     def on_press(self, event):
-#        hit, props = self.line.contains(event)
-        print("on_press")
+        artists = self.find_artists_at_location(event)
+        obj = artists[0] if len(artists) > 0 else None
+        self.selected_artist = self.hilited_artist
+        if obj is None:
+            logging.debug("on_press: no object found")
+        else:
+            shape, handle = obj.shape
+            if id(obj) != id(self.hilited_artist):
+                logging.debug('press event: different than hilite object')
+            else:
+                logging.debug('press event: same as hilite object')
+                logging.debug("on_press:", shape.get_label(), handle,
+                              obj.get_zorder())
 #        if hit:
 #            if self.eline.press is None:
 #                self.eline.on_press(event)
@@ -183,21 +223,44 @@ class InteractiveLayout(Figure):
 #                  event.xdata, event.ydata, event.key,
 #                  len(hit_list), hit_list)
 
+    def find_artists_at_location(self, event):
+        artists = []
+        for artist in self.ax.get_children():
+            if hasattr(artist, 'shape'):
+                inside, _ = artist.contains(event)
+                if inside:
+                    shape, handle = artist.shape
+                    artists.append(artist)
+                    logging.debug("on_motion:", len(artists),
+                                  shape.get_label(), handle,
+                                  artist.get_zorder())
+        return sorted(artists, key=lambda a: a.get_zorder(), reverse=True)
+
     def on_motion(self, event):
-        pass
-#        if self.vertex:
-#            self.actions['drag'](self, event)
+        if self.selected_artist is None:
+            artists = self.find_artists_at_location(event)
+            next_hilited_artist = artists[0] if len(artists) > 0 else None
+
+            if id(next_hilited_artist) != id(self.hilited_artist):
+                if self.hilited_artist:
+                    self.hilited_artist.unhighlight(self.hilited_artist)
+                    self.hilited_artist.figure.canvas.draw()
+                if next_hilited_artist:
+                    next_hilited_artist.highlight(next_hilited_artist)
+                    next_hilited_artist.figure.canvas.draw()
+                self.hilited_artist = next_hilited_artist
+                if next_hilited_artist is None:
+                    logging.debug("hilite_change: no object found")
+                else:
+                    shape, handle = self.hilited_artist.shape
+                    logging.debug("hilite_change:", shape.get_label(), handle,
+                                  self.hilited_artist.get_zorder())
+        else:
+            shape, handle = self.selected_artist.shape
+            logging.debug("on_drag:", shape.get_label(), handle,
+                          self.selected_artist.get_zorder())
 
     def on_release(self, event):
         'on release we reset the press data'
-        print("on_release")
-#        if self.vertex:
-#            self.actions['release'](self, event)
-
-    def on_pick(self, event):
-        obj = event.artist
-        shape, handle = obj.shape
-        me = event.mouseevent
-        print("on_pick", type(shape).__name__, handle, event.name, me.name,
-              event.guiEvent, me.x, me.y, me.button, me.key,
-              me.xdata, me.ydata, me.dblclick)
+        logging.debug("on_release")
+        self.selected_artist = None
