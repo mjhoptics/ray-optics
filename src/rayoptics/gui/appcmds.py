@@ -135,9 +135,9 @@ def create_lens_table_model(seq_model):
 
 
 def create_ray_table_model(opt_model, ray):
-    colEvalStr = ['[{}][0][0]', '[{}][0][1]', '[{}][0][2]',
-                  '[{}][1][0]', '[{}][1][1]', '[{}][1][2]',
-                  '[{}][2]']
+    colEvalStr = ['[{}].p[0]', '[{}].p[1]', '[{}].p[2]',
+                  '[{}].d[0]', '[{}].d[1]', '[{}].d[2]',
+                  '[{}].dst']
     seq_model = opt_model.seq_model
     rowHeaders = seq_model.surface_label_list()
     colHeaders = ['x', 'y', 'z', 'l', 'm', 'n', 'length']
