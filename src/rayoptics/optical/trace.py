@@ -200,12 +200,20 @@ def trace_boundary_rays_at_field(opt_model, fld, wvl, use_named_tuples=False):
     return rim_rays
 
 
-def trace_boundary_rays(opt_model):
+def boundary_ray_dict(opt_model, rim_rays):
+    pupil_rays = {}
+    for ray, lbl in zip(rim_rays, opt_model.optical_spec.pupil.ray_labels):
+        pupil_rays[lbl] = ray
+    return pupil_rays
+
+
+def trace_boundary_rays(opt_model, **kwargs):
     rayset = []
     wvl = opt_model.seq_model.central_wavelength()
     fov = opt_model.optical_spec.field_of_view
     for fi, fld in enumerate(fov.fields):
-        rim_rays = trace_boundary_rays_at_field(opt_model, fld, wvl)
+        rim_rays = trace_boundary_rays_at_field(opt_model, fld, wvl, **kwargs)
+        fld.pupil_rays = boundary_ray_dict(opt_model, rim_rays)
         rayset.append(rim_rays)
     return rayset
 

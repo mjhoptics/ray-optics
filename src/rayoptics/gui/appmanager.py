@@ -59,9 +59,18 @@ class AppManager:
     """
 
     def __init__(self, model, gui_parent=None):
-        self.model = model
+        self.model = self._tag_model(model)
         self.gui_parent = gui_parent
         self.view_dict = {}
+
+    def _tag_model(self, model):
+        if model is not None:
+            if not hasattr(model, 'app_manager'):
+                model.app_manager = self
+
+    def set_model(self, model):
+        self._tag_model(model)
+        self.model = model
 
     def add_view(self, view, model_info):
         """ Add a new view and model tuple into dictionary
@@ -73,6 +82,7 @@ class AppManager:
         Returns:
             returns the input view
         """
+        self._tag_model(model_info.model)
         self.view_dict[view] = model_info
         return view
 
@@ -100,6 +110,8 @@ class AppManager:
                     self.delete_view(view)
                 else:
                     view_close_fct(view)
+        delattr(cur_model, 'app_manager')
+        self.model = None
 
     def refresh_gui(self):
         """ update the active model and refresh its dependent ui views """

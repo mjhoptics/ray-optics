@@ -26,8 +26,9 @@ class OpticalSpecs:
 
     It maintains a repository of paraxial data.
     """
-    
+
     do_aiming_default = True
+
     def __init__(self, opt_model):
         self.opt_model = opt_model
         self.spectral_region = WvlSpec()

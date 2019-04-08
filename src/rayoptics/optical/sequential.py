@@ -447,7 +447,8 @@ class SequentialModel:
 #                s.set_max_aperture(max_ap)
 
     def set_clear_apertures(self):
-        rayset = trace.trace_boundary_rays(self.opt_model)
+        rayset = trace.trace_boundary_rays(self.opt_model,
+                                           use_named_tuples=True)
         for i, s in enumerate(self.ifcs):
             max_ap = -1.0e+10
             for f in rayset:

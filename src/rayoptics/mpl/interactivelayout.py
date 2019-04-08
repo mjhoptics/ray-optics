@@ -38,7 +38,7 @@ backgrnd_color = rgb2mpl([237, 243, 254])  # light blue
 
 class InteractiveLayout(Figure):
 
-    def __init__(self, opt_model,
+    def __init__(self, opt_model, refresh_gui,
                  do_draw_frame=False,
                  scale_type=Fit_All,
                  user_scale_value=1.0,
@@ -46,6 +46,7 @@ class InteractiveLayout(Figure):
                  offset_factor=0.05,
                  do_draw_rays=True,
                  **kwargs):
+        self.refresh_gui = refresh_gui
         self.layout = layout.LensLayout(opt_model)
         self.user_scale_value = user_scale_value
         self.scale_type = scale_type
@@ -190,20 +191,32 @@ class InteractiveLayout(Figure):
 
         return self
 
+    def do_action(self, event, target, event_key):
+        if target is not None:
+            shape, handle = target.shape
+            try:
+                actions = shape.actions[handle]
+                actions[event_key](self, event)
+            except KeyError:
+                pass
+
     def on_press(self, event):
-        artists = self.find_artists_at_location(event)
-        obj = artists[0] if len(artists) > 0 else None
-        self.selected_artist = self.hilited_artist
-        if obj is None:
-            logging.debug("on_press: no object found")
-        else:
-            shape, handle = obj.shape
-            if id(obj) != id(self.hilited_artist):
-                logging.debug('press event: different than hilite object')
-            else:
-                logging.debug('press event: same as hilite object')
-                logging.debug("on_press:", shape.get_label(), handle,
-                              obj.get_zorder())
+        target = self.selected_artist = self.hilited_artist
+        self.do_action(event, target, 'press')
+
+#        artists = self.find_artists_at_location(event)
+#        obj = artists[0] if len(artists) > 0 else None
+#        obj = self.hilited_artist
+#        if obj is None:
+#            logging.debug("on_press: no object found")
+#        else:
+#            shape, handle = obj.shape
+#            if id(obj) != id(self.hilited_artist):
+#                logging.debug('press event: different than hilite object')
+#            else:
+#                logging.debug('press event: same as hilite object')
+#                logging.debug("on_press:", shape.get_label(), handle,
+#                              obj.get_zorder())
 #        if hit:
 #            if self.eline.press is None:
 #                self.eline.on_press(event)
@@ -256,6 +269,7 @@ class InteractiveLayout(Figure):
                     logging.debug("hilite_change:", shape.get_label(), handle,
                                   self.hilited_artist.get_zorder())
         else:
+            self.do_action(event, self.selected_artist, 'drag')
             shape, handle = self.selected_artist.shape
             logging.debug("on_drag:", shape.get_label(), handle,
                           self.selected_artist.get_zorder())
@@ -263,4 +277,6 @@ class InteractiveLayout(Figure):
     def on_release(self, event):
         'on release we reset the press data'
         logging.debug("on_release")
+
+        self.do_action(event, self.selected_artist, 'release')
         self.selected_artist = None

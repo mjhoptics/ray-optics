@@ -45,8 +45,8 @@ def create_lens_layout_view(opt_model, gui_parent=None):
                               add_scale_panel=False)
 
 
-def create_paraxial_layout_view(opt_model, gui_parent=None):
-    fig = InteractiveLayout(opt_model)
+def create_live_layout_view(opt_model, gui_parent=None):
+    fig = InteractiveLayout(opt_model, gui_parent.refresh_gui)
     view_width = 660
     view_ht = 440
     title = "Optical Layout"

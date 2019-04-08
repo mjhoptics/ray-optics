@@ -15,6 +15,7 @@ import logging
 from pathlib import Path
 
 from PyQt5.QtCore import Qt as qt
+from PyQt5.QtCore import QEvent
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (QApplication, QAction, QMainWindow, QMdiArea,
                              QMdiSubWindow, QFileDialog, QTableView, QWidget,
@@ -23,6 +24,7 @@ from PyQt5.QtCore import pyqtSlot
 from traitlets.config.configurable import MultipleInstanceError
 
 from rayoptics.optical.opticalmodel import open_model
+from rayoptics.optical.trace import RaySeg
 import rayoptics.gui.appcmds as cmds
 from rayoptics.gui.appmanager import ModelInfo, AppManager
 from rayoptics.mpl.paraxdgnfigure import Dgm
@@ -138,15 +140,15 @@ class MainWindow(QMainWindow):
                 pass                 # but may be overridden in exception subclasses
 
     def add_subwindow(self, widget, model_info):
-            sub_wind = self.mdi.addSubWindow(widget)
-            self.app_manager.add_view(sub_wind, model_info)
-            MainWindow.count += 1
-            return sub_wind
+        sub_wind = self.mdi.addSubWindow(widget)
+        self.app_manager.add_view(sub_wind, model_info)
+        MainWindow.count += 1
+        return sub_wind
 
     def delete_subwindow(self, sub_wind):
-            self.app_manager.delete_view(sub_wind)
-            self.mdi.removeSubWindow(sub_wind)
-            MainWindow.count -= 1
+        self.app_manager.delete_view(sub_wind)
+        self.mdi.removeSubWindow(sub_wind)
+        MainWindow.count -= 1
 
     def initial_window_offset(self):
         offset_x = 50
@@ -158,7 +160,7 @@ class MainWindow(QMainWindow):
     def file_action(self, q):
         if q.text() == "New":
             opt_model = cmds.create_new_model()
-            self.app_manager.model = opt_model
+            self.app_manager.set_model(opt_model)
             self.create_lens_table()
 #            self.create_2D_lens_view()
             cmds.create_paraxial_design_view(opt_model, Dgm.ht,
@@ -194,11 +196,10 @@ class MainWindow(QMainWindow):
 
     def open_file(self, file_name):
         self.cur_filename = file_name
-        self.app_manager.model = open_model(file_name)
+        self.app_manager.set_model(open_model(file_name))
         self.is_changed = True
         self.create_lens_table()
-        cmds.create_paraxial_layout_view(self.app_manager.model,
-                                         gui_parent=self)
+        cmds.create_live_layout_view(self.app_manager.model, gui_parent=self)
 #        cmds.create_lens_layout_view(self.app_manager.model, gui_parent=self)
 #        self.create_2D_lens_view()
         self.refresh_app_ui()
@@ -278,6 +279,7 @@ class MainWindow(QMainWindow):
 #        cr = trace.RayPkg(ray, ray_op, wvl)
 #        s, t = trace.trace_coddington_fan(opt_model, cr, foc)
 
+        ray = [RaySeg(*rs) for rs in ray]
         model = cmds.create_ray_table_model(opt_model, ray)
         self.create_table_view(model, "Ray Table")
 
@@ -319,6 +321,8 @@ class MainWindow(QMainWindow):
 
         sub.show()
 
+        return sub
+
     def update_2D_lens_view(scene2d):
         for gi in scene2d.items():
             gi.prepareGeometryChange()
@@ -342,7 +346,7 @@ class MainWindow(QMainWindow):
             rb = RayBundle(opt_model, fi, start_offset)
             gscene.addItem(rb)
 
-    def create_table_view(self, table_model, table_title):
+    def create_table_view(self, table_model, table_title, close_callback=None):
         # construct the top level widget
         widget = QWidget()
         # construct the top level layout
@@ -362,6 +366,8 @@ class MainWindow(QMainWindow):
                                                    (tableView,)))
         sub.setWindowTitle(table_title)
 
+        sub.installEventFilter(self)
+        
         tableView.setModel(table_model)
 
         tableView.setMinimumWidth(tableView.horizontalHeader().length() +
@@ -378,6 +384,13 @@ class MainWindow(QMainWindow):
         table_model.update.connect(self.on_data_changed)
 
         sub.show()
+
+        return sub
+
+    def eventFilter(self, obj, event):
+        if (event.type() == QEvent.Close):
+            print('close event received:', obj)
+        return False
 
     def refresh_gui(self):
         self.app_manager.refresh_gui()

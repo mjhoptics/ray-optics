@@ -10,10 +10,11 @@
 
 import numpy as np
 
-import rayoptics.optical.elements as ele
-import rayoptics.optical.gap as gap
-import rayoptics.optical.transform as trns
+from rayoptics.optical import elements
+from rayoptics.optical import gap
+from rayoptics.optical import transform
 from rayoptics.optical.trace import (trace_boundary_rays_at_field, RaySeg)
+from rayoptics.gui import appcmds
 
 
 def setup_shift_of_ray_bundle(seq_model, start_offset):
@@ -31,7 +32,7 @@ def setup_shift_of_ray_bundle(seq_model, start_offset):
     s1 = seq_model.ifcs[1]
     s0 = seq_model.ifcs[0]
     g0 = gap.Gap(start_offset, seq_model.gaps[0].medium)
-    rot, t = trns.reverse_transform(s0, g0, s1)
+    rot, t = transform.reverse_transform(s0, g0, s1)
     return rot, t
 
 
@@ -100,9 +101,9 @@ def transform_poly(tfrm, poly):
 
 
 def create_optical_element(e):
-    if isinstance(e, ele.Element):
+    if isinstance(e, elements.Element):
         return LensElement(e)
-    elif isinstance(e, ele.Mirror):
+    elif isinstance(e, elements.Mirror):
         return MirrorElement(e)
     else:
         return OpticalElement(e)
@@ -112,18 +113,25 @@ class OpticalElement():
     def __init__(self, e):
         self.e = e
         self.handles = {}
+        self.actions = {}
 
-    def update_shape(self):
-        poly = np.array(self.e.shape())
-        return transform_poly(self.e.tfrm, poly)
+    def update_shape(self, view):
+        self.e.render_handles()
+        for key, value in self.e.handles.items():
+            poly = np.array(value[0])
+            poly_gbl, bbox = transform_poly(self.e.tfrm, poly)
+            if value[2] == 'polygon':
+                p = view.create_polygon(poly_gbl, self.render_color(),
+                                        zorder=2.5)
+            elif value[2] == 'polyline':
+                p = view.create_polyline(poly_gbl)
+            else:
+                break
+            self.handles[key] = (p, bbox)
+        return self.handles
 
     def render_color(self):
         return self.e.render_color
-
-    def update_element_shape(self, view):
-        poly, bbox = self.update_shape()
-        p = view.create_polygon(poly, self.render_color())
-        return p, bbox
 
     def get_label(self):
         if not hasattr(self.e, 'label'):
@@ -135,64 +143,35 @@ class LensElement(OpticalElement):
     def __init__(self, e):
         super().__init__(e)
 
-#    def update_shape(self):
-#        self.e.render_handles()
-#        for key, value in self.e.handles.items():
-#            poly = np.array(value[0])
-#            self.handles[key] = transform_poly(self.e.tfrm, poly)
-#        return self.handles['shape']
-
-    def update_shape(self, view):
-        self.e.render_handles()
-        for key, value in self.e.handles.items():
-            poly = np.array(value[0])
-            poly_gbl, bbox = transform_poly(self.e.tfrm, poly)
-            if value[2] == 'polygon':
-                p = view.create_polygon(poly_gbl, self.render_color(),
-                                        zorder=2.5)
-            elif value[2] == 'polyline':
-                p = view.create_polyline(poly_gbl)
-            else:
-                break
-            self.handles[key] = (p, bbox)
-        return self.handles
-
-    def render_color(self):
-        return self.e.render_color
+    def get_label(self):
+        if not hasattr(self.e, 'label'):
+            self.e.label = 'lens'
+        return self.e.label
 
 
 class MirrorElement(OpticalElement):
     def __init__(self, e):
         super().__init__(e)
 
-    def update_shape(self, view):
-        self.e.render_handles()
-        for key, value in self.e.handles.items():
-            poly = np.array(value[0])
-            poly_gbl, bbox = transform_poly(self.e.tfrm, poly)
-            if value[2] == 'polygon':
-                p = view.create_polygon(poly_gbl, self.render_color(),
-                                        zorder=2.5)
-            elif value[2] == 'polyline':
-                p = view.create_polyline(poly_gbl)
-            else:
-                break
-            self.handles[key] = (p, bbox)
-        return self.handles
 
-    def render_color(self):
-        return self.e.render_color
+    def get_label(self):
+        if not hasattr(self.e, 'label'):
+            self.e.label = 'mirror'
+        return self.e.label
 
 
 class RayBundle():
     """ class for ray bundle from a single field point """
-    def __init__(self, opt_model, fld, fld_label, wvl, start_offset):
+    def __init__(self, opt_model, fld, fld_label, wvl, start_offset,
+                 ray_table_callback=None):
         self.opt_model = opt_model
         self.fld = fld
         self.fld_label = fld_label
         self.wvl = wvl
         self.start_offset = start_offset
         self.handles = {}
+        self.actions = {}
+        self.ray_table_callback = ray_table_callback
 
     def get_label(self):
         return self.fld_label
@@ -207,12 +186,12 @@ class RayBundle():
     def render_shape(self, rayset, start_bundle, tfrms):
         poly1 = []
         transform_ray_seg(poly1, start_bundle[3], tfrms[0])
-        for i, r in enumerate(rayset[3].ray[1:], 1):
+        for i, r in enumerate(rayset['+Y'].ray[1:], 1):
             transform_ray_seg(poly1, r, tfrms[i])
 
         poly2 = []
         transform_ray_seg(poly2, start_bundle[4], tfrms[0])
-        for i, r in enumerate(rayset[4].ray[1:], 1):
+        for i, r in enumerate(rayset['-Y'].ray[1:], 1):
             transform_ray_seg(poly2, r, tfrms[i])
 
         poly2.reverse()
@@ -228,6 +207,7 @@ class RayBundle():
                                               self.fld, wvl,
                                               use_named_tuples=True)
 
+        rayset = self.fld.pupil_rays
         # If the object distance (tfrms[0][1][2]) is greater than the
         #  start_offset, then modify rayset start to match start_offset.
         # Remember object transformation for resetting at the end.
@@ -235,17 +215,17 @@ class RayBundle():
         tfrms = seq_model.gbl_tfrms
         tfrtm0 = tfrms[0]
 
-        start_bundle = [r.ray[0] for r in rayset]
+        start_bundle = [r.ray[0] for r in rayset.values()]
         if abs(tfrtm0[1][2]) > self.start_offset:
             rot, t = setup_shift_of_ray_bundle(seq_model, self.start_offset)
             tfrms[0] = (rot, t)
-            shift_start_of_ray_bundle(start_bundle, rayset, rot, t)
+            shift_start_of_ray_bundle(start_bundle, rayset.values(), rot, t)
 
         try:
             poly, bbox = self.render_shape(rayset, start_bundle, tfrms)
-            cr = self.render_ray(rayset[0].ray, start_bundle[0], tfrms)
-            upr = self.render_ray(rayset[3].ray, start_bundle[3], tfrms)
-            lwr = self.render_ray(rayset[4].ray, start_bundle[4], tfrms)
+            cr = self.render_ray(rayset['00'].ray, start_bundle[0], tfrms)
+            upr = self.render_ray(rayset['+Y'].ray, start_bundle[3], tfrms)
+            lwr = self.render_ray(rayset['-Y'].ray, start_bundle[4], tfrms)
         finally:
             tfrms[0] = tfrtm0
 
@@ -253,20 +233,36 @@ class RayBundle():
         self.handles['shape'] = (p, bbox)
 
         cr_poly = view.create_polyline(cr)
-        self.handles['cr'] = (cr_poly, bbox_from_poly(cr))
+        self.handles['00'] = (cr_poly, bbox_from_poly(cr))
+        self.actions['00'] = self.select_ray_action(rayset['00'].ray)
 
         upr_poly = view.create_polyline(upr)
-        self.handles['upr'] = (upr_poly, bbox_from_poly(upr))
+        self.handles['+Y'] = (upr_poly, bbox_from_poly(upr))
+        self.actions['+Y'] = self.select_ray_action(rayset['+Y'].ray)
 
         lwr_poly = view.create_polyline(lwr)
-        self.handles['lwr'] = (lwr_poly, bbox_from_poly(lwr))
+        self.handles['-Y'] = (lwr_poly, bbox_from_poly(lwr))
+        self.actions['-Y'] = self.select_ray_action(rayset['-Y'].ray)
 
         return self.handles
+
+    def select_ray_action(self, ray):
+        actions = {}
+
+        def on_select_ray(fig, press):
+            ray_table = self.ray_table_callback()
+            ray_table.root = ray
+            fig.refresh_gui()
+
+        actions['press'] = on_select_ray
+
+        return actions
 
 
 class LensLayout():
     def __init__(self, opt_model, **kwargs):
         self.opt_model = opt_model
+        self.ray_table = None
 
         ele_model = self.opt_model.ele_model
         if len(ele_model.elements) == 0:
@@ -279,11 +275,8 @@ class LensLayout():
         return ele_length+img_dist
 
     def create_element_model(self, view):
-        elements = []
         ele_model = self.opt_model.ele_model
-        for e in ele_model.elements:
-            oe = create_optical_element(e)
-            elements.append(oe)
+        elements = [create_optical_element(e) for e in ele_model.elements]
         return elements
 
     def create_ray_model(self, view, start_offset):
@@ -292,6 +285,16 @@ class LensLayout():
         wvl = self.opt_model.seq_model.central_wavelength()
         for i, fld in enumerate(fov.fields):
             fld_label = fov.index_labels[i]
-            rb = RayBundle(self.opt_model, fld, fld_label, wvl, start_offset)
+            rb = RayBundle(self.opt_model, fld, fld_label, wvl, start_offset,
+                           ray_table_callback=self.get_ray_table)
             ray_bundles.append(rb)
         return ray_bundles
+
+    def get_ray_table(self):
+        if self.ray_table is None:
+            self.ray_table = appcmds.create_ray_table_model(self.opt_model,
+                                                            None)
+            gui_parent = self.opt_model.app_manager.gui_parent
+            gui_parent.create_table_view(self.ray_table, "Ray Table")
+
+        return self.ray_table
