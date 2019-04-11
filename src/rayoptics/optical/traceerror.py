@@ -22,10 +22,9 @@ class TraceMissedSurfaceError(TraceError):
 
 class TraceTIRError(TraceError):
     """ Exception raised when ray TIRs on a surface """
-    def __init__(self, ifc, int_pt, inc_dir, prev_indx, follow_indx):
-        self.ifc = ifc
-        self.int_pt = int_pt
+    def __init__(self, inc_dir, normal, prev_indx, follow_indx):
         self.inc_dir = inc_dir
+        self.normal = normal
         self.prev_indx = prev_indx
         self.follow_indx = follow_indx
 

@@ -32,7 +32,7 @@ def bend(d_in, normal, n_in, n_out):
         d_out = (n_in*d_in + alpha*normal)/n_out
         return d_out
     except ValueError:
-        raise TraceTIRError
+        raise TraceTIRError(d_in, normal, n_in, n_out)
 
 
 def reflect(d_in, normal):
