@@ -208,9 +208,11 @@ class SequentialModel:
 
         self.gbl_tfrms = self.compute_global_coords()
         self.lcl_tfrms = self.compute_local_transforms()
-        osp.update_model()
 
-        self.set_clear_apertures()
+        if len(self.ifcs) > 2:
+            osp.update_model()
+
+            self.set_clear_apertures()
 
     def insert_surface_and_gap(self):
         s = surface.Surface()

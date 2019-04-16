@@ -20,6 +20,7 @@ from PyQt5.QtWidgets import (QCheckBox, QComboBox, QDateTimeEdit, QAction,
                              QStackedWidget, QVBoxLayout, QFormLayout, QWidget)
 
 from rayoptics.optical.model_enums import PupilType
+from rayoptics.optical.model_enums import FieldType
 from rayoptics.optical.model_enums import DimensionType
 
 
@@ -35,6 +36,9 @@ def create_dock_windows(gui_app):
     panels['aperture'] = create_dock_widget(gui_app,
                                             'aperture', 'Aperture',
                                             AperturePanel, False)
+    panels['field'] = create_dock_widget(gui_app,
+                                            'field', 'Field of View',
+                                            FieldOfViewPanel, False)
     panels['system'] = create_dock_widget(gui_app,
                                           'system', 'System Info',
                                           SystemSpecPanel, False)
@@ -250,6 +254,39 @@ class AperturePanel(QWidget):
         """ push backend data to widgets """
         self.aperture_combo.refresh()
         self.aperture_edit.refresh()
+
+
+class FieldOfViewPanel(QWidget):
+    rootEvalStr = '.optical_spec.field_of_view'
+    evalStr = '.value', '.field_type.value'
+    comboItems = ["Object Angle", "Object Height", "Image Height"]
+    set_combo_str = '.mutate_field_type(FieldType({}))'
+
+    def __init__(self, gui_app, parent=None):
+        super().__init__(parent)
+
+        fieldLayout = QFormLayout()
+
+        self.field_combo = ChoiceWidget(gui_app, 'field_type', QComboBox,
+                                        FieldOfViewPanel.rootEvalStr,
+                                        FieldOfViewPanel.evalStr[1],
+                                        FieldOfViewPanel.comboItems,
+                                        set_eval_str=
+                                        FieldOfViewPanel.set_combo_str)
+        fieldLayout.addRow('Type', self.field_combo.widget)
+
+        self.field_edit = TextFieldWidget(gui_app, 'value', QLineEdit,
+                                          FieldOfViewPanel.rootEvalStr,
+                                          FieldOfViewPanel.evalStr[0],
+                                          '{:12.5f}')
+        fieldLayout.addRow('value', self.field_edit.widget)
+
+        self.setLayout(fieldLayout)
+
+    def update(self, opt_model):
+        """ push backend data to widgets """
+        self.field_combo.refresh()
+        self.field_edit.refresh()
 
 
 class SystemSpecPanel(QWidget):

@@ -14,6 +14,7 @@ import numpy as np
 from rayoptics.optical.firstorder import compute_first_order
 from rayoptics.optical.trace import aim_chief_ray
 from rayoptics.optical.model_enums import PupilType, FieldType
+import rayoptics.optical.model_constants as mc
 import rayoptics.util.colour_system as cs
 srgb = cs.cs_srgb
 
@@ -57,6 +58,9 @@ class OpticalSpecs:
         if not hasattr(self, 'do_aiming'):
             self.do_aiming = OpticalSpecs.do_aiming_default
 
+        self.pupil.sync_to_restore(self)
+        self.field_of_view.sync_to_restore(self)
+
     def update_model(self):
         self.pupil.update_model()
         self.field_of_view.update_model()
@@ -64,7 +68,7 @@ class OpticalSpecs:
         wvl = self.spectral_region.central_wvl
 
         self.parax_data = compute_first_order(self.opt_model, stop, wvl)
-        if self.do_aiming:
+        if self.do_aiming and self.opt_model.seq_model.get_num_surfaces() > 2:
             for i, fld in enumerate(self.field_of_view.fields):
                 aim_pt = aim_chief_ray(self.opt_model, fld, wvl)
                 fld.aim_pt = aim_pt
@@ -185,6 +189,9 @@ class PupilSpec:
         del attrs['optical_spec']
         return attrs
 
+    def sync_to_restore(self, optical_spec):
+        self.optical_spec = optical_spec
+
     def set_from_list(self, ppl_spec):
         self.pupil_type = ppl_spec[0]
         self.value = ppl_spec[1]
@@ -226,6 +233,9 @@ class FieldSpec:
         del attrs['optical_spec']
         return attrs
 
+    def sync_to_restore(self, optical_spec):
+        self.optical_spec = optical_spec
+
     def __str__(self):
         return "type={}, max field={}".format(self.field_type,
                                               self.max_field()[0])
@@ -234,6 +244,7 @@ class FieldSpec:
         self.fields = [Field() for f in range(len(flds))]
         for i, f in enumerate(self.fields):
             f.y = flds[i]
+        self.value, _ = self.max_field()
 
     def update_model(self):
         for f in self.fields:
@@ -243,6 +254,7 @@ class FieldSpec:
         #  relabeling really assumes the fields are radial, specifically,
         #  y axis only
         max_field, fi = self.max_field()
+        self.value = max_field
         field_norm = 1.0 if max_field == 0 else 1.0/max_field
         self.index_labels = []
         for i, f in enumerate(self.fields):
@@ -265,11 +277,11 @@ class FieldSpec:
             if self.optical_spec.parax_data is not None:
                 fod = self.optical_spec.parax_data.fod
                 if new_field_type == FieldType.OBJ_HT:
-                    self.value = fod.fno
+                    self.value = self.optical_spec.parax_data.pr_ray[0][mc.ht]
                 elif new_field_type == FieldType.OBJ_ANG:
-                    self.value = 2*fod.enp_radius
+                    self.value = fod.obj_ang
                 elif new_field_type == FieldType.IMG_HT:
-                    self.value = fod.obj_na
+                    self.value = fod.img_ht
         self.field_type = new_field_type
 
     def update_fields_cv_input(self, tla, dlist):
