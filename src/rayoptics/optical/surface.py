@@ -123,6 +123,17 @@ class Surface(Interface):
     def from_first_order(self, nu_before, nu_after, y):
         pass
 
+    def z_sag(self, pt):
+        return self.profile.sag(0., pt[1])
+
+    def set_z_sag(self, pt):
+        self.profile.cv = self.calc_cv_from_zsag(pt)
+
+    def calc_cv_from_zsag(self, pt):
+        x, y = pt
+        cv = 2*x / (x**2 + y**2)
+        return cv
+
     def surface_od(self):
         od = 0
         if len(self.edge_apertures) > 0:

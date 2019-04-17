@@ -117,7 +117,8 @@ class OpticalModel:
     def __json_encode__(self):
         attrs = dict(vars(self))
         del attrs['parax_model']
-        del attrs['app_manager']
+        if hasattr(self, 'app_manager'):
+            del attrs['app_manager']
         return attrs
 
     def save_model(self, file_name):

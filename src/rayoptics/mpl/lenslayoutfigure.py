@@ -107,18 +107,12 @@ class LensLayoutFigure(Figure):
     def create_element_model(self, ele_model):
         elements = []
         for e in ele_model.elements:
-            oe = layout.OpticalElement(e)
+            oe = layout.create_optical_element(self.opt_model, e)
             elements.append((self.update_element_shape, oe))
         return elements
 
     def update_element_shape(self, oe):
-#        handles = oe.update_shape()
-#        return handles['shape']
-        poly, bbox = oe.update_shape()
-        p = Polygon(poly, closed=True, fc=rgb2mpl(oe.render_color()),
-                    ec='black')
-        p.set_linewidth(self.linewidth)
-        return p, bbox
+        return oe.update_shape(self)['shape']
 
     def create_ray_model(self, start_surf=1, offset_factor=0.05):
         start_offset = offset_factor*self.system_length()
@@ -146,15 +140,8 @@ class LensLayoutFigure(Figure):
         return p
 
     def update_ray_fan_shape(self, rb):
-        rndr_clr = rgb2mpl([254, 197, 254, 64])  # magenta, 25%
-
         handles = rb.update_shape(self)
         return handles['shape']
-#        poly, bbox = rb.update_shape()
-#        p = Polygon(poly, fc=rndr_clr, ec='black')
-#        p.set_linewidth(self.linewidth)
-#
-#        return p, bbox
 
     def scale_bounds(self, oversize_factor):
         bbox = layout.scale_bounds(self.sys_bbox, oversize_factor)

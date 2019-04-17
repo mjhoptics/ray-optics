@@ -57,6 +57,7 @@ class InteractiveLayout(Figure):
         self.offset_factor = offset_factor
         self.hilited_artist = None
         self.selected_artist = None
+        self.do_scale_bounds = True
 
         Figure.__init__(self, **kwargs)
 
@@ -108,6 +109,7 @@ class InteractiveLayout(Figure):
             handles = shape.update_shape(self)
             for key, value in handles.items():
                 poly, bbox = value
+                # add shape and handle key as attribute on artist
                 poly.shape = (shape, key)
                 self.artists.append(poly)
                 if len(bbox_list) == 0:
@@ -124,6 +126,8 @@ class InteractiveLayout(Figure):
             lw = p.get_linewidth()
             p.unhilite = (fc, ec, lw)
             alpha = fc[3]+0.5
+            if alpha > 1.0:
+                alpha -= 1.0  # subtract 0.5 instead of adding
             p.set_facecolor((fc[0], fc[1], fc[2], alpha))
 
         def unhighlight(p):
@@ -159,10 +163,9 @@ class InteractiveLayout(Figure):
         p.unhighlight = unhighlight
         return p
 
-    def scale_bounds(self, oversize_factor):
-        bbox = layout.scale_bounds(self.sys_bbox, oversize_factor)
-        self.ax.set_xlim(bbox[0][0], bbox[1][0])
-        self.ax.set_ylim(bbox[0][1], bbox[1][1])
+    def update_axis_limits(self):
+        self.ax.set_xlim(self.view_bbox[0][0], self.view_bbox[1][0])
+        self.ax.set_ylim(self.view_bbox[0][1], self.view_bbox[1][1])
 
     def draw_frame(self, do_draw_frame):
         if do_draw_frame:
@@ -182,7 +185,11 @@ class InteractiveLayout(Figure):
             a.set_picker(5)
             self.ax.add_artist(a)
 
-        self.scale_bounds(self.oversize_factor)
+        if self.do_scale_bounds:
+            self.view_bbox = layout.scale_bounds(self.sys_bbox,
+                                                 self.oversize_factor)
+        self.update_axis_limits()
+
         self.draw_frame(self.do_draw_frame)
         self.ax.set_facecolor(backgrnd_color)
 
@@ -190,51 +197,6 @@ class InteractiveLayout(Figure):
         self.canvas.draw()
 
         return self
-
-    def do_action(self, event, target, event_key):
-        if target is not None:
-            shape, handle = target.shape
-            try:
-                actions = shape.actions[handle]
-                actions[event_key](self, event)
-            except KeyError:
-                pass
-
-    def on_press(self, event):
-        target = self.selected_artist = self.hilited_artist
-        self.do_action(event, target, 'press')
-
-#        artists = self.find_artists_at_location(event)
-#        obj = artists[0] if len(artists) > 0 else None
-#        obj = self.hilited_artist
-#        if obj is None:
-#            logging.debug("on_press: no object found")
-#        else:
-#            shape, handle = obj.shape
-#            if id(obj) != id(self.hilited_artist):
-#                logging.debug('press event: different than hilite object')
-#            else:
-#                logging.debug('press event: same as hilite object')
-#                logging.debug("on_press:", shape.get_label(), handle,
-#                              obj.get_zorder())
-#        if hit:
-#            if self.eline.press is None:
-#                self.eline.on_press(event)
-#            if self.eline.press:
-#                v, e = self.eline.press
-#                if v:
-#                    self.actions['press'](self, v)
-#                    hit_vertex, x_hit, y_hit, x_data, y_data, mkr = v
-#                    self.vertex = hit_vertex + self.data_slice.start
-#                    print("vertex selected", hit_vertex)
-#                elif e:
-#                    hit_edge, x_hit, y_hit, x_data, y_data, mkr = e
-#                    self.actions['press'](self, e)
-#                    print("edge selected", e[0])
-
-#            print('on_press', event.button, event.x, event.y,
-#                  event.xdata, event.ydata, event.key,
-#                  len(hit_list), hit_list)
 
     def find_artists_at_location(self, event):
         artists = []
@@ -248,6 +210,20 @@ class InteractiveLayout(Figure):
                                   shape.get_label(), handle,
                                   artist.get_zorder())
         return sorted(artists, key=lambda a: a.get_zorder(), reverse=True)
+
+    def do_action(self, event, target_artist, event_key):
+        if target_artist is not None:
+            shape, handle = target_artist.shape
+            try:
+                action = shape.actions[event_key]
+                action(self, handle, event)
+            except KeyError:
+                pass
+
+    def on_press(self, event):
+        self.do_scale_bounds = False
+        target_artist = self.selected_artist = self.hilited_artist
+        self.do_action(event, target_artist, 'press')
 
     def on_motion(self, event):
         if self.selected_artist is None:
@@ -279,4 +255,5 @@ class InteractiveLayout(Figure):
         logging.debug("on_release")
 
         self.do_action(event, self.selected_artist, 'release')
+        self.do_scale_bounds = True
         self.selected_artist = None

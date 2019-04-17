@@ -64,6 +64,7 @@ class MainWindow(QMainWindow):
         file.triggered[QAction].connect(self.file_action)
 
         view = bar.addMenu("View")
+        view.addAction("Optical Layout")
         view.addAction("Lens Table")
         view.addAction("Lens View")
         view.addSeparator()
@@ -215,14 +216,16 @@ class MainWindow(QMainWindow):
 
     def view_action(self, q):
         opt_model = self.app_manager.model
-        seq_model = self.app_manager.model.seq_model
-        if q.text() == "Lens Table":
-            self.create_lens_table()
+
+        if q.text() == "Optical Layout":
+            cmds.create_live_layout_view(opt_model, gui_parent=self)
 
         if q.text() == "Lens View":
-            cmds.create_lens_layout_view(self.app_manager.model,
-                                         gui_parent=self)
+            cmds.create_lens_layout_view(opt_model, gui_parent=self)
 #            self.create_2D_lens_view()
+
+        if q.text() == "Lens Table":
+            self.create_lens_table()
 
         if q.text() == "Ray Fans":
             cmds.create_ray_fan_view(opt_model, "Ray", gui_parent=self)

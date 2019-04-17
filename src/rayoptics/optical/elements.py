@@ -8,6 +8,8 @@
 .. codeauthor: Michael J. Hayford
 """
 
+import logging
+
 import numpy as np
 
 import rayoptics.util.rgbtable as rgbt
@@ -72,10 +74,19 @@ class Element():
         self.s2 = s2
         self.s2_indx = idx2
         self.g = g
-        self.sd = sd
+        self._sd = sd
         self.flat1 = None
         self.flat2 = None
         self.render_color = self.calc_render_color()
+
+    @property
+    def sd(self):
+        return self._sd
+
+    @sd.setter
+    def sd(self, semidiam):
+        self._sd = semidiam
+        self.edge_extent = (-semidiam, semidiam)
 
     def __json_encode__(self):
         attrs = dict(vars(self))
@@ -83,6 +94,8 @@ class Element():
         del attrs['s1']
         del attrs['s2']
         del attrs['g']
+        del attrs['handles']
+        del attrs['actions']
         return attrs
 
     def __str__(self):
@@ -142,14 +155,6 @@ class Element():
         else:
             return (-self.sd, self.sd)
 
-    def shape(self):
-        try:
-            shape_handle = self.handles['shape']
-        except (KeyError, AttributeError):
-            self.render_handles()
-            shape_handle = self.handles['shape']
-        return shape_handle[0]
-
     def render_shape(self):
         if self.s1.profile_cv() < 0.0:
             self.flat1 = self.compute_flat(self.s1)
@@ -163,11 +168,12 @@ class Element():
         poly.append(poly[0])
         return poly
 
-    def render_handles(self):
+    def render_handles(self, opt_model):
         self.handles = {}
+        ifcs_gbl_tfrms = opt_model.seq_model.gbl_tfrms
 
         shape = self.render_shape()
-        self.handles['shape'] = (shape, self, 'polygon')
+        self.handles['shape'] = (shape, self.tfrm, 'polygon')
 
         extent = self.extent()
         if self.flat1 is not None:
@@ -175,35 +181,142 @@ class Element():
         else:
             extent_s1 = extent
         poly_s1 = self.s1.full_profile(extent_s1, None)
-        self.handles['s1_profile'] = (poly_s1, self.s1, 'polyline')
+        self.handles['s1_profile'] = (poly_s1, ifcs_gbl_tfrms[self.s1_indx],
+                                      'polyline')
 
         if self.flat2 is not None:
             extent_s2 = self.flat2,
         else:
             extent_s2 = extent
         poly_s2 = self.s2.full_profile(extent_s2, None, -1)
-        for p in poly_s2:
-            p[0] += self.g.thi
-        self.handles['s2_profile'] = (poly_s2, self.s2, 'polyline')
+        self.handles['s2_profile'] = (poly_s2, ifcs_gbl_tfrms[self.s2_indx],
+                                      'polyline')
 
         poly_sd_upr = []
         poly_sd_upr.append([poly_s1[-1][0], extent[1]])
-        poly_sd_upr.append([poly_s2[0][0], extent[1]])
-        self.handles['sd_upr'] = (poly_sd_upr, self, 'polyline')
+        poly_sd_upr.append([poly_s2[0][0]+self.g.thi, extent[1]])
+        self.handles['sd_upr'] = (poly_sd_upr, self.tfrm, 'polyline')
 
         poly_sd_lwr = []
-        poly_sd_lwr.append([poly_s2[-1][0], extent[0]])
+        poly_sd_lwr.append([poly_s2[-1][0]+self.g.thi, extent[0]])
         poly_sd_lwr.append([poly_s1[0][0], extent[0]])
-        self.handles['sd_lwr'] = (poly_sd_lwr, self, 'polyline')
+        self.handles['sd_lwr'] = (poly_sd_lwr, self.tfrm, 'polyline')
 
         return self.handles
+
+    def handle_actions(self):
+        self.actions = {}
+
+        shape_actions = {}
+        shape_actions['x'] = AttrAction(self.g, 'thi')
+        shape_actions['y'] = AttrAction(self, 'sd')
+        self.actions['shape'] = shape_actions
+
+        s1_prof_actions = {}
+        s1_prof_actions['pt'] = SagAction(self.s1)
+        self.actions['s1_profile'] = s1_prof_actions
+
+        s2_prof_actions = {}
+        s2_prof_actions['pt'] = SagAction(self.s2)
+        self.actions['s2_profile'] = s2_prof_actions
+
+        sd_upr_action = {}
+        sd_upr_action['y'] = AttrAction(self, 'sd')
+        self.actions['sd_upr'] = sd_upr_action
+
+        sd_lwr_action = {}
+        sd_lwr_action['y'] = AttrAction(self, 'sd')
+        self.actions['sd_lwr'] = sd_lwr_action
+
+        return self.actions
+
+
+class Action():
+
+    def __init__(self, getf, setf):
+        self.getf = getf
+        self.setf = setf
+        self.cur_value = None
+        self.new_value = None
+        self.actions = {}
+
+        def on_select(fig, event):
+            self.cur_value = getf()
+            return self.cur_value
+        self.actions['press'] = on_select
+
+        def on_edit(fig, event, value):
+            setf(value)
+            fig.refresh_gui()
+        self.actions['drag'] = on_edit
+
+        def on_release(fig, event):
+            self.new_value = getf()
+            fig.refresh_gui()
+        self.actions['release'] = on_release
+
+
+class SagAction():
+
+    def __init__(self, surf):
+        self.surf = surf
+        self.cur_value = None
+        self.new_value = None
+        self.actions = {}
+
+        def on_select(fig, event):
+            self.cur_value = self.surf.z_sag((event.x, event.ydata))
+#            print('SagAction.on_select:', self.cur_value)
+            return self.cur_value
+        self.actions['press'] = on_select
+
+        def on_edit(fig, event, value):
+            self.surf.set_z_sag(value)
+#            cv = self.surf.calc_cv_from_zsag(value)
+#            print('SagAction.on_edit (x, y, cv):', value, cv)
+            fig.refresh_gui()
+        self.actions['drag'] = on_edit
+
+        def on_release(fig, event):
+            self.new_value = self.surf.z_sag((event.x, event.ydata))
+            fig.refresh_gui()
+        self.actions['release'] = on_release
+
+
+class AttrAction():
+
+    def __init__(self, obj, attr):
+        self.object = obj
+        self.attr = attr
+        self.cur_value = getattr(self.object, self.attr, None)
+        self.new_value = None
+        self.actions = {}
+
+        def on_select(fig, event):
+            self.cur_value = getattr(self.object, self.attr, None)
+#            print('AttrAction.on_select:', self.attr, self.cur_value)
+            return self.cur_value
+        self.actions['press'] = on_select
+
+        def on_edit(fig, event, delta_value):
+            setattr(self.object, self.attr, self.cur_value+delta_value)
+#            print('AttrAction.on_edit:', self.attr, self.cur_value+delta_value)
+            fig.refresh_gui()
+        self.actions['drag'] = on_edit
+
+        def on_release(fig, event):
+            self.new_value = getattr(self.object, self.attr, None)
+            fig.refresh_gui()
+        self.actions['release'] = on_release
 
 
 class Mirror():
     def __init__(self, ifc, tfrm=None, idx=0, sd=1., thi=None, z_dir=1.0,
                  label='Mirror'):
         self.label = label
-        self.render_color = (192, 192, 192)
+#        self.render_color = (192, 192, 192, 112)
+        self.render_color = (158, 158, 158, 64)
+#        self.render_color = (64, 64, 64, 64)
         if tfrm is not None:
             self.tfrm = tfrm
         else:
@@ -225,6 +338,8 @@ class Mirror():
         attrs = dict(vars(self))
         del attrs['tfrm']
         del attrs['s']
+        del attrs['handles']
+        del attrs['actions']
         return attrs
 
     def __str__(self):
@@ -254,14 +369,6 @@ class Mirror():
             self.edge_extent = self.s.get_y_aperture_extent()
             return self.edge_extent
 
-    def shape(self):
-        try:
-            shape_handle = self.handles['shape']
-        except (KeyError, AttributeError):
-            self.render_handles()
-            shape_handle = self.handles['shape']
-        return shape_handle[0]
-
     def render_shape(self):
         poly = self.s.full_profile(self.extent(), self.flat)
         poly2 = self.s.full_profile(self.extent(), self.flat, -1)
@@ -275,12 +382,15 @@ class Mirror():
         poly.append(poly[0])
         return poly
 
-    def render_handles(self):
+    def render_handles(self, opt_model):
         self.handles = {}
-        self.handles['shape'] = (self.render_shape(), self, 'polygon')
+        ifcs_gbl_tfrms = opt_model.seq_model.gbl_tfrms
+
+        self.handles['shape'] = (self.render_shape(), self.tfrm, 'polygon')
 
         poly = self.s.full_profile(self.extent(), None)
-        self.handles['s_profile'] = (poly, self.s, 'polyline')
+        self.handles['s_profile'] = (poly, ifcs_gbl_tfrms[self.s_indx],
+                                     'polyline')
 
         thi = self.get_thi()
         offset = thi*self.z_dir
@@ -288,14 +398,35 @@ class Mirror():
         poly_sd_upr = []
         poly_sd_upr.append(poly[-1])
         poly_sd_upr.append([poly[-1][0]+offset, poly[-1][1]])
-        self.handles['sd_upr'] = (poly_sd_upr, self, 'polyline')
+        self.handles['sd_upr'] = (poly_sd_upr, self.tfrm, 'polyline')
 
         poly_sd_lwr = []
         poly_sd_lwr.append(poly[0])
         poly_sd_lwr.append([poly[0][0]+offset, poly[0][1]])
-        self.handles['sd_lwr'] = (poly_sd_lwr, self, 'polyline')
+        self.handles['sd_lwr'] = (poly_sd_lwr, self.tfrm, 'polyline')
 
         return self.handles
+
+    def handle_actions(self):
+        self.actions = {}
+
+        shape_actions = {}
+        shape_actions['pt'] = SagAction(self.s)
+        self.actions['shape'] = shape_actions
+
+        s_prof_actions = {}
+        s_prof_actions['pt'] = SagAction(self.s)
+        self.actions['s_profile'] = s_prof_actions
+
+        sd_upr_action = {}
+        sd_upr_action['y'] = AttrAction(self, 'edge_extent[1]')
+        self.actions['sd_upr'] = sd_upr_action
+
+        sd_lwr_action = {}
+        sd_lwr_action['y'] = AttrAction(self, 'edge_extent[0]')
+        self.actions['sd_lwr'] = sd_lwr_action
+
+        return self.actions
 
 
 class ThinElement():
@@ -314,6 +445,8 @@ class ThinElement():
         attrs = dict(vars(self))
         del attrs['tfrm']
         del attrs['intrfc']
+        del attrs['handles']
+        del attrs['actions']
         return attrs
 
     def __str__(self):
@@ -333,10 +466,19 @@ class ThinElement():
         self.sd = self.intrfc.surface_od()
         return self.sd
 
-    def shape(self):
-        poly = self.intrfc.full_profile((self.sd,))
+    def render_shape(self):
+        poly = self.intrfc.full_profile((-self.sd, self.sd))
         return poly
 
+    def render_handles(self, opt_model):
+        self.handles = {}
+        shape = self.render_shape()
+        self.handles['shape'] = (shape, self.tfrm, 'polygon')
+        return self.handles
+
+    def handle_actions(self):
+        self.actions = {}
+        return self.actions
 
 class ElementModel:
 

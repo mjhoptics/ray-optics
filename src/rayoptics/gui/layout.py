@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Copyright © 2018 Michael J. Hayford
-""" Wireframe rendering routines for 2D lens picture
+""" Interactive 2D lens picture
+
+    The Lens Layout capability provides a 2D display of the optical model
+    represented by **shapes**. Shapes contain the `dict`
+        handles dict: named graphic handles for different aspects of the
+                      parent object
+        actions dict: functions for press, drag, and release actions
 
 .. Created on Tue Sep 18 14:23:28 2018
 
@@ -13,7 +19,8 @@ import numpy as np
 from rayoptics.optical import elements
 from rayoptics.optical import gap
 from rayoptics.optical import transform
-from rayoptics.optical.trace import (trace_boundary_rays_at_field, RaySeg)
+from rayoptics.optical.trace import (trace_boundary_rays_at_field,
+                                     boundary_ray_dict, RaySeg)
 from rayoptics.gui import appcmds
 
 
@@ -100,26 +107,42 @@ def transform_poly(tfrm, poly):
         return poly, bbox
 
 
-def create_optical_element(e):
+def inv_transform_poly(tfrm, poly):
+        coord_flip = np.array([[0., 1.], [1., 0.]])
+        poly = np.matmul(coord_flip, poly.T)
+
+        t = np.array([tfrm[1][1], tfrm[1][2]])
+        poly -= t
+
+        poly = np.matmul(tfrm[0][1:, 1:], poly).T
+
+        # flip coordinates back to 2D plot coordinates, +y points up
+        poly = np.matmul(poly, coord_flip)
+        return poly
+
+
+def create_optical_element(opt_model, e):
     if isinstance(e, elements.Element):
-        return LensElement(e)
+        return LensElement(opt_model, e)
     elif isinstance(e, elements.Mirror):
-        return MirrorElement(e)
+        return MirrorElement(opt_model, e)
     else:
-        return OpticalElement(e)
+        return OpticalElement(opt_model, e)
 
 
 class OpticalElement():
-    def __init__(self, e):
+    def __init__(self, opt_model, e):
+        self.opt_model = opt_model
         self.e = e
         self.handles = {}
-        self.actions = {}
+        self.actions = self.edit_shape_actions()
+        self.handle_actions = self.e.handle_actions()
 
     def update_shape(self, view):
-        self.e.render_handles()
+        self.e.render_handles(self.opt_model)
         for key, value in self.e.handles.items():
             poly = np.array(value[0])
-            poly_gbl, bbox = transform_poly(self.e.tfrm, poly)
+            poly_gbl, bbox = transform_poly(value[1], poly)
             if value[2] == 'polygon':
                 p = view.create_polygon(poly_gbl, self.render_color(),
                                         zorder=2.5)
@@ -138,10 +161,78 @@ class OpticalElement():
             self.e.label = 'element'
         return self.e.label
 
+    def edit_shape_actions(self):
+        actions = {}
+
+        def on_select_shape(fig, handle, event):
+            handle_actions = self.handle_actions[handle]
+            for key, action_obj in handle_actions.items():
+                action_obj.actions['press'](fig, event)
+            self.select_pt = ((event.x, event.y), (event.xdata, event.ydata))
+#            print('select pt:', self.select_pt)
+#            print('select pt:', event.x, event.y)
+
+        actions['press'] = on_select_shape
+
+        def on_edit_shape(fig, handle, event):
+            handle_actions = self.handle_actions[handle]
+            x, y = self.select_pt[0]
+            xdata, ydata = self.select_pt[1]
+            delta_x, delta_y = abs(x - event.x), abs(y - event.y)
+            delta_xdata, delta_ydata = (abs(xdata - event.xdata),
+                                        abs(ydata - event.ydata))
+            if self.move_direction is None:
+                if delta_x > delta_y:
+                    self.move_direction = 'x'
+#                    print('move horizontal: delta x, y:', delta_x, delta_y,
+#                          delta_xdata, delta_ydata)
+                elif delta_x < delta_y:
+                    self.move_direction = 'y'
+#                    print('move vertical: delta x, y:', delta_x, delta_y,
+#                          delta_xdata, delta_ydata)
+                else:
+                    self.move_direction = None
+#                    print('move same: delta x, y:', delta_x, delta_y)
+
+            gbl_pt = np.array([event.xdata, event.ydata])
+            lcl_pt = inv_transform_poly(self.e.handles[handle][1], gbl_pt)
+            dxdy = event.xdata - xdata, event.ydata - ydata
+#            print('move pt:', event.xdata, event.ydata, lcl_pt)
+            if 'pt' in handle_actions:
+                if 'drag' in handle_actions['pt'].actions:
+                    handle_actions['pt'].actions['drag'](fig, event, lcl_pt)
+            elif self.move_direction in handle_actions:
+                if 'drag' in handle_actions[self.move_direction].actions:
+                    if self.move_direction == 'x':
+                        handle_actions['x'].actions['drag'](fig, event,
+                                                            dxdy[0])
+                    elif self.move_direction == 'y':
+                        handle_actions['y'].actions['drag'](fig, event,
+                                                            dxdy[1])
+
+            fig.refresh_gui()
+
+        actions['drag'] = on_edit_shape
+
+        def on_release_shape(fig, handle, event):
+            print('release pt:', event.x, event.y)
+            handle_actions = self.handle_actions[handle]
+            for key, action_obj in handle_actions.items():
+                action_obj.actions['release'](fig, event)
+            self.select_pt = None
+            self.move_direction = None
+#            fig.refresh_gui()
+
+        actions['release'] = on_release_shape
+
+        return actions
+
 
 class LensElement(OpticalElement):
-    def __init__(self, e):
-        super().__init__(e)
+    def __init__(self, opt_model, e):
+        super().__init__(opt_model, e)
+        self.select_pt = None
+        self.move_direction = None
 
     def get_label(self):
         if not hasattr(self.e, 'label'):
@@ -150,9 +241,8 @@ class LensElement(OpticalElement):
 
 
 class MirrorElement(OpticalElement):
-    def __init__(self, e):
-        super().__init__(e)
-
+    def __init__(self, opt_model, e):
+        super().__init__(opt_model, e)
 
     def get_label(self):
         if not hasattr(self.e, 'label'):
@@ -170,7 +260,7 @@ class RayBundle():
         self.wvl = wvl
         self.start_offset = start_offset
         self.handles = {}
-        self.actions = {}
+        self.actions = self.edit_ray_bundle_actions()
         self.ray_table_callback = ray_table_callback
 
     def get_label(self):
@@ -207,7 +297,7 @@ class RayBundle():
                                               self.fld, wvl,
                                               use_named_tuples=True)
 
-        rayset = self.fld.pupil_rays
+        self.rayset = boundary_ray_dict(self.opt_model, rayset)
         # If the object distance (tfrms[0][1][2]) is greater than the
         #  start_offset, then modify rayset start to match start_offset.
         # Remember object transformation for resetting at the end.
@@ -215,17 +305,22 @@ class RayBundle():
         tfrms = seq_model.gbl_tfrms
         tfrtm0 = tfrms[0]
 
-        start_bundle = [r.ray[0] for r in rayset.values()]
+        start_bundle = [r.ray[0] for r in self.rayset.values()]
         if abs(tfrtm0[1][2]) > self.start_offset:
             rot, t = setup_shift_of_ray_bundle(seq_model, self.start_offset)
             tfrms[0] = (rot, t)
-            shift_start_of_ray_bundle(start_bundle, rayset.values(), rot, t)
+            shift_start_of_ray_bundle(start_bundle, self.rayset.values(),
+                                      rot, t)
 
         try:
-            poly, bbox = self.render_shape(rayset, start_bundle, tfrms)
-            cr = self.render_ray(rayset['00'].ray, start_bundle[0], tfrms)
-            upr = self.render_ray(rayset['+Y'].ray, start_bundle[3], tfrms)
-            lwr = self.render_ray(rayset['-Y'].ray, start_bundle[4], tfrms)
+            poly, bbox = self.render_shape(self.rayset,
+                                           start_bundle, tfrms)
+            cr = self.render_ray(self.rayset['00'].ray,
+                                 start_bundle[0], tfrms)
+            upr = self.render_ray(self.rayset['+Y'].ray,
+                                  start_bundle[3], tfrms)
+            lwr = self.render_ray(self.rayset['-Y'].ray,
+                                  start_bundle[4], tfrms)
         finally:
             tfrms[0] = tfrtm0
 
@@ -234,25 +329,23 @@ class RayBundle():
 
         cr_poly = view.create_polyline(cr)
         self.handles['00'] = (cr_poly, bbox_from_poly(cr))
-        self.actions['00'] = self.select_ray_action(rayset['00'].ray)
 
         upr_poly = view.create_polyline(upr)
         self.handles['+Y'] = (upr_poly, bbox_from_poly(upr))
-        self.actions['+Y'] = self.select_ray_action(rayset['+Y'].ray)
 
         lwr_poly = view.create_polyline(lwr)
         self.handles['-Y'] = (lwr_poly, bbox_from_poly(lwr))
-        self.actions['-Y'] = self.select_ray_action(rayset['-Y'].ray)
 
         return self.handles
 
-    def select_ray_action(self, ray):
+    def edit_ray_bundle_actions(self):
         actions = {}
 
-        def on_select_ray(fig, press):
-            ray_table = self.ray_table_callback()
-            ray_table.root = ray
-            fig.refresh_gui()
+        def on_select_ray(fig, handle, event):
+            if handle is not 'shape':
+                ray_table = self.ray_table_callback()
+                ray_table.root = self.rayset[handle].ray
+                fig.refresh_gui()
 
         actions['press'] = on_select_ray
 
@@ -276,7 +369,8 @@ class LensLayout():
 
     def create_element_model(self, view):
         ele_model = self.opt_model.ele_model
-        elements = [create_optical_element(e) for e in ele_model.elements]
+        elements = [create_optical_element(self.opt_model, e)
+                    for e in ele_model.elements]
         return elements
 
     def create_ray_model(self, view, start_offset):
