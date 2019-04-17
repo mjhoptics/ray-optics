@@ -66,3 +66,4 @@ from rayoptics.mpl.axisarrayfigure import WavefrontFigure
 # lens layout
 import rayoptics.mpl.lenslayoutfigure as lay
 from rayoptics.mpl.lenslayoutfigure import LensLayoutFigure
+from rayoptics.mpl.interactivelayout import InteractiveLayout
