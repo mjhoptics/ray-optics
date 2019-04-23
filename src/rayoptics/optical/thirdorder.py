@@ -30,7 +30,7 @@ def compute_third_order(opt_model):
     pd_index = ['S-I', 'S-II', 'S-III', 'S-IV', 'S-V']
     for c in range(1, len(ax_ray)-1):
         n_after = seq_model.central_rndx(c)
-        cv = seq_model.ifcs[c].profile_cv()
+        cv = seq_model.ifcs[c].profile_cv
 
         A = n_after * ax_ray[c][aoi]
         Abar = n_after * pr_ray[c][aoi]

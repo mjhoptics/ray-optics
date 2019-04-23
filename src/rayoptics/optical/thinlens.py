@@ -94,6 +94,14 @@ class ThinLens(Interface):
 
         return prf
 
+    @property
+    def profile_cv(self):
+        return self.power
+
+    @profile_cv.setter
+    def profile_cv(self, cv):
+        self.power = cv
+
     def surface_od(self):
         return self.od
 

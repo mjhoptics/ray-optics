@@ -53,6 +53,7 @@ class Interface:
         if not hasattr(self, 'max_aperture'):
             self.max_aperture = 1.0
 
+    @property
     def profile_cv(self):
         return 0.0
 
@@ -105,8 +106,13 @@ class Surface(Interface):
         super().update()
         self.profile.update()
 
+    @property
     def profile_cv(self):
         return self.profile.cv
+
+    @profile_cv.setter
+    def profile_cv(self, cv):
+        self.profile.cv = cv
 
     @property
     def optical_power(self):

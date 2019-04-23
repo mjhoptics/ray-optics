@@ -124,7 +124,7 @@ def update_table_view(table_view):
 
 def create_lens_table_model(seq_model):
     colEvalStr = ['.ifcs[{}].interface_type()',
-                  '.ifcs[{}].profile_cv()',
+                  '.ifcs[{}].profile_cv',
                   '.ifcs[{}].surface_od()', '.gaps[{}].thi',
                   '.gaps[{}].medium.name()', '.ifcs[{}].refract_mode']
     rowHeaders = seq_model.surface_label_list()
