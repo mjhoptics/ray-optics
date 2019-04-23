@@ -72,7 +72,7 @@ class ParaxialModel():
         g = gap.Gap()
         self.seq_model.insert(ifc, g)
 
-        self.opt_model.ele_model.elements.append(ele)
+        self.opt_model.ele_model.add_element(ele)
 
         self.sys[new_surf][rmd] = ifc.refract_mode
         if ifc.refract_mode == 'REFL':

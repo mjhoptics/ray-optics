@@ -107,8 +107,8 @@ class InteractiveLayout(Figure):
         bbox_list = []
         for shape in shapes:
             handles = shape.update_shape(self)
-            for key, value in handles.items():
-                poly, bbox = value
+            for key, gui_handle in handles.items():
+                poly, bbox = gui_handle
                 # add shape and handle key as attribute on artist
                 poly.shape = (shape, key)
                 self.artists.append(poly)
@@ -143,13 +143,13 @@ class InteractiveLayout(Figure):
         p.unhighlight = unhighlight
         return p
 
-    def create_polyline(self, poly, **kwargs):
+    def create_polyline(self, poly, hilite='red', **kwargs):
         def highlight(p):
             lw = p.get_linewidth()
             c = p.get_color()
             p.unhilite = (c, lw)
             p.set_linewidth(2)
-            p.set_color('red')
+            p.set_color(hilite)
 
         def unhighlight(p):
             c, lw = p.unhilite
@@ -158,7 +158,7 @@ class InteractiveLayout(Figure):
             p.unhilite = None
         x = poly.T[0]
         y = poly.T[1]
-        p = Line2D(x, y, linewidth=self.linewidth)
+        p = Line2D(x, y, linewidth=self.linewidth, **kwargs)
         p.highlight = highlight
         p.unhighlight = unhighlight
         return p

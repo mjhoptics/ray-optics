@@ -108,11 +108,14 @@ class LensLayoutFigure(Figure):
         elements = []
         for e in ele_model.elements:
             oe = layout.create_optical_element(self.opt_model, e)
-            elements.append((self.update_element_shape, oe))
+            handles = oe.update_shape(self)
+            if 'shape' in handles:
+                elements.append((self.update_element_shape, oe))
         return elements
 
     def update_element_shape(self, oe):
-        return oe.update_shape(self)['shape']
+        handles = oe.update_shape(self)
+        return handles['shape']
 
     def create_ray_model(self, start_surf=1, offset_factor=0.05):
         start_offset = offset_factor*self.system_length()
