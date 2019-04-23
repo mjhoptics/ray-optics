@@ -25,7 +25,7 @@ def create_ipython_console(app, title, view_width, view_ht):
             'osp': opt_model.optical_spec,
             'pm': opt_model.parax_model
             }
-    ro_setup = 'import rayoptics as ro'
+    ro_setup = 'from rayoptics.environment import *'
 
     # construct the top level widget
     ipy_console = ConsoleWidget()

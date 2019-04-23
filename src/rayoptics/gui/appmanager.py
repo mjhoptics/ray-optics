@@ -15,7 +15,7 @@ ModelInfo = namedtuple('ModelInfo', ['model', 'fct', 'args', 'kwargs'])
 """ package of a model and a update function with args and kwargs
 
     Attributes:
-        model: object asssociated with view update function
+        model: object associated with view update function
         fct: view update function, can be None
         args: list of fct arguments
         kwargs: list of fct keyword arguments
