@@ -52,6 +52,9 @@ class ParaxialModel():
 
     def add_node(self, surf, new_vertex, type_sel, factory):
         """ Add a node in the paraxial data structures and the sequential model """
+        ns = self.seq_model.get_num_surfaces()
+        if surf >= ns - 1:
+            surf = ns - 2
         n = self.sys[surf][indx]
         new_surf = surf + 1
         self.sys.insert(new_surf, [0.0, 0.0, n, ''])
