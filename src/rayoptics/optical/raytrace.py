@@ -188,11 +188,17 @@ def trace_raw(path_pkg, pt0, dir0, wvl, eps=1.0e-12):
 
         except TraceMissedSurfaceError as ray_miss:
             ray.append([before_pt, before_dir, pp_dst, before_normal])
+            ray_miss.surf = surf+1
+            ray_miss.ifc = ifc
+            ray_miss.prev_gap = after[Gap]
             ray_miss.ray = ray
             raise ray_miss
 
         except TraceTIRError as ray_tir:
             ray.append([inc_pt, before_dir, 0.0, normal])
+            ray_tir.surf = surf+1
+            ray_tir.ifc = ifc
+            ray_tir.inc_pt = inc_pt
             ray_tir.ray = ray
             raise ray_tir
 

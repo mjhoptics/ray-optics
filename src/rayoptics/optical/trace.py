@@ -20,6 +20,7 @@ import attr
 
 from . import raytrace as rt
 from . import model_constants as mc
+from .traceerror import TraceError, TraceMissedSurfaceError, TraceTIRError
 from rayoptics.util.misc_math import normalize
 
 
@@ -126,14 +127,30 @@ def trace_base(opt_model, pupil, fld, wvl, **kwargs):
 
 
 def iterate_ray(opt_model, ifcx, xy_target, fld, wvl, **kwargs):
-    """ returns numpy array with x, y coordinates on an object space plane """
+    """ iterates a ray to xy_target on interface ifcx, returns aim points in
+    object space plane
+
+    The default implementation returns the aim points on the paraxial entrance
+    pupil plane.
+    
+    If the iteration fails, a TraceError will be raised
+    """
     def y_stop_coordinate(y1, *args):
         seq_model, ifcx, pt0, dist, wvl, y_target = args
         pt1 = np.array([0., y1, dist])
         dir0 = pt1 - pt0
         length = norm(dir0)
         dir0 = dir0/length
-        ray, _, _ = rt.trace(seq_model, pt0, dir0, wvl)
+        try:
+            ray, _, _ = rt.trace(seq_model, pt0, dir0, wvl)
+        except TraceMissedSurfaceError as ray_miss:
+            ray = ray_miss.ray
+            if ray_miss.surf <= ifcx:
+                raise ray_miss
+        except TraceTIRError as ray_tir:
+            ray = ray_tir.ray
+            if ray_tir.surf < ifcx:
+                raise ray_tir
         y_ray = ray[ifcx][mc.p][1]
 #        print(y1, y_ray)
         return y_ray - y_target
@@ -160,17 +177,23 @@ def iterate_ray(opt_model, ifcx, xy_target, fld, wvl, **kwargs):
         # do 1D iteration if field and target points are zero in x
         y_target = xy_target[1]
         logging.captureWarnings(True)
-        start_y = newton(y_stop_coordinate, 0.,
-                         args=(seq_model, ifcx, pt0, dist,
-                               wvl, y_target))
+        try:
+            start_y = newton(y_stop_coordinate, 0.,
+                             args=(seq_model, ifcx, pt0, dist,
+                                   wvl, y_target))
+        except TraceError:
+            start_y = 0.0
         start_coords = np.array([0., start_y])
     else:
         # do 2D iteration. epsfcn is a parameter increment,
         #  make proportional to  pupil radius
-        start_coords = fsolve(surface_coordinate, np.array([0., 0.]),
-                              epsfcn=0.0001*fod.enp_radius,
-                              args=(seq_model, ifcx, pt0, dist,
-                                    wvl, xy_target))
+        try:
+            start_coords = fsolve(surface_coordinate, np.array([0., 0.]),
+                                  epsfcn=0.0001*fod.enp_radius,
+                                  args=(seq_model, ifcx, pt0, dist,
+                                        wvl, xy_target))
+        except TraceError:
+            start_coords = np.array([0., 0.])
     return start_coords
 
 
@@ -193,7 +216,12 @@ def trace_boundary_rays_at_field(opt_model, fld, wvl, use_named_tuples=False):
     rim_rays = []
     osp = opt_model.optical_spec
     for p in osp.pupil.pupil_rays:
-        ray, op, wvl = trace_base(opt_model, p, fld, wvl)
+        try:
+            ray, op, wvl = trace_base(opt_model, p, fld, wvl)
+        except TraceError as ray_error:
+            ray = ray_error.ray
+            op = 0.
+
         if use_named_tuples:
             ray = [RaySeg(*rs) for rs in ray]
         rim_rays.append(RayPkg(ray, op, wvl))

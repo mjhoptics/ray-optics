@@ -14,6 +14,7 @@ from . import gap
 from . import medium as m
 from . import raytrace as rt
 from . import trace as trace
+from .traceerror import TraceError, TraceMissedSurfaceError, TraceTIRError
 from . import transform as trns
 from rayoptics.optical.model_constants import Surf, Gap
 from opticalglass import glassfactory as gfact
@@ -451,14 +452,21 @@ class SequentialModel:
     def set_clear_apertures(self):
         rayset = trace.trace_boundary_rays(self.opt_model,
                                            use_named_tuples=True)
+
         for i, s in enumerate(self.ifcs):
             max_ap = -1.0e+10
+            update = True
             for f in rayset:
                 for p in f:
-                    ap = sqrt(p[0][i][0][0]**2 + p[0][i][0][1]**2)
-                    if ap > max_ap:
-                        max_ap = ap
-            s.set_max_aperture(max_ap)
+                    ray = p.ray
+                    if len(ray) > i:
+                        ap = sqrt(ray[i].p[0]**2 + ray[i].p[1]**2)
+                        if ap > max_ap:
+                            max_ap = ap
+                    else:  # ray failed before this interface, don't update
+                        update = False
+            if update:
+                s.set_max_aperture(max_ap)
 
     def trace(self, pt0, dir0, wvl, **kwargs):
         return rt.trace(self, pt0, dir0, wvl, **kwargs)

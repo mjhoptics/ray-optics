@@ -202,9 +202,17 @@ class Spherical(SurfaceProfile):
 
         if self.cv != 0.0:
             r = 1/self.cv
-            adj_upr = sqrt(r*r - sd_upr*sd_upr)
+            try:
+                adj_upr = sqrt(r*r - sd_upr*sd_upr)
+            except ValueError:
+                sd_upr = abs(r)
+                adj_upr = 0.
             ang_upr = atan2(sd_upr, adj_upr)
-            adj_lwr = sqrt(r*r - sd_lwr*sd_lwr)
+            try:
+                adj_lwr = sqrt(r*r - sd_lwr*sd_lwr)
+            except ValueError:
+                sd_lwr = -abs(r)
+                adj_lwr = 0.
             ang_lwr = atan2(sd_lwr, adj_lwr)
             ang = 0.5*(ang_upr - ang_lwr)
             da = dir*copysign(ang/steps, self.cv)
