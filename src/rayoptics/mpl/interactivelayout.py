@@ -14,7 +14,7 @@ import matplotlib.cbook
 
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
-from matplotlib.patches import Polygon
+from matplotlib.patches import Patch, Polygon
 
 import numpy as np
 
@@ -183,7 +183,12 @@ class InteractiveLayout(Figure):
 
         for a in self.artists:
             a.set_picker(5)
-            self.ax.add_artist(a)
+            if isinstance(a, Line2D):
+                self.ax.add_line(a)
+            elif isinstance(a, Patch):
+                self.ax.add_patch(a)
+            else:
+                self.ax.add_artist(a)
 
         if self.do_scale_bounds:
             self.view_bbox = layout.scale_bounds(self.sys_bbox,

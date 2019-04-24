@@ -79,6 +79,8 @@ class Element():
     clut = rgbt.RGBTable(filename='red_blue64.csv',
                          data_range=[10.0, 100.])
 
+    label_format = 'E{}'
+
     def __init__(self, s1, s2, g, tfrm=None, idx=0, idx2=1, sd=1.,
                  label='Lens'):
         self.label = label
@@ -409,6 +411,9 @@ class AttrAction():
 
 
 class Mirror():
+
+    label_format = 'M{}'
+
     def __init__(self, ifc, tfrm=None, idx=0, sd=1., thi=None, z_dir=1.0,
                  label='Mirror'):
         self.label = label
@@ -534,6 +539,9 @@ class Mirror():
 
 
 class ThinElement():
+
+    label_format = 'TL{}'
+
     def __init__(self, ifc, tfrm=None, idx=0, label='ThinLens'):
         self.label = label
         self.render_color = (192, 192, 192)
@@ -588,6 +596,9 @@ class ThinElement():
 
 
 class DummyInterface():
+
+    label_format = 'D{}'
+
     def __init__(self, ifc, idx=0, sd=None, tfrm=None, label='DummyInterface'):
         self.label = label
         self.render_color = (192, 192, 192)
@@ -646,9 +657,14 @@ class DummyInterface():
 
         def get_adj_spaces():
             seq_model = self.parent.opt_model.seq_model
-            before = seq_model.gaps[self.idx-1].thi if self.idx > 0 else None
-            ns = seq_model.get_num_surfaces()
-            after = seq_model.gaps[self.idx].thi if self.idx < ns else None
+            if self.idx > 0:
+                before = seq_model.gaps[self.idx-1].thi
+            else:
+                before = None
+            if self.idx < seq_model.get_num_surfaces() - 1:
+                after = seq_model.gaps[self.idx].thi
+            else:
+                after = None
             return (before, after)
 
         def set_adj_spaces(cur_value, change):
@@ -666,6 +682,9 @@ class DummyInterface():
 
 
 class AirGap():
+
+    label_format = 'AirGap {}'
+
     def __init__(self, g, ifc, idx=0, tfrm=None, label='AirGap'):
         if tfrm is not None:
             self.tfrm = tfrm
@@ -750,36 +769,58 @@ class ElementModel:
         for i, g in enumerate(seq_model.gaps):
             if isinstance(seq_model.ifcs[i], thinlens.ThinLens):
                 te = ThinElement(seq_model.ifcs[i], tfrm=tfrms[i], idx=i)
-                te.label = 'E' + str(++num_elements)
+                num_elements += 1
+                te.label = ThinElement.label_format.format(num_elements)
                 self.add_element(te)
                 continue
 
             z_dir = seq_model.z_dir[i]
             if g.medium.name().lower() == 'air':
                 # close off element
+                if i > 0:
+                    ag = AirGap(g, seq_model.ifcs[i], idx=i, tfrm=tfrms[i])
+                    self.add_element(ag)
+
                 s2 = seq_model.ifcs[i+1]
                 if s2.refract_mode is 'REFL':
                     tfrm = tfrms[i+1]
                     sd = s2.surface_od()
                     m = Mirror(s2, sd=sd, tfrm=tfrm, idx=i+1, z_dir=z_dir)
-                    m.label = 'E' + str(++num_elements)
+                    num_elements += 1
+                    m.label = Mirror.label_format.format(num_elements)
                     self.add_element(m)
                 elif s2.refract_mode is '':
-                    tfrm = tfrms[i+1]
-                    sd = s2.surface_od()
-                    di = DummyInterface(s2, sd=sd, tfrm=tfrm, idx=i+1)
-                    self.add_element(di)
-                if i > 0:
-                    ag = AirGap(g, seq_model.ifcs[i], idx=i, tfrm=tfrms[i])
-                    self.add_element(ag)
+                    add_dummy = False
+                    try:
+                        g2 = seq_model.gaps[i+1]
+                        if g2.medium.name().lower() == 'air':
+                            add_dummy = True
+                            if seq_model.stop_surface == i+1:
+                                dummy_label = 'Aperture Stop'
+                            else:
+                                dummy_label = DummyInterface. \
+                                              label_format.format(i+1)
+                    except IndexError:
+                        add_dummy = True  # add dummy for the image
+                        dummy_label = 'Image'
+                    finally:
+                        if add_dummy:
+                            tfrm = tfrms[i+1]
+                            sd = s2.surface_od()
+                            di = DummyInterface(s2, sd=sd, tfrm=tfrm, idx=i+1)
+                            di.label = dummy_label
+                            self.add_element(di)
             else:
                 tfrm = tfrms[i]
                 s1 = seq_model.ifcs[i]
                 s2 = seq_model.ifcs[i+1]
                 sd = max(s1.surface_od(), s2.surface_od())
                 e = Element(s1, s2, g, sd=sd, tfrm=tfrm, idx=i, idx2=i+1)
-                e.label = 'E' + str(++num_elements)
+                num_elements += 1
+                e.label = Element.label_format.format(num_elements)
                 self.add_element(e)
+        self.relabel_airgaps()
+#        self.list_elements()
 
     def sync_to_restore(self, opt_model):
         self.opt_model = opt_model
@@ -787,8 +828,50 @@ class ElementModel:
         surfs = seq_model.ifcs
         gaps = seq_model.gaps
         tfrms = seq_model.compute_global_coords(1)
-        for e in self.elements:
+        self.airgaps_from_sequence(tfrms)
+        for i, e in enumerate(self.elements):
             e.sync_to_restore(self, surfs, gaps, tfrms)
+            if not hasattr(e, 'label'):
+                e.label = e.label_format.format(i+1)
+        self.sequence_elements()
+        self.relabel_airgaps()
+#        self.list_elements()
+
+    def airgaps_from_sequence(self, tfrms):
+        """ add airgaps to an older version model """
+        for e in self.elements:
+            if isinstance(e, AirGap):
+                return  # found an AirGap, model probably OK
+
+        seq_model = self.opt_model.seq_model
+        for i, g in enumerate(seq_model.gaps):
+            if g.medium.name().lower() == 'air':
+                if i > 0:
+                    ag = AirGap(g, seq_model.ifcs[i], idx=i, tfrm=tfrms[i])
+                    self.add_element(ag)
+
+                s2 = seq_model.ifcs[i+1]
+                if s2.refract_mode is '':
+                    add_dummy = False
+                    try:
+                        g2 = seq_model.gaps[i+1]
+                        if g2.medium.name().lower() == 'air':
+                            add_dummy = True
+                            if seq_model.stop_surface == i+1:
+                                dummy_label = 'Aperture Stop'
+                            else:
+                                dummy_label = DummyInterface. \
+                                              label_format.format(i+1)
+                    except IndexError:
+                        add_dummy = True  # add dummy for the image
+                        dummy_label = 'Image'
+                    finally:
+                        if add_dummy:
+                            tfrm = tfrms[i+1]
+                            sd = s2.surface_od()
+                            di = DummyInterface(s2, sd=sd, tfrm=tfrm, idx=i+1)
+                            di.label = dummy_label
+                            self.add_element(di)
 
     def update_model(self):
         seq_model = self.opt_model.seq_model
@@ -804,6 +887,19 @@ class ElementModel:
             else:
                 e.tfrm = tfrms[i]
 
+    def sequence_elements(self):
+        """ Sort elements in order of reference interfaces in seq_model """
+        seq_model = self.opt_model.seq_model
+        self.elements.sort(key=lambda e:
+                           seq_model.ifcs.index(e.reference_interface()))
+
+    def relabel_airgaps(self):
+        for i, e in enumerate(self.elements):
+            if isinstance(e, AirGap):
+                eb = self.elements[i-1].label
+                ea = self.elements[i+1].label
+                e.label = AirGap.label_format.format(eb + '-' + ea)
+
     def add_element(self, e):
         e.parent = self
         self.elements.append(e)
@@ -813,4 +909,5 @@ class ElementModel:
 
     def list_elements(self):
         for i, ele in enumerate(self.elements):
-            print(str(ele))
+            print("%d: %s (%s): %s" %
+                  (i, ele.label, type(ele).__name__, ele))

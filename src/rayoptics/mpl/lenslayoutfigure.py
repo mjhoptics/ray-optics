@@ -13,7 +13,7 @@ import matplotlib.cbook
 
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
-from matplotlib.patches import Polygon
+from matplotlib.patches import Patch, Polygon
 
 import numpy as np
 
@@ -69,7 +69,7 @@ class LensLayoutFigure(Figure):
         self.plot()
 
     def update_data(self):
-        self.patches = []
+        self.artists = []
 
         self.ele_shapes = self.create_element_model(self.opt_model.ele_model)
         self.ele_bbox = self.update_patches(self.ele_shapes)
@@ -96,7 +96,7 @@ class LensLayoutFigure(Figure):
         bbox_list = []
         for shape in shapes:
             poly, bbox = shape[0](shape[1])
-            self.patches.append(poly)
+            self.artists.append(poly)
             if len(bbox_list) == 0:
                 bbox_list = bbox
             else:
@@ -165,8 +165,13 @@ class LensLayoutFigure(Figure):
         except AttributeError:
             self.ax = self.add_subplot(1, 1, 1, aspect=1.0)
 
-        for p in self.patches:
-            self.ax.add_patch(p)
+        for p in self.artists:
+            if isinstance(p, Line2D):
+                self.ax.add_line(p)
+            elif isinstance(p, Patch):
+                self.ax.add_patch(p)
+            else:
+                self.ax.add_artist(p)
 
         self.scale_bounds(self.oversize_factor)
         self.draw_frame(self.do_draw_frame)
