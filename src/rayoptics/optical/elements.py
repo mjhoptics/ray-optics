@@ -669,7 +669,7 @@ class ElementModel:
                 if s1.refract_mode is 'REFL':
                     gp = seq_model.gaps[i-1]
                     if gp.medium.name().lower() == g.medium.name().lower():
-                        self.elements[-1].gaps.append(g)
+#                        self.elements[-1].gaps.append(g)
                         continue
 
                 s2 = seq_model.ifcs[i+1]
