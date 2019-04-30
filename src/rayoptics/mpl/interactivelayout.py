@@ -10,6 +10,8 @@
 
 import logging
 import warnings
+from collections import namedtuple
+
 import matplotlib.cbook
 
 from matplotlib.figure import Figure
@@ -24,6 +26,14 @@ Fit_All, User_Scale = range(2)
 
 
 warnings.filterwarnings("ignore", category=matplotlib.cbook.mplDeprecation)
+
+SelectInfo = namedtuple('SelectInfo', ['artist', 'info'])
+""" tuple grouping together an artist and info returned from contains(event)
+
+    Attributes:
+        artist: the artist
+        info: a dictionary of artist specific details of selection
+"""
 
 
 def rgb2mpl(rgb):
@@ -44,7 +54,8 @@ class InteractiveLayout(Figure):
                  user_scale_value=1.0,
                  oversize_factor=0.05,
                  offset_factor=0.05,
-                 do_draw_rays=True,
+                 do_draw_rays=False,
+                 do_paraxial_layout=True,
                  **kwargs):
         self.refresh_gui = refresh_gui
         self.layout = layout.LensLayout(opt_model)
@@ -53,10 +64,11 @@ class InteractiveLayout(Figure):
         self.linewidth = 0.5
         self.do_draw_frame = do_draw_frame
         self.do_draw_rays = do_draw_rays
+        self.do_paraxial_layout = do_paraxial_layout
         self.oversize_factor = oversize_factor
         self.offset_factor = offset_factor
-        self.hilited_artist = None
-        self.selected_artist = None
+        self.hilited = None
+        self.selected = None
         self.do_scale_bounds = True
 
         Figure.__init__(self, **kwargs)
@@ -86,20 +98,26 @@ class InteractiveLayout(Figure):
 
     def update_data(self):
         self.artists = []
+        concat_bbox = []
 
         self.ele_shapes = self.layout.create_element_model(self)
         self.ele_bbox = self.update_patches(self.ele_shapes)
+        concat_bbox.append(self.ele_bbox)
 
         if self.do_draw_rays:
             system_length = self.layout.system_length(self.ele_bbox)
             start_offset = self.offset_factor*system_length
             self.ray_shapes = self.layout.create_ray_model(self, start_offset)
             self.ray_bbox = self.update_patches(self.ray_shapes)
+            concat_bbox.append(self.ray_bbox)
 
-            concat_bbox = np.concatenate((self.ele_bbox, self.ray_bbox))
-            self.sys_bbox = layout.bbox_from_poly(concat_bbox)
-        else:
-            self.sys_bbox = self.ele_bbox
+        if self.do_paraxial_layout:
+            self.parax_shapes = self.layout.create_paraxial_layout(self)
+            self.parax_bbox = self.update_patches(self.parax_shapes)
+            concat_bbox.append(self.parax_bbox)
+
+        sys_bbox = np.concatenate(concat_bbox)
+        self.sys_bbox = layout.bbox_from_poly(sys_bbox)
 
         return self
 
@@ -136,9 +154,11 @@ class InteractiveLayout(Figure):
             p.set_edgecolor(ec)
             p.set_linewidth(lw)
             p.unhilite = None
+
+        if 'linewidth' not in kwargs:
+            kwargs['linewidth'] = self.linewidth
         p = Polygon(poly, closed=True, fc=rgb2mpl(rgb_color),
                     ec='black', **kwargs)
-        p.set_linewidth(self.linewidth)
         p.highlight = highlight
         p.unhighlight = unhighlight
         return p
@@ -156,9 +176,12 @@ class InteractiveLayout(Figure):
             p.set_linewidth(lw)
             p.set_color(c)
             p.unhilite = None
+
         x = poly.T[0]
         y = poly.T[1]
-        p = Line2D(x, y, linewidth=self.linewidth, **kwargs)
+        if 'linewidth' not in kwargs:
+            kwargs['linewidth'] = self.linewidth
+        p = Line2D(x, y, **kwargs)
         p.highlight = highlight
         p.unhighlight = unhighlight
         return p
@@ -207,58 +230,66 @@ class InteractiveLayout(Figure):
         artists = []
         for artist in self.ax.get_children():
             if hasattr(artist, 'shape'):
-                inside, _ = artist.contains(event)
+                inside, info = artist.contains(event)
                 if inside:
                     shape, handle = artist.shape
-                    artists.append(artist)
-                    logging.debug("on_motion:", len(artists),
-                                  shape.get_label(), handle,
-                                  artist.get_zorder())
-        return sorted(artists, key=lambda a: a.get_zorder(), reverse=True)
+                    artists.append(SelectInfo(artist, info))
+                    if 'ind' in info:
+                        logging.debug("on motion, artist {}: {}.{}, z={}, \
+                                      hits={}".format(len(artists),
+                                      shape.get_label(), handle,
+                                      artist.get_zorder(), info['ind']))
+                    else:
+                        logging.debug("on motion, artist {}: {}.{}, z={}"
+                                      .format(len(artists), shape.get_label(),
+                                              handle, artist.get_zorder()))
 
-    def do_action(self, event, target_artist, event_key):
-        if target_artist is not None:
-            shape, handle = target_artist.shape
+        return sorted(artists, key=lambda a: a.artist.get_zorder(),
+                      reverse=True)
+
+    def do_action(self, event, target, event_key):
+        if target is not None:
+            shape, handle = target.artist.shape
             try:
                 action = shape.actions[event_key]
-                action(self, handle, event)
+                action(self, handle, event, target.info)
             except KeyError:
                 pass
 
     def on_press(self, event):
         self.do_scale_bounds = False
-        target_artist = self.selected_artist = self.hilited_artist
+        target_artist = self.selected = self.hilited
         self.do_action(event, target_artist, 'press')
 
     def on_motion(self, event):
-        if self.selected_artist is None:
+        if self.selected is None:
             artists = self.find_artists_at_location(event)
-            next_hilited_artist = artists[0] if len(artists) > 0 else None
+            next_hilited = artists[0] if len(artists) > 0 else None
 
-            if id(next_hilited_artist) != id(self.hilited_artist):
-                if self.hilited_artist:
-                    self.hilited_artist.unhighlight(self.hilited_artist)
-                    self.hilited_artist.figure.canvas.draw()
-                if next_hilited_artist:
-                    next_hilited_artist.highlight(next_hilited_artist)
-                    next_hilited_artist.figure.canvas.draw()
-                self.hilited_artist = next_hilited_artist
-                if next_hilited_artist is None:
+            if next_hilited is not self.hilited:
+                if self.hilited:
+                    self.hilited.artist.unhighlight(self.hilited.artist)
+                    self.hilited.artist.figure.canvas.draw()
+                if next_hilited:
+                    next_hilited.artist.highlight(next_hilited.artist)
+                    next_hilited.artist.figure.canvas.draw()
+                self.hilited = next_hilited
+                if next_hilited is None:
                     logging.debug("hilite_change: no object found")
                 else:
-                    shape, handle = self.hilited_artist.shape
+                    shape, handle = self.hilited.artist.shape
                     logging.debug("hilite_change:", shape.get_label(), handle,
-                                  self.hilited_artist.get_zorder())
+                                  self.hilited.artist.get_zorder())
         else:
-            self.do_action(event, self.selected_artist, 'drag')
-            shape, handle = self.selected_artist.shape
+            self.do_action(event, self.selected, 'drag')
+            shape, handle = self.selected.artist.shape
             logging.debug("on_drag:", shape.get_label(), handle,
-                          self.selected_artist.get_zorder())
+                          self.selected.artist.get_zorder())
 
     def on_release(self, event):
         'on release we reset the press data'
         logging.debug("on_release")
 
-        self.do_action(event, self.selected_artist, 'release')
+        self.do_action(event, self.selected, 'release')
         self.do_scale_bounds = True
-        self.selected_artist = None
+        self.selected = None

@@ -22,6 +22,8 @@ from rayoptics.optical import gap
 from rayoptics.optical import transform
 from rayoptics.optical.trace import (trace_boundary_rays_at_field,
                                      boundary_ray_dict, RaySeg)
+import rayoptics.optical.model_constants as mc
+from rayoptics.mpl.interactivelayout import rgb2mpl
 from rayoptics.gui import appcmds
 
 GUIHandle = namedtuple('GUIHandle', ['poly', 'bbox'])
@@ -186,7 +188,7 @@ class OpticalElement():
             dxdy = event.xdata - xdata, event.ydata - ydata
             event.dxdy = dxdy
 
-        def on_select_shape(fig, handle, event):
+        def on_select_shape(fig, handle, event, info):
             handle_actions = self.handle_actions[handle]
             add_event_data(self, event, handle)
             for key, action_obj in handle_actions.items():
@@ -197,7 +199,7 @@ class OpticalElement():
 
         actions['press'] = on_select_shape
 
-        def on_edit_shape(fig, handle, event):
+        def on_edit_shape(fig, handle, event, info):
             handle_actions = self.handle_actions[handle]
             x, y = self.select_pt[0]
             xdata, ydata = self.select_pt[1]
@@ -236,7 +238,7 @@ class OpticalElement():
 
         actions['drag'] = on_edit_shape
 
-        def on_release_shape(fig, handle, event):
+        def on_release_shape(fig, handle, event, info):
 #            print('release pt:', event.x, event.y)
             handle_actions = self.handle_actions[handle]
             add_event_data(self, event, handle)
@@ -244,7 +246,7 @@ class OpticalElement():
                 action_obj.actions['release'](fig, event)
             self.select_pt = None
             self.move_direction = None
-#            fig.refresh_gui()
+            fig.refresh_gui()
 
         actions['release'] = on_release_shape
 
@@ -342,13 +344,91 @@ class RayBundle():
     def edit_ray_bundle_actions(self):
         actions = {}
 
-        def on_select_ray(fig, handle, event):
+        def on_select_ray(fig, handle, event, info):
             if handle is not 'shape':
                 ray_table = self.ray_table_callback()
                 ray_table.root = self.rayset[handle].ray
                 fig.refresh_gui()
 
         actions['press'] = on_select_ray
+
+        return actions
+
+
+class ParaxialRay():
+    """ class for paraxial ray rendering/editing """
+    def __init__(self, opt_model, ray, color, seq_start=1, label='paraxial'):
+        self.label = label
+        self.opt_model = opt_model
+        self.ray = ray
+        self.seq_start = seq_start
+        self.color = color
+        self.handles = {}
+        self.actions = self.edit_paraxial_layout_actions()
+        self.vertex = None
+
+    def get_label(self):
+        return self.label
+
+    def render_ray(self, ray, tfrms):
+        poly = []
+        for i, r in enumerate(ray[self.seq_start:], self.seq_start):
+            rot, trns = tfrms[i]
+            ps = np.array([0., r[mc.ht], 0.])
+            p = rot.dot(ps) + trns
+            poly.append([p[2], p[1]])
+        return np.array(poly)
+
+    def update_shape(self, view):
+        seq_model = self.opt_model.seq_model
+        tfrms = seq_model.gbl_tfrms
+
+        ray_poly = self.render_ray(self.ray, tfrms)
+
+        priority = 3
+        rp = view.create_polyline(ray_poly, color=self.color, linewidth=1,
+                                  hilite=self.color, zorder=priority)
+        self.handles['shape'] = GUIHandle(rp, bbox_from_poly(ray_poly))
+
+        return self.handles
+
+    def apply_data(self, vertex, lcl_pt):
+        ray = self.ray
+        p = ray[vertex-1]
+        c = ray[vertex]
+        c_slp_new = (lcl_pt[1] - c[mc.ht])/lcl_pt[0]
+        pwr = (p[mc.slp] - c_slp_new)/c[mc.ht]
+        self.opt_model.seq_model.ifcs[vertex].optical_power = pwr
+
+    def edit_paraxial_layout_actions(self):
+        actions = {}
+
+        def add_event_data(shape, event, handle, info):
+            gbl_pt = np.array([event.xdata, event.ydata])
+            lcl_pt = inv_transform_poly(shape.tfrm, gbl_pt)
+            event.lcl_pt = lcl_pt
+
+        def on_select_point(fig, handle, event, info):
+            self.vertex = self.seq_start
+            if 'ind' in info:
+                self.vertex += info['ind'][0]
+            seq_model = self.opt_model.seq_model
+            self.tfrm = seq_model.gbl_tfrms[self.vertex]
+        actions['press'] = on_select_point
+
+        def on_edit_point(fig, handle, event, info):
+            add_event_data(self, event, handle, info)
+            self.apply_data(self.vertex, event.lcl_pt)
+            fig.refresh_gui()
+        actions['drag'] = on_edit_point
+
+        def on_release_point(fig, handle, event, info):
+            add_event_data(self, event, handle, info)
+            self.apply_data(self.vertex, event.lcl_pt)
+            fig.refresh_gui()
+            self.vertex = None
+            self.tfrm = None
+        actions['release'] = on_release_point
 
         return actions
 
@@ -384,6 +464,17 @@ class LensLayout():
                            ray_table_callback=self.get_ray_table)
             ray_bundles.append(rb)
         return ray_bundles
+
+    def create_paraxial_layout(self, view):
+        parax_model = self.opt_model.parax_model
+
+        ax_color = rgb2mpl([138, 43, 226])  # blueviolet
+        ax_poly = ParaxialRay(self.opt_model, parax_model.ax, color=ax_color,
+                              label='axial ray')
+        pr_color = rgb2mpl([198, 113, 113])  # sgi salmon
+        pr_poly = ParaxialRay(self.opt_model, parax_model.pr, color=pr_color,
+                              label='chief ray')
+        return [ax_poly, pr_poly]
 
     def get_ray_table(self):
         if self.ray_table is None:
