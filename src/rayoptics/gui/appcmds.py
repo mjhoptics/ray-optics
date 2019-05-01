@@ -16,7 +16,7 @@ from rayoptics.mpl.axisarrayfigure import Fit
 from rayoptics.mpl.axisarrayfigure import (RayFanFigure, SpotDiagramFigure,
                                            WavefrontFigure)
 
-from rayoptics.mpl.analysisplots import FieldCurveFigure
+from rayoptics.mpl.analysisplots import FieldCurveFigure, ThirdOrderBarChart
 from rayoptics.mpl.paraxdgnfigure import (ParaxialDesignFigure,
                                           create_parax_design_commands)
 import rayoptics.qtgui.plotview as plotview
@@ -50,11 +50,11 @@ def create_live_layout_view(opt_model, gui_parent=None):
     if gui_parent:
         refresh_gui = gui_parent.refresh_gui
     fig = InteractiveLayout(opt_model, refresh_gui)
-    view_width = 660
-    view_ht = 440
+    view_width = 880
+    view_ht = 660
     title = "Optical Layout"
     plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht,
-                              add_scale_panel=False)
+                              add_scale_panel=False, add_nav_toolbar=True)
 
 
 def create_paraxial_design_view(opt_model, dgm_type, gui_parent=None):
@@ -114,6 +114,14 @@ def create_field_curves(opt_model, gui_parent=None):
     view_width = 600
     view_ht = 600
     title = "Field Curves"
+    plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht)
+
+
+def create_3rd_order_bar_chart(opt_model, gui_parent=None):
+    fig = ThirdOrderBarChart(opt_model, dpi=100)
+    view_width = 600
+    view_ht = 600
+    title = "3rd Order Aberrations"
     plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht)
 
 

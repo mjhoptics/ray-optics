@@ -78,6 +78,7 @@ class MainWindow(QMainWindow):
         view.addAction("Spot Diagram")
         view.addAction("Wavefront Map")
         view.addAction("Astigmatism Curves")
+        view.addAction("3rd Order Aberrations")
         view.addSeparator()
         view.triggered[QAction].connect(self.view_action)
 
@@ -241,6 +242,9 @@ class MainWindow(QMainWindow):
 
         if q.text() == "Astigmatism Curves":
             cmds.create_field_curves(opt_model, gui_parent=self)
+
+        if q.text() == "3rd Order Aberrations":
+            cmds.create_3rd_order_bar_chart(opt_model, gui_parent=self)
 
         if q.text() == "Paraxial Height View":
             cmds.create_paraxial_design_view(opt_model, Dgm.ht,

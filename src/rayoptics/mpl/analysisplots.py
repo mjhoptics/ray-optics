@@ -13,6 +13,7 @@ from rayoptics.mpl.axisarrayfigure import Fit
 
 from rayoptics.optical.opticalspec import Field
 from rayoptics.optical.trace import trace_astigmatism
+from rayoptics.optical.thirdorder import compute_third_order
 
 
 class FieldCurveFigure(Figure):
@@ -65,12 +66,42 @@ class FieldCurveFigure(Figure):
         return self
 
 
+class ThirdOrderBarChart(Figure):
+    def __init__(self, opt_model, **kwargs):
+        super().__init__(**kwargs)
+        self.opt_model = opt_model
+        self.scale_type = Fit.All
+
+        self.update_data()
+
+    def refresh(self):
+        self.update_data()
+        self.plot()
+
+    def update_data(self):
+        self.to_pkg = compute_third_order(self.opt_model)
+
+    def plot(self):
+        self.clf()
+        self.ax = self.add_subplot(1, 1, 1)
+
+        self.ax.set_xlabel('Surface')
+        self.ax.set_ylabel('third order aberration')
+        self.ax.set_title('Surface by surface third order aberrations')
+        self.to_pkg.plot.bar(ax=self.ax, rot=0)
+        self.ax.grid(True)
+        self.tight_layout()
+
+        self.canvas.draw()
+
+        return self
+
+
 # experimental - something usable from qt and jupyter
 class AnalysisPlot():
     """ abstract api for matplotlib axes customized for specific analyses """
-    def __init__(self, ax, opt_model):
+    def __init__(self, opt_model):
         self.opt_model = opt_model
-        self.ax = ax
 
     def refresh(self):
         self.update_data()
@@ -84,9 +115,8 @@ class AnalysisPlot():
 
 
 class AstigmatismCurvePlot(AnalysisPlot):
-    def __init__(self, ax, opt_model,
-                 eval_fct=trace_astigmatism, **kwargs):
-        super().__init__(ax, opt_model)
+    def __init__(self, opt_model, eval_fct=trace_astigmatism, **kwargs):
+        super().__init__(opt_model)
         self.scale_type = Fit.All
         self.eval_fct = eval_fct
 
