@@ -21,6 +21,8 @@ from rayoptics.mpl.paraxdgnfigure import (ParaxialDesignFigure,
                                           create_parax_design_commands)
 import rayoptics.qtgui.plotview as plotview
 from rayoptics.qtgui.pytablemodel import PyTableModel
+from rayoptics.qtgui.plotview import (create_plot_scale_panel,
+                                      create_draw_rays_groupbox)
 
 
 def create_new_model():
@@ -41,8 +43,7 @@ def create_lens_layout_view(opt_model, gui_parent=None):
     view_width = 660
     view_ht = 440
     title = "Lens Layout View"
-    plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht,
-                              add_scale_panel=False)
+    plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht)
 
 
 def create_live_layout_view(opt_model, gui_parent=None):
@@ -53,8 +54,9 @@ def create_live_layout_view(opt_model, gui_parent=None):
     view_width = 880
     view_ht = 660
     title = "Optical Layout"
+    panel_fcts = [create_draw_rays_groupbox]
     plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht,
-                              add_scale_panel=False, add_nav_toolbar=True)
+                              add_panel_fcts=panel_fcts, add_nav_toolbar=True)
 
 
 def create_paraxial_design_view(opt_model, dgm_type, gui_parent=None):
@@ -64,8 +66,8 @@ def create_paraxial_design_view(opt_model, dgm_type, gui_parent=None):
     view_width = 650
     view_ht = 500
     title = "Paraxial Design View"
-    plotview.create_cmdplot_view(gui_parent, fig, title, view_width, view_ht,
-                                 commands=cmds)
+    plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht,
+                              commands=cmds)
 
 
 def create_ray_fan_view(opt_model, data_type, gui_parent=None):
@@ -80,7 +82,9 @@ def create_ray_fan_view(opt_model, data_type, gui_parent=None):
         title = "OPD Fan View"
     else:
         title = "bad data_type argument"
-    plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht)
+    panel_fcts = [create_plot_scale_panel]
+    plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht,
+                              add_panel_fcts=panel_fcts)
 
 
 def create_ray_grid_view(opt_model, gui_parent=None):
@@ -92,7 +96,9 @@ def create_ray_grid_view(opt_model, gui_parent=None):
     view_width = view_box
     view_ht = num_flds * view_box
     title = "Spot Diagram"
-    plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht)
+    panel_fcts = [create_plot_scale_panel]
+    plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht,
+                              add_panel_fcts=panel_fcts)
 
 
 def create_wavefront_view(opt_model, gui_parent=None):
@@ -106,7 +112,9 @@ def create_wavefront_view(opt_model, gui_parent=None):
     view_width = num_wvls * view_box
     view_ht = num_flds * view_box
     title = "Wavefront Map"
-    plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht)
+    panel_fcts = [create_plot_scale_panel]
+    plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht,
+                              add_panel_fcts=panel_fcts)
 
 
 def create_field_curves(opt_model, gui_parent=None):
@@ -114,7 +122,9 @@ def create_field_curves(opt_model, gui_parent=None):
     view_width = 600
     view_ht = 600
     title = "Field Curves"
-    plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht)
+    panel_fcts = [create_plot_scale_panel]
+    plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht,
+                              add_panel_fcts=panel_fcts)
 
 
 def create_3rd_order_bar_chart(opt_model, gui_parent=None):
@@ -122,7 +132,9 @@ def create_3rd_order_bar_chart(opt_model, gui_parent=None):
     view_width = 600
     view_ht = 600
     title = "3rd Order Aberrations"
-    plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht)
+    panel_fcts = [create_plot_scale_panel]
+    plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht,
+                              add_panel_fcts=panel_fcts)
 
 
 def update_table_view(table_view):

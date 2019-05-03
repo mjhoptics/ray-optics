@@ -9,7 +9,7 @@
 """
 from PyQt5.QtCore import Qt as qt
 from PyQt5.QtWidgets import (QHBoxLayout, QVBoxLayout, QWidget, QLineEdit,
-                             QRadioButton, QGroupBox, QSizePolicy,
+                             QRadioButton, QGroupBox, QSizePolicy, QCheckBox,
                              QListWidget, QListWidgetItem)
 
 from matplotlib.backends.backend_qt5agg \
@@ -50,9 +50,8 @@ class CommandItem(QListWidgetItem):
             return False
 
 
-def create_cmdplot_view(app, fig, title, view_width, view_ht,
-                        commands=None, add_scale_panel=False,
-                        add_nav_toolbar=False):
+def create_plot_view(app, fig, title, view_width, view_ht, commands=None,
+                     add_panel_fcts=None, add_nav_toolbar=False):
     # construct the top level widget
     widget = QWidget()
 
@@ -60,17 +59,33 @@ def create_cmdplot_view(app, fig, title, view_width, view_ht,
     # set the layout on the widget
     widget.setLayout(top_layout)
 
-    command_panel = create_command_panel(commands)
-    top_layout.addWidget(command_panel)
+    if commands:
+        command_panel = create_command_panel(commands)
+        top_layout.addWidget(command_panel)
+
+    # construct the top level layout
+    plot_layout = QVBoxLayout()
+    top_layout.addLayout(plot_layout)
 
     pc = PlotCanvas(app, fig)
-    top_layout.addWidget(pc)
+    if add_panel_fcts is not None:
+        panel_layout = QHBoxLayout()
+        plot_layout.addLayout(panel_layout)
+        for p in add_panel_fcts:
+            panel = p(app, pc)
+            panel_layout.addWidget(panel)
+        panel_layout.addStretch(50)
 
     mi = ModelInfo(app.app_manager.model, update_figure_view, (fig,))
     sub_window = app.add_subwindow(widget, mi)
     sub_window.setWindowTitle(title)
     orig_x, orig_y = app.initial_window_offset()
     sub_window.setGeometry(orig_x, orig_y, view_width, view_ht)
+
+    plot_layout.addWidget(pc)
+
+    if add_nav_toolbar:
+        plot_layout.addWidget(NavigationToolbar(pc, sub_window))
 
     sub_window.show()
 
@@ -101,36 +116,6 @@ def on_command(item):
     fct(*args, **kwargs)
 
 #        figure.plot()
-
-
-def create_plot_view(app, fig, title, view_width, view_ht,
-                     add_scale_panel=True, add_nav_toolbar=False):
-    pc = PlotCanvas(app, fig)
-
-    # construct the top level widget
-    widget = QWidget()
-    # construct the top level layout
-    layout = QVBoxLayout(widget)
-
-    # set the layout on the widget
-    widget.setLayout(layout)
-
-    if add_scale_panel:
-        psp = create_plot_scale_panel(app, pc)
-        layout.addWidget(psp)
-
-    mi = ModelInfo(app.app_manager.model, update_figure_view, (fig,))
-    sub_window = app.add_subwindow(widget, mi)
-    sub_window.setWindowTitle(title)
-    orig_x, orig_y = app.initial_window_offset()
-    sub_window.setGeometry(orig_x, orig_y, view_width, view_ht)
-
-    layout.addWidget(pc)
-
-    if add_nav_toolbar:
-        layout.addWidget(NavigationToolbar(pc, sub_window))
-
-    sub_window.show()
 
 
 def create_plot_scale_panel(app, pc):
@@ -188,3 +173,31 @@ def on_plot_scale_changed(cntxt):
         return ''
 
     plotFigure.plot()
+
+
+def create_draw_rays_groupbox(app, pc):
+    groupBox = QGroupBox("", app)
+    fig = pc.figure
+
+    def attr_check(fig, attr, state):
+        checked = state == qt.Checked
+#        cur_value = getattr(obj, attr, None)
+        setattr(fig, attr, checked)
+        fig.refresh()
+
+    parax_checkBox = QCheckBox("&paraxial rays")
+    parax_checkBox.setChecked(fig.do_paraxial_layout)
+    parax_checkBox.stateChanged.connect(lambda checked: attr_check(fig,
+                                        'do_paraxial_layout', checked))
+    edge_checkBox = QCheckBox("&edge rays")
+    edge_checkBox.setChecked(fig.do_draw_rays)
+    edge_checkBox.stateChanged.connect(lambda checked: attr_check(fig,
+                                       'do_draw_rays', checked))
+
+    hbox = QHBoxLayout()
+    hbox.addWidget(parax_checkBox)
+    hbox.addWidget(edge_checkBox)
+
+    groupBox.setLayout(hbox)
+
+    return groupBox
