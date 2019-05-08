@@ -204,8 +204,9 @@ def trace_raw(path_pkg, pt0, dir0, wvl, eps=1.0e-12):
 
         except StopIteration:
             ray.append([inc_pt, after_dir, 0.0, normal])
-            P, P1k, Ps = calc_path_length(eic, offset=1)
-            op_delta += P
+            if len(eic) > 1:
+                P, P1k, Ps = calc_path_length(eic, offset=1)
+                op_delta += P
             break
 
     return ray, op_delta, wvl

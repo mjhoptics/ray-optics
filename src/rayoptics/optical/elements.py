@@ -738,7 +738,7 @@ class ElementModel:
                                         num_elements, add_ele=False)
 
     def add_dummy_interface_at_image(self, seq_model, tfrms):
-        if self.elements[-1].label == 'Image':
+        if len(self.elements) and self.elements[-1].label == 'Image':
             return
 
         s = seq_model.ifcs[-1]
