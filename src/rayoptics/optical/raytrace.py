@@ -45,8 +45,12 @@ def reflect(d_in, normal):
 
 def phase(intrfc, inc_pt, d_in, normal, wvl, n_in, n_out):
     """ apply phase shift to incoming direction, d_in, about normal """
-    d_out, dW = intrfc.phase(inc_pt, d_in, normal, wvl)
-    return d_out, dW
+    try:
+        d_out, dW = intrfc.phase(inc_pt, d_in, normal, wvl)
+        return d_out, dW
+    except ValueError:
+        # probably should raise a TraceEvanescentRayError...
+        raise TraceTIRError(d_in, normal, n_in, n_out)
 
 
 def trace(seq_model, pt0, dir0, wvl, **kwargs):

@@ -186,7 +186,7 @@ class Spherical(SurfaceProfile):
                 adj = sqrt(r*r - x*x - y*y)
             except ValueError:
                 raise TraceMissedSurfaceError(self, (x, y))
-            finally:
+            else:
                 return r*(1 - abs(adj/r))
         else:
             return 0
