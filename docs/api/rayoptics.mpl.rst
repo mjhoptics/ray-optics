@@ -20,6 +20,14 @@ rayoptics.mpl.axisarrayfigure module
     :undoc-members:
     :show-inheritance:
 
+rayoptics.mpl.interactivelayout module
+--------------------------------------
+
+.. automodule:: rayoptics.mpl.interactivelayout
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 rayoptics.mpl.lenslayoutfigure module
 -------------------------------------
 

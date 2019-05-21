@@ -4,11 +4,13 @@
 """ Interactive 2D lens picture
 
     The Lens Layout capability provides a 2D display of the optical model
-    represented by **shapes**. Shapes contain the `dict`
+    represented by **shapes**. Shapes contain `dict` attributes to manage the
+    graphical rendering and editing actions associated with their parent
+    objects. These attributes must include:
 
-    Attributes:
-        handles dict: named graphic handles for different aspects of the parent object
-        actions dict: functions for press, drag, and release actions
+    **handles**: named graphic handles for different aspects of the parent object
+
+    **actions**: functions for **press**, **drag**, and **release** actions
 
 .. Created on Tue Sep 18 14:23:28 2018
 
