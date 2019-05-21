@@ -96,13 +96,16 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Ray Optics")
         self.show()
 
-        pth = Path(__file__).resolve()
-        try:
-            root_pos = pth.parts.index('rayoptics')
-        except ValueError:
-            logging.debug("Can't find rayoptics: path is %s", pth)
-        else:
-            path = Path(*pth.parts[:root_pos+1])
+        self.new_model()
+        self.add_ipython_subwindow()
+        
+#        pth = Path(__file__).resolve()
+#        try:
+#            root_pos = pth.parts.index('rayoptics')
+#        except ValueError:
+#            logging.debug("Can't find rayoptics: path is %s", pth)
+#        else:
+#            path = Path(*pth.parts[:root_pos+1])
 #            self.open_file(path / "codev/tests/asp46.seq")
 #            self.open_file(path / "codev/tests/paraboloid.seq")
 #            self.open_file(path / "codev/tests/paraboloid_f8.seq")
@@ -114,7 +117,8 @@ class MainWindow(QMainWindow):
 #            self.open_file(path / "codev/tests/threemir.seq")
 #            self.open_file(path / "codev/tests/folded_lenses.seq")
 #            self.open_file(path / "codev/tests/dec_tilt_test.seq")
-            self.open_file(path / "codev/tests/landscape_lens.seq")
+#            self.open_file(path / "codev/tests/landscape_lens.seq")
+#            self.open_file(path / "codev/tests/mangin.seq")
 #            self.open_file(path / "optical/tests/cell_phone_camera.roa")
 #            self.open_file(path / "optical/tests/singlet_f3.roa")
 
@@ -129,17 +133,8 @@ class MainWindow(QMainWindow):
 #            self.open_file(path / "models/Sasian Triplet.roa")
 #            self.open_file(path / "models/singlet_f5.roa")
 #            self.open_file(path / "models/Ritchey_Chretien.roa")
-        finally:
-            try:
-                create_ipython_console(self, 'iPython console', 600, 400)
-            except MultipleInstanceError:
-                logging.debug("Unable to open iPython console. "
-                              "MultipleInstanceError")
-            except Exception as inst:
-                print(type(inst))    # the exception instance
-                print(inst.args)     # arguments stored in .args
-                print(inst)          # __str__ allows args to be printed directly,
-                pass                 # but may be overridden in exception subclasses
+#        finally:
+#            self.add_ipython_subwindow()
 
     def add_subwindow(self, widget, model_info):
         sub_wind = self.mdi.addSubWindow(widget)
@@ -152,6 +147,18 @@ class MainWindow(QMainWindow):
         self.mdi.removeSubWindow(sub_wind)
         MainWindow.count -= 1
 
+    def add_ipython_subwindow(self):
+        try:
+            create_ipython_console(self, 'iPython console', 600, 400)
+        except MultipleInstanceError:
+            logging.debug("Unable to open iPython console. "
+                          "MultipleInstanceError")
+        except Exception as inst:
+            print(type(inst))    # the exception instance
+            print(inst.args)     # arguments stored in .args
+            print(inst)          # __str__ allows args to be printed directly,
+            pass                 # but may be overridden in exception subclasses
+
     def initial_window_offset(self):
         offset_x = 50
         offset_y = 25
@@ -161,13 +168,7 @@ class MainWindow(QMainWindow):
 
     def file_action(self, q):
         if q.text() == "New":
-            opt_model = cmds.create_new_model()
-            self.app_manager.set_model(opt_model)
-            self.create_lens_table()
-#            self.create_2D_lens_view()
-            cmds.create_paraxial_design_view(opt_model, Dgm.ht,
-                                             gui_parent=self)
-            self.refresh_app_ui()
+            self.new_model()
 
         if q.text() == "Open...":
             options = QFileDialog.Options()
@@ -195,6 +196,15 @@ class MainWindow(QMainWindow):
 
         if q.text() == "Close":
             self.close_model()
+
+    def new_model(self):
+        opt_model = cmds.create_new_model()
+        self.app_manager.set_model(opt_model)
+        self.create_lens_table()
+        cmds.create_live_layout_view(opt_model, gui_parent=self)
+        cmds.create_paraxial_design_view(opt_model, Dgm.ht,
+                                         gui_parent=self)
+        self.refresh_app_ui()
 
     def open_file(self, file_name):
         self.cur_filename = file_name

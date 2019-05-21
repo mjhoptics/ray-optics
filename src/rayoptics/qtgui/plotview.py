@@ -50,6 +50,32 @@ class CommandItem(QListWidgetItem):
             return False
 
 
+def create_command_panel(fig, commands):
+    command_panel = QListWidget()
+
+    for c in commands:
+        cmd_txt, cntxt = c
+        cntxt[2]['figure'] = fig
+        btn = CommandItem(command_panel, cmd_txt, cntxt)
+
+    command_panel.itemClicked.connect(on_command_clicked)
+    width = command_panel.size()
+    hint = command_panel.sizeHint()
+    frame_width = command_panel.frameWidth() + 2
+    column_width = command_panel.sizeHintForColumn(0) + 2*frame_width
+    command_panel.setMinimumWidth(column_width)
+    command_panel.setMaximumWidth(column_width)
+    command_panel.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Minimum)
+
+    return command_panel
+
+
+def on_command_clicked(item):
+    cntxt = item.data(qt.EditRole)
+    fct, args, kwargs = cntxt
+    fct(*args, **kwargs)
+
+
 def create_plot_view(app, fig, title, view_width, view_ht, commands=None,
                      add_panel_fcts=None, add_nav_toolbar=False):
     # construct the top level widget
@@ -60,7 +86,7 @@ def create_plot_view(app, fig, title, view_width, view_ht, commands=None,
     widget.setLayout(top_layout)
 
     if commands:
-        command_panel = create_command_panel(commands)
+        command_panel = create_command_panel(fig, commands)
         top_layout.addWidget(command_panel)
 
     # construct the top level layout
@@ -88,34 +114,6 @@ def create_plot_view(app, fig, title, view_width, view_ht, commands=None,
         plot_layout.addWidget(NavigationToolbar(pc, sub_window))
 
     sub_window.show()
-
-
-def create_command_panel(commands):
-    command_panel = QListWidget()
-
-    for c in commands:
-        cmd_txt, cntxt = c
-        btn = CommandItem(command_panel, cmd_txt, cntxt)
-
-    command_panel.setCurrentRow(0)
-    command_panel.itemClicked.connect(on_command)
-    width = command_panel.size()
-    hint = command_panel.sizeHint()
-    frame_width = command_panel.frameWidth() + 2
-    column_width = command_panel.sizeHintForColumn(0) + 2*frame_width
-    command_panel.setMinimumWidth(column_width)
-    command_panel.setMaximumWidth(column_width)
-    command_panel.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Minimum)
-
-    return command_panel
-
-
-def on_command(item):
-    cntxt = item.data(qt.EditRole)
-    fct, args, kwargs = cntxt
-    fct(*args, **kwargs)
-
-#        figure.plot()
 
 
 def create_plot_scale_panel(app, pc):
