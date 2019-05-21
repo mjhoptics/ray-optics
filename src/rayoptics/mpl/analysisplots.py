@@ -6,6 +6,8 @@
 .. codeauthor: Michael J. Hayford
 """
 
+import abc
+
 import numpy as np
 from matplotlib.figure import Figure
 
@@ -98,20 +100,23 @@ class ThirdOrderBarChart(Figure):
 
 
 # experimental - something usable from qt and jupyter
-class AnalysisPlot():
+class AnalysisPlot(abc.ABC):
     """ abstract api for matplotlib axes customized for specific analyses """
     def __init__(self, opt_model):
         self.opt_model = opt_model
 
     def refresh(self):
+        """ called by the app manager to refresh the plot """
         self.update_data()
         self.plot()
 
+    @abc.abstractmethod
     def update_data(self):
-        pass
+        """ function to update the backend data needed for the plot """
 
+    @abc.abstractmethod
     def plot(self):
-        pass
+        """ function that executes the plotting commands """
 
 
 class AstigmatismCurvePlot(AnalysisPlot):
@@ -149,3 +154,5 @@ class AstigmatismCurvePlot(AnalysisPlot):
         self.ax.set_ylabel('field height')
 
         self.ax.legend()
+
+#        fig.canvas.draw()
