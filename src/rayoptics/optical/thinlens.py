@@ -56,26 +56,26 @@ class HolographicElement:
 
 
 class ThinLens(Interface):
-    def __init__(self, lbl='', power=0.0, **kwargs):
+    def __init__(self, lbl='', power=0.0, ref_index=1.5, **kwargs):
         super().__init__(refract_mode='PHASE', **kwargs)
+        self.phase_mapper = HolographicElement()
         self.label = lbl
-        self.power = power
-        self.ref_index = 1.5
+        self.optical_power = power
+        self.ref_index = ref_index
         self.bending = 0.0
         self.od = 1.0
-        self.phase_mapper = HolographicElement()
 
     def list_thinlens(self):
         if len(self.label) > 0:
             print(self.label)
-        print("power: {:12.6g}".format(self.power))
+        print("power: {:12.6g}".format(self.optical_power))
         self.phase_mapper.list_hoe()
 
     def __repr__(self):
         if len(self.label) > 0:
-            return "ThinLens(%r: power=%r)" % (self.label, self.power)
+            return "ThinLens(%r: power=%r)" % (self.label, self.optical_power)
         else:
-            return "ThinLens(power=%r)" % (self.power)
+            return "ThinLens(power=%r)" % (self.optical_power)
 
     def update(self):
         super().update()
@@ -96,11 +96,11 @@ class ThinLens(Interface):
 
     @property
     def profile_cv(self):
-        return self.power
+        return self._power
 
     @profile_cv.setter
     def profile_cv(self, cv):
-        self.power = cv
+        self._power = cv
 
     def surface_od(self):
         return self.od
@@ -111,36 +111,40 @@ class ThinLens(Interface):
 
     @property
     def optical_power(self):
-        return self.power
+        return self._power
 
     @optical_power.setter
     def optical_power(self, pwr):
 #        print("optical_power {}: pwr={}, {} obj={}, {}".format(self.label,
-#              self.power, pwr, self.phase_mapper.obj_pt[2], 1./pwr))
-        self.power = pwr
-        self.phase_mapper.obj_pt[2] = 1./pwr
-        self.phase_mapper.obj_virtual = True if pwr > 0. else False
+#              self._power, pwr, self.phase_mapper.obj_pt[2], 1./pwr))
+        self._power = pwr
+        try:
+            self.phase_mapper.obj_pt[2] = 1./pwr
+        except ZeroDivisionError:
+            self.phase_mapper.obj_pt[2] = 1e+10
+        finally:
+            self.phase_mapper.obj_virtual = True if pwr > 0. else False
 
     def set_optical_power(self, pwr, n_before, n_after):
         self.delta_n = n_after - n_before
-        self.power = pwr
+        self.optical_power = pwr
 
     def from_first_order(self, nu_before, nu_after, y):
         # nu_before used for reference point
-        ref = -y/nu_before
-        obj = -y/nu_after
+        ref = -y/nu_before if nu_before != 0.0 else 1e+10
+        obj = -y/nu_after if nu_after != 0.0 else 1e+10
 #        pm = self.phase_mapper
 #        print("from_first_order {}:\n pwr={}, {}\n ref={} ({}), {} ({})"
 #              "\n obj={} ({}), {} ({})"
 #              .format(self.label,
-#                      self.power, (nu_before - nu_after)/y,
+#                      self._power, (nu_before - nu_after)/y,
 #                      pm.ref_pt[2], pm.ref_virtual, ref, ref > 0.,
 #                      pm.obj_pt[2], pm.obj_virtual, obj, obj > 0.))
         self.phase_mapper.ref_pt[2] = ref
         self.phase_mapper.ref_virtual = True if ref > 0. else False
         self.phase_mapper.obj_pt[2] = obj
         self.phase_mapper.obj_virtual = True if obj > 0. else False
-        self.power = (nu_before - nu_after)/y
+        self._power = (nu_before - nu_after)/y
 
     def normal(self, p):
         return np.array([0., 0., 1.])

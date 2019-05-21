@@ -8,10 +8,32 @@
 .. codeauthor: Michael J. Hayford
 """
 
+from collections import namedtuple
+
+
 from rayoptics.optical.model_constants import ht, slp, aoi
 from rayoptics.optical.model_constants import pwr, tau, indx, rmd
 from rayoptics.optical.model_constants import Surf, Gap
-from . import gap
+from rayoptics.optical.elements import insert_ifc_gp_ele
+
+ParaxData = namedtuple('ParaxData', ['ht', 'slp', 'aoi'])
+""" paraxial ray data at an interface
+
+    Attributes:
+        ht: height at interface
+        slp: n*slope
+        aoi: n*angle of incidence
+"""
+
+ParaxSys = namedtuple('ParaxSys', ['pwr', 'tau', 'indx', 'rmd'])
+""" paraxial lens data at an interface
+
+    Attributes:
+        pwr: power
+        tau: reduced distance, t/n
+        indx: refractive index (n)
+        rmd: refract mode
+"""
 
 
 class ParaxialModel():
@@ -67,15 +89,11 @@ class ParaxialModel():
         pr_node[type_sel] = new_vertex[0]
         self.pr.insert(new_surf, pr_node)
 
-        self.seq_model.cur_surface = surf
-        ifc, ele = factory()
-        g = gap.Gap()
-        self.seq_model.insert(ifc, g)
+        seq, ele = factory()
+        insert_ifc_gp_ele(self.opt_model, seq, ele, idx=surf)
 
-        self.opt_model.ele_model.add_element(ele)
-
-        self.sys[new_surf][rmd] = ifc.refract_mode
-        if ifc.refract_mode == 'REFL':
+        self.sys[new_surf][rmd] = seq[0][0].refract_mode
+        if seq[0][0].refract_mode == 'REFL':
             self.sys[new_surf][indx] = -self.sys[new_surf][indx]
 
     def delete_node(self, surf):
@@ -264,3 +282,30 @@ class ParaxialModel():
 
                 n_before = n_after
                 slp_before = slp_after
+
+    def pwr_slope_solve(self, ray, surf, slp_new):
+        p = ray[surf-1]
+        c = ray[surf]
+        pwr = (p[slp] - slp_new)/c[ht]
+        return pwr
+
+    def pwr_ht_solve(self, ray, surf, ht_new):
+        sys = self.sys
+        p = ray[surf-1]
+        c = ray[surf]
+        slp_new = (ht_new - c[ht])/sys[surf][tau]
+        pwr = (p[slp] - slp_new)/ht_new
+        return pwr
+
+    def thi_ht_solve(self, ray, surf, ht_new):
+        c = ray[surf]
+        thi = (ht_new - c[ht])/c[slp]
+        return thi
+
+    def apply_data(self, vertex, lcl_pt):
+        ray = self.ray
+        p = ray[vertex-1]
+        c = ray[vertex]
+        c_slp_new = (lcl_pt[1] - c[ht])/lcl_pt[0]
+        pwr = (p[slp] - c_slp_new)/c[ht]
+        self.opt_model.seq_model.ifcs[vertex].optical_power = pwr

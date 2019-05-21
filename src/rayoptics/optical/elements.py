@@ -21,6 +21,7 @@ from rayoptics.optical.surface import Surface
 from rayoptics.optical.gap import Gap
 from rayoptics.gui.actions import Action, AttrAction, SagAction, BendAction
 from rayoptics.optical.medium import Glass, glass_decode
+import rayoptics.optical.model_constants as mc
 import opticalglass.glasspolygons as gp
 
 GraphicsHandle = namedtuple('GraphicsHandle', ['polydata', 'tfrm', 'polytype'])
@@ -34,12 +35,12 @@ GraphicsHandle = namedtuple('GraphicsHandle', ['polydata', 'tfrm', 'polytype'])
 
 
 def create_thinlens(power=0., indx=1.5):
-    tl = thinlens.ThinLens(power=power)
+    tl = thinlens.ThinLens(power=power, ref_index=indx)
     tle = ThinElement(tl)
-    return tl, tle
+    return ([tl], []), [tle]
 
 
-def create_mirror(c=0.0, r=None, cc=0.0, ec=None):
+def create_mirror(c=0.0, r=None, cc=0.0, ec=None, profile=None):
     if r:
         cv = 1.0/r
     else:
@@ -50,14 +51,19 @@ def create_mirror(c=0.0, r=None, cc=0.0, ec=None):
     else:
         k = cc
 
-    if k == 0.0:
-        profile = Spherical(c=cv)
+    if profile is Spherical:
+        prf = Spherical(c=cv)
+    elif profile is Conic:
+        prf = Conic(c=cv, cc=k)
     else:
-        profile = Conic(c=cv, cc=k)
+        if k == 0.0:
+            prf = Spherical(c=cv)
+        else:
+            prf = Conic(c=cv, cc=k)
 
-    m = Surface(profile=profile, refract_mode='REFL')
+    m = Surface(profile=prf, refract_mode='REFL')
     me = Mirror(m)
-    return m, me
+    return ([m], []), [me]
 
 
 def create_lens(power=0., bending=0., th=0., sd=1., med=None):
@@ -67,13 +73,33 @@ def create_lens(power=0., bending=0., th=0., sd=1., med=None):
         med = Glass()
     g = Gap(t=th, med=med)
     le = Element(s1, s2, g, sd=sd)
-    return (s1, s2, g), le
+    return ([s1, s2], [g]), [le]
 
 
 def create_dummy_plane(sd=1.):
     s = Surface()
     se = DummyInterface(s, sd=sd)
-    return s, se
+    return ([s], []), [se]
+
+
+def create_air_gap(t=0., ref_ifc=None):
+    g = Gap(t=t)
+    ag = AirGap(g, ref_ifc)
+    return g, ag
+
+
+def insert_ifc_gp_ele(opt_model, seq, ele, idx=None, t=0.):
+    """ insert interfaces and gaps into seq_model and eles into ele_model """
+    if idx:
+        opt_model.seq_model.cur_surface = idx
+    g, ag = create_air_gap(t=t, ref_ifc=seq[mc.Surf][-1])
+    seq[mc.Gap].append(g)
+    ele.append(ag)
+
+    for s, g in zip(seq[mc.Surf], seq[mc.Gap]):
+        opt_model.seq_model.insert(s, g)
+    for e in ele:
+        opt_model.ele_model.add_element(e)
 
 
 class Element():
@@ -557,14 +583,14 @@ class AirGap():
 
     label_format = 'AirGap {}'
 
-    def __init__(self, g, ifc, idx=0, tfrm=None, label='AirGap'):
+    def __init__(self, g, ref_ifc, idx=0, tfrm=None, label='AirGap'):
         if tfrm is not None:
             self.tfrm = tfrm
         else:
             self.trfm = (np.identity(3), np.array([0., 0., 0.]))
         self.label = label
         self.g = g
-        self.ifc = ifc
+        self.ref_ifc = ref_ifc
         self.idx = idx
 
     def __json_encode__(self):
@@ -572,7 +598,7 @@ class AirGap():
         del attrs['parent']
         del attrs['tfrm']
         del attrs['g']
-        del attrs['ifc']
+        del attrs['ref_ifc']
         del attrs['handles']
         del attrs['actions']
         return attrs
@@ -587,7 +613,7 @@ class AirGap():
         self.tfrm = tfrms[self.idx]
 
     def reference_interface(self):
-        return self.ifc
+        return self.ref_ifc
 
     def sync_to_update(self, seq_model):
         self.idx = seq_model.gaps.index(self.g)
@@ -760,6 +786,7 @@ class ElementModel:
                 print("Interface {} not found".format(intrfc.lbl))
             else:
                 e.tfrm = tfrms[i]
+        self.sequence_elements()
 
     def sequence_elements(self):
         """ Sort elements in order of reference interfaces in seq_model """

@@ -75,9 +75,7 @@ class SequentialModel:
         self.stop_surface = 1
         self.cur_surface = 0
         self.rndx = []
-        self.ifcs.append(surface.Surface('Obj'))
-        self.ifcs.append(surface.Surface('Img'))
-        self.gaps.append(gap.Gap())
+        self._initialize_arrays()
 
     def __json_encode__(self):
         attrs = dict(vars(self))
@@ -87,6 +85,27 @@ class SequentialModel:
         del attrs['z_dir']
         del attrs['rndx']
         return attrs
+
+    def _initialize_arrays(self):
+        """ initialize object and image interfaces and intervening gap """
+        # add object interface
+        self.ifcs.append(surface.Surface('Obj'))
+
+        tfrm = np.identity(3), np.array([0., 0., 0.])
+        self.gbl_tfrms.append(tfrm)
+        self.lcl_tfrms.append(tfrm)
+
+        # add object gap
+        self.gaps.append(gap.Gap())
+        self.z_dir.append(1.0)
+        self.rndx.append([1.0])
+
+        # add image interface
+        self.ifcs.append(surface.Surface('Img'))
+        self.gbl_tfrms.append(tfrm)
+        self.lcl_tfrms.append(tfrm)
+        self.z_dir.append(1.0)
+        self.rndx.append([1.0])
 
     def reset(self):
         self.__init__()
@@ -148,12 +167,20 @@ class SequentialModel:
             self.ifcs.insert(len(self.ifcs)-1, node)
         return self
 
-    def insert(self, surf, gap):
+    def insert(self, ifc, gap):
         """ insert surf and gap at the cur_gap edge of the sequential model
             graph """
         self.cur_surface += 1
-        self.ifcs.insert(self.cur_surface, surf)
-        self.gaps.insert(self.cur_surface, gap)
+        surf = self.cur_surface
+        self.ifcs.insert(surf, ifc)
+        self.gaps.insert(surf, gap)
+
+        tfrm = np.identity(3), np.array([0., 0., 0.])
+        self.gbl_tfrms.insert(surf, tfrm)
+        self.lcl_tfrms.insert(surf, tfrm)
+
+        self.z_dir.insert(surf, self.z_dir[surf-1])
+#        self.rndx.insert(surf, self.rndx[surf-1])
 
     def add_surface(self, surf):
         """ add a surface where surf is a list that contains:
