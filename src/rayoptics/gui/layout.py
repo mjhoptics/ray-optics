@@ -20,8 +20,12 @@ import numpy as np
 
 from rayoptics.optical import gap
 from rayoptics.optical import transform
+from rayoptics.optical.profiles import Spherical, Conic
 from rayoptics.optical.trace import (trace_boundary_rays_at_field,
                                      boundary_ray_dict, RaySeg)
+from rayoptics.optical.elements import (create_thinlens, create_mirror,
+                                        create_lens, create_air_gap,
+                                        insert_ifc_gp_ele)
 import rayoptics.optical.model_constants as mc
 from rayoptics.mpl.interactivelayout import rgb2mpl
 from rayoptics.gui import appcmds
@@ -120,7 +124,10 @@ def transform_poly(tfrm, poly):
 
 def inv_transform_poly(tfrm, poly):
         coord_flip = np.array([[0., 1.], [1., 0.]])
-        poly = np.matmul(coord_flip, poly.T)
+        try:
+            poly = np.matmul(coord_flip, poly.T)
+        except TypeError:
+            print(poly)
 
         t = np.array([tfrm[1][1], tfrm[1][2]])
         poly -= t
@@ -484,3 +491,134 @@ class LensLayout():
             gui_parent.create_table_view(self.ray_table, "Ray Table")
 
         return self.ray_table
+
+    def register_commands(self, *args, **kwargs):
+        self.apply_fct = kwargs.pop('apply_fct')
+        fig = kwargs.pop('figure')
+        actions = self.add_element_cmd_actions(**kwargs)
+
+        def do_command_action(event, target, event_key):
+            nonlocal fig, actions
+            if target is not None:
+                shape, handle = target.artist.shape
+                try:
+                    action = actions[event_key]
+                    action(fig, handle, event, target.info)
+                except KeyError:
+                    pass
+        fig.do_action = do_command_action
+
+    def add_element_cmd_actions(self, **kwargs):
+        seq_start = 1
+        idx = seq_start
+        actions = {}
+
+        def add_event_data(tfrm, event, handle, info):
+            gbl_pt = np.array([event.xdata, event.ydata])
+            lcl_pt = inv_transform_poly(tfrm, gbl_pt)
+            event.lcl_pt = lcl_pt
+
+        def on_select_cmd(fig, handle, event, info):
+            nonlocal idx, seq_start
+            idx = seq_start
+            if 'ind' in info:
+                idx += info['ind'][0]
+            tfrm = self.opt_model.seq_model.gbl_tfrms[idx]
+            add_event_data(tfrm, event, handle, info)
+            self.apply_fct(self.opt_model, idx, event.lcl_pt, **kwargs)
+            fig.refresh_gui()
+        actions['press'] = on_select_cmd
+
+#        def on_edit_cmd(fig, handle, event, info):
+#            add_event_data(self, event, handle, info)
+#            self.apply_fct(idx, event.lcl_pt)
+#            fig.refresh_gui()
+#        actions['drag'] = on_edit_cmd
+
+        def on_release_cmd(fig, handle, event, info):
+            nonlocal idx
+#            add_event_data(self, event, handle, info)
+#            self.apply_fct(idx, event.lcl_pt)
+#            fig.refresh_gui()
+            idx = None
+        actions['release'] = on_release_cmd
+
+        return actions
+
+
+#    def apply_data(self, vertex, lcl_pt):
+def add_elements(opt_model, idx, lcl_pt, create, **kwargs):
+    seq_model = opt_model.seq_model
+    g = seq_model.gaps[idx]
+    x, y = lcl_pt
+    t_new = g.thi - x
+    g.thi = x
+
+    insert_ifc_gp_ele(opt_model, *create(**kwargs), idx=idx, t=t_new)
+
+
+def add_reflector(opt_model, idx, lcl_pt, create, **kwargs):
+    seq_model = opt_model.seq_model
+    g = seq_model.gaps[idx]
+    x, y = lcl_pt
+    t_new = -(g.thi - x)
+    g.thi = x
+
+    insert_ifc_gp_ele(opt_model, *create(**kwargs), idx=idx, t=t_new)
+
+
+def add_thinlens(opt_model, idx, lcl_pt, **kwargs):
+    add_elements(opt_model, idx, lcl_pt, create_thinlens, **kwargs)
+
+
+def add_lens(opt_model, idx, lcl_pt, **kwargs):
+    seq_model = opt_model.seq_model
+    g = seq_model.gaps[idx]
+    x, y = lcl_pt
+    t0_orig = g.thi
+    t_ct = 0.05*t0_orig
+    t0_new = x
+    t1_new = t0_orig - t_ct - t0_new
+    g.thi = t0_new
+
+    seq, ele = create_lens(th=t_ct)
+    insert_ifc_gp_ele(opt_model, seq, ele, idx=idx, t=t1_new)
+
+
+def add_mirror(opt_model, idx, lcl_pt, **kwargs):
+    add_reflector(opt_model, idx, lcl_pt, create_mirror, **kwargs)
+
+
+def add_conic(opt_model, idx, lcl_pt, **kwargs):
+    add_reflector(opt_model, idx, lcl_pt, create_mirror, **kwargs)
+
+
+def add_doublet(opt_model, idx, lcl_pt, **kwargs):
+    add_elements(opt_model, idx, lcl_pt, create_lens, **kwargs)
+
+
+def create_live_layout_commands(fig):
+    layout = fig.layout
+    cmds = []
+    # Add thin lens
+    cmds.append(('Add Thin Lens', (layout.register_commands, (),
+                 {'apply_fct': add_thinlens})))
+    # Add lens
+    cmds.append(('Add Lens', (layout.register_commands, (),
+                 {'apply_fct': add_lens})))
+    # Add doublet
+    cmds.append(('Add Cemented Doublet', (layout.register_commands, (),
+                 {'apply_fct': add_doublet})))
+    # Add mirror
+    cmds.append(('Add Mirror', (layout.register_commands, (),
+                 {'apply_fct': add_mirror,
+                  'profile': Spherical})))
+    cmds.append(('Add Conic Mirror', (layout.register_commands, (),
+                 {'apply_fct': add_conic,
+                  'profile': Conic})))
+    cmds.append(('Add Parabola', (layout.register_commands, (),
+                 {'apply_fct': add_conic,
+                  'profile': Conic,
+                  'cc': -1.0})))
+
+    return cmds

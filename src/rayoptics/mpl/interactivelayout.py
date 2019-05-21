@@ -70,6 +70,7 @@ class InteractiveLayout(Figure):
         self.hilited = None
         self.selected = None
         self.do_scale_bounds = True
+        self.do_action = self.do_shape_action
 
         Figure.__init__(self, **kwargs)
 
@@ -77,20 +78,17 @@ class InteractiveLayout(Figure):
 
         self.update_data()
 
-    def connect(self):
+    def connect(self, action_dict):
         'connect to all the events we need'
-        self.cidpress = self.canvas.mpl_connect('button_press_event',
-                                                self.on_press)
-        self.cidrelease = self.canvas.mpl_connect('button_release_event',
-                                                  self.on_release)
-        self.cidmotion = self.canvas.mpl_connect('motion_notify_event',
-                                                 self.on_motion)
+        self.callback_ids = []
+        for event, action in action_dict.items():
+            self.callback_ids.append(self.canvas.mpl_connect(event, action))
 
     def disconnect(self):
         'disconnect all the stored connection ids'
-        self.canvas.mpl_disconnect(self.cidpress)
-        self.canvas.mpl_disconnect(self.cidrelease)
-        self.canvas.mpl_disconnect(self.cidmotion)
+        for clbk in self.callback_ids:
+            self.canvas.mpl_disconnect(clbk)
+        self.callback_ids = None
 
     def refresh(self):
         self.update_data()
@@ -221,7 +219,11 @@ class InteractiveLayout(Figure):
         self.draw_frame(self.do_draw_frame)
         self.ax.set_facecolor(backgrnd_color)
 
-        self.connect()
+        default_actions = {'button_press_event': self.on_press,
+                           'button_release_event': self.on_release,
+                           'motion_notify_event': self.on_motion}
+
+        self.connect(default_actions)
         self.canvas.draw()
 
         return self
@@ -247,7 +249,7 @@ class InteractiveLayout(Figure):
         return sorted(artists, key=lambda a: a.artist.get_zorder(),
                       reverse=True)
 
-    def do_action(self, event, target, event_key):
+    def do_shape_action(self, event, target, event_key):
         if target is not None:
             shape, handle = target.artist.shape
             try:
@@ -293,3 +295,4 @@ class InteractiveLayout(Figure):
         self.do_action(event, self.selected, 'release')
         self.do_scale_bounds = True
         self.selected = None
+        self.do_action = self.do_shape_action

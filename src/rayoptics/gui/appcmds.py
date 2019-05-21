@@ -9,6 +9,10 @@
 """
 
 from rayoptics.optical.opticalmodel import OpticalModel, open_model
+from rayoptics.optical.elements import (create_thinlens, create_mirror,
+                                        insert_ifc_gp_ele)
+
+from rayoptics.gui.layout import create_live_layout_commands
 
 from rayoptics.mpl.lenslayoutfigure import LensLayoutFigure
 from rayoptics.mpl.interactivelayout import InteractiveLayout
@@ -26,6 +30,33 @@ from rayoptics.qtgui.plotview import (create_plot_scale_panel,
 
 
 def create_new_model():
+    return create_new_optical_system()
+
+
+def create_new_optical_system(efl=10.0, fov=1.0):
+    opt_model = OpticalModel()
+    seq_model = opt_model.seq_model
+
+    # put in minimum calculation defaults
+    opt_model.seq_model.gaps[0].thi = 1.0e10
+    opt_model.optical_spec.field_of_view.type = 'OBJ_ANG'
+    opt_model.optical_spec.field_of_view.set_from_list([0., fov])
+
+    insert_ifc_gp_ele(opt_model, *create_thinlens(power=1/efl, indx=1.5),
+                      idx=0, t=efl)
+
+#    insert_ifc_gp_ele(opt_model, *create_mirror(r=-2*efl, cc=-1),
+#                      idx=0, t=-efl)
+
+    opt_model.ele_model.add_dummy_interface_at_image(seq_model,
+                                                     seq_model.gbl_tfrms)
+
+    opt_model.update_model()
+
+    return opt_model
+
+
+def create_yybar_model():
     opt_model = OpticalModel()
 
     # put in minimum calculation defaults
@@ -51,12 +82,14 @@ def create_live_layout_view(opt_model, gui_parent=None):
     if gui_parent:
         refresh_gui = gui_parent.refresh_gui
     fig = InteractiveLayout(opt_model, refresh_gui)
+    cmds = create_live_layout_commands(fig)
     view_width = 880
     view_ht = 660
     title = "Optical Layout"
     panel_fcts = [create_draw_rays_groupbox]
     plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht,
-                              add_panel_fcts=panel_fcts, add_nav_toolbar=True)
+                              add_panel_fcts=panel_fcts, add_nav_toolbar=True,
+                              commands=cmds)
 
 
 def create_paraxial_design_view(opt_model, dgm_type, gui_parent=None):

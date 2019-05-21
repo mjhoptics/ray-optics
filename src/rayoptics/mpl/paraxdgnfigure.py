@@ -266,7 +266,7 @@ class ParaxialDesignFigure(Figure):
 
         return self
 
-    def select_point(self):
+    def select_point(self, **kwargs):
         def on_press_select_point(pdfig, press):
             hit_vertex, x_hit, y_hit, x_data, y_data, mkr = press
             pdfig.vertex = hit_vertex + pdfig.data_slice.start
