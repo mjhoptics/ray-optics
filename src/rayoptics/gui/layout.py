@@ -55,8 +55,7 @@ def setup_shift_of_ray_bundle(seq_model, start_offset):
 
     s1 = seq_model.ifcs[1]
     s0 = seq_model.ifcs[0]
-    g0 = gap.Gap(start_offset, seq_model.gaps[0].medium)
-    rot, t = transform.reverse_transform(s0, g0, s1)
+    rot, t = transform.reverse_transform(s0, start_offset, s1)
     return rot, t
 
 

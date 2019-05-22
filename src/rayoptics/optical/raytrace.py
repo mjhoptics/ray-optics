@@ -83,14 +83,14 @@ def trace(seq_model, pt0, dir0, wvl, **kwargs):
                                  seq_model.rndx[wvl], seq_model.lcl_tfrms,
                                  seq_model.z_dir)
     path_pkg = (path, seq_model.get_num_surfaces())
-    return trace_raw(path_pkg, pt0, dir0, wvl, **kwargs)
+    return trace_raw(path, pt0, dir0, wvl, **kwargs)
 
 
-def trace_raw(path_pkg, pt0, dir0, wvl, eps=1.0e-12):
+def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12):
     """ fundamental raytrace function
 
     Args:
-        path_pkg: an iterator containing interfaces and gaps to be traced
+        path: an iterator containing interfaces and gaps to be traced
         pt0: starting point in coords of first interface
         dir0: starting direction cosines in coords of first interface
         wvl: wavelength in nm
@@ -99,7 +99,7 @@ def trace_raw(path_pkg, pt0, dir0, wvl, eps=1.0e-12):
     Returns:
         (**ray**, **op_delta**, **wvl**)
 
-        - **ray** is a list for each interface in **path_pkg** of these
+        - **ray** is a list for each interface in **path** of these
           elements: [pt, after_dir, after_dst, normal]
 
             - pt: the intersection point of the ray
@@ -114,8 +114,6 @@ def trace_raw(path_pkg, pt0, dir0, wvl, eps=1.0e-12):
     """
     ray = []
     eic = []
-
-    path, path_length = path_pkg
 
     # trace object surface
     obj = next(path)

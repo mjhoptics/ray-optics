@@ -11,12 +11,12 @@
 import numpy as np
 
 
-def forward_transform(s1, g1, s2):
+def forward_transform(s1, zdist, s2):
     """ generate transform rotation and translation from
         s1 coords to s2 coords """
 
     # calculate origin of s2 wrt to s1
-    t_orig = np.array([0., 0., g1.thi])
+    t_orig = np.array([0., 0., zdist])
     r_after_s1 = r_before_s2 = None
     if s1.decenter:
         # get transformation info after s1
@@ -41,12 +41,12 @@ def forward_transform(s1, g1, s2):
     return r_cascade, t_orig
 
 
-def reverse_transform(s1, g1, s2):
+def reverse_transform(s1, zdist, s2):
     """ generate transform rotation and translation from
         s2 coords to s1 coords """
 
     # calculate origin of s2 wrt to s1
-    t_orig = np.array([0., 0., g1.thi])
+    t_orig = np.array([0., 0., zdist])
     r_after_s1 = r_before_s2 = None
     if s1.decenter:
         # get transformation info after s1

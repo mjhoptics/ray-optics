@@ -517,7 +517,8 @@ class SequentialModel:
                 try:
                     before = next(path)
                     go -= 1
-                    r, t = trns.reverse_transform(before[Surf], after[Gap],
+                    zdist = after[Gap].thi
+                    r, t = trns.reverse_transform(before[Surf], zdist,
                                                   after[Surf])
                     t = prev[0].dot(t) + prev[1]
                     r = prev[0].dot(r)
@@ -538,8 +539,8 @@ class SequentialModel:
             try:
                 after = next(path)
                 go += 1
-                r, t = trns.forward_transform(before[Surf], before[Gap],
-                                              after[Surf])
+                zdist = before[Gap].thi
+                r, t = trns.forward_transform(before[Surf], zdist, after[Surf])
                 t = prev[0].dot(t) + prev[1]
                 r = prev[0].dot(r)
 #                print(go, t,
@@ -563,8 +564,8 @@ class SequentialModel:
                 tfrms.append((np.identity(3), np.array([0., 0., 0.])))
                 break
             else:
-                r, t = trns.forward_transform(before[Surf], before[Gap],
-                                              after[Surf])
+                zdist = before[Gap].thi
+                r, t = trns.forward_transform(before[Surf], zdist, after[Surf])
                 rt = r.transpose()
                 tfrms.append((rt, t))
                 before = after
