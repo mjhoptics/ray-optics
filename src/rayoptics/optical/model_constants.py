@@ -9,7 +9,7 @@
 """
 
 # sequential model data structures
-Surf, Gap, Indx = range(3)
+Intfc, Gap, Indx, Tfrm, Zdir = range(5)
 
 
 # paraxial optics data structures

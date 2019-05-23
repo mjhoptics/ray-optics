@@ -14,11 +14,8 @@ from numpy.linalg import norm
 from math import sqrt, copysign
 
 import rayoptics.optical.model_constants as mc
+from rayoptics.optical.model_constants import Intfc, Gap, Indx, Tfrm, Zdir
 from .traceerror import TraceMissedSurfaceError, TraceTIRError
-
-
-Intfc, Gap, Index, Trfm, Z_Dir = range(5)
-#pt, dcs = range(2)
 
 
 def bend(d_in, normal, n_in, n_out):
@@ -79,10 +76,7 @@ def trace(seq_model, pt0, dir0, wvl, **kwargs):
           optical axis
         - **wvl** - wavelength (in nm) that the ray was traced in
     """
-    path = itertools.zip_longest(seq_model.ifcs, seq_model.gaps,
-                                 seq_model.rndx[wvl], seq_model.lcl_tfrms,
-                                 seq_model.z_dir)
-    path_pkg = (path, seq_model.get_num_surfaces())
+    path = seq_model.path(wvl)
     return trace_raw(path, pt0, dir0, wvl, **kwargs)
 
 
@@ -124,9 +118,9 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12):
     before_pt = pt_obj
     before_dir = dir0
     before_normal = srf_obj.normal(before_pt)
-    tfrm_from_before = before[Trfm]
-    z_dir_before = before[Z_Dir]
-    n_before = before[Index] if z_dir_before > 0.0 else -before[Index]
+    tfrm_from_before = before[Tfrm]
+    z_dir_before = before[Zdir]
+    n_before = before[Indx] if z_dir_before > 0.0 else -before[Indx]
 
     op_delta = 0.0
     surf = 0
@@ -142,8 +136,8 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12):
             pp_pt_before = b4_pt + pp_dst*b4_dir
 
             ifc = after[Intfc]
-            z_dir_after = after[Z_Dir]
-            n_after = after[Index] if z_dir_after > 0.0 else -after[Index]
+            z_dir_after = after[Zdir]
+            n_after = after[Indx] if z_dir_after > 0.0 else -after[Indx]
 
             # intersect ray with profile
             pp_dst_intrsct, inc_pt = ifc.intersect(pp_pt_before, b4_dir,
@@ -179,14 +173,14 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12):
 #            print("e{}= {:12.5g} e{}'= {:12.5g} dW={:10.8g} n={:8.5g}"
 #                  " n'={:8.5g}".format(surf, eic_dst_before,
 #                                       surf, eic_dst_after,
-#                                       dW, before[Index], after[Index]))
+#                                       dW, before[Indx], after[Indx]))
             before_pt = inc_pt
             before_normal = normal
             before_dir = after_dir
             n_before = n_after
             z_dir_before = z_dir_after
             before = after
-            tfrm_from_before = before[Trfm]
+            tfrm_from_before = before[Tfrm]
 
         except TraceMissedSurfaceError as ray_miss:
             ray.append([before_pt, before_dir, pp_dst, before_normal])

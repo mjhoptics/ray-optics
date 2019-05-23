@@ -16,7 +16,7 @@ from . import raytrace as rt
 from . import trace as trace
 from .traceerror import TraceError, TraceMissedSurfaceError, TraceTIRError
 from . import transform as trns
-from rayoptics.optical.model_constants import Surf, Gap
+from rayoptics.optical.model_constants import Intfc, Gap, Indx, Tfrm, Zdir
 from opticalglass import glassfactory as gfact
 from opticalglass import glasserror as ge
 import numpy as np
@@ -113,8 +113,31 @@ class SequentialModel:
     def get_num_surfaces(self):
         return len(self.ifcs)
 
-    def path(self):
-        return itertools.zip_longest(self.ifcs, self.gaps)
+    def path(self, wl=None, start=None, stop=None, step=1):
+        """ returns an iterable path tuple for a range in the sequential model
+
+        Args:
+            wl: wavelength in nm for path, defaults to central wavelength
+            start: start of range
+            stop: first value beyond the end of the range
+            step: increment or stride of range
+
+        Returns:
+            (**ifcs**, **gaps**, **rndx**, **lcl_tfrms**, **z_dir**)
+        """
+        if wl is None:
+            wl = self.central_wavelength()
+
+        if step < 0:
+            gap_start = start - 1
+        else:
+            gap_start = start
+        path = itertools.zip_longest(self.ifcs[start::step],
+                                     self.gaps[gap_start::step],
+                                     self.rndx[start::step][wl],
+                                     self.lcl_tfrms[start::step],
+                                     self.z_dir[start::step])
+        return path
 
     def calc_ref_indices_for_spectrum(self, wvls):
         """ returns a |DataFrame| with refractive indices for all **wvls**
@@ -199,9 +222,9 @@ class SequentialModel:
         if hasattr(self, 'optical_spec'):
             opt_model.optical_spec = self.optical_spec
             delattr(self, 'optical_spec')
-        for sg in self.path():
-            if hasattr(sg[Surf], 'sync_to_restore'):
-                sg[Surf].sync_to_restore(self)
+        for sg in itertools.zip_longest(self.ifcs, self.gaps):
+            if hasattr(sg[Intfc], 'sync_to_restore'):
+                sg[Intfc].sync_to_restore(self)
             if sg[Gap]:
                 if hasattr(sg[Gap], 'sync_to_restore'):
                     sg[Gap].sync_to_restore(self)
@@ -308,10 +331,10 @@ class SequentialModel:
     def list_model(self):
         for i, sg in enumerate(self.path()):
             if sg[Gap]:
-                print(i, sg[Surf])
+                print(i, sg[Intfc])
                 print('    ', sg[Gap])
             else:
-                print(i, sg[Surf])
+                print(i, sg[Intfc])
 
     def list_gaps(self):
         for i, gp in enumerate(self.gaps):
@@ -342,11 +365,11 @@ class SequentialModel:
         for i, sg in enumerate(self.path()):
             if sg[Gap]:
                 print(i, sg[Gap])
-                if sg[Surf].decenter is not None:
-                    print(' ', repr(sg[Surf].decenter))
+                if sg[Intfc].decenter is not None:
+                    print(' ', repr(sg[Intfc].decenter))
             else:
-                if sg[Surf].decenter is not None:
-                    print(i, repr(sg[Surf].decenter))
+                if sg[Intfc].decenter is not None:
+                    print(i, repr(sg[Intfc].decenter))
 
     def list_elements(self):
         for i, gp in enumerate(self.gaps):
@@ -518,8 +541,8 @@ class SequentialModel:
                     before = next(path)
                     go -= 1
                     zdist = after[Gap].thi
-                    r, t = trns.reverse_transform(before[Surf], zdist,
-                                                  after[Surf])
+                    r, t = trns.reverse_transform(before[Intfc], zdist,
+                                                  after[Intfc])
                     t = prev[0].dot(t) + prev[1]
                     r = prev[0].dot(r)
 #                    print(go, t,
@@ -540,7 +563,8 @@ class SequentialModel:
                 after = next(path)
                 go += 1
                 zdist = before[Gap].thi
-                r, t = trns.forward_transform(before[Surf], zdist, after[Surf])
+                r, t = trns.forward_transform(before[Intfc], zdist,
+                                              after[Intfc])
                 t = prev[0].dot(t) + prev[1]
                 r = prev[0].dot(r)
 #                print(go, t,
@@ -555,7 +579,7 @@ class SequentialModel:
     def compute_local_transforms(self):
         """ Return forward surface coordinates (r.T, t) for each interface. """
         tfrms = []
-        path = self.path()
+        path = itertools.zip_longest(self.ifcs, self.gaps)
         before = next(path)
         while before is not None:
             try:
@@ -565,7 +589,8 @@ class SequentialModel:
                 break
             else:
                 zdist = before[Gap].thi
-                r, t = trns.forward_transform(before[Surf], zdist, after[Surf])
+                r, t = trns.forward_transform(before[Intfc], zdist,
+                                              after[Intfc])
                 rt = r.transpose()
                 tfrms.append((rt, t))
                 before = after

@@ -9,7 +9,7 @@
 """
 import math
 from collections import namedtuple
-from rayoptics.optical.model_constants import Surf, Gap
+from rayoptics.optical.model_constants import Intfc, Gap, Indx
 from rayoptics.optical.model_constants import ht, slp, aoi
 from rayoptics.optical.model_enums import PupilType, FieldType
 
@@ -92,13 +92,13 @@ class FirstOrderData:
 
 # paraxial_trace() - This routine performs a paraxial raytrace from object
 #                    (surface 0) to image.
-def paraxial_trace(path, start, start_yu, start_yu_bar, wl):
+def paraxial_trace(path, start, start_yu, start_yu_bar):
     """ perform a paraxial raytrace of 2 linearly independent rays """
     p_ray = []
     p_ray_bar = []
 
     before = next(path)
-    n_before = before[Gap].medium.rindex(wl)
+    n_before = before[Indx]
 
     b4_yui = start_yu
     b4_yui_bar = start_yu_bar
@@ -110,7 +110,7 @@ def paraxial_trace(path, start, start_yu, start_yu_bar, wl):
         b4_yui = [obj_ht, start_yu[slp]]
         b4_yui_bar = [obj_htb, start_yu_bar[slp]]
 
-    cv = before[Surf].profile.cv
+    cv = before[Intfc].profile.cv
     # calculate angle of incidence (aoi)
     aoi = b4_yui[slp] + b4_yui[ht] * cv
     aoi_bar = b4_yui_bar[slp] + b4_yui_bar[ht] * cv
@@ -125,7 +125,7 @@ def paraxial_trace(path, start, start_yu, start_yu_bar, wl):
         try:
             after = next(path)
             if after[Gap]:
-                n_after = math.copysign(after[Gap].medium.rindex(wl), n_before)
+                n_after = math.copysign(after[Indx], n_before)
             else:
                 n_after = n_before
 
@@ -135,7 +135,7 @@ def paraxial_trace(path, start, start_yu, start_yu_bar, wl):
             cur_htb = b4_yui_bar[ht] + t * b4_yui_bar[slp]
 
             # Refraction/Reflection
-            srf = after[Surf]
+            srf = after[Intfc]
             if srf.refract_mode == 'REFL':
                 k = -1.0
                 n_after = -n_after
@@ -184,10 +184,11 @@ def paraxial_trace(path, start, start_yu, start_yu_bar, wl):
     return p_ray, p_ray_bar
 
 
-def compute_first_order(opt_model, stop, wl):
+def compute_first_order(opt_model, stop, wvl):
     """ Returns paraxial axial and chief rays, plus first order data. """
     seq_model = opt_model.seq_model
-    p_ray, q_ray = paraxial_trace(seq_model.path(), 1, [1., 0.], [0., 1.], wl)
+    p_ray, q_ray = paraxial_trace(seq_model.path(wl=wvl), 1,
+                                  [1., 0.], [0., 1.])
 
     n_k = seq_model.central_rndx(-1)
     ak1 = p_ray[-1][ht]
@@ -207,7 +208,7 @@ def compute_first_order(opt_model, stop, wl):
     # find entrance pupil location w.r.t. first surface
     ybar1 = -bs1
     ubar1 = as1
-    n_0 = seq_model.gaps[0].medium.rindex(wl)
+    n_0 = seq_model.gaps[0].medium.rindex(wvl)
     enp_dist = -ybar1/(n_0*ubar1)
 
     thi0 = seq_model.gaps[0].thi
@@ -247,7 +248,7 @@ def compute_first_order(opt_model, stop, wl):
         slpbar0 = -ybar0/obj2enp_dist
     yu_bar = [ybar0, slpbar0]
 
-    ax_ray, pr_ray = paraxial_trace(seq_model.path(), 0, yu, yu_bar, wl)
+    ax_ray, pr_ray = paraxial_trace(seq_model.path(wl=wvl), 0, yu, yu_bar)
 
     n_0 = seq_model.central_rndx(0)
     opt_inv = n_0*(ax_ray[1][ht]*pr_ray[0][slp] - pr_ray[1][ht]*ax_ray[0][slp])

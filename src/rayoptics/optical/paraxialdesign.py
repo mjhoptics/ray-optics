@@ -13,7 +13,7 @@ from collections import namedtuple
 
 from rayoptics.optical.model_constants import ht, slp, aoi
 from rayoptics.optical.model_constants import pwr, tau, indx, rmd
-from rayoptics.optical.model_constants import Surf, Gap
+from rayoptics.optical.model_constants import Intfc, Gap, Indx
 from rayoptics.optical.elements import insert_ifc_gp_ele
 
 ParaxData = namedtuple('ParaxData', ['ht', 'slp', 'aoi'])
@@ -254,10 +254,10 @@ class ParaxialModel():
         sys = []
         for i, sg in enumerate(self.seq_model.path()):
             if sg[Gap]:
-                n_after = self.seq_model.central_rndx(i)
+                n_after = sg[Indx]
                 tau = sg[Gap].thi/n_after
-                rmode = sg[Surf].refract_mode
-                power = sg[Surf].optical_power
+                rmode = sg[Intfc].refract_mode
+                power = sg[Intfc].optical_power
                 sys.append([power, tau, n_after, rmode])
             else:
                 sys.append([0.0, 0.0, n_after, rmode])
@@ -276,9 +276,9 @@ class ParaxialModel():
                 slp_after = ax_ray[i][slp]
                 sg[Gap].thi = n_after*sys[i][tau]
 
-                sg[Surf].set_optical_power(sys[i][pwr], n_before, n_after)
-                sg[Surf].from_first_order(slp_before, slp_after,
-                                          ax_ray[i][ht])
+                sg[Intfc].set_optical_power(sys[i][pwr], n_before, n_after)
+                sg[Intfc].from_first_order(slp_before, slp_after,
+                                           ax_ray[i][ht])
 
                 n_before = n_after
                 slp_before = slp_after
