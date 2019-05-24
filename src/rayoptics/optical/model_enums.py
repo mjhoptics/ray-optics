@@ -24,6 +24,7 @@ class FieldType(Enum):
     OBJ_ANG = 0  #: object space angle in degrees
     OBJ_HT = 1   #: object height
     IMG_HT = 2   #: image height
+    IMG_ANG = 3   #: image space angle in degrees
 
 
 class DimensionType(Enum):
