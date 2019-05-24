@@ -23,6 +23,18 @@ import math
 from rayoptics.optical.model_enums import (PupilType, FieldType)
 
 
+def na2slp(na, n=1.0):
+    return n*math.tan(math.asin(na/n))
+
+
+def slp2na(slp, n=1.0):
+    return n*math.sin(math.atan(slp/n))
+
+
+def ang2slp(ang):
+    return math.tan(math.radians(ang))
+
+
 class SpecSheet:
     """ Top level description of the optical model
 
@@ -88,7 +100,7 @@ class SpecSheet:
                 efl = epd * fno
             if aper2[0] == PupilType.NA:
                 na = aper2[1]
-                slpk = n_k*math.tan(math.asin(na/n_k))
+                slpk = na2slp(na, n=n_k)
                 efl = (epd/2.0)/slpk
 #        if aper1[0] == PupilType.NAO:
 #            nao = aper1[1]
@@ -108,7 +120,7 @@ class SpecSheet:
                 efl = epd * fno
         if aper1[0] == PupilType.NA:
             na = aper1[1]
-            slpk = n_k*math.tan(math.asin(na/n_k))
+            slpk = na2slp(na, n=n_k)
             if aper2[0] == PupilType.EPD:
                 epd = aper2[1]
                 efl = (epd/2.0)/slpk
@@ -124,19 +136,19 @@ class SpecSheet:
                 aper = (PupilType.FNO, fno)
             if aper2[0] == PupilType.NA:
                 slpk = -(epd/2.0)/efl
-                na = n_k*math.sin(math.atan(slpk/n_k))
+                na = slp2na(slpk, n=n_k)
                 aper = (PupilType.NA, na)
-#        if aper1[0] == PupilType.NAO:
-#            nao = aper1[1]
-#            slp0 = n_0*math.tan(math.asin(pupil.value/n_0))
-#            if aper2[0] == PupilType.FNO:
-#                fno = aper2[1]
-#                slpk = 
-#                efl = epd * fno 
-#            if aper2[0] == PupilType.NA:
-#                na = aper2[1]
-#                slpk = n_k*math.tan(math.asin(na/n_k))
-#                efl = (epd/2.0)/slpk
+        if aper1[0] == PupilType.NAO:
+            nao = aper1[1]
+            slp0 = n_0*math.tan(math.asin(pupil.value/n_0))
+            if aper2[0] == PupilType.FNO:
+                efl = epd * fno
+                slpk = mag / slp0
+                fno = -1/(2.0*slpk)
+            if aper2[0] == PupilType.NA:
+                na = mag * nao
+                slpk = n_k*math.tan(math.asin(na/n_k))
+                efl = (epd/2.0)/slpk
         if aper1[0] == PupilType.FNO:
             fno = aper1[1]
             if aper2[0] == PupilType.EPD:
@@ -160,11 +172,11 @@ class SpecSheet:
                 aper = (PupilType.FNO, fno)
             if aper2[0] == PupilType.NA:
                 slpk = -(epd/2.0)/efl
-                na = n_k*math.sin(math.atan(slpk/n_k))
+                na = slp2na(slpk, n=n_k)
                 aper = (PupilType.NA, na)
 #        if aper1[0] == PupilType.NAO:
 #            nao = aper1[1]
-#            slp0 = n_0*math.tan(math.asin(pupil.value/n_0))
+#            slp0 = n_0*math.tan(math.asin(nao/n_0))
 #            if aper2[0] == PupilType.FNO:
 #                fno = aper2[1]
 #                slpk = 
@@ -180,7 +192,7 @@ class SpecSheet:
                 aper = (PupilType.EPD, epd)
         if aper1[0] == PupilType.NA:
             na = aper1[1]
-            slpk = n_k*math.tan(math.asin(na/n_k))
+            slpk = na2slp(na, n=n_k)
             if aper2[0] == PupilType.EPD:
                 epd = 2*slpk*efl
                 aper = (PupilType.EPD, epd)
@@ -189,7 +201,7 @@ class SpecSheet:
     def do_field_spec_to_efl(fld1, fld2):
         if fld1[0] == FieldType.OBJ_ANG:
             max_fld = fld1[1]
-            slpbar0 = math.tan(math.radians(max_fld))
+            slpbar0 = ang2slp(max_fld)
             if fld1[0] == FieldType.IMG_HT:
                 img_ht = fld2[1]
                 efl = img_ht/slpbar0
@@ -197,10 +209,79 @@ class SpecSheet:
             img_ht = fld1[1]
             if fld2[0] == FieldType.OBJ_ANG:
                 max_fld = fld2[1]
-                slpbar0 = math.tan(math.radians(max_fld))
+                slpbar0 = ang2slp(max_fld)
                 efl = img_ht/slpbar0
         return efl
 
+
+def do_finite_setup(arg1, arg2):
+    finite_parms = ['m', 's', 'sp', 'tt', 'f']
+    if finite_parms.index(arg1[0]) > finite_parms.index(arg2[0]):
+        arg1, arg2 = arg2, arg1
+
+    if arg1[0] == 'm':
+        m = arg1[1]
+        if arg2[0] == 's':
+            s = arg2[1]
+            sp = m*s
+            tt = sp - s
+            f = s*sp/(s - sp)
+        elif arg2[0] == 'sp':
+            sp = arg2[1]
+            s = sp/m
+            tt = sp - s
+            f = s*sp/(s - sp)
+        elif arg2[0] == 'tt':
+            tt = arg2[1]
+            s = tt/(m - 1)
+            sp = m*s
+            f = s*sp/(s - sp)
+        else:  # arg2[0] == 'f':
+            f = arg2[1]
+            tt = -f*(m - 1)**2/m
+            s = tt/(m - 1)
+            sp = m*s
+    elif arg1[0] == 's':
+        s = arg1[1]
+        if arg2[0] == 'sp':
+            sp = arg2[1]
+            m = sp/s
+            tt = sp - s
+            f = s*sp/(s - sp)
+        elif arg2[0] == 'tt':
+            tt = arg2[1]
+            m = 1 + tt/s
+            sp = m*s
+            f = s*sp/(s - sp)
+        elif arg2[0] == 'f':
+            f = arg2[1]
+            sp = s*f/(s + f)
+            m = sp/s
+            tt = sp - s
+    elif arg1[0] == 'sp':
+        sp = arg1[1]
+        if arg2[0] == 'tt':
+            tt = arg2[1]
+            m = sp/(sp - tt)
+            s = sp/m
+            f = s*sp/(s - sp)
+        elif arg2[0] == 'f':
+            f = arg2[1]
+            s = sp*f/(f - sp)
+            m = sp/s
+            tt = sp - s
+    elif arg1[0] == 'tt':
+        tt = arg1[1]
+        if arg2[0] == 'f':
+            f = arg2[1]
+            ttf = tt/f
+            # tt/f >= 4, else no solution
+            # pick root (+) that gives |s|>=|sp|, i.e. -1 <= m < 0
+            m = ((2 - ttf) + math.sqrt(ttf*(ttf - 4)))/2
+            s = tt/(m - 1)
+            sp = m*s
+
+    return m, s, sp, tt, f
 
 dispatch = {
   (PupilType.EPD, PupilType.FNO): SpecSheet.do_aperture_spec_to_efl,
