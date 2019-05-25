@@ -13,10 +13,10 @@ from enum import Enum
 
 class PupilType(Enum):
     """ enum for different aperture specifications """
-    FNO = 0  #: image space f/#
-    EPD = 1  #: entrance pupil diameter
-    NA = 2   #: image space numerical aperture
-    NAO = 3  #: object space numerical aperture
+    EPD = 0  #: entrance pupil diameter
+    NAO = 1  #: object space numerical aperture
+    FNO = 2  #: image space f/#
+    NA = 3   #: image space numerical aperture
 
 
 class FieldType(Enum):

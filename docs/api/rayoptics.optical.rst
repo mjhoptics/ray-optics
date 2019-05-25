@@ -100,6 +100,14 @@ rayoptics.optical.sequential module
     :undoc-members:
     :show-inheritance:
 
+rayoptics.optical.specsheet module
+----------------------------------
+
+.. automodule:: rayoptics.optical.specsheet
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 rayoptics.optical.surface module
 --------------------------------
 

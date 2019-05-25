@@ -8,30 +8,43 @@
 .. codeauthor: Michael J. Hayford
 """
 
-#from collections import namedtuple
-#
-#GUIHandle = namedtuple('GUIHandle', ['poly', 'bbox'])
-#""" tuple grouping together graphics entity and bounding box
-#
-#    Attributes:
-#        poly: poly entity for underlying graphics system (e.g. mpl)
-#        bbox: bounding box for poly
-#"""
-
+from collections import namedtuple
 import math
 
 from rayoptics.optical.model_enums import (PupilType, FieldType)
 
+FiniteConj = namedtuple('FiniteConj', ['m', 's', 'sp', 'tt', 'f'])
+""" tuple grouping together first order finite conjugate specifications
+
+    Attributes:
+        m: (lateral) magnification
+        s: object distance from first principal plane, P1->Obj
+        sp: image distance from second principal plane, P2->Img
+        tt: total track length, tt = sp - s
+        f: focal length
+"""
+
+InfiniteConj = namedtuple('InfiniteConj', ['m', 's', 'sp', 'tt', 'f'])
+""" tuple grouping together first order infinite conjugate specifications
+
+    Attributes:
+        sp: image distance from second principal plane, P2->Img
+        f: focal length
+"""
+
 
 def na2slp(na, n=1.0):
+    """ convert numerical aperture to slope """
     return n*math.tan(math.asin(na/n))
 
 
 def slp2na(slp, n=1.0):
+    """ convert a ray slope to numerical aperture """
     return n*math.sin(math.atan(slp/n))
 
 
 def ang2slp(ang):
+    """ convert an angle in degrees to a slope """
     return math.tan(math.radians(ang))
 
 
@@ -126,7 +139,33 @@ class SpecSheet:
                 efl = (epd/2.0)/slpk
         return efl
 
-    def get_aperture_spec_from_mag(mag, aper1, aper2):
+    def do_aperture_spec_to_mag(aper1, aper2):
+        if aper1[0].value > aper2[0].value:
+            aper1, aper2 = aper2, aper1
+        n_0 = 1.0
+        n_k = 1.0
+#        if aper1[0] == PupilType.EPD:
+#            epd = aper1[1]
+#            if aper2[0] == PupilType.FNO:
+#                fno = aper2[1]
+#                efl = epd * fno
+#            if aper2[0] == PupilType.NA:
+#                na = aper2[1]
+#                slpk = na2slp(na, n=n_k)
+#                efl = (epd/2.0)/slpk
+        if aper1[0] == PupilType.NAO:
+            nao = aper1[1]
+            slp0 = na2slp(nao, n=n_0)
+            if aper2[0] == PupilType.FNO:
+                fno = aper2[1]
+                slpk = -1/(2*fno)
+                mag = slp0/slpk
+            if aper2[0] == PupilType.NA:
+                na = aper2[1]
+                mag = (nao/na)*(n_k/n_0)
+        return mag
+
+    def get_aperture_spec_from_mag(fconj, aper1, aper2):
         n_0 = 1.0
         n_k = 1.0
         if aper1[0] == PupilType.EPD:
@@ -140,14 +179,14 @@ class SpecSheet:
                 aper = (PupilType.NA, na)
         if aper1[0] == PupilType.NAO:
             nao = aper1[1]
-            slp0 = n_0*math.tan(math.asin(pupil.value/n_0))
+            slp0 = na2slp(nao, n=n_0)
             if aper2[0] == PupilType.FNO:
                 efl = epd * fno
                 slpk = mag / slp0
                 fno = -1/(2.0*slpk)
             if aper2[0] == PupilType.NA:
-                na = mag * nao
-                slpk = n_k*math.tan(math.asin(na/n_k))
+                na = fconj.m * nao
+                slpk = na2slp(na, n=n_k)
                 efl = (epd/2.0)/slpk
         if aper1[0] == PupilType.FNO:
             fno = aper1[1]
@@ -199,22 +238,68 @@ class SpecSheet:
         return aper
 
     def do_field_spec_to_efl(fld1, fld2):
+        if fld1[0].value > fld2[0].value:
+            fld1, fld2 = fld2, fld1
         if fld1[0] == FieldType.OBJ_ANG:
-            max_fld = fld1[1]
-            slpbar0 = ang2slp(max_fld)
+            obj_slp = ang2slp(fld1[1])
             if fld1[0] == FieldType.IMG_HT:
                 img_ht = fld2[1]
-                efl = img_ht/slpbar0
-        if fld1[0] == FieldType.IMG_HT:
-            img_ht = fld1[1]
-            if fld2[0] == FieldType.OBJ_ANG:
-                max_fld = fld2[1]
-                slpbar0 = ang2slp(max_fld)
-                efl = img_ht/slpbar0
+                efl = img_ht/obj_slp
         return efl
+
+    def do_field_spec_to_mag(fld1, fld2):
+        if fld1[0].value > fld2[0].value:
+            fld1, fld2 = fld2, fld1
+        if fld1[0] == FieldType.OBJ_HT:
+            obj_ht = fld1[1]
+            if fld1[0] == FieldType.IMG_HT:
+                img_ht = fld2[1]
+                mag = img_ht/obj_ht
+        elif fld1[0] == FieldType.OBJ_ANG:
+            obj_slp = ang2slp(fld1[1])
+            if fld2[0] == FieldType.IMG_ANG:
+                img_slp = ang2slp(fld2[1])
+                mag = obj_slp/img_slp
+        return mag
 
 
 def do_finite_setup(arg1, arg2):
+    """ Calculate the first order system parameters for finite conjugates
+
+    Given 2 system parameters from the following list, this function
+    calculates the remaining parameters.
+
+    Note that if specifying ``tt`` and ``f``, their ratio, tt/f, must be
+    greater than or equal to 4. A `ValueError` is raised otherwise.
+
+    For a typical system, the value of ``s`` is negative, i.e. the object is to
+    the left of the first principal plane.
+
+    First order parameters:
+        - **m**: (lateral) magnification
+        - **s**: object distance from first principal plane, P1->Obj
+        - **sp**: image distance from second principal plane, P2->Img
+        - **tt**: total track length, tt = sp - s
+        - **f**: focal length
+
+    Example::
+
+        In [1]: m1 = ('m', -0.5)
+        In [2]: s1 = ('s', -10.)
+        In [3]: m1s1 = do_finite_setup(m1, s1); m1s1
+        Out[3]: FiniteConj(m=-0.5, s=-10.0, sp=5.0, tt=15.0, f=3.333333333333)
+
+    Args:
+        arg1: first tuple of parameter key and value
+        arg2: secondtuple of parameter key and value
+
+    Returns:
+        :class:`FiniteConj` namedtuple
+
+    Raises:
+        ValueError: if tt/f < 4
+
+    """
     finite_parms = ['m', 's', 'sp', 'tt', 'f']
     if finite_parms.index(arg1[0]) > finite_parms.index(arg2[0]):
         arg1, arg2 = arg2, arg1
@@ -241,13 +326,15 @@ def do_finite_setup(arg1, arg2):
             tt = -f*(m - 1)**2/m
             s = tt/(m - 1)
             sp = m*s
+
     elif arg1[0] == 's':
+        # arrange calculations so that s=-inf is handled gracefully
         s = arg1[1]
         if arg2[0] == 'sp':
             sp = arg2[1]
+            f = 1/(1/sp - 1/s)
             m = sp/s
             tt = sp - s
-            f = s*sp/(s - sp)
         elif arg2[0] == 'tt':
             tt = arg2[1]
             m = 1 + tt/s
@@ -255,10 +342,12 @@ def do_finite_setup(arg1, arg2):
             f = s*sp/(s - sp)
         elif arg2[0] == 'f':
             f = arg2[1]
-            sp = s*f/(s + f)
-            m = sp/s
+            m = f/(s + f)
+            sp = 1/(1/f + 1/s)
             tt = sp - s
+
     elif arg1[0] == 'sp':
+        # arrange calculations so that sp=inf is handled gracefully
         sp = arg1[1]
         if arg2[0] == 'tt':
             tt = arg2[1]
@@ -267,8 +356,8 @@ def do_finite_setup(arg1, arg2):
             f = s*sp/(s - sp)
         elif arg2[0] == 'f':
             f = arg2[1]
-            s = sp*f/(f - sp)
-            m = sp/s
+            m = (f - sp)/f
+            s = 1/(1/sp - 1/f)
             tt = sp - s
     elif arg1[0] == 'tt':
         tt = arg1[1]
@@ -281,7 +370,7 @@ def do_finite_setup(arg1, arg2):
             s = tt/(m - 1)
             sp = m*s
 
-    return m, s, sp, tt, f
+    return FiniteConj(m, s, sp, tt, f)
 
 dispatch = {
   (PupilType.EPD, PupilType.FNO): SpecSheet.do_aperture_spec_to_efl,
