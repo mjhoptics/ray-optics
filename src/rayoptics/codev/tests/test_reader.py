@@ -1,32 +1,35 @@
 import unittest
-import reader
+from rayoptics.codev import reader
 
 
 class TestReadSeqBuffer(unittest.TestCase):
     def test_continuation_proc(self):
         inpt = ['ab&', 'cd&', 'ef', 'gh']
         outpt = reader.read_seq_buffer(inpt)
-        self.assertEqual(outpt, ['abcdef', 'gh'])
+        self.assertEqual(outpt, [['abcdef'], ['gh']])
 
     def test_eol_comment_precedence(self):
         inpt = ['ab; cd!ef; gh']
         outpt = reader.read_seq_buffer(inpt)
-        self.assertEqual(outpt, ['ab', 'cd'])
+        self.assertEqual(outpt, [['ab'], ['cd']])
 
     def test_end_of_cmd(self):
         inpt = ['ab; cd; ef', 'gh;ij& ', 'kl; mn']
         outpt = reader.read_seq_buffer(inpt)
-        self.assertEqual(outpt, ['ab', 'cd', 'ef', 'gh', 'ijkl', 'mn'])
+        self.assertEqual(outpt, [['ab'], ['cd'], ['ef'], ['gh'], ['ijkl'],
+                                 ['mn']])
 
     def test_spaces_as_delimiters(self):
         inpt = ['s &', '.07 10 ', 's & ', ' 0 .001']
         outpt = reader.read_seq_buffer(inpt)
-        self.assertEqual(outpt, ['s .07 10', 's  0 .001'])
+        self.assertEqual(outpt, [['s', '.07', '10'], ['s', '0', '.001']])
 
     def test_strip_comment_lines(self):
-        inpt = ['tit "this is a title"', ' ! this is a comment line', 'dim m', 'so 0 1e11 ! infinite object']
+        inpt = ['tit "this is a title"', ' ! this is a comment line', 'dim m',
+                'so 0 1e11 ! infinite object']
         outpt = reader.read_seq_buffer(inpt)
-        self.assertEqual(outpt, ['tit "this is a title"', 'dim m', 'so 0 1e11'])
+        self.assertEqual(outpt, [['tit', 'this is a title'], ['dim', 'm'],
+                                 ['so', '0', '1e11']])
 
     def test_empty_buffer(self):
         inpt = []
