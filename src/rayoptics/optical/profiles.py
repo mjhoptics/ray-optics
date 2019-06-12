@@ -165,8 +165,8 @@ class Spherical(SurfaceProfile):
         #  ax2 = 2a
         #  cx2 = 2c
         ax2 = self.cv
-        cx2 = self.cv * p.dot(p) - 2.0*p[2]
-        b = 2.0*self.cv * d.dot(p) - d[2]
+        cx2 = self.cv * p.dot(p) - 2*p[2]
+        b = self.cv * d.dot(p) - d[2]
         try:
             # Use z_dir to pick correct root
             s = cx2/(z_dir*sqrt(b*b - ax2*cx2) - b)
