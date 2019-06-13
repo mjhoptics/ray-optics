@@ -205,17 +205,17 @@ class SequentialModel:
         self.z_dir.insert(surf, self.z_dir[surf-1])
 #        self.rndx.insert(surf, self.rndx[surf-1])
 
-    def add_surface(self, surf):
+    def add_surface(self, surf_data, **kwargs):
         """ add a surface where surf is a list that contains:
             [curvature, thickness, refractive_index, v-number] """
-        s, g = self.create_surface_and_gap(surf)
+        mat = None
+        if len(surf_data) > 2:
+            if not isanumber(surf_data[2]):
+                if surf_data[2].upper() == 'REFL':
+                    mat = self.gaps[self.cur_surface-1].medium
+        s, g, rn, tfrm = create_surface_and_gap(surf_data, prev_medium=mat,
+                                                **kwargs)
         self.insert(s, g)
-
-    def update_surface(self, surf):
-        """ add a surface where surf is a list that contains:
-            [curvature, thickness, refractive_index, v-number] """
-
-        self.insert(*self.create_surface_and_gap(surf))
 
     def sync_to_restore(self, opt_model):
         self.opt_model = opt_model
@@ -269,50 +269,6 @@ class SequentialModel:
         s = surface.Surface()
         g = gap.Gap()
         self.insert(s, g)
-        return s, g
-
-    def create_surface_and_gap(self, surf_data):
-        """ create a surface and gap where surf_data is a list that contains:
-            [curvature, thickness, refractive_index, v-number] """
-        s = surface.Surface()
-
-        if self.opt_model.radius_mode:
-            if surf_data[0] != 0.0:
-                s.profile.cv = 1.0/surf_data[0]
-            else:
-                s.profile.cv = 0.0
-        else:
-            s.profile.cv = surf_data[0]
-
-        if len(surf_data) > 2:
-            if isanumber(surf_data[2]):
-                if len(surf_data) < 3:
-                    if surf_data[2] == 1.0:
-                        mat = m.Air()
-                    else:
-                        mat = m.Medium(surf_data[2])
-                else:
-                    mat = m.Glass(surf_data[2], surf_data[3], '')
-
-            else:
-                if surf_data[2].upper() == 'REFL':
-                    s.refract_mode = 'REFL'
-                    mat = self.gaps[self.cur_surface-1].medium
-                else:
-                    name, cat = surf_data[2], surf_data[3]
-                    try:
-                        mat = gfact.create_glass(name, cat)
-                    except ge.GlassNotFoundError as gerr:
-                        logging.info('%s glass data type %s not found',
-                                     gerr.catalog,
-                                     gerr.name)
-                        logging.info('Replacing material with air.')
-                        mat = m.Air()
-
-        else:  # only curvature and thickness entered, set material to air
-            mat = m.Air()
-
-        g = gap.Gap(surf_data[1], mat)
         return s, g
 
     def surface_label_list(self):
@@ -596,3 +552,96 @@ class SequentialModel:
                 before = after
 
         return tfrms
+
+
+def gen_sequence(surf_data_list, **kwargs):
+    """ create a sequence iterator from the surf_data_list
+
+    Args:
+        surf_data_list: a list of lists containing:
+                        [curvature, thickness, refractive_index, v-number]
+        **kwargs: keyword arguments
+
+    Returns:
+        (**ifcs**, **gaps**, **rndx**, **lcl_tfrms**, **z_dir**)
+    """
+    ifcs = []
+    gaps = []
+    rndx = []
+    lcl_tfrms = []
+    z_dir = []
+
+    for surf_data in surf_data_list:
+        s, g, rn, tfrm = create_surface_and_gap(surf_data, **kwargs)
+        ifcs.append(s)
+        gaps.append(g)
+        rndx.append(rn)
+        lcl_tfrms.append(tfrm)
+        z_dir.append(1.)
+
+    n_before = 1.0
+    z_dir_before = 1.0
+    for i, s in enumerate(ifcs):
+        z_dir_after = copysign(1.0, z_dir_before)
+        n_after = np.copysign(rndx[i], n_before)
+        if s.refract_mode == 'REFL':
+            n_after = -n_after
+            z_dir_after = -z_dir_after
+
+        n_before = n_after
+        rndx[i] = n_after
+        z_dir_before = z_dir_after
+        z_dir[i] = z_dir_after
+
+    seq = itertools.zip_longest(ifcs, gaps[:-2], rndx, lcl_tfrms, z_dir)
+    return seq
+
+
+def create_surface_and_gap(surf_data, radius_mode=False, prev_medium=None,
+                           wvl=550.0, **kwargs):
+    """ create a surface and gap where surf_data is a list that contains:
+        [curvature, thickness, refractive_index, v-number] """
+    s = surface.Surface()
+
+    if radius_mode:
+        if surf_data[0] != 0.0:
+            s.profile.cv = 1.0/surf_data[0]
+        else:
+            s.profile.cv = 0.0
+    else:
+        s.profile.cv = surf_data[0]
+
+    if len(surf_data) > 2:
+        if isanumber(surf_data[2]):
+            if len(surf_data) < 3:
+                if surf_data[2] == 1.0:
+                    mat = m.Air()
+                else:
+                    mat = m.Medium(surf_data[2])
+            else:
+                mat = m.Glass(surf_data[2], surf_data[3], '')
+
+        else:
+            if surf_data[2].upper() == 'REFL':
+                s.refract_mode = 'REFL'
+                mat = prev_medium
+            else:
+                name, cat = surf_data[2], surf_data[3]
+                try:
+                    mat = gfact.create_glass(name, cat)
+                except ge.GlassNotFoundError as gerr:
+                    logging.info('%s glass data type %s not found',
+                                 gerr.catalog,
+                                 gerr.name)
+                    logging.info('Replacing material with air.')
+                    mat = m.Air()
+
+    else:  # only curvature and thickness entered, set material to air
+        mat = m.Air()
+
+    thi = surf_data[1]
+    g = gap.Gap(thi, mat)
+    rndx = mat.rindex(wvl)
+    tfrm = np.identity(3), np.array([0., 0., thi])
+
+    return s, g, rndx, tfrm

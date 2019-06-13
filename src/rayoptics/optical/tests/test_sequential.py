@@ -8,10 +8,13 @@ Created on Wed Oct 18 10:59:29 2017
 
 
 import unittest
+import itertools
 import numpy as np
 import numpy.testing as npt
 from math import log10, pow
-import rayoptics.optical.sequential as seq
+from rayoptics.optical.sequential import gen_sequence
+from rayoptics.optical.raytrace import trace_raw
+from rayoptics.optical.traceerror import TraceError
 from rayoptics.util.misc_math import normalize
 
 import ag_dblgauss_s as dblg
@@ -20,16 +23,9 @@ import marginal_ray as f1r2
 
 class RayTraceTestCase(unittest.TestCase):
     def setUp(self):
-        self.ldm = seq.SequentialModel(None)
         # lump defocus into back focal distance
         dblg.ag_dblgauss[-2][1] += dblg.ag_dblgauss[-1][1]
         dblg.ag_dblgauss[-1][1] = 0.
-
-        self.ldm.gaps[0].thi = dblg.ag_dblgauss[0][1]
-        # self.ldm.sg.edge[0][1]['g'].thi = dblg.ag_dblgauss[0][1]
-        # self.ldm.sg.edges[0, 1]['g'].thi = dblg.ag_dblgauss[0][1]
-        for s in dblg.ag_dblgauss[1:]:
-            self.ldm.add_surface(s)
 
         self.p0 = np.array([0., 0., 0.])
         self.p1 = np.array([0., 0., dblg.ag_dblgauss[0][1]])
@@ -37,7 +33,12 @@ class RayTraceTestCase(unittest.TestCase):
         self.d0 = normalize((self.p1 + self.epd) - self.p0)
 
     def test_dbgauss_axial_ray(self):
-        ray, op_delta = self.ldm.trace(self.p0, self.d0, 587.6)
+        wv = 587.6
+        seq = gen_sequence(dblg.ag_dblgauss, wvl=wv, radius_mode=False)
+        try:
+            ray, op_delta, wvl = trace_raw(seq, self.p0, self.d0, wv)
+        except TraceError as ray_error:
+            ray = ray_error.ray
 
         def rel_err(v, def_err):
             if v == 0.:
