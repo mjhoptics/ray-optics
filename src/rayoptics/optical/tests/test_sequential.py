@@ -8,7 +8,6 @@ Created on Wed Oct 18 10:59:29 2017
 
 
 import unittest
-import itertools
 import numpy as np
 import numpy.testing as npt
 from math import log10, pow

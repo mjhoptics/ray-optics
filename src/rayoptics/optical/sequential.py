@@ -14,7 +14,6 @@ from . import gap
 from . import medium as m
 from . import raytrace as rt
 from . import trace as trace
-from .traceerror import TraceError, TraceMissedSurfaceError, TraceTIRError
 from . import transform as trns
 from rayoptics.optical.model_constants import Intfc, Gap, Indx, Tfrm, Zdir
 from opticalglass import glassfactory as gfact
@@ -208,12 +207,14 @@ class SequentialModel:
     def add_surface(self, surf_data, **kwargs):
         """ add a surface where surf is a list that contains:
             [curvature, thickness, refractive_index, v-number] """
+        radius_mode = self.opt_model.radius_mode
         mat = None
         if len(surf_data) > 2:
             if not isanumber(surf_data[2]):
                 if surf_data[2].upper() == 'REFL':
                     mat = self.gaps[self.cur_surface-1].medium
         s, g, rn, tfrm = create_surface_and_gap(surf_data, prev_medium=mat,
+                                                radius_mode=radius_mode,
                                                 **kwargs)
         self.insert(s, g)
 
