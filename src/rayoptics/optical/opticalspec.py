@@ -356,6 +356,7 @@ class Field:
         attrs = dict(vars(self))
         del attrs['chief_ray']
         del attrs['ref_sphere']
+        del attrs['pupil_rays']
         return attrs
 
     def __str__(self):

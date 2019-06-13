@@ -948,6 +948,7 @@
          }
         }
        ],
+       "value":3.5,
        "index_labels":[
         "axis",
         " 0.71y",
@@ -977,19 +978,61 @@
       {
        "__instance_type__":[
         "rayoptics.optical.elements",
+        "DummyInterface"
+       ],
+       "attributes":{
+        "label":"D1",
+        "render_color":[
+         192,
+         192,
+         192
+        ],
+        "idx":1,
+        "sd":0.9234416308817883
+       }
+      },
+      {
+       "__instance_type__":[
+        "rayoptics.optical.elements",
+        "AirGap"
+       ],
+       "attributes":{
+        "label":"AirGap D1-E1",
+        "idx":1
+       }
+      },
+      {
+       "__instance_type__":[
+        "rayoptics.optical.elements",
         "Element"
        ],
        "attributes":{
+        "label":"E1",
         "s1_indx":2,
         "s2_indx":3,
-        "sd":1.25,
+        "_sd":1.25,
         "flat1":null,
         "flat2":1.0863183163224912,
         "render_color":[
-         91,
-         174,
-         255
+         228,
+         237,
+         243,
+         64
+        ],
+        "edge_extent":[
+         -1.25,
+         1.25
         ]
+       }
+      },
+      {
+       "__instance_type__":[
+        "rayoptics.optical.elements",
+        "AirGap"
+       ],
+       "attributes":{
+        "label":"AirGap E1-E2",
+        "idx":3
        }
       },
       {
@@ -998,16 +1041,32 @@
         "Element"
        ],
        "attributes":{
+        "label":"E2",
         "s1_indx":4,
         "s2_indx":5,
-        "sd":1.75,
+        "_sd":1.75,
         "flat1":1.1336762299942154,
         "flat2":null,
         "render_color":[
-         255,
-         135,
-         62
+         253,
+         204,
+         138,
+         64
+        ],
+        "edge_extent":[
+         -1.75,
+         1.75
         ]
+       }
+      },
+      {
+       "__instance_type__":[
+        "rayoptics.optical.elements",
+        "AirGap"
+       ],
+       "attributes":{
+        "label":"AirGap E2-E3",
+        "idx":5
        }
       },
       {
@@ -1016,16 +1075,32 @@
         "Element"
        ],
        "attributes":{
+        "label":"E3",
         "s1_indx":6,
         "s2_indx":7,
-        "sd":2.5,
+        "_sd":2.5,
         "flat1":2.1,
         "flat2":2.3609459764272107,
         "render_color":[
-         200,
-         254,
-         255
+         184,
+         211,
+         230,
+         64
+        ],
+        "edge_extent":[
+         -2.5,
+         2.5
         ]
+       }
+      },
+      {
+       "__instance_type__":[
+        "rayoptics.optical.elements",
+        "AirGap"
+       ],
+       "attributes":{
+        "label":"AirGap E3-E4",
+        "idx":7
        }
       },
       {
@@ -1034,16 +1109,32 @@
         "Element"
        ],
        "attributes":{
+        "label":"E4",
         "s1_indx":8,
         "s2_indx":9,
-        "sd":3.0,
+        "_sd":3.0,
         "flat1":2.6,
         "flat2":null,
         "render_color":[
-         200,
-         254,
-         255
+         184,
+         211,
+         230,
+         64
+        ],
+        "edge_extent":[
+         -3.0,
+         3.0
         ]
+       }
+      },
+      {
+       "__instance_type__":[
+        "rayoptics.optical.elements",
+        "AirGap"
+       ],
+       "attributes":{
+        "label":"AirGap E4-E5",
+        "idx":9
        }
       },
       {
@@ -1052,16 +1143,48 @@
         "Element"
        ],
        "attributes":{
+        "label":"E5",
         "s1_indx":10,
         "s2_indx":11,
-        "sd":3.5,
+        "_sd":3.5,
         "flat1":null,
         "flat2":null,
         "render_color":[
-         157,
-         235,
-         255
+         184,
+         211,
+         230,
+         64
+        ],
+        "edge_extent":[
+         -3.5,
+         3.5
         ]
+       }
+      },
+      {
+       "__instance_type__":[
+        "rayoptics.optical.elements",
+        "AirGap"
+       ],
+       "attributes":{
+        "label":"AirGap E5-Image",
+        "idx":11
+       }
+      },
+      {
+       "__instance_type__":[
+        "rayoptics.optical.elements",
+        "DummyInterface"
+       ],
+       "attributes":{
+        "label":"Image",
+        "render_color":[
+         192,
+         192,
+         192
+        ],
+        "idx":12,
+        "sd":3.5438205453889724
        }
       }
      ]

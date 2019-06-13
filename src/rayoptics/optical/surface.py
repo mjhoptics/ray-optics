@@ -32,6 +32,7 @@ from math import sqrt
 import numpy as np
 import transforms3d as t3d
 from .model_enums import DecenterType as dec
+from rayoptics.optical.traceerror import TraceError
 
 
 class Interface:
@@ -189,13 +190,19 @@ class Surface(Interface):
             else:
                 sd_upr = edge_extent[1]
                 sd_lwr = edge_extent[0]
-            if dir<0:
+            if dir < 0:
                 sd_lwr, sd_upr = sd_upr, sd_lwr
-            sag = self.profile.sag(0, flat_id)
+
             prf = []
-            prf.append([sag, sd_lwr])
+            try:
+                sag = self.profile.sag(0, flat_id)
+            except TraceError:
+                sag = None
+            else:
+                prf.append([sag, sd_lwr])
             prf += self.profile.profile((flat_id,), dir, steps)
-            prf.append([sag, sd_upr])
+            if sag is not None:
+                prf.append([sag, sd_upr])
             return prf
 
     def intersect(self, p0, d, eps=1.0e-12, z_dir=1.0):

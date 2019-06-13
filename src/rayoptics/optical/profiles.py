@@ -11,7 +11,7 @@
 import numpy as np
 from math import sqrt, copysign, sin, atan2
 from rayoptics.util.misc_math import normalize
-from .traceerror import TraceMissedSurfaceError
+from .traceerror import TraceError, TraceMissedSurfaceError
 
 
 def resize_list(lst, new_length, null_item=None):
@@ -384,6 +384,17 @@ class Conic(SurfaceProfile):
         return prf
 
 
+def append_pt_to_2d_profile(surface_profile, y, poly_profile):
+    """ calc surface sag at y and append to poly if ok, else return None """
+    try:
+        z = surface_profile.sag(0, y)
+    except TraceError:
+        return None
+    else:
+        poly_profile.append([z, y])
+        return z
+
+
 def aspheric_profile(surface_profile, sd, dir=1, steps=21):
     if steps < 21:
         steps = 21
@@ -399,13 +410,10 @@ def aspheric_profile(surface_profile, sd, dir=1, steps=21):
     if surface_profile.max_nonzero_coef > 0 or surface_profile.cv != 0.0:
         delta = dir*(sd_upr-sd_lwr)/(2*steps)
         y = sd_lwr if dir > 0 else sd_upr
-        z = surface_profile.sag(0., y)
-        prf.append([z, y])
+        append_pt_to_2d_profile(surface_profile, y, prf)
         for i in range(2*steps):
             y += delta
-            z = surface_profile.sag(0., y)
-            prf.append([z, y])
-            # print(i, z, y)
+            append_pt_to_2d_profile(surface_profile, y, prf)
     else:
         prf.append([0, dir*sd_lwr])
         prf.append([0, dir*sd_upr])

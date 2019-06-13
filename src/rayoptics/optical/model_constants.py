@@ -11,6 +11,7 @@
 # sequential model data structures
 Intfc, Gap, Indx, Tfrm, Zdir = range(5)
 
+Surf, Gap = range(2)
 
 # paraxial optics data structures
 # 4 parts of paraxial model: axial ray, principal ray,

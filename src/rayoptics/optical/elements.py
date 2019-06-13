@@ -124,6 +124,8 @@ class Element():
         self.flat1 = None
         self.flat2 = None
         self.render_color = self.calc_render_color()
+        self.handles = {}
+        self.actions = {}
 
     @property
     def sd(self):
@@ -328,6 +330,8 @@ class Mirror():
         self.sd = sd
         self.flat = None
         self.thi = thi
+        self.handles = {}
+        self.actions = {}
 
     def get_thi(self):
         thi = self.thi
@@ -450,6 +454,8 @@ class ThinElement():
         self.intrfc = ifc
         self.intrfc_indx = idx
         self.sd = ifc.od
+        self.handles = {}
+        self.actions = {}
 
     def __json_encode__(self):
         attrs = dict(vars(self))
@@ -510,6 +516,8 @@ class DummyInterface():
             self.sd = sd
         else:
             self.sd = ifc.od
+        self.handles = {}
+        self.actions = {}
 
     def __json_encode__(self):
         attrs = dict(vars(self))
@@ -592,6 +600,8 @@ class AirGap():
         self.g = g
         self.ref_ifc = ref_ifc
         self.idx = idx
+        self.handles = {}
+        self.actions = {}
 
     def __json_encode__(self):
         attrs = dict(vars(self))
