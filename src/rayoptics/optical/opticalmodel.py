@@ -98,8 +98,8 @@ class OpticalModel:
     aperture, field of view, spectrum and focus.
     """
 
-    def __init__(self):
-        self.radius_mode = False
+    def __init__(self, radius_mode=False):
+        self.radius_mode = radius_mode
         self.system_spec = SystemSpec()
         self.seq_model = SequentialModel(self)
         self.optical_spec = OpticalSpecs(self)
