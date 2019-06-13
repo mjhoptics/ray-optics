@@ -11,6 +11,7 @@
 import math
 from collections import namedtuple
 
+
 from rayoptics.optical.model_enums import (PupilType, FieldType)
 
 IdealImager = namedtuple('IdealImager', ['m', 's', 'sp', 'tt', 'f'])
@@ -39,10 +40,10 @@ def ideal_imager_setup(**kwargs):
 
     Example::
 
-        In [3]: m1s1 = first_order_setup(m=-0.5, s=-10.0); m1s1
+        In [3]: m1s1 = ideal_imager_setup(m=-0.5, s=-10.0); m1s1
         Out[3]: IdealImager(m=-0.5, s=-10.0, sp=5.0, tt=15.0, f=3.333333333333)
 
-        In [4]: s_inf_efl = first_order_setup(s=-math.inf, f=25.0); s_inf_efl
+        In [4]: s_inf_efl = ideal_imager_setup(s=-math.inf, f=25.0); s_inf_efl
         Out[4]: IdealImager(m=-0.0, s=-inf, sp=25.0, tt=inf, f=25.0)
 
     Args:
