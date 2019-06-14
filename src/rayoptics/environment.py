@@ -21,12 +21,11 @@ from ipywidgets import interact, interactive, fixed, interact_manual
 from IPython.display import display
 
 # ray-optics
-import rayoptics as ro
+import rayoptics
 from rayoptics.gui.appmanager import AppManager, ModelInfo
 from rayoptics.gui.appcmds import create_new_model
 
 # optical model
-import rayoptics.optical.opticalmodel as om
 from rayoptics.optical.opticalmodel import OpticalModel, open_model
 
 import rayoptics.optical.surface as srf
@@ -62,6 +61,8 @@ from rayoptics.mpl.axisarrayfigure import Fit
 from rayoptics.mpl.axisarrayfigure import RayFanFigure
 from rayoptics.mpl.axisarrayfigure import SpotDiagramFigure
 from rayoptics.mpl.axisarrayfigure import WavefrontFigure
+
+from rayoptics.mpl import analysisplots
 
 # lens layout
 import rayoptics.mpl.lenslayoutfigure as lay

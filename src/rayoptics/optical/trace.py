@@ -247,18 +247,20 @@ def trace_boundary_rays(opt_model, **kwargs):
 
 
 def trace_ray_list_at_field(opt_model, ray_list, fld, wvl, foc):
-    rayset = pd.DataFrame(data=np.nan)
+    """ returns a list of ray |DataFrame|s for the ray_list at field fld """
+    rayset = []
     for p in ray_list:
         ray, op, wvl = trace_base(opt_model, p, fld, wvl)
-        rayset[(fld, wvl, foc, p)] = ray
-    return rayset
+        rayset.append(ray)
+    rdf_list = [ray_df(r) for r in rayset]
+    return rdf_list
 
 
-def trace_field(opt_model, fld, wvl):
+def trace_field(opt_model, fld, wvl, foc):
     """ returns a |DataFrame| with the boundary rays for field fld """
     osp = opt_model.optical_spec
-    rayset = trace_boundary_rays_at_field(opt_model, fld, wvl)
-    rdf_list = [ray_df(r[0]) for r in rayset]
+    pupil_rays = osp.pupil.pupil_rays
+    rdf_list = trace_ray_list_at_field(opt_model, pupil_rays, fld, wvl, foc)
     rset = pd.concat(rdf_list, keys=osp.pupil.ray_labels,
                      names=['pupil'])
     return rset
@@ -270,7 +272,7 @@ def trace_all_fields(opt_model):
     fld, wvl, foc = osp.lookup_fld_wvl_focus(0)
     fset = []
     for f in osp.field_of_view.fields:
-        rset = trace_field(opt_model, f, wvl)
+        rset = trace_field(opt_model, f, wvl, foc)
         fset.append(rset)
 
     fdf = pd.concat(fset, keys=osp.field_of_view.index_labels,
