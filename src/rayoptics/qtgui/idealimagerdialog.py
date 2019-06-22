@@ -23,12 +23,13 @@ class IdealImagerDialog(QDialog):
     NumGridRows = 3
     NumButtons = 4
 
-    def __init__(self, **kwargs):
+    def __init__(self, conjugate_type, imager=None, imager_inputs=None,
+                 **kwargs):
         super().__init__(**kwargs)
 
         self.dlog_attrs = {}
 
-        self.conjugate_type = 'infinite'
+        self.conjugate_type = conjugate_type
         self.conjugate_box = self.createConjugateBox(itype=self.conjugate_type)
 
         # setup finite conjugate defaults
@@ -60,9 +61,15 @@ class IdealImagerDialog(QDialog):
 
         self.setWindowTitle("Optical Spec Sheet")
 
-    def get_imager(self):
+    def get_imager_and_inputs(self):
         imager_groupbox = self.imager_stack[self.conjugate_type]
         return imager_groupbox.imager, imager_groupbox.imager_inputs
+
+    def set_imager_and_inputs(self, imager, inputs):
+        imager_groupbox = self.imager_stack[self.conjugate_type]
+        imager_groupbox.imager = imager
+        imager_groupbox.imager_inputs = inputs
+        imager_groupbox.update_values()
 
     def createConjugateBox(self, itype='infinite'):
         conjugate_box = QGroupBox("Conjugates")
@@ -103,6 +110,7 @@ class IdealImagerDialog(QDialog):
                 new_imager = list(new.imager)
                 for i, p in enumerate(prev.imager):
 #                    print(i, p, prev_enabled_list[i], new_enabled_list[i])
+                    # only transfer values if both items are enabled
                     if (prev_enabled_list[i] and new_enabled_list[i]):
                         new_imager[i] = p
                         key = prev.keys[i]
@@ -265,5 +273,5 @@ if __name__ == '__main__':
     import sys
 
     app = QApplication(sys.argv)
-    dialog = IdealImagerDialog()
+    dialog = IdealImagerDialog('infinite')
     dialog.exec()
