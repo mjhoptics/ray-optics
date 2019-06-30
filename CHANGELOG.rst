@@ -2,6 +2,11 @@
 Changelog
 =========
 
+Version 0.4.0
+=============
+
+Add initial version of Interactive Layout (Live Layout). Work in Progress...
+
 Version 0.3.5
 =============
 

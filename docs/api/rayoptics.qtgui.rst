@@ -20,6 +20,14 @@ rayoptics.qtgui.graphicsitems module
     :undoc-members:
     :show-inheritance:
 
+rayoptics.qtgui.idealimagerdialog module
+----------------------------------------
+
+.. automodule:: rayoptics.qtgui.idealimagerdialog
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 rayoptics.qtgui.ipyconsole module
 ---------------------------------
 
