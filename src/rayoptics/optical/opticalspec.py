@@ -26,6 +26,13 @@ class OpticalSpecs:
     spectrum and focal position.
 
     It maintains a repository of paraxial data.
+
+    Attributes:
+        spectral_region: instance of :class:`~.WvlSpec`
+        pupil: instance of :class:`~.PupilSpec`
+        field_of_view: instance of :class:`~.FieldSpec`
+        defocus: instance of :class:`~.FocusRange`
+        parax_data: tuple of :obj:`~.firstorder.ParaxData`
     """
 
     do_aiming_default = True

@@ -247,7 +247,7 @@ def trace_boundary_rays(opt_model, **kwargs):
 
 
 def trace_ray_list_at_field(opt_model, ray_list, fld, wvl, foc):
-    """ returns a list of ray |DataFrame|s for the ray_list at field fld """
+    """ returns a list of ray |DataFrame| for the ray_list at field fld """
     rayset = []
     for p in ray_list:
         ray, op, wvl = trace_base(opt_model, p, fld, wvl)

@@ -14,6 +14,13 @@ from rayoptics.optical.model_constants import ht, slp, aoi
 from rayoptics.optical.model_enums import PupilType, FieldType
 
 ParaxData = namedtuple('ParaxData', ['ax_ray', 'pr_ray', 'fod'])
+""" tuple grouping together paraxial rays and first order properties
+
+    Attributes:
+        ax_ray: axial marginal ray data, y, u, i
+        pr_ray: chief ray data, y, u, i
+        fod: instance of :class:`~.FirstOrderData`
+"""
 
 
 class FirstOrderData:

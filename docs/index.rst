@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-:tocdepth: 3
+:tocdepth: 4
 
 #######################
 RayOptics Documentation
@@ -28,6 +28,7 @@ RayOptics Documentation
    userguide/interactive
    userguide/qt
    examples/TripletExample
+   examples/EdmundLensImport/EdmundLensImport
 
 .. _user-docs:
 
@@ -42,7 +43,7 @@ RayOptics Documentation
 .. _dev-guide:
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Developer Guide
 
    Module Reference <api/modules>
