@@ -226,7 +226,7 @@ class SpectrumWavelengthsPanel(QWidget):
 class AperturePanel(QWidget):
     rootEvalStr = '.optical_spec.pupil'
     evalStr = '.value', '.pupil_type.value'
-    comboItems = ["F/#", "Ent Pupil Diam", "NA", "Object NA"]
+    comboItems = ["Ent Pupil Diam", "Object NA", "F/#", "NA"]
     set_combo_str = '.mutate_pupil_type(PupilType({}))'
 
     def __init__(self, gui_app, parent=None):

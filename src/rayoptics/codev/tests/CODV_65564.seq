@@ -1,0 +1,25 @@
+RDM;LEN       "VERSION: 11.2 SR1       LENS VERSION: 84       Creation Date: 01-May-2019"
+TITLE '65564 Achromatic Lens'
+EPD   1.0
+DIM   M
+WL    587.6
+REF   1
+WTW   1
+TEM   20.0
+INI   'EO '
+XAN   0.0
+YAN   0.0
+WTF   1.0
+VUY   0.0
+VLY   0.0
+SO    0.0 0.1e14
+S     0.8 0.5 NPSK53A_SCHOTT
+  STO
+  SLB "65564"
+  CIR 0.25
+S     -0.8 0.5 NLASF9_SCHOTT
+S     -4.500000000000004 0.9176749924408083
+  CIR 0.25
+  PIM
+SI    0.0 0.0
+GO 

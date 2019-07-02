@@ -8,6 +8,7 @@
 .. codeauthor: Michael J. Hayford
 """
 import logging
+import math
 
 from . import tla
 from . import reader as cvr
@@ -25,6 +26,15 @@ from opticalglass import glassfactory as gfact
 from opticalglass import glasserror as ge
 
 _tla = tla.MapTLA()
+
+
+def fictitious_glass_decode(gc):
+    ''' glass code parser, allowing for greater precision of n and v '''
+    rindex_part = int(gc)
+    magnitude = int(math.floor(math.log10(rindex_part))) + 1
+    n = 1.0 + rindex_part/10**magnitude
+    v = round(100.0*(gc - int(gc)), 6)
+    return n, v
 
 
 def read_lens(optm, filename):
@@ -129,7 +139,10 @@ def spec_data(optm, tla, qlist, dlist):
     if tla == "LEN":
         optm.reset()
     elif tla == "RDM":
-        optm.radius_mode = dlist[0]
+        if len(dlist) == 0:
+            optm.radius_mode = True
+        else:
+            optm.radius_mode = dlist[0]
     elif tla == "TIT":
         optm.system_spec.title = dlist[0]
     elif tla == "INI":
@@ -199,29 +212,51 @@ def update_surface_and_gap(opt_model, dlist, idx=None):
 
     if g:
         g.thi = dlist[1]
+
         if len(dlist) < 3:
             g.medium = m.Air()
-        elif dlist[2].upper() == 'REFL':
-            s.refract_mode = 'REFL'
-            g.medium = seq_model.gaps[seq_model.cur_surface-1].medium
-        elif isanumber(dlist[2]):
-            n, v = m.glass_decode(float(dlist[2]))
-            g.medium = m.Glass(n, v, '')
         else:
-            name, cat = dlist[2].split('_')
+            if dlist[2].upper() == 'REFL':
+                s.refract_mode = 'REFL'
+                g.medium = seq_model.gaps[seq_model.cur_surface-1].medium
+            else:
+                g.medium = process_glass_data(dlist[2])
+
+    else:
+        # at image surface, apply defocus to previous thickness
+        seq_model.gaps[idx-1].thi += dlist[1]
+
+
+def process_glass_data(glass_data):
+
+    if isanumber(glass_data):  # process as fictitious glass code
+        n, v = fictitious_glass_decode(float(glass_data))
+        medium = m.Glass(n, v, '')
+
+    else:  # look for glass name and optional catalog
+        name_cat = glass_data.split('_')
+        if len(name_cat) == 2:
+            name, cat = name_cat
+        elif len(name_cat) == 1:
+            name, cat = glass_data, None
+        if cat is not None:
             if cat.upper() == 'SCHOTT' and name[:1].upper() == 'N':
                 name = name[:1]+'-'+name[1:]
+            elif cat.upper() == 'OHARA' and name[:1].upper() == 'S':
+                name = name[:1]+'-'+name[1:]
+                if not name[-2:].isdigit() and name[-1].isdigit():
+                    name = name[:-1]+' '+name[-1]
             try:
-                g.medium = gfact.create_glass(name, cat)
+                medium = gfact.create_glass(name, cat)
             except ge.GlassNotFoundError as gerr:
                 logging.info('%s glass data type %s not found',
                              gerr.catalog,
                              gerr.name)
                 logging.info('Replacing material with air.')
-                g.medium = m.Air()
-    else:
-        # at image surface, apply defocus to previous thickness
-        seq_model.gaps[idx-1].thi += dlist[1]
+                medium = m.Air()
+        else:  # name with no data. default to crown glass
+            medium = m.Glass(1.5, 60.0, name)
+    return medium
 
 
 def surface_data(optm, tla, qlist, dlist):
@@ -229,7 +264,9 @@ def surface_data(optm, tla, qlist, dlist):
     idx = get_index_qualifier(seq_model, 'S', qlist)
     if not idx:
         idx = seq_model.cur_surface
-    if tla == 'STO':
+    if tla == 'SLB':
+        seq_model.ifcs[idx].label = dlist[0]
+    elif tla == 'STO':
         seq_model.stop_surface = idx
     elif tla == 'THI':
         seq_model.gaps[idx].thi = dlist[0]
