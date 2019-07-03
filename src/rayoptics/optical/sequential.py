@@ -149,7 +149,8 @@ class SequentialModel:
             ri = []
             mat = g.medium
             for w in wvls:
-                ri.append(mat.rindex(w))
+                rndx = mat.rindex(w)
+                ri.append(rndx)
             indices.append(ri)
         indices.append(indices[-1])
 

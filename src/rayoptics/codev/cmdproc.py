@@ -19,13 +19,19 @@ from rayoptics.optical.model_enums import DecenterType as dec
 from rayoptics.optical.surface import (DecenterData, Circular, Rectangular,
                                        Elliptical)
 from rayoptics.optical import profiles
-from rayoptics.optical import medium as m
+from rayoptics.optical.medium import Air, Glass, InterpolatedGlass
 from rayoptics.util.misc_math import isanumber
 
 from opticalglass import glassfactory as gfact
 from opticalglass import glasserror as ge
 
 _tla = tla.MapTLA()
+
+# Support for CODE V private catalog materials. 
+# Should this be in OpticalModel?
+_reading_private_catalog = False
+_private_catalog_wvls = None
+_private_catalog_glasses = {}
 
 
 def fictitious_glass_decode(gc):
@@ -38,9 +44,11 @@ def fictitious_glass_decode(gc):
 
 
 def read_lens(optm, filename):
+    global _reading_private_catalog
     logging.basicConfig(filename='cv_cmd_proc.log',
                         filemode='w',
                         level=logging.DEBUG)
+    _reading_private_catalog = False
     cmds = cvr.read_seq_file(filename)
     for i, c in enumerate(cmds):
         cmd_fct, tla, qlist, dlist = process_command(c)
@@ -54,6 +62,7 @@ def read_lens(optm, filename):
 
 
 def process_command(cmd):
+    global _reading_private_catalog
     CmdFct, IndxQuals, DataType, Quals = range(4)
     tla = cmd[0][:3].upper()
     qlist = []
@@ -97,6 +106,14 @@ def process_command(cmd):
             dlist.append(cmd[3])  # glass
         if cmd_len > 4:
             dlist.append(cmd[4])  # rmd
+    elif _reading_private_catalog and isinstance(cmd[0], str):
+        global _private_catalog_wvls, _private_catalog_glasses
+        label = cmd[0]
+        for t in cmd[1:]:
+            dlist.append(eval("float("+t+")"))
+        prv_glass = InterpolatedGlass(label, wvls=_private_catalog_wvls,
+                                      rndx=dlist)
+        _private_catalog_glasses[label] = prv_glass
 
     return cmd_fct, tla, qlist, dlist
 
@@ -214,7 +231,7 @@ def update_surface_and_gap(opt_model, dlist, idx=None):
         g.thi = dlist[1]
 
         if len(dlist) < 3:
-            g.medium = m.Air()
+            g.medium = Air()
         else:
             if dlist[2].upper() == 'REFL':
                 s.refract_mode = 'REFL'
@@ -228,10 +245,10 @@ def update_surface_and_gap(opt_model, dlist, idx=None):
 
 
 def process_glass_data(glass_data):
-
+    """ process GLA string for fictitious, catalog or private catalog glass """
     if isanumber(glass_data):  # process as fictitious glass code
         n, v = fictitious_glass_decode(float(glass_data))
-        medium = m.Glass(n, v, '')
+        medium = Glass(n, v, '')
 
     else:  # look for glass name and optional catalog
         name_cat = glass_data.split('_')
@@ -253,10 +270,27 @@ def process_glass_data(glass_data):
                              gerr.catalog,
                              gerr.name)
                 logging.info('Replacing material with air.')
-                medium = m.Air()
+                medium = Air()
         else:  # name with no data. default to crown glass
-            medium = m.Glass(1.5, 60.0, name)
+            global _private_catalog_glasses
+            if name in _private_catalog_glasses:
+                medium = _private_catalog_glasses[name]
+            else:
+                medium = Glass(1.5, 60.0, name)
     return medium
+
+
+def private_catalog(optm, tla, qlist, dlist):
+    global _reading_private_catalog, _private_catalog_wvls
+    if tla == "PRV":
+        _reading_private_catalog = True
+    elif tla == "PWL":
+        _private_catalog_wvls = dlist
+    elif tla == "END":
+        _reading_private_catalog = False
+        _private_catalog_wvls = None
+
+    log_cmd("private_catalog", tla, qlist, dlist)
 
 
 def surface_data(optm, tla, qlist, dlist):

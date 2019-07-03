@@ -8,6 +8,10 @@
 .. codeauthor: Michael J. Hayford
 """
 
+from scipy.interpolate import interp1d
+
+from rayoptics.util.spectral_lines import spectra
+
 
 def glass_encode(n, v):
     return str(1000*round((n - 1), 3) + round(v/100, 3))
@@ -76,3 +80,60 @@ class Glass(Medium):
 
     def rindex(self, wv_nm):
         return self.n
+
+
+class InterpolatedGlass():
+    """ Optical medium defined by a list of wavelength/index pairs
+
+    Attributes:
+        label: required string identifier for the material
+        wvls: list of wavelenghts in nm, used as x axis
+        rndx: list of refractive indices corresponding to the values in wvls
+        rindex_interp: the interpolation function
+    """
+    def __init__(self, label, pairs=None, rndx=None, wvls=None):
+        self.label = label
+        if pairs is not None:
+            self.wvls = []
+            self.rndx = []
+            for w, n in pairs:
+                self.wvls.append(w)
+                self.rndx.append(n)
+        else:
+            self.wvls = wvls
+            self.rndx = rndx
+        self.update()
+
+    def __repr__(self):
+        return ('InterpolatedGlass(' + repr(self.label) +
+                ', wvls=' + repr(self.wvls) +
+                ', rndx=' + repr(self.rndx) + ')')
+
+    def __json_encode__(self):
+        attrs = dict(vars(self))
+        del attrs['rindex_interp']
+        return attrs
+
+    def sync_to_restore(self):
+        """ rebuild interpolating function """
+        self.update()
+
+    def update(self):
+        self.rindex_interp = interp1d(self.wvls, self.rndx, kind='cubic',
+                                      assume_sorted=False)
+
+    def glass_code(self):
+        nd = self.rindex_interp(spectra['d'])
+        nF = self.rindex_interp(spectra['F'])
+        nC = self.rindex_interp(spectra['C'])
+        vd = (nd - 1)/(nF - nC)
+        return str(glass_encode(nd, vd))
+
+    def name(self):
+        if self.label == '':
+            return self.glass_code()
+        else:
+            return self.label
+
+    def rindex(self, wv_nm):
+        return float(self.rindex_interp(wv_nm))
