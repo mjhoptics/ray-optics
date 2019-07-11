@@ -212,7 +212,8 @@ class Surface(Interface):
         return self.profile.normal(p)
 
     def phase(self, pt, d_in, normal, wl):
-        pass
+        if hasattr(self, 'phase_element'):
+            return self.phase_element.phase(pt, d_in, normal, wl=wl)
 
 
 class DecenterData():

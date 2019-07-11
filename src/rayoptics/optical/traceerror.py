@@ -31,6 +31,17 @@ class TraceTIRError(TraceError):
         self.follow_indx = follow_indx
 
 
+class TraceEvanescentRayError(TraceError):
+    """ Exception raised when ray diffracts evanescently at a surface """
+    def __init__(self, ifc, int_pt, inc_dir, normal, prev_indx, follow_indx):
+        self.ifc = ifc
+        self.int_pt = int_pt
+        self.inc_dir = inc_dir
+        self.normal = normal
+        self.prev_indx = prev_indx
+        self.follow_indx = follow_indx
+
+
 class TraceRayBlockedError(TraceError):
     """ Exception raised when ray is blocked by an aperture on a surface """
     def __init__(self, ifc, int_pt, inc_dir, prev_indx, follow_indx):

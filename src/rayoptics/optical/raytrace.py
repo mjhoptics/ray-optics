@@ -40,14 +40,13 @@ def reflect(d_in, normal):
     return d_out
 
 
-def phase(intrfc, inc_pt, d_in, normal, wvl, n_in, n_out):
+def phase(ifc, inc_pt, d_in, normal, wvl, n_in, n_out):
     """ apply phase shift to incoming direction, d_in, about normal """
     try:
-        d_out, dW = intrfc.phase(inc_pt, d_in, normal, wvl)
+        d_out, dW = ifc.phase(inc_pt, d_in, normal, wvl)
         return d_out, dW
     except ValueError:
-        # probably should raise a TraceEvanescentRayError...
-        raise TraceTIRError(d_in, normal, n_in, n_out)
+        raise TraceEvanescentRayError(ifc, inc_pt, d_in, normal, n_in, n_out)
 
 
 def trace(seq_model, pt0, dir0, wvl, **kwargs):
@@ -154,8 +153,9 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12):
             if ifc.refract_mode == 'REFL':
                 after_dir = reflect(b4_dir, normal)
             elif ifc.refract_mode == 'PHASE':
-                after_dir, phs = phase(ifc, inc_pt, b4_dir, normal, wvl,
+                doe_dir, phs = phase(ifc, inc_pt, b4_dir, normal, wvl,
                                        n_before, n_after)
+                after_dir = bend(doe_dir, normal, n_before, n_after)
                 op_delta += phs
             else:
                 after_dir = bend(b4_dir, normal, n_before, n_after)

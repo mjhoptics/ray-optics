@@ -19,6 +19,7 @@ from rayoptics.optical.model_enums import DecenterType as dec
 from rayoptics.optical.surface import (DecenterData, Circular, Rectangular,
                                        Elliptical)
 from rayoptics.optical import profiles
+from rayoptics.optical import doe
 from rayoptics.optical.medium import Air, Glass, InterpolatedGlass
 from rayoptics.optical.opticalspec import Field
 from rayoptics.util.misc_math import isanumber
@@ -501,3 +502,46 @@ def decenter_data(optm, tla, qlist, dlist):
     decenter.update()
 
     log_cmd("decenter_data", tla, qlist, dlist)
+
+
+#  DIF DOE
+#  HOR 1.0
+#  HWL 587.5618; HCT R
+#  HCO C1 -0.001807322521767816; HCC C1 100
+def diffractive_optic(optm, tla, qlist, dlist):
+    seq_model = optm.seq_model
+    idx = get_index_qualifier(seq_model, 'S', qlist)
+    if not idx:
+        idx = seq_model.cur_surface
+    ifc = seq_model.ifcs[idx]
+
+    if tla == "DIF":
+        for q in qlist:
+            if "DOE" == q[0]:
+                ifc.phase_element = doe.DiffractiveElement()
+                ifc.refract_mode = 'PHASE'
+    elif tla == "HOR":
+        if hasattr(ifc, 'phase_element'):
+            ifc.phase_element.order = dlist[0]
+    elif tla == "HWL":
+        if hasattr(ifc, 'phase_element'):
+            ifc.phase_element.ref_wl = dlist[0]
+    elif tla == "HCT":
+        if hasattr(ifc, 'phase_element'):
+            for q in qlist:
+                if "R" == q[0]:
+                    ifc.phase_element.phase_fct = doe.radial_phase_fct
+    elif tla == "HCO":
+        cidx = get_index_qualifier(seq_model, 'C', qlist)[0]
+        if hasattr(ifc, 'phase_element'):
+            num_coefs = len(ifc.phase_element.coefficients)
+            coefs = ifc.phase_element.coefficients
+            if cidx <= num_coefs:
+                coefs[cidx-1] = dlist[0]
+            elif cidx == num_coefs + 1:
+                coefs.append(dlist[0])
+            else:
+                coefs.extend([0.]*(cidx - num_coefs))
+                coefs[cidx-1] = dlist[0]
+
+    log_cmd("diffractive_optic", tla, qlist, dlist)

@@ -9,50 +9,9 @@
 """
 
 
-from math import sqrt
 import numpy as np
-from rayoptics.util.misc_math import normalize
 from rayoptics.optical.surface import Interface
-
-
-class HolographicElement:
-    def __init__(self, lbl=''):
-        self.label = lbl
-        self.ref_pt = np.array([0., 0., -1e10])
-        self.ref_virtual = False
-        self.obj_pt = np.array([0., 0., -1e10])
-        self.obj_virtual = False
-        self.ref_wl = 550.0
-
-    def list_hoe(self):
-        print("ref_pt: {:12.5f} {:12.5f} {:12.5f} {}"
-              .format(self.ref_pt[0], self.ref_pt[1], self.ref_pt[2],
-                      self.ref_virtual))
-        print("obj_pt: {:12.5f} {:12.5f} {:12.5f} {}"
-              .format(self.obj_pt[0], self.obj_pt[1], self.obj_pt[2],
-                      self.obj_virtual))
-
-    def phase(self, pt, in_dir, srf_nrml, wl=None):
-        normal = normalize(srf_nrml)
-        ref_dir = normalize(pt - self.ref_pt)
-        if self.ref_virtual:
-            ref_dir = -ref_dir
-        ref_cosI = np.dot(ref_dir, normal)
-        obj_dir = normalize(pt - self.obj_pt)
-        if self.obj_virtual:
-            obj_dir = -obj_dir
-        obj_cosI = np.dot(obj_dir, normal)
-        in_cosI = np.dot(in_dir, normal)
-        mu = 1.0 if wl is None else wl/self.ref_wl
-        b = in_cosI + mu*(obj_cosI - ref_cosI)
-        refp_cosI = np.dot(ref_dir, in_dir)
-        objp_cosI = np.dot(obj_dir, in_dir)
-        ro_cosI = np.dot(ref_dir, obj_dir)
-        c = mu*(mu*(1.0 - ro_cosI) + (objp_cosI - refp_cosI))
-        Q = -b + sqrt(b*b - 2*c)
-        out_dir = in_dir + mu*(obj_dir - ref_dir) + Q*normal
-        dW = 0.
-        return out_dir, dW
+from rayoptics.optical.doe import HolographicElement
 
 
 class ThinLens(Interface):
