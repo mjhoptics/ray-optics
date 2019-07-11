@@ -13,13 +13,14 @@ import math
 from . import tla
 from . import reader as cvr
 
-from rayoptics.optical.model_enums import PupilType
+from rayoptics.optical.model_enums import PupilType, FieldType
 from rayoptics.optical.model_enums import DimensionType as dt
 from rayoptics.optical.model_enums import DecenterType as dec
 from rayoptics.optical.surface import (DecenterData, Circular, Rectangular,
                                        Elliptical)
 from rayoptics.optical import profiles
 from rayoptics.optical.medium import Air, Glass, InterpolatedGlass
+from rayoptics.optical.opticalspec import Field
 from rayoptics.util.misc_math import isanumber
 
 from opticalglass import glassfactory as gfact
@@ -143,11 +144,26 @@ def pupil_spec_data(optm, tla, qlist, dlist):
 
 
 def field_spec_data(optm, tla, qlist, dlist):
-    osp = optm.optical_spec
-    if tla == "WID":
-        osp.field_of_view.wide_angle = dlist[0]
-    else:
-        osp.field_of_view.update_fields_cv_input(tla, dlist)
+    fov = optm.optical_spec.field_of_view
+    if tla == 'XOB' or tla == 'YOB':
+        fov.field_type = FieldType.OBJ_HT
+    elif tla == 'XAN' or tla == 'YAN':
+        fov.field_type = FieldType.OBJ_ANG
+    elif tla == 'XIM' or tla == 'YIM':
+        fov.field_type = FieldType.IMG_HT
+
+    if len(fov.fields) != len(dlist):
+        fov.fields = [Field() for f in range(len(dlist))]
+
+    if tla[0] == 'V':
+        attr = tla.lower()
+    elif tla[0] == 'X' or tla[0] == 'Y':
+        attr = tla[0].lower()
+    elif tla == 'WTF':
+        attr = 'wt'
+
+    for i, f in enumerate(fov.fields):
+        f.__setattr__(attr, dlist[i])
 
     log_cmd("field_spec_data", tla, qlist, dlist)
 

@@ -291,27 +291,6 @@ class FieldSpec:
                     self.value = fod.img_ht
         self.field_type = new_field_type
 
-    def update_fields_cv_input(self, tla, dlist):
-        if tla == 'XOB' or tla == 'YOB':
-            self.field_type = FieldType.OBJ_HT
-        elif tla == 'XAN' or tla == 'YAN':
-            self.field_type = FieldType.OBJ_ANG
-        elif tla == 'XIM' or tla == 'YIM':
-            self.field_type = FieldType.IMG_HT
-
-        if len(self.fields) != len(dlist):
-            self.fields = [Field() for f in range(len(dlist))]
-
-        if tla[0] == 'V':
-            attr = tla.lower()
-        elif tla[0] == 'X' or tla[0] == 'Y':
-            attr = tla[0].lower()
-        elif tla == 'WTF':
-            attr = 'wt'
-
-        for i, f in enumerate(self.fields):
-            f.__setattr__(attr, dlist[i])
-
     def max_field(self):
         """ calculates the maximum field of view
 
