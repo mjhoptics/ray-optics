@@ -488,8 +488,9 @@ class EvenPolynomial(SurfaceProfile):
                                            str(self.cc)
 
     def __repr__(self):
-        return "Profile({}: c={}, cc={}".format(type(self).__name__,
-                                                self.cv, self.cc)
+        return (type(self).__name__ + '(c=' + repr(self.cv) +
+                ', cc=' + repr(self.cc) +
+                ', coefs=' + repr(self.coefs) + ')')
 
     def copyFrom(self, other):
         dispatch[type(self), type(other)](self, other)
@@ -662,8 +663,9 @@ class RadialPolynomial(SurfaceProfile):
                                            str(self.ec)
 
     def __repr__(self):
-        return "Profile({}: c={}, ec={}".format(type(self).__name__,
-                                                self.cv, self.ec)
+        return (type(self).__name__ + '(c=' + repr(self.cv) +
+                ', ec=' + repr(self.ec) +
+                ', coefs=' + repr(self.coefs) + ')')
 
     def copyFrom(self, other):
         dispatch[type(self), type(other)](self, other)
