@@ -3,12 +3,12 @@
 # Copyright © 2019 Michael J. Hayford
 """ Module for diffractive/holographic optical elements
 
-.. Created on Fri Jul  5 11:27:13 2019
+    The :class:`~.DiffractiveElement` and :class:`~.HolographicElement`
+    implementations are patterned after Wang, et al, `Ray tracing and wave
+    aberration calculation for diffractive optical elements
+    <https://doi.org/10.1117/1.600780>`_
 
-   The :class:`~.DiffractiveElement` and :class:`~.HolographicElement`
-   implementations are patterned after `Wang, et al, Ray tracing and wave
-   aberration calculation for diffractive optical elements
-   <https://doi.org/10.1117/1.600780>`_
+.. Created on Fri Jul  5 11:27:13 2019
 
 .. codeauthor: Michael J. Hayford
 """
@@ -89,8 +89,8 @@ class DiffractiveElement:
 
 
 class HolographicElement:
-    def __init__(self, lbl=''):
-        self.label = lbl
+    def __init__(self, label=''):
+        self.label = label
         self.ref_pt = np.array([0., 0., -1e10])
         self.ref_virtual = False
         self.obj_pt = np.array([0., 0., -1e10])

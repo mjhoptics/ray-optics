@@ -4,6 +4,14 @@ rayoptics.optical package
 Submodules
 ----------
 
+rayoptics.optical.doe module
+----------------------------
+
+.. automodule:: rayoptics.optical.doe
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 rayoptics.optical.elements module
 ---------------------------------
 
