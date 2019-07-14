@@ -18,6 +18,7 @@ import rayoptics.util.rgbtable as rgbt
 import rayoptics.optical.thinlens as thinlens
 from rayoptics.optical.profiles import Spherical, Conic
 from rayoptics.optical.surface import Surface
+from rayoptics.optical.surface import InteractionMode as imode
 from rayoptics.optical.gap import Gap
 from rayoptics.gui.actions import Action, AttrAction, SagAction, BendAction
 from rayoptics.optical.medium import Glass, glass_decode
@@ -61,7 +62,7 @@ def create_mirror(c=0.0, r=None, cc=0.0, ec=None, profile=None):
         else:
             prf = Conic(c=cv, cc=k)
 
-    m = Surface(profile=prf, refract_mode='REFL')
+    m = Surface(profile=prf, interact_mode=imode.Reflect)
     me = Mirror(m)
     return ([m], []), [me]
 
@@ -510,7 +511,7 @@ class DummyInterface():
             self.tfrm = tfrm
         else:
             self.trfm = (np.identity(3), np.array([0., 0., 0.]))
-        self.ifc = ifc
+        self.ref_ifc = ifc
         self.idx = idx
         if sd is not None:
             self.sd = sd
@@ -523,31 +524,31 @@ class DummyInterface():
         attrs = dict(vars(self))
         del attrs['parent']
         del attrs['tfrm']
-        del attrs['ifc']
+        del attrs['ref_ifc']
         del attrs['handles']
         del attrs['actions']
         return attrs
 
     def __str__(self):
-        return str(self.ifc)
+        return str(self.ref_ifc)
 
     def sync_to_restore(self, ele_model, surfs, gaps, tfrms):
         self.parent = ele_model
         self.tfrm = tfrms[self.idx]
-        self.ifc = surfs[self.idx]
+        self.ref_ifc = surfs[self.idx]
 
     def reference_interface(self):
-        return self.ifc
+        return self.ref_ifc
 
     def sync_to_update(self, seq_model):
-        self.idx = seq_model.ifcs.index(self.ifc)
+        self.idx = seq_model.ifcs.index(self.ref_ifc)
 
     def update_size(self):
-        self.sd = self.ifc.surface_od()
+        self.sd = self.ref_ifc.surface_od()
         return self.sd
 
     def render_shape(self):
-        poly = self.ifc.full_profile((-self.sd, self.sd))
+        poly = self.ref_ifc.full_profile((-self.sd, self.sd))
         return poly
 
     def render_handles(self, opt_model):
@@ -619,7 +620,7 @@ class AirGap():
     def sync_to_restore(self, ele_model, surfs, gaps, tfrms):
         self.parent = ele_model
         self.g = gaps[self.idx]
-        self.ifc = surfs[self.idx]
+        self.ref_ifc = surfs[self.idx]
         self.tfrm = tfrms[self.idx]
 
     def reference_interface(self):
@@ -702,10 +703,9 @@ class ElementModel:
                                         num_elements, add_ele=True)
             else:  # a non-air medium
                 # handle buried mirror, e.g. prism or Mangin mirror
-                if s1.refract_mode is 'REFL':
+                if s1.interact_mode == imode.Reflect:
                     gp = seq_model.gaps[i-1]
                     if gp.medium.name().lower() == g.medium.name().lower():
-#                        self.elements[-1].gaps.append(g)
                         continue
 
                 s2 = seq_model.ifcs[i+1]
@@ -718,17 +718,16 @@ class ElementModel:
         self.add_dummy_interface_at_image(seq_model, tfrms)
 
         self.relabel_airgaps()
-#        self.list_elements()
 
     def process_airgap(self, seq_model, i, g, s, tfrm, num_ele, add_ele=True):
-        if s.refract_mode is 'REFL' and add_ele:
+        if s.interact_mode == imode.Reflect and add_ele:
             sd = s.surface_od()
             z_dir = seq_model.z_dir[i]
             m = Mirror(s, sd=sd, tfrm=tfrm, idx=i, z_dir=z_dir)
             num_ele += 1
             m.label = Mirror.label_format.format(num_ele)
             self.add_element(m)
-        elif s.refract_mode is '':
+        elif s.interact_mode is imode.Transmit:
             add_dummy = False
             if i == 0:
                 add_dummy = True  # add dummy for the object

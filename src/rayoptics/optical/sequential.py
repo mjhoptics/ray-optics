@@ -15,6 +15,7 @@ from . import medium as m
 from . import raytrace as rt
 from . import trace as trace
 from . import transform as trns
+from rayoptics.optical.surface import InteractionMode as imode
 from rayoptics.optical.model_constants import Intfc, Gap, Indx, Tfrm, Zdir
 from opticalglass import glassfactory as gfact
 from opticalglass import glasserror as ge
@@ -247,7 +248,7 @@ class SequentialModel:
         for i, s in enumerate(self.ifcs):
             z_dir_after = copysign(1.0, z_dir_before)
             n_after = np.copysign(self.rndx.iloc[i], n_before)
-            if s.refract_mode == 'REFL':
+            if s.interact_mode == imode.Reflect:
                 n_after = -n_after
                 z_dir_after = -z_dir_after
 
@@ -586,7 +587,7 @@ def gen_sequence(surf_data_list, **kwargs):
     for i, s in enumerate(ifcs):
         z_dir_after = copysign(1.0, z_dir_before)
         n_after = np.copysign(rndx[i], n_before)
-        if s.refract_mode == 'REFL':
+        if s.interact_mode == imode.Reflect:
             n_after = -n_after
             z_dir_after = -z_dir_after
 
@@ -625,7 +626,7 @@ def create_surface_and_gap(surf_data, radius_mode=False, prev_medium=None,
 
         else:
             if surf_data[2].upper() == 'REFL':
-                s.refract_mode = 'REFL'
+                s.interact_mode = imode.Reflect
                 mat = prev_medium
             else:
                 name, cat = surf_data[2], surf_data[3]

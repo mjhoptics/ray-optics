@@ -20,14 +20,12 @@
 from collections import namedtuple
 import numpy as np
 
-from rayoptics.optical import gap
 from rayoptics.optical import transform
 from rayoptics.optical.profiles import Spherical, Conic
 from rayoptics.optical.trace import (trace_boundary_rays_at_field,
                                      boundary_ray_dict, RaySeg)
 from rayoptics.optical.elements import (create_thinlens, create_mirror,
-                                        create_lens, create_air_gap,
-                                        insert_ifc_gp_ele)
+                                        create_lens, insert_ifc_gp_ele)
 import rayoptics.optical.model_constants as mc
 from rayoptics.mpl.interactivelayout import rgb2mpl
 from rayoptics.gui import appcmds

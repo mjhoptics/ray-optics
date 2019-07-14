@@ -9,6 +9,7 @@
 """
 import math
 from collections import namedtuple
+from rayoptics.optical.surface import InteractionMode as imode
 from rayoptics.optical.model_constants import Intfc, Gap, Indx
 from rayoptics.optical.model_constants import ht, slp, aoi
 from rayoptics.optical.model_enums import PupilType, FieldType
@@ -143,14 +144,14 @@ def paraxial_trace(path, start, start_yu, start_yu_bar):
 
             # Refraction/Reflection
             srf = after[Intfc]
-            if srf.refract_mode == 'REFL':
+            if srf.interact_mode == imode.Reflect:
                 k = -1.0
                 n_after = -n_after
             else:
                 k = n_before/n_after
 
 #            cv = srf.profile.cv
-##            print(cv, t, srf.refract_mode, n_before, n_after)
+##            print(cv, t, srf.interact_mode, n_before, n_after)
 #
 #            # calculate angle of incidence (aoi)
 #            aoi = b4_yui[slp] + cur_ht * cv

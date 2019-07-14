@@ -15,6 +15,7 @@ from rayoptics.optical.model_constants import ht, slp, aoi
 from rayoptics.optical.model_constants import pwr, tau, indx, rmd
 from rayoptics.optical.model_constants import Intfc, Gap, Indx
 from rayoptics.optical.elements import insert_ifc_gp_ele
+from rayoptics.optical.surface import InteractionMode as imode
 
 ParaxData = namedtuple('ParaxData', ['ht', 'slp', 'aoi'])
 """ paraxial ray data at an interface
@@ -92,8 +93,8 @@ class ParaxialModel():
         seq, ele = factory()
         insert_ifc_gp_ele(self.opt_model, seq, ele, idx=surf)
 
-        self.sys[new_surf][rmd] = seq[0][0].refract_mode
-        if seq[0][0].refract_mode == 'REFL':
+        self.sys[new_surf][rmd] = seq[0][0].interact_mode
+        if seq[0][0].interact_mode == imode.Reflect:
             self.sys[new_surf][indx] = -self.sys[new_surf][indx]
 
     def delete_node(self, surf):
@@ -242,10 +243,10 @@ class ParaxialModel():
             print("{}: {:12.5g}  {:12.6g}".format(i, pr_ray[i][ht],
                   pr_ray[i][slp]))
 
-        print("\n          power           tau        index    type")
+        print("\n           power           tau        index    type")
         for i in range(0, len(sys)):
-            print("{}: {:12.7g}  {:12.5g} {:12.5f}    {}".format(i,
-                  sys[i][pwr], sys[i][tau], sys[i][indx], sys[i][rmd]))
+            print("{}: {:13.7g}  {:12.5g} {:12.5f}    {}".format(i,
+                  sys[i][pwr], sys[i][tau], sys[i][indx], sys[i][rmd].name))
 
     def seq_model_to_paraxial_lens(self):
         """ returns lists of power, reduced thickness, signed index and refract
@@ -256,11 +257,11 @@ class ParaxialModel():
             if sg[Gap]:
                 n_after = sg[Indx]
                 tau = sg[Gap].thi/n_after
-                rmode = sg[Intfc].refract_mode
+                rmode = sg[Intfc].interact_mode
                 power = sg[Intfc].optical_power
                 sys.append([power, tau, n_after, rmode])
             else:
-                sys.append([0.0, 0.0, n_after, rmode])
+                sys.append([0.0, 0.0, n_after, sg[Intfc].interact_mode])
         return sys
 
     def paraxial_lens_to_seq_model(self):

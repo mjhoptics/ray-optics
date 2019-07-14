@@ -11,13 +11,14 @@
 
 import numpy as np
 from rayoptics.optical.surface import Interface
+from rayoptics.optical.surface import InteractionMode as imode
 from rayoptics.optical.doe import HolographicElement
 
 
 class ThinLens(Interface):
     def __init__(self, lbl='', power=0.0, ref_index=1.5, **kwargs):
-        super().__init__(refract_mode='PHASE', **kwargs)
-        self.phase_mapper = HolographicElement()
+        super().__init__(interact_mode=imode.Transmit, **kwargs)
+        self.phase_element = HolographicElement()
         self.label = lbl
         self.optical_power = power
         self.ref_index = ref_index
@@ -28,7 +29,7 @@ class ThinLens(Interface):
         if len(self.label) > 0:
             print(self.label)
         print("power: {:12.6g}".format(self.optical_power))
-        self.phase_mapper.list_hoe()
+        self.phase_element.list_hoe()
 
     def __repr__(self):
         if len(self.label) > 0:
@@ -75,14 +76,14 @@ class ThinLens(Interface):
     @optical_power.setter
     def optical_power(self, pwr):
 #        print("optical_power {}: pwr={}, {} obj={}, {}".format(self.label,
-#              self._power, pwr, self.phase_mapper.obj_pt[2], 1./pwr))
+#              self._power, pwr, self.phase_element.obj_pt[2], 1./pwr))
         self._power = pwr
         try:
-            self.phase_mapper.obj_pt[2] = 1./pwr
+            self.phase_element.obj_pt[2] = 1./pwr
         except ZeroDivisionError:
-            self.phase_mapper.obj_pt[2] = 1e+10
+            self.phase_element.obj_pt[2] = 1e+10
         finally:
-            self.phase_mapper.obj_virtual = True if pwr > 0. else False
+            self.phase_element.obj_virtual = True if pwr > 0. else False
 
     def set_optical_power(self, pwr, n_before, n_after):
         self.delta_n = n_after - n_before
@@ -92,17 +93,17 @@ class ThinLens(Interface):
         # nu_before used for reference point
         ref = -y/nu_before if nu_before != 0.0 else 1e+10
         obj = -y/nu_after if nu_after != 0.0 else 1e+10
-#        pm = self.phase_mapper
+#        pm = self.phase_element
 #        print("from_first_order {}:\n pwr={}, {}\n ref={} ({}), {} ({})"
 #              "\n obj={} ({}), {} ({})"
 #              .format(self.label,
 #                      self._power, (nu_before - nu_after)/y,
 #                      pm.ref_pt[2], pm.ref_virtual, ref, ref > 0.,
 #                      pm.obj_pt[2], pm.obj_virtual, obj, obj > 0.))
-        self.phase_mapper.ref_pt[2] = ref
-        self.phase_mapper.ref_virtual = True if ref > 0. else False
-        self.phase_mapper.obj_pt[2] = obj
-        self.phase_mapper.obj_virtual = True if obj > 0. else False
+        self.phase_element.ref_pt[2] = ref
+        self.phase_element.ref_virtual = True if ref > 0. else False
+        self.phase_element.obj_pt[2] = obj
+        self.phase_element.obj_virtual = True if obj > 0. else False
         self._power = (nu_before - nu_after)/y
 
     def normal(self, p):
@@ -114,4 +115,4 @@ class ThinLens(Interface):
         return s1, p
 
     def phase(self, pt, d_in, normal, wl):
-        return self.phase_mapper.phase(pt, d_in, normal)
+        return self.phase_element.phase(pt, d_in, normal)

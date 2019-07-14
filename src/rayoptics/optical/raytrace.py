@@ -13,9 +13,11 @@ import numpy as np
 from numpy.linalg import norm
 from math import sqrt, copysign
 
+from rayoptics.optical.surface import InteractionMode as imode
 import rayoptics.optical.model_constants as mc
 from rayoptics.optical.model_constants import Intfc, Gap, Indx, Tfrm, Zdir
-from .traceerror import TraceMissedSurfaceError, TraceTIRError
+from .traceerror import (TraceMissedSurfaceError, TraceTIRError,
+                         TraceEvanescentRayError)
 
 
 def bend(d_in, normal, n_in, n_out):
@@ -149,16 +151,22 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12):
             eic_dst_before = ((inc_pt.dot(b4_dir) + z_dir_before*inc_pt[2]) /
                               (1.0 + z_dir_before*b4_dir[2]))
 
-            # refract or reflect ray at interface
-            if ifc.refract_mode == 'REFL':
-                after_dir = reflect(b4_dir, normal)
-            elif ifc.refract_mode == 'PHASE':
+            # if the interface has a phase element, process that first
+            if hasattr(ifc, 'phase_element'):
                 doe_dir, phs = phase(ifc, inc_pt, b4_dir, normal, wvl,
-                                       n_before, n_after)
-                after_dir = bend(doe_dir, normal, n_before, n_after)
+                                     n_before, n_after)
+                # the output of the phase element becomes the input for the
+                #  refraction/reflection calculation
+                b4_dir = doe_dir
                 op_delta += phs
-            else:
+
+            # refract or reflect ray at interface
+            if ifc.interact_mode == imode.Reflect:
+                after_dir = reflect(b4_dir, normal)
+            elif ifc.interact_mode == imode.Transmit:
                 after_dir = bend(b4_dir, normal, n_before, n_after)
+            else:  # no action, input becomes output
+                after_dir = b4_dir
 
             eic_dst_after = ((inc_pt.dot(after_dir) + z_dir_after*inc_pt[2]) /
                              (1.0 + z_dir_after*after_dir[2]))
@@ -194,9 +202,17 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12):
             ray.append([inc_pt, before_dir, 0.0, normal])
             ray_tir.surf = surf+1
             ray_tir.ifc = ifc
-            ray_tir.inc_pt = inc_pt
+            ray_tir.int_pt = inc_pt
             ray_tir.ray = ray
             raise ray_tir
+
+        except TraceEvanescentRayError as ray_evn:
+            ray.append([inc_pt, before_dir, 0.0, normal])
+            ray_evn.surf = surf+1
+            ray_evn.ifc = ifc
+            ray_evn.int_pt = inc_pt
+            ray_evn.ray = ray
+            raise ray_evn
 
         except StopIteration:
             ray.append([inc_pt, after_dir, 0.0, normal])

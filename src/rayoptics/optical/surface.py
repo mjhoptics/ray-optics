@@ -26,22 +26,34 @@
 .. codeauthor: Michael J. Hayford
 """
 
-
-from . import profiles
+from enum import Enum, auto
 from math import sqrt
 import numpy as np
+
+from . import profiles
 import transforms3d as t3d
 from .model_enums import DecenterType as dec
 from rayoptics.optical.traceerror import TraceError
 
 
+class InteractionMode(Enum):
+    """ enum for different interact_mode specifications """
+    Transmit = auto()  #: propagate in transmission at this interface
+    Reflect = auto()   #: propagate in reflection at this interface
+
+
+imode = InteractionMode
+
+
 class Interface:
-    def __init__(self, refract_mode='', delta_n=0.0,
-                 max_ap=1.0, decenter=None):
-        self.refract_mode = refract_mode
+    def __init__(self, interact_mode=imode.Transmit, delta_n=0.0,
+                 max_ap=1.0, decenter=None, phase_element=None):
+        self.interact_mode = interact_mode
         self.delta_n = delta_n
         self.decenter = decenter
         self.max_aperture = max_ap
+        if phase_element is not None:
+            self.phase_element = phase_element
 
     def update(self):
         if self.decenter is not None:
@@ -75,7 +87,8 @@ class Interface:
         pass
 
     def phase(self, pt, d_in, normal, wl):
-        pass
+        if hasattr(self, 'phase_element'):
+            return self.phase_element.phase(pt, d_in, normal, wl=wl)
 
 
 class Surface(Interface):
@@ -93,12 +106,13 @@ class Surface(Interface):
 
     def __repr__(self):
         if len(self.label) > 0:
-            return "{!s}(lbl={!r}, profile={!r})".format(type(self).__name__,
-                                                         self.label,
-                                                         self.profile)
+            return "{!s}(lbl={!r}, profile={!r}, interact_mode={!s})" \
+                   .format(type(self).__name__,
+                           self.label, self.profile, self.interact_mode)
         else:
-            return "{!s}(profile={!r})".format(type(self).__name__,
-                                               self.profile)
+            return "{!s}(profile={!r}, interact_mode={!s})" \
+                   .format(type(self).__name__,
+                           self.profile, self.interact_mode)
 
     def interface_type(self):
         return type(self.profile).__name__
@@ -210,10 +224,6 @@ class Surface(Interface):
 
     def normal(self, p):
         return self.profile.normal(p)
-
-    def phase(self, pt, d_in, normal, wl):
-        if hasattr(self, 'phase_element'):
-            return self.phase_element.phase(pt, d_in, normal, wl=wl)
 
 
 class DecenterData():

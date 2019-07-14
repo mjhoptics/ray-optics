@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Copyright © 2019 Michael J. Hayford
-""" Module diffractive/holographic optical elements
+""" Module for diffractive/holographic optical elements
 
 .. Created on Fri Jul  5 11:27:13 2019
+
+   The :class:`~.DiffractiveElement` and :class:`~.HolographicElement`
+   implementations are patterned after `Wang, et al, Ray tracing and wave
+   aberration calculation for diffractive optical elements
+   <https://doi.org/10.1117/1.600780>`_
 
 .. codeauthor: Michael J. Hayford
 """
@@ -11,6 +16,8 @@
 
 from math import sqrt
 import numpy as np
+import importlib
+
 from rayoptics.util.misc_math import normalize
 
 
@@ -48,6 +55,20 @@ class DiffractiveElement:
                 ', order=' + repr(self.order) +
                 ', phase_fct=' + repr(self.phase_fct) + ')')
 
+    def __json_encode__(self):
+        attrs = dict(vars(self))
+        del attrs['phase_fct']
+        attrs['phase_fct_module'] = self.phase_fct.__module__
+        attrs['phase_fct_name'] = self.phase_fct.__name__
+        return attrs
+
+    def __json_decode__(self, **attrs):
+        module_name = attrs.pop('phase_fct_module')
+        fct_name = attrs.pop('phase_fct_name')
+        mod = importlib.import_module(module_name)
+        phase_fct = getattr(mod, fct_name)
+        self.__init__(phase_fct=phase_fct, **attrs)
+
     def list_doe(self):
         print("ref_pt: {:12.5f} {:12.5f} {:12.5f} {}"
               .format(self.ref_pt[0], self.ref_pt[1], self.ref_pt[2],
@@ -63,6 +84,7 @@ class DiffractiveElement:
         c = mu*(mu*(dWdX**2 - dWdY**2)/2 + (in_dir[0]*dWdX - in_dir[1]*dWdY))
         Q = -b + sqrt(b*b - 2*c)
         out_dir = in_dir + mu*(np.array([dWdX, dWdY, 0])) + Q*normal
+        dW *= mu
         return out_dir, dW
 
 

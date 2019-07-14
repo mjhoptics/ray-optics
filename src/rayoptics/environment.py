@@ -29,7 +29,9 @@ from rayoptics.gui.appcmds import create_new_model
 from rayoptics.optical.opticalmodel import OpticalModel, open_model
 
 import rayoptics.optical.surface as srf
+from rayoptics.optical.surface import InteractionMode as imode
 from rayoptics.optical.gap import Gap
+from rayoptics.optical import elements
 from rayoptics.optical.thinlens import ThinLens
 from rayoptics.optical.profiles import (Spherical, Conic, EvenPolynomial,
                                         RadialPolynomial)
