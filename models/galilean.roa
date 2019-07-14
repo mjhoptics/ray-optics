@@ -40,7 +40,15 @@
         "Surface"
        ],
        "attributes":{
-        "refract_mode":"",
+        "interact_mode":{
+         "__enum__":{
+          "__enum_instance_type__":[
+           "rayoptics.optical.surface",
+           "InteractionMode"
+          ],
+          "name":"Transmit"
+         }
+        },
         "delta_n":0.0,
         "decenter":null,
         "max_aperture":832499999.6499996,
@@ -64,18 +72,21 @@
         "ThinLens"
        ],
        "attributes":{
-        "refract_mode":"PHASE",
+        "interact_mode":{
+         "__enum__":{
+          "__enum_instance_type__":[
+           "rayoptics.optical.surface",
+           "InteractionMode"
+          ],
+          "name":"Transmit"
+         }
+        },
         "delta_n":0.0,
         "decenter":null,
         "max_aperture":0.5000000915533545,
-        "label":"L1",
-        "power":1.6649999993999998,
-        "ref_index":1.5,
-        "bending":0.0,
-        "od":1.000000183106709,
-        "phase_mapper":{
+        "phase_element":{
          "__instance_type__":[
-          "rayoptics.optical.thinlens",
+          "rayoptics.optical.doe",
           "HolographicElement"
          ],
          "attributes":{
@@ -106,7 +117,12 @@
           "obj_virtual":true,
           "ref_wl":550.0
          }
-        }
+        },
+        "label":"L1",
+        "_power":1.6649999993999998,
+        "ref_index":1.5,
+        "bending":0.0,
+        "od":1.000000183106709
        }
       },
       {
@@ -115,18 +131,21 @@
         "ThinLens"
        ],
        "attributes":{
-        "refract_mode":"PHASE",
+        "interact_mode":{
+         "__enum__":{
+          "__enum_instance_type__":[
+           "rayoptics.optical.surface",
+           "InteractionMode"
+          ],
+          "name":"Transmit"
+         }
+        },
         "delta_n":0.0,
         "decenter":null,
         "max_aperture":0.17788745055598237,
-        "label":"L2",
-        "power":-7.4924999968499995,
-        "ref_index":1.5,
-        "bending":0.0,
-        "od":0.35577490111196475,
-        "phase_mapper":{
+        "phase_element":{
          "__instance_type__":[
-          "rayoptics.optical.thinlens",
+          "rayoptics.optical.doe",
           "HolographicElement"
          ],
          "attributes":{
@@ -157,7 +176,12 @@
           "obj_virtual":true,
           "ref_wl":550.0
          }
-        }
+        },
+        "label":"L2",
+        "_power":-7.4924999968499995,
+        "ref_index":1.5,
+        "bending":0.0,
+        "od":0.35577490111196475
        }
       },
       {
@@ -166,7 +190,15 @@
         "Surface"
        ],
        "attributes":{
-        "refract_mode":"",
+        "interact_mode":{
+         "__enum__":{
+          "__enum_instance_type__":[
+           "rayoptics.optical.surface",
+           "InteractionMode"
+          ],
+          "name":"Transmit"
+         }
+        },
         "delta_n":0.0,
         "decenter":null,
         "max_aperture":1.3301715976108284,
@@ -387,6 +419,7 @@
          }
         }
        ],
+       "value":0.5,
        "index_labels":[
         "axis",
         "edge"
@@ -415,31 +448,69 @@
       {
        "__instance_type__":[
         "rayoptics.optical.elements",
-        "ThinElement"
+        "DummyInterface"
        ],
        "attributes":{
+        "label":"Aperture Stop",
         "render_color":[
          192,
          192,
          192
         ],
-        "intrfc_indx":1,
+        "idx":1,
         "sd":1.000000183106709
        }
       },
       {
        "__instance_type__":[
         "rayoptics.optical.elements",
-        "ThinElement"
+        "AirGap"
        ],
        "attributes":{
+        "label":"AirGap Aperture Stop-D2",
+        "idx":1
+       }
+      },
+      {
+       "__instance_type__":[
+        "rayoptics.optical.elements",
+        "DummyInterface"
+       ],
+       "attributes":{
+        "label":"D2",
         "render_color":[
          192,
          192,
          192
         ],
-        "intrfc_indx":2,
+        "idx":2,
         "sd":0.35577490111196475
+       }
+      },
+      {
+       "__instance_type__":[
+        "rayoptics.optical.elements",
+        "AirGap"
+       ],
+       "attributes":{
+        "label":"AirGap D2-Image",
+        "idx":2
+       }
+      },
+      {
+       "__instance_type__":[
+        "rayoptics.optical.elements",
+        "DummyInterface"
+       ],
+       "attributes":{
+        "label":"Image",
+        "render_color":[
+         192,
+         192,
+         192
+        ],
+        "idx":3,
+        "sd":1.3301715976108284
        }
       }
      ]

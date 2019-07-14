@@ -40,7 +40,15 @@
         "Surface"
        ],
        "attributes":{
-        "refract_mode":"",
+        "interact_mode":{
+         "__enum__":{
+          "__enum_instance_type__":[
+           "rayoptics.optical.surface",
+           "InteractionMode"
+          ],
+          "name":"Transmit"
+         }
+        },
         "delta_n":0.0,
         "decenter":null,
         "max_aperture":65999999.16999999,
@@ -64,7 +72,15 @@
         "Surface"
        ],
        "attributes":{
-        "refract_mode":"REFL",
+        "interact_mode":{
+         "__enum__":{
+          "__enum_instance_type__":[
+           "rayoptics.optical.surface",
+           "InteractionMode"
+          ],
+          "name":"Reflect"
+         }
+        },
         "delta_n":-2.0,
         "decenter":null,
         "max_aperture":3.7885294694549274,
@@ -89,7 +105,15 @@
         "Surface"
        ],
        "attributes":{
-        "refract_mode":"REFL",
+        "interact_mode":{
+         "__enum__":{
+          "__enum_instance_type__":[
+           "rayoptics.optical.surface",
+           "InteractionMode"
+          ],
+          "name":"Reflect"
+         }
+        },
         "delta_n":2.0,
         "decenter":null,
         "max_aperture":1.644351190122899,
@@ -114,7 +138,15 @@
         "Surface"
        ],
        "attributes":{
-        "refract_mode":"",
+        "interact_mode":{
+         "__enum__":{
+          "__enum_instance_type__":[
+           "rayoptics.optical.surface",
+           "InteractionMode"
+          ],
+          "name":"Transmit"
+         }
+        },
         "delta_n":0.0,
         "decenter":null,
         "max_aperture":0.5086038581446032,
@@ -335,6 +367,7 @@
          }
         }
        ],
+       "value":0.5,
        "index_labels":[
         "axis",
         "edge"
@@ -366,10 +399,12 @@
         "Mirror"
        ],
        "attributes":{
+        "label":"M1",
         "render_color":[
-         192,
-         192,
-         192
+         158,
+         158,
+         158,
+         64
         ],
         "s_indx":1,
         "z_dir":1.0,
@@ -385,16 +420,28 @@
       {
        "__instance_type__":[
         "rayoptics.optical.elements",
+        "AirGap"
+       ],
+       "attributes":{
+        "label":"AirGap M1-M1",
+        "idx":1
+       }
+      },
+      {
+       "__instance_type__":[
+        "rayoptics.optical.elements",
         "Mirror"
        ],
        "attributes":{
+        "label":"M1",
         "render_color":[
-         192,
-         192,
-         192
+         158,
+         158,
+         158,
+         64
         ],
         "s_indx":2,
-        "z_dir":-1.0,
+        "z_dir":1.0,
         "sd":1.644351190122899,
         "flat":null,
         "thi":null,
@@ -402,6 +449,32 @@
          -1.644351190122899,
          1.644351190122899
         ]
+       }
+      },
+      {
+       "__instance_type__":[
+        "rayoptics.optical.elements",
+        "AirGap"
+       ],
+       "attributes":{
+        "label":"AirGap M1-Image",
+        "idx":2
+       }
+      },
+      {
+       "__instance_type__":[
+        "rayoptics.optical.elements",
+        "DummyInterface"
+       ],
+       "attributes":{
+        "label":"Image",
+        "render_color":[
+         192,
+         192,
+         192
+        ],
+        "idx":3,
+        "sd":0.5086038581446032
        }
       }
      ]

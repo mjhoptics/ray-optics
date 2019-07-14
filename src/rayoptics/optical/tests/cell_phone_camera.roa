@@ -32,7 +32,15 @@
         "Surface"
        ],
        "attributes":{
-        "refract_mode":"",
+        "interact_mode":{
+         "__enum__":{
+          "__enum_instance_type__":[
+           "rayoptics.optical.surface",
+           "InteractionMode"
+          ],
+          "name":"Transmit"
+         }
+        },
         "delta_n":0.0,
         "decenter":null,
         "max_aperture":6264461389.327506,
@@ -56,7 +64,15 @@
         "Surface"
        ],
        "attributes":{
-        "refract_mode":"",
+        "interact_mode":{
+         "__enum__":{
+          "__enum_instance_type__":[
+           "rayoptics.optical.surface",
+           "InteractionMode"
+          ],
+          "name":"Transmit"
+         }
+        },
         "delta_n":0.0,
         "decenter":null,
         "max_aperture":0.9234416308817883,
@@ -80,7 +96,15 @@
         "Surface"
        ],
        "attributes":{
-        "refract_mode":"",
+        "interact_mode":{
+         "__enum__":{
+          "__enum_instance_type__":[
+           "rayoptics.optical.surface",
+           "InteractionMode"
+          ],
+          "name":"Transmit"
+         }
+        },
         "delta_n":0.4710000000000001,
         "decenter":null,
         "max_aperture":0.9434579726017993,
@@ -129,7 +153,15 @@
         "Surface"
        ],
        "attributes":{
-        "refract_mode":"",
+        "interact_mode":{
+         "__enum__":{
+          "__enum_instance_type__":[
+           "rayoptics.optical.surface",
+           "InteractionMode"
+          ],
+          "name":"Transmit"
+         }
+        },
         "delta_n":-0.4710000000000001,
         "decenter":null,
         "max_aperture":1.0863183163224912,
@@ -178,7 +210,15 @@
         "Surface"
        ],
        "attributes":{
-        "refract_mode":"",
+        "interact_mode":{
+         "__enum__":{
+          "__enum_instance_type__":[
+           "rayoptics.optical.surface",
+           "InteractionMode"
+          ],
+          "name":"Transmit"
+         }
+        },
         "delta_n":0.603,
         "decenter":null,
         "max_aperture":1.1336762299942154,
@@ -227,7 +267,15 @@
         "Surface"
        ],
        "attributes":{
-        "refract_mode":"",
+        "interact_mode":{
+         "__enum__":{
+          "__enum_instance_type__":[
+           "rayoptics.optical.surface",
+           "InteractionMode"
+          ],
+          "name":"Transmit"
+         }
+        },
         "delta_n":-0.603,
         "decenter":null,
         "max_aperture":1.5362279831866577,
@@ -276,7 +324,15 @@
         "Surface"
        ],
        "attributes":{
-        "refract_mode":"",
+        "interact_mode":{
+         "__enum__":{
+          "__enum_instance_type__":[
+           "rayoptics.optical.surface",
+           "InteractionMode"
+          ],
+          "name":"Transmit"
+         }
+        },
         "delta_n":0.51,
         "decenter":null,
         "max_aperture":1.8592866743247831,
@@ -325,7 +381,15 @@
         "Surface"
        ],
        "attributes":{
-        "refract_mode":"",
+        "interact_mode":{
+         "__enum__":{
+          "__enum_instance_type__":[
+           "rayoptics.optical.surface",
+           "InteractionMode"
+          ],
+          "name":"Transmit"
+         }
+        },
         "delta_n":-0.51,
         "decenter":null,
         "max_aperture":2.3609459764272107,
@@ -374,7 +438,15 @@
         "Surface"
        ],
        "attributes":{
-        "refract_mode":"",
+        "interact_mode":{
+         "__enum__":{
+          "__enum_instance_type__":[
+           "rayoptics.optical.surface",
+           "InteractionMode"
+          ],
+          "name":"Transmit"
+         }
+        },
         "delta_n":0.51,
         "decenter":null,
         "max_aperture":2.4379206145923282,
@@ -423,7 +495,15 @@
         "Surface"
        ],
        "attributes":{
-        "refract_mode":"",
+        "interact_mode":{
+         "__enum__":{
+          "__enum_instance_type__":[
+           "rayoptics.optical.surface",
+           "InteractionMode"
+          ],
+          "name":"Transmit"
+         }
+        },
         "delta_n":-0.51,
         "decenter":null,
         "max_aperture":2.876521780103687,
@@ -472,7 +552,15 @@
         "Surface"
        ],
        "attributes":{
-        "refract_mode":"",
+        "interact_mode":{
+         "__enum__":{
+          "__enum_instance_type__":[
+           "rayoptics.optical.surface",
+           "InteractionMode"
+          ],
+          "name":"Transmit"
+         }
+        },
         "delta_n":0.516,
         "decenter":null,
         "max_aperture":3.2055190447630184,
@@ -496,7 +584,15 @@
         "Surface"
        ],
        "attributes":{
-        "refract_mode":"",
+        "interact_mode":{
+         "__enum__":{
+          "__enum_instance_type__":[
+           "rayoptics.optical.surface",
+           "InteractionMode"
+          ],
+          "name":"Transmit"
+         }
+        },
         "delta_n":-0.516,
         "decenter":null,
         "max_aperture":3.2985067566910504,
@@ -520,7 +616,15 @@
         "Surface"
        ],
        "attributes":{
-        "refract_mode":"",
+        "interact_mode":{
+         "__enum__":{
+          "__enum_instance_type__":[
+           "rayoptics.optical.surface",
+           "InteractionMode"
+          ],
+          "name":"Transmit"
+         }
+        },
         "delta_n":0.0,
         "decenter":null,
         "max_aperture":3.5438205453889724,
