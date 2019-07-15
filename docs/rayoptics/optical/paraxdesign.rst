@@ -1,7 +1,5 @@
 .. currentmodule:: rayoptics.optical
 
-.. _parax_model:
-
 *********************
 Paraxial Design Model
 *********************

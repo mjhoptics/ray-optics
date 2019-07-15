@@ -10,8 +10,6 @@
 Optical Usage Specification
 ***************************
 
-.. _optical_spec:
-
 Optical Specification Overview
 ==============================
 

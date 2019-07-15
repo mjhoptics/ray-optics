@@ -1,7 +1,5 @@
 .. currentmodule:: rayoptics.optical
 
-.. _seq_model:
-
 ****************
 Sequential Model
 ****************

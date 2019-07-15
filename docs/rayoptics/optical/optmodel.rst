@@ -1,7 +1,5 @@
 .. currentmodule:: rayoptics.optical
 
-.. _opt_model:
-
 *************
 Optical Model
 *************

@@ -1,7 +1,5 @@
 .. currentmodule:: rayoptics.qtgui
 
-.. _qt5_app:
-
 Qt5 app version of rayoptics
 ============================
 
