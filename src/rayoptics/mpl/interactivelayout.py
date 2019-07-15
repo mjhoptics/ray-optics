@@ -25,7 +25,7 @@ import rayoptics.gui.layout as layout
 Fit_All, User_Scale = range(2)
 
 
-warnings.filterwarnings("ignore", category=matplotlib.cbook.mplDeprecation)
+#warnings.filterwarnings("ignore", category=matplotlib.cbook.mplDeprecation)
 
 SelectInfo = namedtuple('SelectInfo', ['artist', 'info'])
 """ tuple grouping together an artist and info returned from contains(event)

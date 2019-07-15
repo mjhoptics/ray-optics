@@ -22,7 +22,7 @@ import rayoptics.gui.layout as layout
 Fit_All, User_Scale = range(2)
 
 
-warnings.filterwarnings("ignore", category=matplotlib.cbook.mplDeprecation)
+#warnings.filterwarnings("ignore", category=matplotlib.cbook.mplDeprecation)
 
 
 def rgb2mpl(rgb):
