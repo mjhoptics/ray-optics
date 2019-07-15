@@ -22,7 +22,7 @@ __location__ = os.path.join(os.getcwd(), os.path.dirname(
 sys.path.insert(0, os.path.join(__location__, '../src'))
 
 
-# mock out modules not needed for doc
+# mock out modules not needed for ReadTheDocs remote build
 from unittest.mock import MagicMock
 
 class Mock(MagicMock):
@@ -32,6 +32,8 @@ class Mock(MagicMock):
 
 MOCK_MODULES = [
     'ipywidgets',
+    'opticalglass.glasspolygons',
+    'PyQt5.sip',
 ]
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
