@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Copyright © 2019 Michael J. Hayford
-""" Interactive paraxial layout figure
+""" Interactive layout figure with paraxial editing
 
 .. Created on Thu Mar 14 10:20:33 2019
 
@@ -9,10 +9,7 @@
 """
 
 import logging
-import warnings
 from collections import namedtuple
-
-import matplotlib.cbook
 
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
@@ -24,8 +21,6 @@ import rayoptics.gui.layout as layout
 
 Fit_All, User_Scale = range(2)
 
-
-#warnings.filterwarnings("ignore", category=matplotlib.cbook.mplDeprecation)
 
 SelectInfo = namedtuple('SelectInfo', ['artist', 'info'])
 """ tuple grouping together an artist and info returned from contains(event)
@@ -47,11 +42,19 @@ backgrnd_color = rgb2mpl([237, 243, 254])  # light blue
 
 
 class InteractiveLayout(Figure):
+    """ Editable version of optical system layout, aka Live Layout
 
+    Attributes:
+        opt_model: parent optical model
+        refresh_gui: function to be called on refresh_gui event
+        do_draw_frame: if True, draw frame around system layout
+        oversize_factor: what fraction to oversize the system bounding box
+        offset_factor: how much to draw rays before first surface
+        do_draw_rays: if True, draw edge rays
+        do_paraxial_layout: if True, draw editable paraxial axial and chief ray
+    """
     def __init__(self, opt_model, refresh_gui,
                  do_draw_frame=False,
-                 scale_type=Fit_All,
-                 user_scale_value=1.0,
                  oversize_factor=0.05,
                  offset_factor=0.05,
                  do_draw_rays=False,
@@ -59,8 +62,6 @@ class InteractiveLayout(Figure):
                  **kwargs):
         self.refresh_gui = refresh_gui
         self.layout = layout.LensLayout(opt_model)
-        self.user_scale_value = user_scale_value
-        self.scale_type = scale_type
         self.linewidth = 0.5
         self.do_draw_frame = do_draw_frame
         self.do_draw_rays = do_draw_rays

@@ -261,6 +261,25 @@ def eic_distance(r, r0):
 
 
 def wave_abr(fld, wvl, ray_pkg):
+    """ computes optical path difference (OPD) for ray_pkg at fld and wvl
+
+    The main references for the calculations are in the H. H. Hopkins paper
+    `Calculation of the Aberrations and Image Assessment for a General Optical
+    System <https://doi.org/10.1080/713820605>`_
+
+    Args:
+        fld: Field point for wave aberration calculation
+        wvl: wavelength of ray
+        ray_pkg: input tuple of ray, ray_op, wvl
+
+    Returns:
+        (**opd**, **e1**, **ekp**, **ep**)
+
+        - **opd** - OPD of ray wrt chief ray at **fld**
+        - **e1** - eic in object space, prior to first interface
+        - **ekp** - eic in image space, following final interface
+        - **ep** - eic to reference sphere intersection
+    """
     return wave_abr_real_coord(fld, wvl, ray_pkg)
 #    return wave_abr_HHH(fld.ref_sphere_pkg, fld.chief_ray_pkg, ray_pkg)
 
