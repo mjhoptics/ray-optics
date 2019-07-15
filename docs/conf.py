@@ -33,7 +33,7 @@ class Mock(MagicMock):
 MOCK_MODULES = [
     'ipywidgets',
     'opticalglass.glasspolygons',
-    'PyQt5.sip',
+    'PyQt5',
 ]
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
