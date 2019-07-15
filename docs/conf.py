@@ -33,7 +33,8 @@ class Mock(MagicMock):
 MOCK_MODULES = [
     'numpy', 'numpy.linalg',
     'matplotlib', 'matplotlib.backends', 'matplotlib.backends.backend_qt5agg',
-    'matplotlib.cbook', 'matplotlib.figure', 'matplotlib.lines', 'matplotlib.patches', 'matplotlib.pyplot',
+    'matplotlib.cbook', 'matplotlib.cbook.mplDeprecation', 'matplotlib.figure',
+    'matplotlib.lines', 'matplotlib.patches', 'matplotlib.pyplot',
     'scipy', 'scipy.constants', 'scipy.interpolate', 'scipy.optimize',
     'ipywidgets',
     'json_tricks',
