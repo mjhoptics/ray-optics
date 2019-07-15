@@ -31,29 +31,16 @@ class Mock(MagicMock):
             return MagicMock()
 
 MOCK_MODULES = [
-    'numpy',
-    'numpy.linalg',
-    'matplotlib',
-    'matplotlib.backends',
-    'matplotlib.cbook',
-    'matplotlib.figure',
-    'matplotlib.lines',
-    'matplotlib.pyplot',
-    'scipy',
-    'scipy.constants',
-    'scipy.interpolate',
-    'scipy.optimize',
+    'numpy', 'numpy.linalg',
+    'matplotlib', 'matplotlib.backends', 'matplotlib.backends.backend_qt5agg',
+    'matplotlib.cbook', 'matplotlib.figure', 'matplotlib.lines', 'matplotlib.patches', 'matplotlib.pyplot',
+    'scipy', 'scipy.constants', 'scipy.interpolate', 'scipy.optimize',
     'ipywidgets',
     'json_tricks',
     'opticalglass.glasspolygons',
-    'pandas',
-    'pandas.compat.numpy',
-    'PyQt5',
-    'PyQt5.QtCore',
-    'PyQt5.QtGui',
-    'PyQt5.QtWidgets',
-    'qtconsole.rich_jupyter_widget',
-    'qtconsole.inprocess',
+    'pandas', 'pandas.compat.numpy',
+    'PyQt5', 'PyQt5.QtCore', 'PyQt5.QtGui', 'PyQt5.QtWidgets',
+    'qtconsole.rich_jupyter_widget', 'qtconsole.inprocess',
 ]
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
