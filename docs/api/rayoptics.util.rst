@@ -28,6 +28,14 @@ rayoptics.util.misc\_math module
     :undoc-members:
     :show-inheritance:
 
+rayoptics.util.rgb2mpl module
+-----------------------------
+
+.. automodule:: rayoptics.util.rgb2mpl
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 rayoptics.util.rgbtable module
 ------------------------------
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Copyright © 2018 Michael J. Hayford
-"""
+""" Static optical system layout
 
 .. Created on Sat Jun 30 10:15:37 2018
 
@@ -14,19 +14,8 @@ from matplotlib.patches import Patch, Polygon
 
 import numpy as np
 
-import rayoptics.gui.layout as layout
-
-Fit_All, User_Scale = range(2)
-
-
-def rgb2mpl(rgb):
-    if len(rgb) == 3:
-        return [rgb[0]/255., rgb[1]/255., rgb[2]/255.]
-    elif len(rgb) == 4:
-        return [rgb[0]/255., rgb[1]/255., rgb[2]/255., rgb[3]/255.]
-
-
-backgrnd_color = rgb2mpl([237, 243, 254])  # light blue
+from rayoptics.gui import layout
+from rayoptics.util.rgb2mpl import rgb2mpl, backgrnd_color
 
 
 class LensLayoutFigure(Figure):

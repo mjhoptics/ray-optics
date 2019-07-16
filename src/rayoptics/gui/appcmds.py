@@ -9,10 +9,11 @@
 """
 
 from rayoptics.optical.opticalmodel import OpticalModel, open_model
-from rayoptics.optical.elements import (create_thinlens, create_mirror,
+from rayoptics.optical.profiles import Spherical, Conic
+from rayoptics.optical.elements import (create_thinlens,
                                         insert_ifc_gp_ele)
 
-from rayoptics.gui.layout import create_live_layout_commands
+from rayoptics.gui import layout
 
 from rayoptics.mpl.lenslayoutfigure import LensLayoutFigure
 from rayoptics.mpl.interactivelayout import InteractiveLayout
@@ -90,6 +91,33 @@ def create_live_layout_view(opt_model, gui_parent=None):
     plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht,
                               add_panel_fcts=panel_fcts, add_nav_toolbar=True,
                               commands=cmds)
+
+
+def create_live_layout_commands(fig):
+    lo = fig.layout
+    cmds = []
+    # Add thin lens
+    cmds.append(('Add Thin Lens', (lo.register_commands, (),
+                 {'apply_fct': layout.add_thinlens})))
+    # Add lens
+    cmds.append(('Add Lens', (lo.register_commands, (),
+                 {'apply_fct': layout.add_lens})))
+    # Add doublet
+    cmds.append(('Add Cemented Doublet', (lo.register_commands, (),
+                 {'apply_fct': layout.add_doublet})))
+    # Add mirror
+    cmds.append(('Add Mirror', (lo.register_commands, (),
+                 {'apply_fct': layout.add_mirror,
+                  'profile': Spherical})))
+    cmds.append(('Add Conic Mirror', (lo.register_commands, (),
+                 {'apply_fct': layout.add_conic,
+                  'profile': Conic})))
+    cmds.append(('Add Parabola', (lo.register_commands, (),
+                 {'apply_fct': layout.add_conic,
+                  'profile': Conic,
+                  'cc': -1.0})))
+
+    return cmds
 
 
 def create_paraxial_design_view(opt_model, dgm_type, gui_parent=None):

@@ -21,14 +21,13 @@ from collections import namedtuple
 import numpy as np
 
 from rayoptics.optical import transform
-from rayoptics.optical.profiles import Spherical, Conic
 from rayoptics.optical.trace import (trace_boundary_rays_at_field,
                                      boundary_ray_dict, RaySeg)
 from rayoptics.optical.elements import (create_thinlens, create_mirror,
                                         create_lens, insert_ifc_gp_ele)
 import rayoptics.optical.model_constants as mc
-from rayoptics.mpl.interactivelayout import rgb2mpl
-from rayoptics.gui import appcmds
+from rayoptics.util.rgb2mpl import rgb2mpl
+import rayoptics.gui.appcmds as cmds
 
 GUIHandle = namedtuple('GUIHandle', ['poly', 'bbox'])
 """ tuple grouping together graphics entity and bounding box
@@ -484,8 +483,7 @@ class LensLayout():
 
     def get_ray_table(self):
         if self.ray_table is None:
-            self.ray_table = appcmds.create_ray_table_model(self.opt_model,
-                                                            None)
+            self.ray_table = cmds.create_ray_table_model(self.opt_model, None)
             gui_parent = self.opt_model.app_manager.gui_parent
             gui_parent.create_table_view(self.ray_table, "Ray Table")
 
@@ -594,30 +592,3 @@ def add_conic(opt_model, idx, lcl_pt, **kwargs):
 
 def add_doublet(opt_model, idx, lcl_pt, **kwargs):
     add_elements(opt_model, idx, lcl_pt, create_lens, **kwargs)
-
-
-def create_live_layout_commands(fig):
-    layout = fig.layout
-    cmds = []
-    # Add thin lens
-    cmds.append(('Add Thin Lens', (layout.register_commands, (),
-                 {'apply_fct': add_thinlens})))
-    # Add lens
-    cmds.append(('Add Lens', (layout.register_commands, (),
-                 {'apply_fct': add_lens})))
-    # Add doublet
-    cmds.append(('Add Cemented Doublet', (layout.register_commands, (),
-                 {'apply_fct': add_doublet})))
-    # Add mirror
-    cmds.append(('Add Mirror', (layout.register_commands, (),
-                 {'apply_fct': add_mirror,
-                  'profile': Spherical})))
-    cmds.append(('Add Conic Mirror', (layout.register_commands, (),
-                 {'apply_fct': add_conic,
-                  'profile': Conic})))
-    cmds.append(('Add Parabola', (layout.register_commands, (),
-                 {'apply_fct': add_conic,
-                  'profile': Conic,
-                  'cc': -1.0})))
-
-    return cmds
