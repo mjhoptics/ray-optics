@@ -205,9 +205,9 @@ def trace_with_opd(opt_model, pupil, fld, wvl, foc, **kwargs):
     fld.chief_ray = cr_pkg
     fld.ref_sphere = rs_pkg
 
-    opd_pkg = rt.wave_abr(fld, wvl, ray_pkg)
+    opd, e1, ekp, ep = rt.wave_abr(fld, wvl, foc, ray_pkg)
     ray, ray_op, wvl = ray_pkg
-    return ray, ray_op, wvl, opd_pkg[0]
+    return ray, ray_op, wvl, opd
 
 
 def trace_boundary_rays_at_field(opt_model, fld, wvl, use_named_tuples=False):

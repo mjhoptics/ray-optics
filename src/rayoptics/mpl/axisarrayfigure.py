@@ -102,7 +102,7 @@ class RayFanFigure(AxisArrayFigure):
         seq_model = opt_model.seq_model
         osp = opt_model.optical_spec
 
-        def ray_abr(p, xy, ray_pkg, fld, wvl):
+        def ray_abr(p, xy, ray_pkg, fld, wvl, foc):
             image_pt = fld.ref_sphere[0][0]
             if ray_pkg[mc.ray] is not None:
                 ray = ray_pkg[mc.ray]
@@ -111,9 +111,9 @@ class RayFanFigure(AxisArrayFigure):
             else:
                 return None
 
-        def opd(p, xy, ray_pkg, fld, wvl):
+        def opd(p, xy, ray_pkg, fld, wvl, foc):
             if ray_pkg[mc.ray] is not None:
-                opd = wave_abr(fld, wvl, ray_pkg)
+                opd = wave_abr(fld, wvl, foc, ray_pkg)
                 return opd[0]/self.wvl_to_sys_units(wvl)
             else:
                 return None
@@ -284,11 +284,11 @@ class WavefrontFigure(AxisArrayFigure):
         seq_model = opt_model.seq_model
         osp = opt_model.optical_spec
 
-        def wave(p, wi, ray_pkg, fld, wvl):
+        def wave(p, wi, ray_pkg, fld, wvl, foc):
             x = p[0]
             y = p[1]
             if ray_pkg is not None:
-                opd_pkg = wave_abr(fld, wvl, ray_pkg)
+                opd_pkg = wave_abr(fld, wvl, foc, ray_pkg)
                 opd = opd_pkg[0]/self.wvl_to_sys_units(wvl)
             else:
                 opd = 0.0

@@ -85,7 +85,10 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12):
     """ fundamental raytrace function
 
     Args:
-        path: an iterator containing interfaces and gaps to be traced
+        path: an iterator containing interfaces and gaps to be traced.
+              for each iteration, the sequence or generator should return a
+              list containing:
+                  Intfc, Gap, Index, Trfm, Z_Dir
         pt0: starting point in coords of first interface
         dir0: starting direction cosines in coords of first interface
         wvl: wavelength in nm
@@ -194,7 +197,7 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12):
             ray.append([before_pt, before_dir, pp_dst, before_normal])
             ray_miss.surf = surf+1
             ray_miss.ifc = ifc
-            ray_miss.prev_gap = after[Gap]
+            ray_miss.prev_tfrm = before[Tfrm]
             ray_miss.ray = ray
             raise ray_miss
 
@@ -260,7 +263,7 @@ def eic_distance(r, r0):
     return e
 
 
-def wave_abr(fld, wvl, ray_pkg):
+def wave_abr(fld, wvl, foc, ray_pkg):
     """ computes optical path difference (OPD) for ray_pkg at fld and wvl
 
     The main references for the calculations are in the H. H. Hopkins paper
@@ -268,8 +271,9 @@ def wave_abr(fld, wvl, ray_pkg):
     System <https://doi.org/10.1080/713820605>`_
 
     Args:
-        fld: Field point for wave aberration calculation
+        fld: :class:`~.Field` point for wave aberration calculation
         wvl: wavelength of ray
+        foc: :class:`~.FocusRange` instance, to specify defocus
         ray_pkg: input tuple of ray, ray_op, wvl
 
     Returns:
@@ -280,11 +284,11 @@ def wave_abr(fld, wvl, ray_pkg):
         - **ekp** - eic in image space, following final interface
         - **ep** - eic to reference sphere intersection
     """
-    return wave_abr_real_coord(fld, wvl, ray_pkg)
+    return wave_abr_real_coord(fld, wvl, foc, ray_pkg)
 #    return wave_abr_HHH(fld.ref_sphere_pkg, fld.chief_ray_pkg, ray_pkg)
 
 
-def wave_abr_real_coord(fld, wvl, ray_pkg):
+def wave_abr_real_coord(fld, wvl, foc, ray_pkg):
     ref_sphere, parax_data, n_obj, n_img, z_dir = fld.ref_sphere
     image_pt, cr_exp_pt, cr_exp_dist, ref_dir, ref_sphere_radius = ref_sphere
     chief_ray, chief_ray_op, wvl = fld.chief_ray[0]
@@ -312,7 +316,7 @@ def wave_abr_real_coord(fld, wvl, ray_pkg):
     return opd, e1, ekp, ep
 
 
-def wave_abr_HHH(fld, wvl, ray_pkg):
+def wave_abr_HHH(fld, wvl, foc, ray_pkg):
     ref_sphere, parax_data, n_obj, n_img, z_dir = fld.ref_sphere
     image_pt, cr_exp_pt, ref_dir, ref_sphere_radius = ref_sphere
     chief_ray, chief_ray_op, wvl = fld.chief_ray

@@ -1,0 +1,12 @@
+len
+tit 'Mangin mirror'
+dim m
+rdm y
+so 0. 1e+11
+s -1200 10. NBK7_Schott
+s -1000 -10 refl
+s -1200 -500
+si 0 0
+epd 200
+wl 555
+yan 0 .333

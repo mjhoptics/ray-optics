@@ -342,7 +342,7 @@ class SequentialModel:
         osp = self.opt_model.optical_spec
         fld = osp.field_of_view.fields[fi]
         wvl = self.central_wavelength()
-        foc = 0.0
+        foc = osp.defocus
 #        trace.setup_canonical_coords(self, fld, wvl)
         rs_pkg, cr_pkg = trace.setup_pupil_coords(self.opt_model,
                                                   fld, wvl, foc)
@@ -370,7 +370,7 @@ class SequentialModel:
             fld.ref_sphere = rs_pkg
             fan = trace.trace_fan(self.opt_model, fan_def, fld, wvl, foc,
                                   img_filter=lambda p, ray_pkg:
-                                  fct(p, xy, ray_pkg, fld, wvl))
+                                  fct(p, xy, ray_pkg, fld, wvl, foc))
             f_x = []
             f_y = []
             for p, y_val in fan:
@@ -392,7 +392,7 @@ class SequentialModel:
         wvl = self.central_wavelength()
         wv_list = wvls.wavelengths if wl is None else [wvl]
         fld = osp.field_of_view.fields[fi]
-        foc = 0.0
+        foc = osp.defocus
 
         rs_pkg, cr_pkg = trace.setup_pupil_coords(self.opt_model,
                                                   fld, wvl, foc)
@@ -409,18 +409,18 @@ class SequentialModel:
             grid = trace.trace_grid(self.opt_model, grid_def, fld, wvl, foc,
                                     form=form, append_if_none=append_if_none,
                                     img_filter=lambda p, ray_pkg:
-                                    fct(p, wi, ray_pkg, fld, wvl))
+                                    fct(p, wi, ray_pkg, fld, wvl, foc))
             grids.append(grid)
         rc = wvls.render_colors
         return grids, rc
 
     def trace_wavefront(self, fld, wvl, foc, num_rays=32):
 
-        def wave(p, ray_pkg, fld, wvl):
+        def wave(p, ray_pkg, fld, wvl, foc):
             x = p[0]
             y = p[1]
             if ray_pkg is not None:
-                opd_pkg = rt.wave_abr(fld, wvl, ray_pkg)
+                opd_pkg = rt.wave_abr(fld, wvl, foc, ray_pkg)
                 opd = opd_pkg[0]/self.opt_model.nm_to_sys_units(wvl)
             else:
                 opd = 0.0

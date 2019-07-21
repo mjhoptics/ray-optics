@@ -388,7 +388,7 @@ class FocusRange:
         self.chief_ray = None
         self.ref_sphere = None
 
-    def get_focus(self, fr):
+    def get_focus(self, fr=0.0):
         """ return focus position for input focus range parameter
 
         Args:
