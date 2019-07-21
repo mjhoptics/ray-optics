@@ -45,6 +45,41 @@ MOCK_MODULES = [
 ]
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
+# -- Run sphinx-apidoc ------------------------------------------------------
+# This hack is necessary since RTD does not issue `sphinx-apidoc` before running
+# `sphinx-build -b html . _build/html`. See Issue:
+# https://github.com/rtfd/readthedocs.org/issues/1139
+# DON'T FORGET: Check the box "Install your project inside a virtualenv using
+# setup.py install" in the RTD Advanced Settings.
+# Additionally it helps us to avoid running apidoc manually
+
+try:  # for Sphinx >= 1.7
+    from sphinx.ext import apidoc
+except ImportError:
+    from sphinx import apidoc
+
+output_dir = os.path.join(__location__, "api")
+module_dir = os.path.join(__location__, "../src/rayoptics")
+try:
+    shutil.rmtree(output_dir)
+except FileNotFoundError:
+    pass
+
+try:
+    import sphinx
+    from pkg_resources import parse_version
+
+    cmd_line_template = "sphinx-apidoc -f --module-first -o {outputdir} {moduledir}"
+    cmd_line = cmd_line_template.format(outputdir=output_dir, moduledir=module_dir)
+
+    args = cmd_line.split(" ")
+    if parse_version(sphinx.__version__) >= parse_version('1.7'):
+        args = args[1:]
+
+    apidoc.main(args)
+except Exception as e:
+    print("Running `sphinx-apidoc` failed!\n{}".format(e))
+
 # -- General configuration -----------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -55,15 +90,7 @@ sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx', 'sphinx.ext.todo',
               'sphinx.ext.autosummary', 'sphinx.ext.viewcode', 'sphinx.ext.coverage',
               'sphinx.ext.doctest', 'sphinx.ext.ifconfig', 'sphinx.ext.mathjax',
-              'sphinx.ext.napoleon', 'sphinxcontrib.apidoc']
-
-
-# apidoc settings
-apidoc_module_dir = '../src/rayoptics'
-apidoc_output_dir = 'api'
-apidoc_excluded_paths = ['tests']
-apidoc_separate_modules = False
-apidoc_module_first = True
+              'sphinx.ext.napoleon']
 
 # Napoleon settings
 napoleon_google_docstring = True
