@@ -1,6 +1,11 @@
 rayoptics package
 =================
 
+.. automodule:: rayoptics
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Subpackages
 -----------
 
@@ -25,10 +30,3 @@ rayoptics.environment module
     :show-inheritance:
 
 
-Module contents
----------------
-
-.. automodule:: rayoptics
-    :members:
-    :undoc-members:
-    :show-inheritance:

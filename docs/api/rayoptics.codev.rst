@@ -1,6 +1,11 @@
 rayoptics.codev package
 =======================
 
+.. automodule:: rayoptics.codev
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Submodules
 ----------
 
@@ -29,10 +34,3 @@ rayoptics.codev.tla module
     :show-inheritance:
 
 
-Module contents
----------------
-
-.. automodule:: rayoptics.codev
-    :members:
-    :undoc-members:
-    :show-inheritance:

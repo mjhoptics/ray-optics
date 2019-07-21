@@ -1,6 +1,11 @@
 rayoptics.util package
 ======================
 
+.. automodule:: rayoptics.util
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Submodules
 ----------
 
@@ -53,10 +58,3 @@ rayoptics.util.spectral\_lines module
     :show-inheritance:
 
 
-Module contents
----------------
-
-.. automodule:: rayoptics.util
-    :members:
-    :undoc-members:
-    :show-inheritance:
