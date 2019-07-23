@@ -196,7 +196,7 @@ class SpotDiagramFigure(AxisArrayFigure):
         seq_model = opt_model.seq_model
         osp = opt_model.optical_spec
 
-        def spot(p, wi, ray_pkg, fld, wvl):
+        def spot(p, wi, ray_pkg, fld, wvl, foc):
             image_pt = fld.ref_sphere[0][0]
 #            image_pt = fld.chief_ray.ray[-1][0]
             if ray_pkg is not None:

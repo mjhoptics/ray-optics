@@ -8,8 +8,8 @@
 .. codeauthor: Michael J. Hayford
 """
 
-# sequential model data structures
-Intfc, Gap, Indx, Tfrm, Zdir = range(5)
+# sequential ray trace data structures
+Intfc, Gap, Tfrm, Indx, Zdir = range(5)
 
 Surf, Gap = range(2)
 

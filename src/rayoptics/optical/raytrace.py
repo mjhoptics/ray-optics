@@ -87,8 +87,7 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12):
     Args:
         path: an iterator containing interfaces and gaps to be traced.
               for each iteration, the sequence or generator should return a
-              list containing:
-                  Intfc, Gap, Index, Trfm, Z_Dir
+              list containing: **Intfc, Gap, Trfm, Index, Z_Dir**
         pt0: starting point in coords of first interface
         dir0: starting direction cosines in coords of first interface
         wvl: wavelength in nm

@@ -10,7 +10,7 @@
 import math
 from collections import namedtuple
 from rayoptics.optical.surface import InteractionMode as imode
-from rayoptics.optical.model_constants import Intfc, Gap, Indx
+from rayoptics.optical.model_constants import Intfc, Gap, Tfrm, Indx, Zdir
 from rayoptics.optical.model_constants import ht, slp, aoi
 from rayoptics.optical.model_enums import PupilType, FieldType
 
@@ -106,7 +106,8 @@ def paraxial_trace(path, start, start_yu, start_yu_bar):
     p_ray_bar = []
 
     before = next(path)
-    n_before = before[Indx]
+    z_dir_before = before[Zdir]
+    n_before = before[Indx] if z_dir_before > 0.0 else -before[Indx]
 
     b4_yui = start_yu
     b4_yui_bar = start_yu_bar
@@ -118,7 +119,7 @@ def paraxial_trace(path, start, start_yu, start_yu_bar):
         b4_yui = [obj_ht, start_yu[slp]]
         b4_yui_bar = [obj_htb, start_yu_bar[slp]]
 
-    cv = before[Intfc].profile.cv
+    cv = before[Intfc].profile_cv
     # calculate angle of incidence (aoi)
     aoi = b4_yui[slp] + b4_yui[ht] * cv
     aoi_bar = b4_yui_bar[slp] + b4_yui_bar[ht] * cv
@@ -132,10 +133,9 @@ def paraxial_trace(path, start, start_yu, start_yu_bar):
     while True:
         try:
             after = next(path)
-            if after[Gap]:
-                n_after = math.copysign(after[Indx], n_before)
-            else:
-                n_after = n_before
+
+            z_dir_after = after[Zdir]
+            n_after = after[Indx] if z_dir_after > 0.0 else -after[Indx]
 
             # Transfer
             t = before[Gap].thi
@@ -144,21 +144,7 @@ def paraxial_trace(path, start, start_yu, start_yu_bar):
 
             # Refraction/Reflection
             srf = after[Intfc]
-            if srf.interact_mode == imode.Reflect:
-                k = -1.0
-                n_after = -n_after
-            else:
-                k = n_before/n_after
-
-#            cv = srf.profile.cv
-##            print(cv, t, srf.interact_mode, n_before, n_after)
-#
-#            # calculate angle of incidence (aoi)
-#            aoi = b4_yui[slp] + cur_ht * cv
-#            aoi_bar = b4_yui_bar[slp] + cur_htb * cv
-#            # calculate slope after refraction/reflection
-#            cur_slp = b4_yui[slp] + (k - 1.0)*aoi
-#            cur_slpb = b4_yui_bar[slp] + (k - 1.0)*aoi_bar
+            k = n_before/n_after
 
             # calculate slope after refraction/reflection
             pwr = srf.optical_power
@@ -166,13 +152,9 @@ def paraxial_trace(path, start, start_yu, start_yu_bar):
             cur_slpb = k * b4_yui_bar[slp] - cur_htb * pwr/n_after
 
             # calculate angle of incidence (aoi)
-            delta_n = n_after - n_before
-            if delta_n == 0.0:
-                aoi = cur_slp
-                aoi_bar = cur_slpb
-            else:
-                aoi = cur_ht * pwr/delta_n + cur_slp
-                aoi_bar = cur_htb * pwr/delta_n + cur_slpb
+            cv = srf.profile_cv
+            aoi = cur_slp + cur_ht * cv
+            aoi_bar = cur_slpb + cur_htb * cv
 
             yu = [cur_ht, cur_slp, aoi]
             yu_bar = [cur_htb, cur_slpb, aoi_bar]
@@ -183,8 +165,9 @@ def paraxial_trace(path, start, start_yu, start_yu_bar):
             b4_yui = yu
             b4_yui_bar = yu_bar
 
-            before = after
             n_before = n_after
+            z_dir_before = z_dir_after
+            before = after
 
         except StopIteration:
             break

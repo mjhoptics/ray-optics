@@ -83,7 +83,7 @@ def trace(sequence, pt0, dir0, wvl, **kwargs):
 
     Args:
         sequence: a Sequence or generator that returns a list containing:
-            Intfc, Gap, Index, Trfm, Z_Dir
+            Intfc, Gap, Trfm, Index, Z_Dir
         pt0: starting coordinate at object interface
         dir0: starting direction cosines following object interface
         wvl: ray trace wavelength in nm

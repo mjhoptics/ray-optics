@@ -123,7 +123,7 @@ class SequentialModel:
             step: increment or stride of range
 
         Returns:
-            (**ifcs**, **gaps**, **rndx**, **lcl_tfrms**, **z_dir**)
+            (**ifcs, gaps, lcl_tfrms, rndx, z_dir**)
         """
         if wl is None:
             wl = self.central_wavelength()
@@ -134,8 +134,8 @@ class SequentialModel:
             gap_start = start
         path = itertools.zip_longest(self.ifcs[start::step],
                                      self.gaps[gap_start::step],
-                                     self.rndx[start::step][wl],
                                      self.lcl_tfrms[start::step],
+                                     self.rndx[start::step][wl],
                                      self.z_dir[start::step])
         return path
 
@@ -247,14 +247,15 @@ class SequentialModel:
 
         for i, s in enumerate(self.ifcs):
             z_dir_after = copysign(1.0, z_dir_before)
-            n_after = np.copysign(self.rndx.iloc[i], n_before)
             if s.interact_mode == imode.Reflect:
-                n_after = -n_after
                 z_dir_after = -z_dir_after
 
+            # leave rndx data unsigned, track change of sign using z_dir
+            n_after = self.rndx.iloc[i]
+            n_after = n_after if z_dir_after > 0.0 else -n_after
             s.delta_n = n_after.iloc[ref_wl] - n_before.iloc[ref_wl]
             n_before = n_after
-            self.rndx.iloc[i] = n_after
+
             z_dir_before = z_dir_after
             self.z_dir.append(z_dir_after)
             # call update() on the surface interface
@@ -596,7 +597,7 @@ def gen_sequence(surf_data_list, **kwargs):
         z_dir_before = z_dir_after
         z_dir[i] = z_dir_after
 
-    seq = itertools.zip_longest(ifcs, gaps[:-2], rndx, lcl_tfrms, z_dir)
+    seq = itertools.zip_longest(ifcs, gaps[:-2], lcl_tfrms, rndx, z_dir)
     return seq
 
 
