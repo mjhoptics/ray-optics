@@ -8,7 +8,6 @@
 .. codeauthor: Michael J. Hayford
 """
 
-import itertools
 import numpy as np
 from numpy.linalg import norm
 from math import sqrt, copysign
@@ -175,15 +174,20 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12):
 
             surf += 1
 
-            dW = n_after*eic_dst_after - n_before*eic_dst_before
-            eic.append([n_before, eic_dst_before,
-                        n_after, eic_dst_after, dW])
+            # Per `Hopkins, 1981 <https://dx.doi.org/10.1080/713820605>`_, the
+            #  propagation direction is given by the direction cosines of the
+            #  ray and therefore doesn't require the use of a negated
+            #  refractive index following a reflection. Thus we use the
+            #  (positive) refractive indices from the seq_model.rndx array.
+            dW = after[Indx]*eic_dst_after - before[Indx]*eic_dst_before
+            eic.append([before[Indx], eic_dst_before,
+                        after[Indx], eic_dst_after, dW])
 
 #            print("after:", surf, inc_pt, after_dir)
 #            print("e{}= {:12.5g} e{}'= {:12.5g} dW={:10.8g} n={:8.5g}"
-#                  " n'={:8.5g}".format(surf, eic_dst_before,
-#                                       surf, eic_dst_after,
-#                                       dW, before[Indx], after[Indx]))
+#                  " n'={:8.5g} zdirb4={:2.0f} zdiraftr={:2.0f}"
+#                  .format(surf, eic_dst_before, surf, eic_dst_after, dW,
+#                          n_before, n_after, z_dir_before, z_dir_after))
             before_pt = inc_pt
             before_normal = normal
             before_dir = after_dir
@@ -467,7 +471,7 @@ def eic_path_accumulation(ray, rndx, lcl_tfrms, z_dir):
     eic = []
 
     z_dir_before = z_dir[0]
-    n_before = z_dir_before*rndx[0]
+    n_before = rndx[0]
 
     before_dir = ray[0][1]
 
@@ -476,7 +480,6 @@ def eic_path_accumulation(ray, rndx, lcl_tfrms, z_dir):
         b4_dir = rotT.dot(before_dir)
 
         z_dir_after = z_dir[i]
-        n_after = z_dir_after*rndx[i]
 
         inc_pt = ray[i][0]
         eic_dst_before = ((inc_pt.dot(b4_dir) + z_dir_before*inc_pt[2]) /
@@ -486,6 +489,12 @@ def eic_path_accumulation(ray, rndx, lcl_tfrms, z_dir):
         eic_dst_after = ((inc_pt.dot(after_dir) + z_dir_after*inc_pt[2]) /
                          (1.0 + z_dir_after*after_dir[2]))
 
+        # Per `Hopkins, 1981 <https://dx.doi.org/10.1080/713820605>`_, the
+        #  propagation direction is given by the direction cosines of the ray
+        #  and therefore doesn't require the use of a negated refractive index
+        #  following a reflection. Thus we use the (positive) refractive indices
+        #  from the seq_model.rndx array.
+        n_after = rndx[i]
         dW = n_after*eic_dst_after - n_before*eic_dst_before
 
         eic.append([n_before, eic_dst_before, n_after, eic_dst_after, dW])
