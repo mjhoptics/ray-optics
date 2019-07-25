@@ -380,9 +380,13 @@ class FocusRange:
         defocus_range: +/- half the total focal range, from the focus_shift
                        position
     """
-    def __init__(self, defocus_range, focus_shift=0.0):
+    def __init__(self, focus_shift=0.0, defocus_range=0.0):
         self.focus_shift = focus_shift
         self.defocus_range = defocus_range
+
+    def __repr__(self):
+        return ("FocusRange(focus_shift={}, defocus_range={})"
+                .format(self.focus_shift, self.defocus_range))
 
     def update(self):
         self.chief_ray = None
