@@ -75,15 +75,19 @@ class DiffractiveElement:
                       self.ref_virtual))
 
     def phase(self, pt, in_dir, srf_nrml, wl=None):
+        order = self.order
         normal = normalize(srf_nrml)
         in_cosI = np.dot(in_dir, normal)
         mu = 1.0 if wl is None else wl/self.ref_wl
         dW, dWdX, dWdY = self.phase_fct(pt, self.coefficients)
 #        print(wl, mu, dW, dWdX, dWdY)
-        b = in_cosI + mu*(normal[0]*dWdX + normal[1]*dWdY)
-        c = mu*(mu*(dWdX**2 - dWdY**2)/2 + (in_dir[0]*dWdX - in_dir[1]*dWdY))
+        b = in_cosI + order*mu*(normal[0]*dWdX + normal[1]*dWdY)
+        c = mu*(mu*(dWdX**2 + dWdY**2)/2 +
+                order*(in_dir[0]*dWdX + in_dir[1]*dWdY))
         Q = -b + sqrt(b*b - 2*c)
-        out_dir = in_dir + mu*(np.array([dWdX, dWdY, 0])) + Q*normal
+#        print("{:6.3f} {:12.5f} {:12.5f} {:12.5f} {:12.5f} {:12.5f} {:12.5f}"
+#              .format(mu, dW, dWdX, dWdY, b, c, Q))
+        out_dir = in_dir + order*mu*(np.array([dWdX, dWdY, 0])) + Q*normal
         dW *= mu
         return out_dir, dW
 
