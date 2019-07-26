@@ -438,7 +438,7 @@ class SequentialModel:
 
         grid = trace.trace_grid(self.opt_model, grid_def, fld, wvl, foc,
                                 img_filter=lambda p, ray_pkg:
-                                wave(p, ray_pkg, fld, wvl), form='grid')
+                                wave(p, ray_pkg, fld, wvl, foc), form='grid')
         return grid
 
 #    def set_clear_apertures(self):
