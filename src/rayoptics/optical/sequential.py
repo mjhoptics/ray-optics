@@ -289,12 +289,13 @@ class SequentialModel:
         return labels
 
     def list_model(self):
+        cvr = 'r' if self.opt_model.radius_mode else 'c'
+        print("           {}            t        medium     mode         sd"
+              .format(cvr))
         for i, sg in enumerate(self.path()):
-            if sg[Gap]:
-                print(i, sg[Intfc])
-                print('    ', sg[Gap])
-            else:
-                print(i, sg[Intfc])
+            s = self.list_surface_and_gap(sg[Intfc], gp=sg[Gap])
+            print("{0:2n}: {1:12.6f} {2:#12.6g} {3:>9s} {4.name:>10s} {5:#10.5g}"
+                  .format(i, *s))
 
     def list_gaps(self):
         for i, gp in enumerate(self.gaps):
@@ -304,22 +305,21 @@ class SequentialModel:
         for i, s in enumerate(self.ifcs):
             print(i, s)
 
-    def list_surface_and_gap(self, i):
-        s = self.ifcs[i]
-        cvr = s.profile.cv
+    def list_surface_and_gap(self, ifc, gp=None):
+        cvr = ifc.profile_cv
         if self.opt_model.radius_mode:
             if cvr != 0.0:
                 cvr = 1.0/cvr
-        sd = s.surface_od()
+        sd = ifc.surface_od()
+        imode = ifc.interact_mode
 
-        if i < len(self.gaps):
-            g = self.gaps[i]
-            thi = g.thi
-            med = g.medium.name()
+        if gp is not None:
+            thi = gp.thi
+            med = gp.medium.name()
         else:
-            thi = ''
+            thi = 0.
             med = ''
-        return [cvr, thi, med, sd]
+        return [cvr, thi, med, imode, sd]
 
     def list_decenters(self):
         for i, sg in enumerate(self.path()):
