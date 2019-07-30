@@ -92,6 +92,7 @@ class AppManager:
         Args:
             view: view being closed by user
         """
+        logging.debug('AppManager.delete_view: {}'.format(view.windowTitle()))
         del self.view_dict[view]
 
     def close_model(self, view_close_fct=None):
@@ -122,10 +123,16 @@ class AppManager:
         """ refresh the dependent ui views of the active model """
         if self.gui_parent is not None:
             self.gui_parent.refresh_app_ui()
-        for mi in self.view_dict.values():
+        # traverse a copy of the view dict. this way we can delete any errant
+        #  views we might find. we don't seem to be trapping closing a window
+        #  via a close box under pyqt5
+        for view, mi in dict(self.view_dict).items():
             if mi.model == self.model:
                 if mi.fct is not None:
-                    mi.fct(*mi.args, **mi.kwargs)
+                    try:
+                        mi.fct(*mi.args, **mi.kwargs)
+                    except RuntimeError:
+                        del self.view_dict[view]
 
     def on_view_activated(self, view):
         """ Makes the model associated with input view the active model
