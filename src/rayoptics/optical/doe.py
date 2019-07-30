@@ -31,8 +31,9 @@ def radial_phase_fct(pt, coefficients):
     for i, c in enumerate(coefficients):
         dW += c*r_sqr**(i+1)
         r_exp = r_sqr**(i)
-        dWdX += c*x*r_exp
-        dWdY += c*y*r_exp
+        factor = 2*(i+1)
+        dWdX += factor*c*x*r_exp
+        dWdY += factor*c*y*r_exp
     return dW, dWdX, dWdY
 
 

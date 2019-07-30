@@ -389,8 +389,7 @@ class FocusRange:
                 .format(self.focus_shift, self.defocus_range))
 
     def update(self):
-        self.chief_ray = None
-        self.ref_sphere = None
+        pass
 
     def get_focus(self, fr=0.0):
         """ return focus position for input focus range parameter
