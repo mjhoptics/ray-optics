@@ -15,7 +15,8 @@ from rayoptics.optical.etendue import obj_img_set, fld_ape_set, fld_labels, ap_l
 
 from rayoptics.optical import specsheet
 
-from rayoptics.util.dict2d import dict2D, num_items_by_type, num_items_by_cell
+from rayoptics.util import dict2d
+from rayoptics.util.dict2d import dict2D
 
 from PyQt5.QtCore import Qt as qt
 from PyQt5.QtWidgets import (QApplication, QDialog, QRadioButton,
@@ -159,21 +160,34 @@ class IdealImagerDialog(QDialog):
         imager_groupbox = self.imager_stack[self.conjugate_type]
         imager = imager_groupbox.imager
         imager_inputs = imager_groupbox.imager_inputs
-        if self.conjugate_type == 'finite':
+        conj_type = self.conjugate_type
+        if conj_type == 'finite':
             imager_defined = True if imager.m is not None else False
         else:
             imager_defined = True if imager.f is not None else False
 
-        etendue_groupbox = self.etendue_stack[self.conjugate_type]
+        etendue_groupbox = self.etendue_stack[conj_type]
 
         etendue_inputs = etendue_groupbox.etendue_inputs
         etendue_grid = etendue_groupbox.etendue_grid
-        li = num_items_by_type(etendue_inputs, fld_ape_set, obj_img_set)
+        li = dict2d.num_items_by_type(etendue_inputs, fld_ape_set, obj_img_set)
         if imager_defined:
             if li['field'] == 1 and li['aperture'] == 1:
                 # we have enough data to calculate all of the etendue grid
-                etendue.do_etendue_via_imager(imager_inputs, imager,
+                etendue.do_etendue_via_imager(conj_type, imager_inputs, imager,
                                               etendue_inputs, etendue_grid)
+            elif li['field'] == 1:
+                # we have enough data to calculate all of the etendue grid
+                row = dict2d.row(etendue_inputs, 'field')
+                obj_img_key = 'object' if len(row['object']) else 'image'
+                etendue.do_field_via_imager(conj_type, imager, etendue_inputs,
+                                            obj_img_key, etendue_grid)
+            elif li['aperture'] == 1:
+                # we have enough data to calculate all of the etendue grid
+                row = dict2d.row(etendue_inputs, 'aperture')
+                obj_img_key = 'object' if len(row['object']) else 'image'
+                etendue.do_aperture_via_imager(conj_type, imager, etendue_inputs,
+                                               obj_img_key, etendue_grid)
         else:  # imager not specified
             if li['field'] == 2 or li['aperture'] == 2:
                 # solve for imager
@@ -181,8 +195,17 @@ class IdealImagerDialog(QDialog):
                 imager_inputs[ii[0]] = ii[1]
                 imager_groupbox.update_values()
                 # update etendue grid
-                etendue.do_etendue_via_imager(imager_inputs, imager,
+                etendue.do_etendue_via_imager(conj_type, imager_inputs,
+                                              imager_groupbox.imager,
                                               etendue_inputs, etendue_grid)
+            else:  # don't wipe out inputs
+                for fld_ape_key, fld_ape_value in etendue_inputs.items():
+                    for obj_img_key, cell in fld_ape_value.items():
+                        for key in cell:
+                            etendue_grid[fld_ape_key][obj_img_key][key] = \
+                                etendue_inputs[fld_ape_key][obj_img_key][key]
+
+        etendue_groupbox.update_values()
 
 
 class ImagerSpecGroupBox(QGroupBox):
@@ -555,7 +578,7 @@ class SpaceGroupBox(QGroupBox):
 
     def update_values(self, cell):
         """ update the display for the etendue cell being updated """
-#        print('update_values:', cell)
+        print('sgb.update_values:', cell)
         for key in self.keys:
             value = cell[key]
             label, lineEdit, checkBox = self.dlog_attrs[key]
