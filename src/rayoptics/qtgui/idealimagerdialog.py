@@ -172,10 +172,18 @@ class IdealImagerDialog(QDialog):
         etendue_grid = etendue_groupbox.etendue_grid
         li = dict2d.num_items_by_type(etendue_inputs, fld_ape_set, obj_img_set)
         if imager_defined:
-            if li['field'] == 1 and li['aperture'] == 1:
+            if li['field'] >= 1 and li['aperture'] >= 1:
                 # we have enough data to calculate all of the etendue grid
-                etendue.do_etendue_via_imager(conj_type, imager_inputs, imager,
-                                              etendue_inputs, etendue_grid)
+                ii = etendue.do_etendue_via_imager(conj_type, imager,
+                                                   etendue_inputs,
+                                                   etendue_grid)
+
+                if ii:
+                    imager_inputs[ii[0]] = ii[1]
+                    imager_groupbox.update_values()
+                    etendue.do_etendue_via_imager(conj_type,
+                                                  imager_groupbox.imager,
+                                                  etendue_inputs, etendue_grid)
             elif li['field'] == 1:
                 # we have enough data to calculate all of the etendue grid
                 row = dict2d.row(etendue_inputs, 'field')
@@ -195,7 +203,7 @@ class IdealImagerDialog(QDialog):
                 imager_inputs[ii[0]] = ii[1]
                 imager_groupbox.update_values()
                 # update etendue grid
-                etendue.do_etendue_via_imager(conj_type, imager_inputs,
+                etendue.do_etendue_via_imager(conj_type,
                                               imager_groupbox.imager,
                                               etendue_inputs, etendue_grid)
             else:  # don't wipe out inputs

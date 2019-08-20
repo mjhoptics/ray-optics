@@ -40,16 +40,23 @@ def slp2ang(slp):
     return math.degrees(math.atan(slp))
 
 
-def do_etendue_via_imager(conj_type, imager_inputs, imager, etendue_inputs,
-                          etendue_grid, n_0=1, n_k=1):
+def do_etendue_via_imager(conj_type, imager, etendue_inputs, etendue_grid,
+                          n_0=1, n_k=1):
     li = dict2d.num_items_by_type(etendue_inputs, fld_ape_set, obj_img_set)
     if li['field'] == 1:
         row = dict2d.row(etendue_inputs, 'field')
         obj_img_key = 'object' if len(row['object']) else 'image'
-        do_field_via_imager(imager, etendue_inputs, obj_img_key, etendue_grid,
-                            n_0=n_0, n_k=n_k)
+        do_field_via_imager(conj_type, imager, etendue_inputs, obj_img_key,
+                            etendue_grid, n_0=n_0, n_k=n_k)
 
-    elif li['field'] == 2:
+    if li['aperture'] == 1:
+        row = dict2d.row(etendue_inputs, 'aperture')
+        obj_img_key = 'object' if len(row['object']) else 'image'
+        do_aperture_via_imager(conj_type, imager, etendue_inputs, obj_img_key,
+                               etendue_grid)
+
+    imager_inputs = None
+    if li['field'] == 2:
         obj_cell = etendue_inputs['field']['object']
         img_cell = etendue_inputs['field']['image']
         obj_grid = etendue_grid['field']['object']
@@ -74,13 +81,7 @@ def do_etendue_via_imager(conj_type, imager_inputs, imager, etendue_inputs,
                 mag = img_ht/obj_ht
                 imager_inputs = 'm', mag
 
-    elif li['aperture'] == 1:
-        row = dict2d.row(etendue_inputs, 'aperture')
-        obj_img_key = 'object' if len(row['object']) else 'image'
-        do_aperture_via_imager(imager, etendue_inputs, obj_img_key,
-                               etendue_grid)
-
-    elif li['aperture'] == 2:
+    if li['aperture'] == 2:
         obj_cell = etendue_inputs['aperture']['object']
         img_cell = etendue_inputs['aperture']['image']
         obj_grid = etendue_grid['aperture']['object']
@@ -114,7 +115,7 @@ def do_etendue_via_imager(conj_type, imager_inputs, imager, etendue_inputs,
                 na = img_cell['NA']
                 img_grid['NA'] = na
                 slpk = na2slp(na, n=n_k)
-            elif 'f/#' in obj_key:
+            elif 'f/#' in img_key:
                 fno = img_cell['f/#']
                 img_grid['f/#'] = fno
                 slpk = -1/(2*fno)
@@ -126,16 +127,19 @@ def do_etendue_via_imager(conj_type, imager_inputs, imager, etendue_inputs,
 def do_field_via_imager(conj_type, imager, etendue_inputs, obj_img_key,
                         etendue_grid, n_0=1, n_k=1):
     input_cell = etendue_inputs['field'][obj_img_key]
+    input_grid_cell = etendue_grid['field'][obj_img_key]
     if obj_img_key is 'object':
         output_cell = etendue_grid['field']['image']
         if 'angle' in input_cell:
             efl = imager.f
             obj_ang = input_cell['angle']
+            input_grid_cell['angle'] = obj_ang
             obj_slp = ang2slp(obj_ang)
             output_cell['height'] = efl*obj_slp
         elif 'height' in input_cell:
             m = imager.m
             obj_ht = input_cell['height']
+            input_grid_cell['height'] = obj_ht
             output_cell['height'] = m*obj_ht
 
     elif obj_img_key is 'image':
@@ -144,6 +148,7 @@ def do_field_via_imager(conj_type, imager, etendue_inputs, obj_img_key,
             efl = imager.f
             if 'height' in input_cell:
                 img_ht = input_cell['height']
+                input_grid_cell['height'] = img_ht
                 obj_slp = img_ht/efl
                 obj_ang = slp2ang(obj_slp)
                 output_cell['angle'] = obj_ang
@@ -151,6 +156,7 @@ def do_field_via_imager(conj_type, imager, etendue_inputs, obj_img_key,
             m = imager.m
             if 'height' in input_cell:
                 img_ht = input_cell['height']
+                input_grid_cell['height'] = img_ht
                 output_cell['height'] = m/img_ht
 
 
