@@ -157,7 +157,7 @@ def do_field_via_imager(conj_type, imager, etendue_inputs, obj_img_key,
             if 'height' in input_cell:
                 img_ht = input_cell['height']
                 input_grid_cell['height'] = img_ht
-                output_cell['height'] = m/img_ht
+                output_cell['height'] = img_ht/m
 
 
 def do_aperture_via_imager(conj_type, imager, etendue_inputs, obj_img_key,
