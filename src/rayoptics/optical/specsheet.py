@@ -7,140 +7,126 @@
 
 .. codeauthor: Michael J. Hayford
 """
+from rayoptics.optical.idealimager import IdealImager, ideal_imager_setup
 
-import math
-from collections import namedtuple
+from rayoptics.util import dict2d
+from rayoptics.util.dict2d import dict2D
 
-
-from rayoptics.optical.model_enums import (PupilType, FieldType)
-
-ideal_imager_keys = ['m', 's', 'sp', 'tt', 'f']
-ideal_imager_labels = ["m", "s", "s'", "tt", "f"]
-IdealImager = namedtuple('IdealImager', ideal_imager_keys)
-""" tuple grouping together first order specifications
-
-    Attributes:
-        m: (lateral) magnification
-        s: object distance from first principal plane, P1->Obj
-        sp: image distance from second principal plane, P2->Img
-        tt: total track length, tt = sp - s
-        f: focal length
-"""
+from rayoptics.optical import etendue
+from rayoptics.optical.etendue import (obj_img_set, fld_ape_set,
+                                       fld_labels, ap_labels)
 
 
-def ideal_imager_setup(**inputs):
-    """ Calculate the ideal imaging properties given two independent parameters
+class SpecSheet():
+    def __init__(self, conjugate_type, imager=None, imager_inputs=None,
+                 etendue_inputs=None, etendue_values=None):
+        self.conjugate_type = conjugate_type
 
-    Given 2 system parameters from the following list, this function
-    calculates the remaining parameters.
+        if imager is None:
+            imager = IdealImager(None, None, None, None, None)
+        self.imager = imager
 
-    Note that if specifying ``tt`` and ``f``, their ratio, tt/f, must be
-    greater than or equal to 4. A `ValueError` is raised otherwise.
+        self.imager_inputs = imager_inputs if imager_inputs else {}
 
-    For a typical system, the value of ``s`` is negative, i.e. the object is to
-    the left of the first principal plane.
+        self.etendue_inputs = (etendue_inputs if etendue_inputs
+                               else dict2D(fld_ape_set, obj_img_set))
+        self.etendue_values = (etendue_values if etendue_values
+                               else dict2D(fld_ape_set, obj_img_set))
 
-    Example::
+        if conjugate_type is 'infinite':
+            self.etendue_values['field']['object'] = dict([
+                    (fld_labels[1], None)])
+            self.etendue_values['aperture']['object'] = dict([
+                    (ap_labels[0], None)])
+            self.etendue_values['field']['image'] = dict([
+                    (fld_labels[0], None)])
+            self.etendue_values['aperture']['image'] = dict([
+                    (ap_labels[2], None), (ap_labels[1], None)])
 
-        In [3]: m1s1 = ideal_imager_setup(m=-0.5, s=-10.0); m1s1
-        Out[3]: IdealImager(m=-0.5, s=-10.0, sp=5.0, tt=15.0, f=3.333333333333)
-
-        In [4]: s_inf_efl = ideal_imager_setup(s=-math.inf, f=25.0); s_inf_efl
-        Out[4]: IdealImager(m=-0.0, s=-inf, sp=25.0, tt=inf, f=25.0)
-
-    Args:
-        m: (lateral) magnification
-        s: object distance from first principal plane, P1->Obj
-        sp: image distance from second principal plane, P2->Img
-        tt: total track length, tt = sp - s
-        f: focal length
-
-    Returns:
-        :class:`IdealImager` namedtuple
-
-    Raises:
-        ValueError: if tt/f < 4
-    """
-    if 'm' in inputs:
-        m = inputs['m']
-        if 's' in inputs:
-            s = inputs['s']
-            sp = m*s
-            tt = sp - s
-            f = s*sp/(s - sp)
-        elif 'sp' in inputs:
-            sp = inputs['sp']
-            s = sp/m
-            tt = sp - s
-            f = s*sp/(s - sp)
-        elif 'tt' in inputs:
-            tt = inputs['tt']
-            s = tt/(m - 1)
-            sp = m*s
-            f = s*sp/(s - sp)
-        elif 'f' in inputs:
-            f = inputs['f']
-            tt = -f*(m - 1)**2/m
-            s = tt/(m - 1)
-            sp = m*s
         else:
-            return IdealImager(m, None, None, None, None)
+            self.etendue_values['field']['object'] = dict([
+                    (fld_labels[0], None)])
+            self.etendue_values['aperture']['object'] = dict([
+                    (ap_labels[2], None), (ap_labels[1], None)])
+            self.etendue_values['field']['image'] = dict([
+                    (fld_labels[0], None)])
+            self.etendue_values['aperture']['image'] = dict([
+                    (ap_labels[2], None), (ap_labels[1], None)])
 
-    elif 's' in inputs:
-        # arrange calculations so that s=-inf is handled gracefully
-        s = inputs['s']
-        if 'sp' in inputs:
-            sp = inputs['sp']
-            f = 1/(1/sp - 1/s)
-            m = sp/s
-            tt = sp - s
-        elif 'tt' in inputs:
-            tt = inputs['tt']
-            m = 1 + tt/s
-            sp = m*s
-            f = s*sp/(s - sp)
-        elif 'f' in inputs:
-            f = inputs['f']
-            m = f/(s + f)
-            sp = 1/(1/f + 1/s)
-            tt = sp - s
+    def generate_from_inputs(self, imgr_inputs, etendue_inputs):
+        """ compute imager and etendue values given input dicts """
+        conj_type = self.conjugate_type
+        imager_inputs = {}
+        # fill in imager_inputs with any previous calculations for m or f
+        if conj_type == 'finite':
+            if self.imager.m is not None:
+                imager_inputs['m'] = self.imager.m
         else:
-            return IdealImager(None, s, None, None, None)
+            if self.imager.f is not None:
+                imager_inputs['f'] = self.imager.f
 
-    elif 'sp' in inputs:
-        # arrange calculations so that sp=inf is handled gracefully
-        sp = inputs['sp']
-        if 'tt' in inputs:
-            tt = inputs['tt']
-            m = sp/(sp - tt)
-            s = sp/m
-            f = s*sp/(s - sp)
-        elif 'f' in inputs:
-            f = inputs['f']
-            m = (f - sp)/f
-            s = 1/(1/sp - 1/f)
-            tt = sp - s
+        # update imager_inputs with user entries
+        imager_inputs.update(imgr_inputs)
+        imager_inputs = {k: v for (k, v) in imager_inputs.items()
+                         if v is not None}
+
+        # calculate an ideal imager for imager_inputs
+        imager = ideal_imager_setup(**imager_inputs)
+
+        if conj_type == 'finite':
+            imager_defined = True if imager.m is not None else False
         else:
-            return IdealImager(None, None, sp, None, None)
+            imager_defined = True if imager.f is not None else False
 
-    elif 'tt' in inputs:
-        tt = inputs['tt']
-        if 'f' in inputs:
-            f = inputs['f']
-            ttf = tt/f
-            # tt/f >= 4, else no solution
-            # pick root (+) that gives |s|>=|sp|, i.e. -1 <= m < 0
-            m = ((2 - ttf) + math.sqrt(ttf*(ttf - 4)))/2
-            s = tt/(m - 1)
-            sp = m*s
-        else:
-            return IdealImager(None, None, None, tt, None)
+        etendue_values = self.etendue_values
 
-    elif 'f' in inputs:
-        f = inputs['f']
-        return IdealImager(None, None, None, None, f)
+        for fld_ape_key, fld_ape_value in etendue_inputs.items():
+            for obj_img_key, input in fld_ape_value.items():
+                for key in input:
+                    etendue_values[fld_ape_key][obj_img_key][key] = \
+                        etendue_inputs[fld_ape_key][obj_img_key][key]
 
-    else:
-        return IdealImager(None, None, None, None, None)
+        li = dict2d.num_items_by_type(etendue_inputs, fld_ape_set, obj_img_set)
+        num_field_inputs = li['field']
+        num_aperture_inputs = li['aperture']
+        if imager_defined:
+            if num_field_inputs >= 1 and num_aperture_inputs >= 1:
+                # we have enough data to calculate all of the etendue grid
+                ii = etendue.do_etendue_via_imager(conj_type, imager,
+                                                   etendue_inputs,
+                                                   etendue_values)
 
-    return IdealImager(m, s, sp, tt, f)
+                if ii:
+                    imager_inputs[ii[0]] = ii[1]
+                    imager = ideal_imager_setup(**imager_inputs)
+                    etendue.do_etendue_via_imager(conj_type, imager,
+                                                  etendue_inputs,
+                                                  etendue_values)
+            elif num_field_inputs == 1:
+                # we have enough data to calculate all of the etendue grid
+                row = dict2d.row(etendue_inputs, 'field')
+                obj_img_key = 'object' if len(row['object']) else 'image'
+                etendue.do_field_via_imager(conj_type, imager, etendue_inputs,
+                                            obj_img_key, etendue_values)
+            elif num_aperture_inputs == 1:
+                # we have enough data to calculate all of the etendue grid
+                row = dict2d.row(etendue_inputs, 'aperture')
+                obj_img_key = 'object' if len(row['object']) else 'image'
+                etendue.do_aperture_via_imager(conj_type, imager,
+                                               etendue_inputs, obj_img_key,
+                                               etendue_values)
+        else:  # imager not specified
+            if num_field_inputs == 2 or num_aperture_inputs == 2:
+                fld_ape_key = 'field' if num_field_inputs == 2 else 'aperture'
+                # solve for imager
+                ii = etendue.do_etendue_to_imager(fld_ape_key, etendue_inputs,
+                                                  etendue_values)
+                imager_inputs[ii[0]] = ii[1]
+                imager = ideal_imager_setup(**imager_inputs)
+                # update etendue grid
+                etendue.do_etendue_via_imager(conj_type, imager,
+                                              etendue_inputs, etendue_values)
+
+        self.imager = imager
+        self.etendue_values = etendue_values
+        return imager, etendue_values
