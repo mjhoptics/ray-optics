@@ -120,13 +120,13 @@ def do_field_via_imager(conj_type, imager, etendue_inputs, obj_img_key,
 
 def do_aperture_via_imager(conj_type, imager, etendue_inputs, obj_img_key,
                            etendue_grid, n_0=1, n_k=1):
-    input_cell = etendue_inputs['aperture'][obj_img_key]
-    input_grid_cell = etendue_grid['aperture'][obj_img_key]
+    inpt = etendue_inputs['aperture'][obj_img_key]
+    input_cell = etendue_grid['aperture'][obj_img_key]
     if conj_type is 'infinite':
         efl = imager.f
 
         if obj_img_key is 'object':
-            epd = input_cell['pupil']
+            epd = inpt['pupil']
             slpk = (epd/2.0)/efl
             na, fno = get_aperture_from_slope(slpk, n=n_k)
             output_cell = etendue_grid['aperture']['image']
@@ -134,10 +134,10 @@ def do_aperture_via_imager(conj_type, imager, etendue_inputs, obj_img_key,
             output_cell['NA'] = na
 
         elif obj_img_key is 'image':
-            slpk = get_slope_from_aperture(input_cell, n=n_k)
+            slpk = get_slope_from_aperture(inpt, n=n_k)
             na, fno = get_aperture_from_slope(slpk, n=n_k)
-            input_grid_cell['f/#'] = fno
-            input_grid_cell['NA'] = na
+            input_cell['f/#'] = fno
+            input_cell['NA'] = na
 
             epd = 2*slpk*efl
 
@@ -148,20 +148,20 @@ def do_aperture_via_imager(conj_type, imager, etendue_inputs, obj_img_key,
         mag = imager.m
 
         if obj_img_key is 'object':
-            slp0 = get_slope_from_aperture(input_cell, n=n_0)
+            slp0 = get_slope_from_aperture(inpt, n=n_0)
             na, fno = get_aperture_from_slope(slp0, n=n_0)
-            input_grid_cell['f/#'] = fno
-            input_grid_cell['NA'] = na
+            input_cell['f/#'] = fno
+            input_cell['NA'] = na
 
             slpk = slp0/mag
             na, fno = get_aperture_from_slope(slpk, n=n_k)
             output_cell = etendue_grid['aperture']['image']
 
         elif obj_img_key is 'image':
-            slpk = get_slope_from_aperture(input_cell, n=n_k)
+            slpk = get_slope_from_aperture(inpt, n=n_k)
             na, fno = get_aperture_from_slope(slpk, n=n_k)
-            input_grid_cell['f/#'] = fno
-            input_grid_cell['NA'] = na
+            input_cell['f/#'] = fno
+            input_cell['NA'] = na
 
             slp0 = mag*slpk
             na, fno = get_aperture_from_slope(slp0, n=n_0)
@@ -186,7 +186,7 @@ def do_etendue_to_imager(fld_ape_key, etendue_inputs, etendue_grid,
             obj_slp = ang2slp(obj_ang)
             if 'height' in img_key:
                 img_ht = img_cell['height']
-#                img_grid['height'] = img_ht
+                img_grid['height'] = img_ht
                 efl = img_ht/obj_slp
                 imager_inputs = 'f', efl
             else:
@@ -195,7 +195,7 @@ def do_etendue_to_imager(fld_ape_key, etendue_inputs, etendue_grid,
             obj_ht = obj_cell['height']
             if 'height' in img_key:
                 img_ht = img_cell['height']
-#                img_grid['height'] = img_ht
+                img_grid['height'] = img_ht
                 mag = img_ht/obj_ht
                 imager_inputs = 'm', mag
 
@@ -210,34 +210,49 @@ def do_etendue_to_imager(fld_ape_key, etendue_inputs, etendue_grid,
             epd = obj_cell['pupil']
             if 'f/#' in img_key:
                 fno = img_cell['f/#']
-#                img_grid['f/#'] = fno
+                img_grid['f/#'] = fno
                 efl = epd * fno
                 imager_inputs = 'f', efl
             if 'NA' in img_key:
                 na = img_cell['NA']
-#                img_grid['NA'] = na
+                img_grid['NA'] = na
                 slpk = na2slp(na, n=n_k)
                 efl = (epd/2.0)/slpk
                 imager_inputs = 'f', efl
         else:
             if 'NA' in obj_key:
                 nao = obj_cell['NA']
-#                obj_grid['NA'] = nao
+                obj_grid['NA'] = nao
                 slp0 = na2slp(nao, n=n_0)
             elif 'f/#' in obj_key:
                 fno = obj_cell['f/#']
-#                obj_grid['f/#'] = fno
+                obj_grid['f/#'] = fno
                 slp0 = -1/(2*fno)
 
             if 'NA' in img_key:
                 na = img_cell['NA']
-#                img_grid['NA'] = na
+                img_grid['NA'] = na
                 slpk = na2slp(na, n=n_k)
             elif 'f/#' in img_key:
                 fno = img_cell['f/#']
-#                img_grid['f/#'] = fno
+                img_grid['f/#'] = fno
                 slpk = -1/(2*fno)
             mag = slp0/slpk
             imager_inputs = 'm', mag
 
     return imager_inputs
+
+
+def fill_in_etendue_data(fld_ape_key, inputs, values, n=1.0):
+    if fld_ape_key == 'field':
+        for key in inputs:
+            values[key] = inputs[key]
+
+    if fld_ape_key == 'aperture':
+        if 'NA' in inputs or 'f/#' in inputs:
+            na, fno = calc_aperture_from_input(inputs)
+            values['NA'] = na
+            values['f/#'] = fno
+        else:
+            for key in inputs:
+                values[key] = inputs[key]

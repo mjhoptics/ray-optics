@@ -53,16 +53,50 @@ class SpecSheet():
             self.etendue_values['aperture']['image'] = dict([
                     (ap_labels[2], None), (ap_labels[1], None)])
 
+    def imager_defined(self):
+        """ compute imager and etendue values given input dicts """
+        if self.conjugate_type == 'finite':
+            imager_defined = True if self.imager.m is not None else False
+        else:
+            imager_defined = True if self.imager.f is not None else False
+        return imager_defined
+
+    def partion_defined(self):
+        """ which partion defines the imager or None """
+        num_imager_inputs = len(self.imager_inputs)
+        li = dict2d.num_items_by_type(self.etendue_inputs,
+                                      fld_ape_set, obj_img_set)
+        num_field_inputs = li['field']
+        num_aperture_inputs = li['aperture']
+        partions = {'imager': num_imager_inputs,
+                    'field': num_field_inputs,
+                    'aperture': num_aperture_inputs}
+        max_partion = max(partions, key=partions.get)
+        max_num_inputs = partions[max_partion]
+        return max_partion if max_num_inputs == 2 else None
+
     def generate_from_inputs(self, imgr_inputs, etendue_inputs):
         """ compute imager and etendue values given input dicts """
-        conj_type = self.conjugate_type
+        num_imager_inputs = len(imgr_inputs)
+        li = dict2d.num_items_by_type(etendue_inputs, fld_ape_set, obj_img_set)
+        num_field_inputs = li['field']
+        num_aperture_inputs = li['aperture']
+        partions = {'imager': num_imager_inputs,
+                    'field': num_field_inputs,
+                    'aperture': num_aperture_inputs}
+        max_partion = max(partions, key=partions.get)
+        max_num_inputs = partions[max_partion]
+#        print(num_imager_inputs, num_field_inputs, num_aperture_inputs)
+        print(partions)
+
         imager_inputs = {}
         # fill in imager_inputs with any previous calculations for m or f
+        conj_type = self.conjugate_type
         if conj_type == 'finite':
-            if self.imager.m is not None:
+            if num_imager_inputs < 2 and self.imager.m is not None:
                 imager_inputs['m'] = self.imager.m
         else:
-            if self.imager.f is not None:
+            if num_imager_inputs < 2 and self.imager.f is not None:
                 imager_inputs['f'] = self.imager.f
 
         # update imager_inputs with user entries
@@ -80,15 +114,12 @@ class SpecSheet():
 
         etendue_values = self.etendue_values
 
-        for fld_ape_key, fld_ape_value in etendue_inputs.items():
-            for obj_img_key, input in fld_ape_value.items():
-                for key in input:
-                    etendue_values[fld_ape_key][obj_img_key][key] = \
-                        etendue_inputs[fld_ape_key][obj_img_key][key]
+        for fa_key, fa_value in etendue_inputs.items():
+            for oi_key, oi_value in fa_value.items():
+                etendue.fill_in_etendue_data(fa_key,
+                                             etendue_inputs[fa_key][oi_key],
+                                             etendue_values[fa_key][oi_key])
 
-        li = dict2d.num_items_by_type(etendue_inputs, fld_ape_set, obj_img_set)
-        num_field_inputs = li['field']
-        num_aperture_inputs = li['aperture']
         if imager_defined:
             if num_field_inputs >= 1 and num_aperture_inputs >= 1:
                 # we have enough data to calculate all of the etendue grid
