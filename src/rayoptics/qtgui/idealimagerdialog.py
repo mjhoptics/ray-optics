@@ -65,22 +65,21 @@ class IdealImagerDialog(QDialog):
         self.etendue_stack['finite'] = fegb
 
         # setup infinite conjugate defaults
-        imager_inputs = {'s': -math.inf, 'f': None}
+        imager_inputs = {'s': -math.inf}
         imager = IdealImager(None, -math.inf, None, None, None)
         ifss = SpecSheet('infinite', imager=imager,
                          imager_inputs=imager_inputs)
         self.specsheet_stack['infinite'] = ifss
 
-        enabled_list = [False, False, False, False, True]
-        chkbox_enabled_list = [False, False, False, False, True]
+        frozen_input_list = [True, True, True, True, False]
         iigb = ImagerSpecGroupBox(parent=self, specsheet=ifss,
-                                  enabled_list=enabled_list,
-                                  chkbox_enabled_list=chkbox_enabled_list)
+                                  frozen_input_list=frozen_input_list)
         self.imager_stack['infinite'] = iigb
 
         iegb = EtendueGroupBox(self, 'infinite', ifss)
         self.etendue_stack['infinite'] = iegb
 
+        # finish ui setup
         self.imager_groupbox_stack = QStackedWidget()
         self.imager_groupbox_stack.addWidget(iigb)
         self.imager_groupbox_stack.addWidget(figb)
@@ -130,31 +129,22 @@ class IdealImagerDialog(QDialog):
 
     def update_conjugate(self, conj_type):
         prev_specsheet = self.specsheet_stack[self.conjugate_type]
-        prev_imager_groupbox = self.imager_groupbox_stack.currentWidget()
         self.conjugate_type = conj_type
+
         new_specsheet = self.specsheet_stack[conj_type]
+        new_partition, max_inputs = new_specsheet.partition_defined()
+        if new_partition is None:
+            if prev_specsheet.imager.f is not None:
+                prev_f = prev_specsheet.imager.f
+                new_specsheet.imager_inputs['f'] = prev_f
+
         new_imager_groupbox = self.imager_stack[conj_type]
-        if prev_specsheet.imager is not None:
-            if new_specsheet.imager is None:
-                new_specsheet.imager = prev_specsheet.imager
-            else:
-                prev_enabled_list, _ = prev_imager_groupbox.get_enabled_lists()
-                new_enabled_list, _ = new_imager_groupbox.get_enabled_lists()
-                new_imager = list(new_specsheet.imager)
-                for i, p in enumerate(prev_specsheet.imager):
-                    if (prev_enabled_list[i] and new_enabled_list[i]):
-                        new_imager[i] = p
-                        key = prev_imager_groupbox.keys[i]
-                        if key in prev_specsheet.imager_inputs:
-                            new_imager_groupbox.chkbox_change(qt.Checked, key)
-                            new_specsheet.imager_inputs[key] = p
-                new_specsheet.imager = IdealImager(*new_imager)
         self.imager_groupbox_stack.setCurrentWidget(new_imager_groupbox)
-        new_imager_groupbox.update_values(new_imager)
 
         etendue_groupbox = self.etendue_stack[conj_type]
         self.etendue_groupbox_stack.setCurrentWidget(etendue_groupbox)
-        etendue_groupbox.update_values()
+
+        self.update_values()
 
     def update_values(self):
         """ callback routine for any dialog value change """
@@ -172,10 +162,18 @@ class IdealImagerDialog(QDialog):
         imager_groupbox.update_values()
         etendue_groupbox.update_values()
 
+    def update_checkboxes(self):
+        """ callback routine for any dialog checkbox change """
+        imager_groupbox = self.imager_stack[self.conjugate_type]
+        etendue_groupbox = self.etendue_stack[self.conjugate_type]
+
+        imager_groupbox.update_checkboxes()
+        etendue_groupbox.update_checkboxes()
+
 
 class ImagerSpecGroupBox(QGroupBox):
-    def __init__(self, parent, specsheet, keys=None, enabled_list=None,
-                 chkbox_enabled_list=None, labels=None, **kwargs):
+    def __init__(self, parent, specsheet, keys=None, frozen_input_list=None,
+                 labels=None, **kwargs):
         super().__init__(title='Imager specs', **kwargs)
 
         self.parent = parent
@@ -186,9 +184,8 @@ class ImagerSpecGroupBox(QGroupBox):
         self.keys = keys if keys else idealimager.ideal_imager_keys
         self.labels = labels if labels else idealimager.ideal_imager_labels
 
-        self.enabled_list = enabled_list
-        self.chkbox_enabled_list = chkbox_enabled_list
-        enabled_list, chkbox_enabled_list = self.get_enabled_lists()
+        self.frozen_input_list = (frozen_input_list if frozen_input_list
+                                  else [False]*5)
 
         layout = QGridLayout()
         for i, key in enumerate(self.keys):
@@ -201,7 +198,6 @@ class ImagerSpecGroupBox(QGroupBox):
             layout.addWidget(checkBox, row, 2)
             self.dlog_attrs[key] = (label, lineEdit, checkBox)
             lineEdit.setText(value_to_text(specsheet.imager[i]))
-            lineEdit.setEnabled(enabled_list[i])
             # Use returnPressed signal rather than editingFinished. The latter
             #  fires on change of focus as well as return. We only want a
             #  signal when the lineEdit contents change and are committed by
@@ -211,16 +207,15 @@ class ImagerSpecGroupBox(QGroupBox):
             if key in specsheet.imager_inputs:
                 if not checkBox.isChecked():
                     checkBox.setCheckState(qt.Checked)
-            checkBox.setEnabled(chkbox_enabled_list[i])
             checkBox.stateChanged.connect(lambda state, k=key:
                                           self.chkbox_change(state, k))
 
         self.setLayout(layout)
+        self.update_values()
 
     def value_change(self, imager_key):
         label, lineEdit, checkBox = self.dlog_attrs[imager_key]
-#        print(" value_change: {} {} '{}'".format(str(self.imager_inputs),
-#              imager_key, lineEdit.text()))
+
         try:
             value = float(lineEdit.text())
         except ValueError:
@@ -241,8 +236,8 @@ class ImagerSpecGroupBox(QGroupBox):
 
     def chkbox_change(self, state, imager_key):
         label, lineEdit, checkBox = self.dlog_attrs[imager_key]
+
         checked = state == qt.Checked
-#        print("chkbox_change:", self.imager_inputs, imager_key, checked)
         if checked:
             try:
                 value = float(lineEdit.text())
@@ -257,9 +252,9 @@ class ImagerSpecGroupBox(QGroupBox):
                 del self.specsheet.imager_inputs[imager_key]
                 if checkBox.isChecked():
                     checkBox.setChecked(False)
-        self.update_checkboxes()
+        self.parent.update_checkboxes()
 
-    def update_values(self, values=None, enabled_list=None):
+    def update_values(self):
         if self.specsheet.imager is not None:
             value_list = self.specsheet.imager
             # refill gui widgets and set enabled state
@@ -271,31 +266,50 @@ class ImagerSpecGroupBox(QGroupBox):
         self.update_checkboxes()
 
     def update_checkboxes(self):
-        enabled_list, chkbox_enabled_list = self.get_enabled_lists()
+        partition, max_inputs = self.specsheet.partition_defined()
+        if partition is 'imager':
+            # the inputs for imager are sufficient to calculate all; mark
+            # inputs editable and disable the others
+            enabled_list = [False]*5
+            for key in self.specsheet.imager_inputs:
+                enabled_list[self.keys.index(key)] = True
+        elif bool(partition):
+            # an imager is defined by other partitions, this means:
+            #  1) the imager key is not editable
+            #  2a) if one imager input, the remainder are uneditable
+            #  2b) if no imager inputs, all but the imager key is editable
+            if len(self.specsheet.imager_inputs):
+                enabled_list = [False]*5
+                for key in self.specsheet.imager_inputs:
+                    enabled_list[self.keys.index(key)] = True
+                imager_key = self.specsheet.imager_defined()
+                if imager_key:
+                    enabled_list[self.keys.index(imager_key)] = False
+            else:
+                enabled_list = [True]*5
+                imager_key = self.specsheet.imager_defined()
+                if imager_key:
+                    enabled_list[self.keys.index(imager_key)] = False
+        else:
+            # no imager defined, all items are editable
+            enabled_list = [True]*5
 
+        # update the ui from the enabled list and inputs
         for i, key in enumerate(self.keys):
             label, lineEdit, checkBox = self.dlog_attrs[key]
 
-            lineEdit.setEnabled(enabled_list[i])
-            checkBox.setEnabled(chkbox_enabled_list[i])
-
-    def get_enabled_lists(self):
-        if self.enabled_list is not None:
-            enabled_list = self.enabled_list
-        else:
-            if len(self.specsheet.imager_inputs) < 2:
-                enabled_list = [True]*5
+            if key in self.specsheet.imager_inputs:
+                if not checkBox.isChecked():
+                    checkBox.setCheckState(qt.Checked)
             else:
-                enabled_list = [False]*5
-            for key in self.specsheet.imager_inputs:
-                enabled_list[self.keys.index(key)] = True
+                if checkBox.isChecked():
+                    checkBox.setCheckState(qt.Unchecked)
 
-        if self.chkbox_enabled_list is not None:
-            chkbox_enabled_list = self.chkbox_enabled_list
-        else:
-            chkbox_enabled_list = enabled_list
+            if self.frozen_input_list[i]:
+                enabled_list[i] = False
 
-        return enabled_list, chkbox_enabled_list
+            lineEdit.setEnabled(enabled_list[i])
+            checkBox.setEnabled(enabled_list[i])
 
 
 class EtendueGroupBox(QGroupBox):
@@ -388,7 +402,7 @@ class EtendueGroupBox(QGroupBox):
                 del inputs[key]
                 if checkBox.isChecked():
                     checkBox.setChecked(False)
-        self.update_checkboxes()
+        self.parent.update_checkboxes()
 
     def update_values(self):
         etendue_inputs = self.specsheet.etendue_inputs
@@ -402,29 +416,27 @@ class EtendueGroupBox(QGroupBox):
         self.update_checkboxes()
 
     def update_checkboxes(self):
-        """ update the display for the etendue cell being updated """
+        """ update the enabled and checked state for the etendue groupbox """
         etendue_inputs = self.specsheet.etendue_inputs
         etendue_values = self.specsheet.etendue_values
-        imager_defined = self.specsheet.imager_defined()
+        partition, max_inputs = self.specsheet.partition_defined()
 
-        li = dict2d.num_items_by_type(etendue_inputs, fld_ape_set, obj_img_set)
         for fld_ape_key, fld_ape_value in etendue_values.items():
-            num_fld_ape_inputs = li[fld_ape_key]
+            num_fld_ape_inputs = self.specsheet.partitions[fld_ape_key]
             for obj_img_key, values in fld_ape_value.items():
                 sgb = self.groupboxes[fld_ape_key][obj_img_key]
                 inputs = etendue_inputs[fld_ape_key][obj_img_key]
                 if num_fld_ape_inputs == 2:
-                    partion_defined = True
+                    partition_defined = True
                 elif num_fld_ape_inputs == 1 and len(inputs) == 1:
-                    partion_defined = True
+                    partition_defined = True
                 elif num_fld_ape_inputs == 1 and len(inputs) == 0:
-                    partion_defined = True if imager_defined else False
-                elif num_fld_ape_inputs == 0 and len(inputs) == 0:
-                    partion_defined = False
-                else:  # defining_partion is None
-                    partion_defined = True if imager_defined else False
+                    partition_defined = True if bool(partition) else False
+                else:  # num_fld_ape_inputs == 0 and len(inputs) == 0
+                    partition_defined = False
+
                 sgb.update_checkboxes(inputs, values,
-                                      partion_defined=partion_defined)
+                                      partition_defined=partition_defined)
 
 
 class SpaceGroupBox(QGroupBox):
@@ -476,20 +488,20 @@ class SpaceGroupBox(QGroupBox):
             label, lineEdit, checkBox = self.dlog_attrs[key]
             lineEdit.setText(value_to_text(value))
 
-    def update_checkboxes(self, inputs, values, partion_defined=False):
+    def update_checkboxes(self, inputs, values, partition_defined=False):
         """ update the display for the etendue cell being updated
 
-        A partion is an aperture or field pair of object/image inputs.
+        A partition is an aperture or field pair of object/image inputs.
 
         If it is defined, this means that all attrs can be supplied.
         In this case, the inputs will have editable values and (checked)
         checkboxes; the remaining attrs will have uneditable values and
         (unchecked) checkboxes.
 
-        If the partion is not defined, all values and checkboxes will be
+        If the partition is not defined, all values and checkboxes will be
         editable, the input attrs, if any, will be checked.
         """
-        if partion_defined:
+        if partition_defined:
             for key in self.keys:
                 label, lineEdit, checkBox = self.dlog_attrs[key]
 

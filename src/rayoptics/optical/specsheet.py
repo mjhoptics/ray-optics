@@ -53,51 +53,49 @@ class SpecSheet():
             self.etendue_values['aperture']['image'] = dict([
                     (ap_labels[2], None), (ap_labels[1], None)])
 
+        self.partition_defined()
+
     def imager_defined(self):
         """ compute imager and etendue values given input dicts """
         if self.conjugate_type == 'finite':
-            imager_defined = True if self.imager.m is not None else False
+            imager_defined = 'm' if self.imager.m is not None else False
         else:
-            imager_defined = True if self.imager.f is not None else False
+            imager_defined = 'f' if self.imager.f is not None else False
         return imager_defined
 
-    def partion_defined(self):
-        """ which partion defines the imager or None """
+    def partition_defined(self):
+        """ which partition defines the imager or None """
         num_imager_inputs = len(self.imager_inputs)
         li = dict2d.num_items_by_type(self.etendue_inputs,
                                       fld_ape_set, obj_img_set)
         num_field_inputs = li['field']
         num_aperture_inputs = li['aperture']
-        partions = {'imager': num_imager_inputs,
-                    'field': num_field_inputs,
-                    'aperture': num_aperture_inputs}
-        max_partion = max(partions, key=partions.get)
-        max_num_inputs = partions[max_partion]
-        return max_partion if max_num_inputs == 2 else None
+        partitions = {'imager': num_imager_inputs,
+                      'field': num_field_inputs,
+                      'aperture': num_aperture_inputs}
+        self.partitions = partitions
+        max_partition = max(partitions, key=partitions.get)
+        max_num_inputs = partitions[max_partition]
+        return max_partition if max_num_inputs == 2 else None, max_num_inputs
 
     def generate_from_inputs(self, imgr_inputs, etendue_inputs):
         """ compute imager and etendue values given input dicts """
-        num_imager_inputs = len(imgr_inputs)
-        li = dict2d.num_items_by_type(etendue_inputs, fld_ape_set, obj_img_set)
-        num_field_inputs = li['field']
-        num_aperture_inputs = li['aperture']
-        partions = {'imager': num_imager_inputs,
-                    'field': num_field_inputs,
-                    'aperture': num_aperture_inputs}
-        max_partion = max(partions, key=partions.get)
-        max_num_inputs = partions[max_partion]
-#        print(num_imager_inputs, num_field_inputs, num_aperture_inputs)
-        print(partions)
+        max_partition, max_num_inputs = self.partition_defined()
+        num_imager_inputs = self.partitions['imager']
+        num_field_inputs = self.partitions['field']
+        num_aperture_inputs = self.partitions['aperture']
+
+        conj_type = self.conjugate_type
 
         imager_inputs = {}
-        # fill in imager_inputs with any previous calculations for m or f
-        conj_type = self.conjugate_type
-        if conj_type == 'finite':
-            if num_imager_inputs < 2 and self.imager.m is not None:
-                imager_inputs['m'] = self.imager.m
-        else:
-            if num_imager_inputs < 2 and self.imager.f is not None:
-                imager_inputs['f'] = self.imager.f
+        if max_num_inputs <= 1:
+            # fill in imager_inputs with any previous calculations for m or f
+            if conj_type == 'finite':
+                if num_imager_inputs < 2 and self.imager.m is not None:
+                    imager_inputs['m'] = self.imager.m
+            else:
+                if num_imager_inputs < 2 and self.imager.f is not None:
+                    imager_inputs['f'] = self.imager.f
 
         # update imager_inputs with user entries
         imager_inputs.update(imgr_inputs)
