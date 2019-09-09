@@ -10,9 +10,13 @@
 import math
 from collections import namedtuple
 from rayoptics.optical.surface import InteractionMode as imode
+from rayoptics.optical.etendue import obj_img_set, fld_ape_set
 from rayoptics.optical.model_constants import Intfc, Gap, Tfrm, Indx, Zdir
 from rayoptics.optical.model_constants import ht, slp, aoi
 from rayoptics.optical.model_enums import PupilType, FieldType
+from rayoptics.optical.idealimager import ideal_imager_setup
+from rayoptics.optical.specsheet import SpecSheet
+from rayoptics.util.dict2d import dict2D
 
 ParaxData = namedtuple('ParaxData', ['ax_ray', 'pr_ray', 'fod'])
 """ tuple grouping together paraxial rays and first order properties
@@ -287,3 +291,36 @@ def list_parax_trace(opt_model):
         print("{:2} {:12.6g} {:12.6g} {:12.6g} {:12.6g} {:12.6g} {:12.6g}"
               .format(i, ax_ray[i][ht], ax_ray[i][slp], n*ax_ray[i][aoi],
                       pr_ray[i][ht], pr_ray[i][slp], n*pr_ray[i][aoi]))
+
+
+def specsheet_from_parax_data(opt_model):
+    seq_model = opt_model.seq_model
+    optical_spec = opt_model.optical_spec
+    parax_data = optical_spec.parax_data
+    conj_type = 'finite'
+    if seq_model.gaps[0].thi > 10e8:
+        conj_type = 'infinite'
+
+    imager_inputs = {}
+    if conj_type == 'finite':
+        imager_inputs['m'] = -1/parax_data.fod.red
+        imager_inputs['f'] = parax_data.fod.efl
+        frozen_imager_inputs = [False]*5
+    else:
+        imager_inputs['s'] = -math.inf
+        imager_inputs['f'] = parax_data.fod.efl
+        frozen_imager_inputs = [True, True, True, True, False]
+
+    imager = ideal_imager_setup(**imager_inputs)
+    aperture = optical_spec.pupil.get_input_for_specsheet()
+    field = optical_spec.field_of_view.get_input_for_specsheet()
+    etendue_inputs = dict2D(fld_ape_set, obj_img_set)
+    specsheet = SpecSheet(conj_type, imager=imager,
+                          imager_inputs=imager_inputs,
+                          frozen_imager_inputs=frozen_imager_inputs,
+                          etendue_inputs=etendue_inputs)
+    etendue_inputs = specsheet.etendue_inputs
+    etendue_inputs[aperture[0]][aperture[1]][aperture[2]] = aperture[3]
+    etendue_inputs[field[0]][field[1]][field[2]] = field[3]
+    specsheet.generate_from_inputs(imager_inputs, etendue_inputs)
+    return specsheet

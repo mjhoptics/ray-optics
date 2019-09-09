@@ -12,6 +12,8 @@ from rayoptics.optical.opticalmodel import OpticalModel, open_model
 from rayoptics.optical.profiles import Spherical, Conic
 from rayoptics.optical.elements import (create_thinlens,
                                         insert_ifc_gp_ele)
+from rayoptics.optical.firstorder import specsheet_from_parax_data
+from rayoptics.optical.specsheet import create_specsheets
 
 from rayoptics.gui import layout
 
@@ -25,6 +27,7 @@ from rayoptics.mpl.analysisplots import FieldCurveFigure, ThirdOrderBarChart
 from rayoptics.mpl.paraxdgnfigure import (ParaxialDesignFigure,
                                           create_parax_design_commands)
 import rayoptics.qtgui.plotview as plotview
+from rayoptics.qtgui.idealimagerdialog import IdealImagerDialog
 from rayoptics.qtgui.pytablemodel import PyTableModel
 from rayoptics.qtgui.plotview import (create_plot_scale_panel,
                                       create_draw_rays_groupbox)
@@ -55,6 +58,57 @@ def create_new_optical_system(efl=10.0, fov=1.0):
     opt_model.update_model()
 
     return opt_model
+
+
+def create_new_optical_model_from_specsheet(specsheet):
+    """ create an OpticalModel with a basic thinlens model, given specsheet """
+    opt_model = OpticalModel()
+    opt_model.set_from_specsheet(specsheet)
+
+    seq_model = opt_model.seq_model
+
+    # enter a basic thinlens model for the given specsheet
+    imager = specsheet.imager
+    if specsheet.conjugate_type == 'finite':
+        opt_model.seq_model.gaps[0].thi = -imager.s
+    else:
+        opt_model.seq_model.gaps[0].thi = 1.0e10
+
+    insert_ifc_gp_ele(opt_model, *create_thinlens(power=1/imager.f, indx=1.5),
+                      idx=0, t=imager.sp)
+
+#    insert_ifc_gp_ele(opt_model, *create_mirror(r=-2*efl, cc=-1),
+#                      idx=0, t=-efl)
+
+    opt_model.ele_model.add_dummy_interface_at_image(seq_model,
+                                                     seq_model.gbl_tfrms)
+
+    opt_model.update_model()
+
+    return opt_model
+
+
+def create_new_ideal_imager(**inputs):
+    conj_type = (inputs['conjugate_type'] if 'conjugate_type' in inputs
+                 else 'finite')
+    specsheets = create_specsheets()
+    if 'opt_model' in inputs:
+        specsheet = specsheet_from_parax_data(inputs['opt_model'])
+        conj_type = specsheet.conjugate_type
+        specsheets[conj_type] = specsheet
+
+    if 'gui_parent' in inputs:
+        gui_parent = inputs['gui_parent']
+        iid = IdealImagerDialog(conj_type, specsheets,
+                                cmd_fct=gui_parent.handle_ideal_imager_command,
+                                parent=gui_parent)
+        iid.update_values()
+        iid.setModal(False)
+        iid.show()
+    else:
+        iid = IdealImagerDialog(conj_type, specsheets)
+        iid.update_values()
+        iid.exec_()
 
 
 def create_yybar_model():

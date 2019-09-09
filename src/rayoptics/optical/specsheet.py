@@ -7,6 +7,8 @@
 
 .. codeauthor: Michael J. Hayford
 """
+import math
+
 from rayoptics.optical.idealimager import IdealImager, ideal_imager_setup
 
 from rayoptics.util import dict2d
@@ -17,8 +19,43 @@ from rayoptics.optical.etendue import (obj_img_set, fld_ape_set,
                                        fld_labels, ap_labels)
 
 
+def create_specsheets():
+    specsheets = {}
+
+    # setup finite conjugate defaults
+    fev = dict2D(fld_ape_set, obj_img_set)
+    fev['field']['object'] = dict([(fld_labels[0], None)])
+    fev['aperture']['object'] = dict([(ap_labels[2], None),
+                                      (ap_labels[1], None)])
+    fev['field']['image'] = dict([(fld_labels[0], None)])
+    fev['aperture']['image'] = dict([(ap_labels[2], None),
+                                     (ap_labels[1], None)])
+    fss = SpecSheet('finite', etendue_values=fev)
+    specsheets['finite'] = fss
+
+    # setup infinite conjugate defaults
+    imager_inputs = {'s': -math.inf}
+    imager = IdealImager(None, -math.inf, None, None, None)
+
+    iev = dict2D(fld_ape_set, obj_img_set)
+    iev['field']['object'] = dict([(fld_labels[1], None)])
+    iev['aperture']['object'] = dict([(ap_labels[0], None)])
+    iev['field']['image'] = dict([(fld_labels[0], None)])
+    iev['aperture']['image'] = dict([(ap_labels[2], None),
+                                     (ap_labels[1], None)])
+
+    ifss = SpecSheet('infinite', imager=imager,
+                     imager_inputs=imager_inputs,
+                     frozen_imager_inputs=[True, True, True, True, False],
+                     etendue_values=iev)
+    specsheets['infinite'] = ifss
+
+    return specsheets
+
+
 class SpecSheet():
-    def __init__(self, conjugate_type, imager=None, imager_inputs=None,
+    def __init__(self, conjugate_type,
+                 imager=None, imager_inputs=None, frozen_imager_inputs=None,
                  etendue_inputs=None, etendue_values=None):
         self.conjugate_type = conjugate_type
 
@@ -28,30 +65,14 @@ class SpecSheet():
 
         self.imager_inputs = imager_inputs if imager_inputs else {}
 
+        self.frozen_imager_inputs = (frozen_imager_inputs
+                                     if frozen_imager_inputs
+                                     else [False]*5)
+
         self.etendue_inputs = (etendue_inputs if etendue_inputs
                                else dict2D(fld_ape_set, obj_img_set))
         self.etendue_values = (etendue_values if etendue_values
                                else dict2D(fld_ape_set, obj_img_set))
-
-        if conjugate_type is 'infinite':
-            self.etendue_values['field']['object'] = dict([
-                    (fld_labels[1], None)])
-            self.etendue_values['aperture']['object'] = dict([
-                    (ap_labels[0], None)])
-            self.etendue_values['field']['image'] = dict([
-                    (fld_labels[0], None)])
-            self.etendue_values['aperture']['image'] = dict([
-                    (ap_labels[2], None), (ap_labels[1], None)])
-
-        else:
-            self.etendue_values['field']['object'] = dict([
-                    (fld_labels[0], None)])
-            self.etendue_values['aperture']['object'] = dict([
-                    (ap_labels[2], None), (ap_labels[1], None)])
-            self.etendue_values['field']['image'] = dict([
-                    (fld_labels[0], None)])
-            self.etendue_values['aperture']['image'] = dict([
-                    (ap_labels[2], None), (ap_labels[1], None)])
 
         self.partition_defined()
 

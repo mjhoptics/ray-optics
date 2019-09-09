@@ -269,6 +269,9 @@ class SequentialModel:
 
             self.set_clear_apertures()
 
+    def set_from_specsheet(self, ss):
+        pass
+
     def insert_surface_and_gap(self):
         s = surface.Surface()
         g = gap.Gap()

@@ -18,7 +18,7 @@ from PyQt5.QtCore import Qt as qt
 from PyQt5.QtCore import QEvent
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (QApplication, QAction, QMainWindow, QMdiArea,
-                             QMdiSubWindow, QFileDialog, QTableView, QWidget,
+                             QFileDialog, QTableView, QWidget,
                              QVBoxLayout, QGraphicsView, QGraphicsScene)
 from PyQt5.QtCore import pyqtSlot
 from traitlets.config.configurable import MultipleInstanceError
@@ -31,6 +31,7 @@ from rayoptics.mpl.paraxdgnfigure import Dgm
 import rayoptics.qtgui.dockpanels as dock
 from rayoptics.qtgui.graphicsitems import OpticalElement, RayBundle
 from rayoptics.qtgui.ipyconsole import create_ipython_console
+
 from rayoptics.optical import trace as trace
 
 
@@ -64,6 +65,7 @@ class MainWindow(QMainWindow):
         file.triggered[QAction].connect(self.file_action)
 
         view = bar.addMenu("View")
+        view.addAction("Spec Sheet")
         view.addAction("Optical Layout")
         view.addAction("Lens Table")
         view.addAction("Lens View")
@@ -98,7 +100,7 @@ class MainWindow(QMainWindow):
 
         self.new_model()
         self.add_ipython_subwindow()
-        
+
 #        pth = Path(__file__).resolve()
 #        try:
 #            root_pos = pth.parts.index('rayoptics')
@@ -198,12 +200,9 @@ class MainWindow(QMainWindow):
             self.close_model()
 
     def new_model(self):
-        opt_model = cmds.create_new_model()
-        self.app_manager.set_model(opt_model)
-        self.create_lens_table()
-        cmds.create_live_layout_view(opt_model, gui_parent=self)
-        cmds.create_paraxial_design_view(opt_model, Dgm.ht,
-                                         gui_parent=self)
+        iid = cmds.create_new_ideal_imager(gui_parent=self,
+                                           conjugate_type='infinite')
+
         self.refresh_app_ui()
 
     def open_file(self, file_name):
@@ -227,6 +226,9 @@ class MainWindow(QMainWindow):
 
     def view_action(self, q):
         opt_model = self.app_manager.model
+
+        if q.text() == "Spec Sheet":
+            cmds.create_new_ideal_imager(opt_model=opt_model, gui_parent=self)
 
         if q.text() == "Optical Layout":
             cmds.create_live_layout_view(opt_model, gui_parent=self)
@@ -384,7 +386,7 @@ class MainWindow(QMainWindow):
         sub.setWindowTitle(table_title)
 
         sub.installEventFilter(self)
-        
+
         tableView.setModel(table_model)
 
         tableView.setMinimumWidth(tableView.horizontalHeader().length() +
@@ -414,6 +416,21 @@ class MainWindow(QMainWindow):
 
     def refresh_app_ui(self):
         dock.update_dock_windows(self)
+
+    def handle_ideal_imager_command(self, command, specsheet):
+        if command == 'Apply':
+            opt_model = self.app_manager.model
+            opt_model.set_from_specsheet(specsheet)
+            self.refresh_gui()
+        elif command == 'New':
+            opt_model = cmds.create_new_optical_model_from_specsheet(specsheet)
+            self.app_manager.set_model(opt_model)
+            self.refresh_gui()
+            self.create_lens_table()
+            cmds.create_live_layout_view(opt_model, gui_parent=self)
+            cmds.create_paraxial_design_view(opt_model, Dgm.ht,
+                                             gui_parent=self)
+            self.refresh_gui()
 
     @pyqtSlot(object, int)
     def on_data_changed(self, rootObj, index):

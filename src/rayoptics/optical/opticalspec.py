@@ -37,7 +37,7 @@ class OpticalSpecs:
 
     do_aiming_default = True
 
-    def __init__(self, opt_model):
+    def __init__(self, opt_model, specsheet=None):
         self.opt_model = opt_model
         self.spectral_region = WvlSpec()
         self.pupil = PupilSpec(self)
@@ -45,6 +45,8 @@ class OpticalSpecs:
         self.defocus = FocusRange(0.0)
         self.parax_data = None
         self.do_aiming = OpticalSpecs.do_aiming_default
+        if specsheet:
+            self.set_from_specsheet(specsheet)
 
     def __json_encode__(self):
         attrs = dict(vars(self))
@@ -57,6 +59,12 @@ class OpticalSpecs:
         self.spectral_region = dl[0]
         self.pupil = dl[1]
         self.field_of_view = dl[2]
+
+    def set_from_specsheet(self, ss):
+        self.spectral_region.set_from_specsheet(ss)
+        self.pupil.set_from_specsheet(ss)
+        self.field_of_view.set_from_specsheet(ss)
+        self.defocus.set_from_specsheet(ss)
 
     def sync_to_restore(self, opt_model):
         self.opt_model = opt_model
@@ -147,6 +155,9 @@ class WvlSpec:
             self.spectral_wts.append(wlwt[1])
         self.calc_colors()
 
+    def set_from_specsheet(self, ss):
+        pass
+
     def add(self, wl, wt):
         self.wavelengths.append(wl)
         self.spectral_wts.append(wt)
@@ -203,6 +214,44 @@ class PupilSpec:
         self.pupil_type = ppl_spec[0]
         self.value = ppl_spec[1]
 
+    def set_from_specsheet(self, ss):
+        for k, v in ss.etendue_inputs['aperture'].items():
+            if len(v) > 0:
+                obj_img_key = k
+                for k1, v1 in v.items():
+                    value_key = k1
+                    break
+
+        if obj_img_key == 'object':
+            if value_key == 'pupil':
+                self.pupil_type = PupilType.EPD
+            elif value_key == 'NA':
+                self.pupil_type = PupilType.NAO
+        elif obj_img_key == 'image':
+            if value_key is 'NA':
+                self.pupil_type = PupilType.NA
+            elif value_key == 'f/#':
+                self.pupil_type = PupilType.FNO
+
+        self.obj_img_key = obj_img_key
+        self.value_key = value_key
+        self.value = ss.etendue_inputs['aperture'][obj_img_key][value_key]
+
+    def get_input_for_specsheet(self):
+        if self.pupil_type == PupilType.EPD:
+            obj_img_key = 'object'
+            value_key = 'pupil'
+        elif self.pupil_type == PupilType.NAO:
+            obj_img_key = 'object'
+            value_key = 'NA'
+        elif self.pupil_type == PupilType.FNO:
+            obj_img_key = 'image'
+            value_key = 'f/#'
+        elif self.pupil_type == PupilType.NA:
+            obj_img_key = 'image'
+            value_key = 'NA'
+        return 'aperture', obj_img_key, value_key, self.value
+
     def update_model(self):
         if not hasattr(self, 'pupil_rays'):
             self.pupil_rays = PupilSpec.default_pupil_rays
@@ -252,6 +301,41 @@ class FieldSpec:
         for i, f in enumerate(self.fields):
             f.y = flds[i]
         self.value, _ = self.max_field()
+
+    def set_from_specsheet(self, ss):
+        for k, v in ss.etendue_inputs['field'].items():
+            if len(v) > 0:
+                obj_img_key = k
+                for k1, v1 in v.items():
+                    value_key = k1
+                    break
+
+        if obj_img_key == 'object':
+            if value_key == 'height':
+                self.field_type = FieldType.OBJ_HT
+            elif value_key == 'angle':
+                self.field_type = FieldType.OBJ_ANG
+        elif obj_img_key == 'image':
+            if value_key == 'height':
+                self.field_type = FieldType.IMG_HT
+
+        self.obj_img_key = obj_img_key
+        self.value_key = value_key
+        flds = [0, ss.etendue_inputs['field'][obj_img_key][value_key]]
+        self.set_from_list(flds)
+
+    def get_input_for_specsheet(self):
+        if self.field_type == FieldType.OBJ_HT:
+            obj_img_key = 'object'
+            value_key = 'height'
+        elif self.field_type == FieldType.OBJ_ANG:
+            obj_img_key = 'object'
+            value_key = 'angle'
+        elif self.field_type == FieldType.IMG_HT:
+            obj_img_key = 'image'
+            value_key = 'height'
+
+        return 'field', obj_img_key, value_key, self.max_field()[0]
 
     def update_model(self):
         for f in self.fields:
@@ -387,6 +471,9 @@ class FocusRange:
     def __repr__(self):
         return ("FocusRange(focus_shift={}, defocus_range={})"
                 .format(self.focus_shift, self.defocus_range))
+
+    def set_from_specsheet(self, ss):
+        pass
 
     def update(self):
         pass

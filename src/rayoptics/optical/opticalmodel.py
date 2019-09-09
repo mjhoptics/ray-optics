@@ -121,6 +121,10 @@ class OpticalModel:
             del attrs['app_manager']
         return attrs
 
+    def set_from_specsheet(self, ss):
+        self.seq_model.set_from_specsheet(ss)
+        self.optical_spec.set_from_specsheet(ss)
+
     def save_model(self, file_name):
         file_extension = os.path.splitext(file_name)[1]
         filename = file_name if len(file_extension) > 0 else file_name+'.roa'

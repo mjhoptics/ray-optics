@@ -16,7 +16,7 @@ from rayoptics.optical.idealimager import IdealImager
 from rayoptics.optical.etendue import (obj_img_set, fld_ape_set,
                                        fld_labels, ap_labels)
 
-from rayoptics.optical.specsheet import SpecSheet
+from rayoptics.optical.specsheet import SpecSheet, create_specsheets
 
 from rayoptics.util import dict2d
 from rayoptics.util.dict2d import dict2D
@@ -25,7 +25,7 @@ from PyQt5.QtCore import Qt as qt
 from PyQt5.QtWidgets import (QApplication, QDialog, QRadioButton,
                              QStackedWidget, QGridLayout, QGroupBox,
                              QHBoxLayout, QLabel, QLineEdit, QCheckBox,
-                             QVBoxLayout)
+                             QVBoxLayout, QDialogButtonBox)
 
 
 def value_to_text(value, fmt_str="{:> #.5f}"):
@@ -42,7 +42,7 @@ class IdealImagerDialog(QDialog):
     NumGridRows = 3
     NumButtons = 4
 
-    def __init__(self, conjugate_type, imager=None, imager_inputs=None,
+    def __init__(self, conjugate_type, specsheets, cmd_fct=None,
                  **kwargs):
         super().__init__(**kwargs)
 
@@ -51,42 +51,20 @@ class IdealImagerDialog(QDialog):
         self.conjugate_type = conjugate_type
         self.conjugate_box = self.createConjugateBox(itype=self.conjugate_type)
 
-        self.specsheet_stack = {}
-        fss = SpecSheet('finite')
-        self.specsheet_stack['finite'] = fss
+        self.specsheet_dict = specsheets
 
-        # setup finite conjugate defaults
         self.imager_stack = {}
-        figb = ImagerSpecGroupBox(parent=self, specsheet=fss)
-        self.imager_stack['finite'] = figb
-
         self.etendue_stack = {}
-        fegb = EtendueGroupBox(self, 'finite', fss)
-        self.etendue_stack['finite'] = fegb
-
-        # setup infinite conjugate defaults
-        imager_inputs = {'s': -math.inf}
-        imager = IdealImager(None, -math.inf, None, None, None)
-        ifss = SpecSheet('infinite', imager=imager,
-                         imager_inputs=imager_inputs)
-        self.specsheet_stack['infinite'] = ifss
-
-        frozen_input_list = [True, True, True, True, False]
-        iigb = ImagerSpecGroupBox(parent=self, specsheet=ifss,
-                                  frozen_input_list=frozen_input_list)
-        self.imager_stack['infinite'] = iigb
-
-        iegb = EtendueGroupBox(self, 'infinite', ifss)
-        self.etendue_stack['infinite'] = iegb
-
-        # finish ui setup
         self.imager_groupbox_stack = QStackedWidget()
-        self.imager_groupbox_stack.addWidget(iigb)
-        self.imager_groupbox_stack.addWidget(figb)
-
         self.etendue_groupbox_stack = QStackedWidget()
-        self.etendue_groupbox_stack.addWidget(iegb)
-        self.etendue_groupbox_stack.addWidget(fegb)
+
+        for key, specsheet in specsheets.items():
+            isgb = ImagerSpecGroupBox(self, specsheet)
+            self.imager_stack[key] = isgb
+            self.imager_groupbox_stack.addWidget(isgb)
+            egb = EtendueGroupBox(self, key, specsheet)
+            self.etendue_stack[key] = egb
+            self.etendue_groupbox_stack.addWidget(egb)
 
         imager_groupbox = self.imager_stack[self.conjugate_type]
         self.imager_groupbox_stack.setCurrentWidget(imager_groupbox)
@@ -94,13 +72,42 @@ class IdealImagerDialog(QDialog):
         etendue_groupbox = self.etendue_stack[self.conjugate_type]
         self.etendue_groupbox_stack.setCurrentWidget(etendue_groupbox)
 
+        overallLayout = QVBoxLayout()
+
         mainLayout = QHBoxLayout()
         mainLayout.addWidget(self.conjugate_box)
         mainLayout.addWidget(self.imager_groupbox_stack)
         mainLayout.addWidget(self.etendue_groupbox_stack)
-        self.setLayout(mainLayout)
+
+        self.button_box = self.createButtonBox(cmd_fct)
+        overallLayout.addLayout(mainLayout)
+        overallLayout.addWidget(self.button_box)
+
+        self.setLayout(overallLayout)
 
         self.setWindowTitle("Optical Spec Sheet")
+
+    def createButtonBox(self, cmd_fct):
+        def clicked(button):
+            command = button.text()
+            if command == 'Close':
+                self.close()
+            else:
+                specsheet = self.specsheet_dict[self.conjugate_type]
+                if cmd_fct:
+                    cmd_fct(command, specsheet)
+                else:
+                    print(button.text(), 'button pressed')
+
+        buttonbox = QDialogButtonBox(qt.Horizontal, self)
+        buttonbox.addButton('New', QDialogButtonBox.ApplyRole)
+        buttonbox.addButton(QDialogButtonBox.Apply)
+        buttonbox.addButton(QDialogButtonBox.Close)
+        for b in buttonbox.buttons():
+            b.setAutoDefault(False)
+#        buttonbox.setCenterButtons(True)
+        buttonbox.clicked.connect(clicked)
+        return buttonbox
 
     def createConjugateBox(self, itype='infinite'):
         conjugate_box = QGroupBox("Conjugates")
@@ -128,10 +135,10 @@ class IdealImagerDialog(QDialog):
             self.update_conjugate(conj_type)
 
     def update_conjugate(self, conj_type):
-        prev_specsheet = self.specsheet_stack[self.conjugate_type]
+        prev_specsheet = self.specsheet_dict[self.conjugate_type]
         self.conjugate_type = conj_type
 
-        new_specsheet = self.specsheet_stack[conj_type]
+        new_specsheet = self.specsheet_dict[conj_type]
         new_partition, max_inputs = new_specsheet.partition_defined()
         if new_partition is None:
             if prev_specsheet.imager.f is not None:
@@ -149,7 +156,7 @@ class IdealImagerDialog(QDialog):
     def update_values(self):
         """ callback routine for any dialog value change """
         conj_type = self.conjugate_type
-        specsheet = self.specsheet_stack[conj_type]
+        specsheet = self.specsheet_dict[conj_type]
 
         imager_groupbox = self.imager_stack[conj_type]
         etendue_groupbox = self.etendue_stack[conj_type]
@@ -172,8 +179,7 @@ class IdealImagerDialog(QDialog):
 
 
 class ImagerSpecGroupBox(QGroupBox):
-    def __init__(self, parent, specsheet, keys=None, frozen_input_list=None,
-                 labels=None, **kwargs):
+    def __init__(self, parent, specsheet, keys=None, labels=None, **kwargs):
         super().__init__(title='Imager specs', **kwargs)
 
         self.parent = parent
@@ -183,9 +189,6 @@ class ImagerSpecGroupBox(QGroupBox):
 
         self.keys = keys if keys else idealimager.ideal_imager_keys
         self.labels = labels if labels else idealimager.ideal_imager_labels
-
-        self.frozen_input_list = (frozen_input_list if frozen_input_list
-                                  else [False]*5)
 
         layout = QGridLayout()
         for i, key in enumerate(self.keys):
@@ -305,7 +308,7 @@ class ImagerSpecGroupBox(QGroupBox):
                 if checkBox.isChecked():
                     checkBox.setCheckState(qt.Unchecked)
 
-            if self.frozen_input_list[i]:
+            if self.specsheet.frozen_imager_inputs[i]:
                 enabled_list[i] = False
 
             lineEdit.setEnabled(enabled_list[i])
@@ -535,5 +538,6 @@ if __name__ == '__main__':
     import sys
 
     app = QApplication(sys.argv)
-    dialog = IdealImagerDialog('infinite')
+    specsheets = create_specsheets()
+    dialog = IdealImagerDialog('infinite', specsheets)
     dialog.exec()
