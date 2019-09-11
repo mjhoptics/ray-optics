@@ -32,7 +32,8 @@ import rayoptics.qtgui.dockpanels as dock
 from rayoptics.qtgui.graphicsitems import OpticalElement, RayBundle
 from rayoptics.qtgui.ipyconsole import create_ipython_console
 
-from rayoptics.optical import trace as trace
+from rayoptics.optical import firstorder
+from rayoptics.optical import trace
 
 
 class MainWindow(QMainWindow):
@@ -49,8 +50,8 @@ class MainWindow(QMainWindow):
 
         self.left = 100
         self.top = 50
-        self.width = 1200
-        self.height = 800
+        self.width = 1800
+        self.height = 1200
         self.setGeometry(self.left, self.top, self.width, self.height)
 
         bar = self.menuBar()
@@ -140,7 +141,7 @@ class MainWindow(QMainWindow):
 
     def add_subwindow(self, widget, model_info):
         sub_wind = self.mdi.addSubWindow(widget)
-        self.app_manager.add_view(sub_wind, model_info)
+        self.app_manager.add_view(sub_wind, widget, model_info)
         MainWindow.count += 1
         return sub_wind
 
@@ -417,10 +418,19 @@ class MainWindow(QMainWindow):
     def refresh_app_ui(self):
         dock.update_dock_windows(self)
 
-    def handle_ideal_imager_command(self, command, specsheet):
+    def handle_ideal_imager_command(self, iid, command, specsheet):
         if command == 'Apply':
             opt_model = self.app_manager.model
             opt_model.set_from_specsheet(specsheet)
+            self.refresh_gui()
+        elif command == 'Close':
+            opt_model = self.app_manager.model
+            for view, info in self.app_manager.view_dict.items():
+                if iid == info[0]:
+                    view.close()
+        elif command == 'Update':
+            opt_model = self.app_manager.model
+            specsheet = firstorder.specsheet_from_parax_data(opt_model)
             self.refresh_gui()
         elif command == 'New':
             opt_model = cmds.create_new_optical_model_from_specsheet(specsheet)

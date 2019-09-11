@@ -8,21 +8,15 @@
 .. codeauthor: Michael J. Hayford
 """
 
-import math
-
+from rayoptics.optical.specsheet import create_specsheets
 from rayoptics.optical import idealimager
-from rayoptics.optical.idealimager import IdealImager
-
 from rayoptics.optical.etendue import (obj_img_set, fld_ape_set,
                                        fld_labels, ap_labels)
 
-from rayoptics.optical.specsheet import SpecSheet, create_specsheets
-
-from rayoptics.util import dict2d
 from rayoptics.util.dict2d import dict2D
 
 from PyQt5.QtCore import Qt as qt
-from PyQt5.QtWidgets import (QApplication, QDialog, QRadioButton,
+from PyQt5.QtWidgets import (QApplication, QDialog, QRadioButton, QWidget,
                              QStackedWidget, QGridLayout, QGroupBox,
                              QHBoxLayout, QLabel, QLineEdit, QCheckBox,
                              QVBoxLayout, QDialogButtonBox)
@@ -38,10 +32,7 @@ def value_to_text(value, fmt_str="{:> #.5f}"):
     return value_text
 
 
-class IdealImagerDialog(QDialog):
-    NumGridRows = 3
-    NumButtons = 4
-
+class IdealImagerDialog(QWidget):
     def __init__(self, conjugate_type, specsheets, cmd_fct=None,
                  **kwargs):
         super().__init__(**kwargs)
@@ -72,7 +63,8 @@ class IdealImagerDialog(QDialog):
         etendue_groupbox = self.etendue_stack[self.conjugate_type]
         self.etendue_groupbox_stack.setCurrentWidget(etendue_groupbox)
 
-        overallLayout = QVBoxLayout()
+        # construct the top level layout
+        overallLayout = QVBoxLayout(self)
 
         mainLayout = QHBoxLayout()
         mainLayout.addWidget(self.conjugate_box)
@@ -90,14 +82,11 @@ class IdealImagerDialog(QDialog):
     def createButtonBox(self, cmd_fct):
         def clicked(button):
             command = button.text()
-            if command == 'Close':
-                self.close()
+            specsheet = self.specsheet_dict[self.conjugate_type]
+            if cmd_fct:
+                cmd_fct(self, command, specsheet)
             else:
-                specsheet = self.specsheet_dict[self.conjugate_type]
-                if cmd_fct:
-                    cmd_fct(command, specsheet)
-                else:
-                    print(button.text(), 'button pressed')
+                print(button.text(), 'button pressed')
 
         buttonbox = QDialogButtonBox(qt.Horizontal, self)
         buttonbox.addButton('New', QDialogButtonBox.ApplyRole)
@@ -537,7 +526,18 @@ if __name__ == '__main__':
 
     import sys
 
+    class Dialog2(QDialog):
+        def __init__(self, parent, conjugate_type, specsheets):
+            QDialog.__init__(self, parent)
+#            self.setModal(0)
+            iid = IdealImagerDialog(conjugate_type, specsheets, parent=self)
+            iid.update_values()
+
+        def exit(self):
+            self.close()
+
     app = QApplication(sys.argv)
     specsheets = create_specsheets()
-    dialog = IdealImagerDialog('infinite', specsheets)
-    dialog.exec()
+    dialog = Dialog2(None, 'infinite', specsheets)
+    dialog.show()
+#    dialog.exec()

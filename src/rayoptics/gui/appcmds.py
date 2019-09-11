@@ -16,6 +16,7 @@ from rayoptics.optical.firstorder import specsheet_from_parax_data
 from rayoptics.optical.specsheet import create_specsheets
 
 from rayoptics.gui import layout
+from rayoptics.gui.appmanager import ModelInfo
 
 from rayoptics.mpl.lenslayoutfigure import LensLayoutFigure
 from rayoptics.mpl.interactivelayout import InteractiveLayout
@@ -88,6 +89,12 @@ def create_new_optical_model_from_specsheet(specsheet):
     return opt_model
 
 
+def update_specsheet(iid, opt_model):
+    specsheet = specsheet_from_parax_data(opt_model)
+    iid.specsheet_dict[specsheet.conjugate_type] = specsheet
+    iid.update_values()
+
+
 def create_new_ideal_imager(**inputs):
     conj_type = (inputs['conjugate_type'] if 'conjugate_type' in inputs
                  else 'finite')
@@ -99,11 +106,15 @@ def create_new_ideal_imager(**inputs):
 
     if 'gui_parent' in inputs:
         gui_parent = inputs['gui_parent']
+        opt_model = gui_parent.app_manager.model
         iid = IdealImagerDialog(conj_type, specsheets,
                                 cmd_fct=gui_parent.handle_ideal_imager_command,
                                 parent=gui_parent)
+
+        gui_parent.add_subwindow(iid, ModelInfo(gui_parent.app_manager.model,
+                                                update_specsheet,
+                                                (iid, opt_model)))
         iid.update_values()
-        iid.setModal(False)
         iid.show()
     else:
         iid = IdealImagerDialog(conj_type, specsheets)

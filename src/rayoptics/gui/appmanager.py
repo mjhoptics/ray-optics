@@ -72,18 +72,19 @@ class AppManager:
         self._tag_model(model)
         self.model = model
 
-    def add_view(self, view, model_info):
+    def add_view(self, view, gui_hook, model_info):
         """ Add a new view and model tuple into dictionary
 
         Args:
             view: the ui view, used as a key
+            gui_hook: instance of the GUI component to be refreshed
             model_info: instance of the ModelInfo tuple
 
         Returns:
             returns the input view
         """
         self._tag_model(model_info.model)
-        self.view_dict[view] = model_info
+        self.view_dict[view] = gui_hook, model_info
         return view
 
     def delete_view(self, view):
@@ -105,7 +106,8 @@ class AppManager:
         """
         cur_model = self.model
         view_items = list(self.view_dict.items())
-        for view, mi in view_items:
+        for view, info in view_items:
+            mi = info[1]
             if mi.model == cur_model:
                 if view_close_fct is None:
                     self.delete_view(view)
@@ -126,7 +128,8 @@ class AppManager:
         # traverse a copy of the view dict. this way we can delete any errant
         #  views we might find. we don't seem to be trapping closing a window
         #  via a close box under pyqt5
-        for view, mi in dict(self.view_dict).items():
+        for view, info in dict(self.view_dict).items():
+            mi = info[1]
             if mi.model == self.model:
                 if mi.fct is not None:
                     try:
@@ -142,14 +145,16 @@ class AppManager:
         """
         if view is not None:
             try:
-                mi = self.view_dict[view]
+                info = self.view_dict[view]
             except KeyError:
                 logging.debug('view "%s" not in view_dict',
                               view.windowTitle())
             else:
+                mi = info[1]
                 model = mi.model
-                logging.debug("on_view_activated: %s, %s" %
-                              (model.name(), view.windowTitle()))
+                if model:
+                    logging.debug("on_view_activated: %s, %s" %
+                                  (model.name(), view.windowTitle()))
                 if model and model != self.model:
                     self.model = model
                     self.refresh_views()
