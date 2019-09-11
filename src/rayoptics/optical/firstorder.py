@@ -294,6 +294,8 @@ def list_parax_trace(opt_model):
 
 
 def specsheet_from_parax_data(opt_model):
+    if opt_model is None:
+        return None
     seq_model = opt_model.seq_model
     optical_spec = opt_model.optical_spec
     parax_data = optical_spec.parax_data

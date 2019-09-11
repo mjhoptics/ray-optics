@@ -91,6 +91,7 @@ class IdealImagerDialog(QWidget):
         buttonbox = QDialogButtonBox(qt.Horizontal, self)
         buttonbox.addButton('New', QDialogButtonBox.ApplyRole)
         buttonbox.addButton(QDialogButtonBox.Apply)
+        buttonbox.addButton('Update', QDialogButtonBox.ApplyRole)
         buttonbox.addButton(QDialogButtonBox.Close)
         for b in buttonbox.buttons():
             b.setAutoDefault(False)
