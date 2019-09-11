@@ -305,9 +305,8 @@ class ImagerSpecGroupBox(QGroupBox):
 
 
 class EtendueGroupBox(QGroupBox):
-    def __init__(self, parent, itype, specsheet,
-                 object_inputs=None, image_inputs=None, **kwargs):
-        super().__init__(title='etendue', **kwargs)
+    def __init__(self, parent, itype, specsheet, **kwargs):
+        super().__init__(title='etendue definition', **kwargs)
 
         self.parent = parent
         self.specsheet = specsheet

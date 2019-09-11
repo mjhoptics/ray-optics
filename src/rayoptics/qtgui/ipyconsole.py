@@ -18,13 +18,20 @@ from rayoptics.gui.appmanager import ModelInfo
 def create_ipython_console(app, title, view_width, view_ht):
     """ create a iPython console with a rayoptics environment """
     opt_model = app.app_manager.model
-    ro_env = {
+    if opt_model:
+        ro_env = {
+                'app': app,
+                'opm': opt_model,
+                'sm': opt_model.seq_model,
+                'osp': opt_model.optical_spec,
+                'pm': opt_model.parax_model
+                }
+    else:
+        ro_env = {
             'app': app,
-            'opm': opt_model,
-            'sm': opt_model.seq_model,
-            'osp': opt_model.optical_spec,
-            'pm': opt_model.parax_model
+            'opm': opt_model
             }
+
     ro_setup = 'from rayoptics.environment import *'
 
     # construct the top level widget

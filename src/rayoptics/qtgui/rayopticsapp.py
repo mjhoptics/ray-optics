@@ -424,7 +424,6 @@ class MainWindow(QMainWindow):
             opt_model.set_from_specsheet(specsheet)
             self.refresh_gui()
         elif command == 'Close':
-            opt_model = self.app_manager.model
             for view, info in self.app_manager.view_dict.items():
                 if iid == info[0]:
                     view.close()
@@ -435,6 +434,14 @@ class MainWindow(QMainWindow):
         elif command == 'New':
             opt_model = cmds.create_new_optical_model_from_specsheet(specsheet)
             self.app_manager.set_model(opt_model)
+            for view, info in self.app_manager.view_dict.items():
+                if iid == info[0]:
+                    w = iid
+                    mi = info[1]
+                    args = (iid, opt_model)
+                    new_mi = ModelInfo(model=opt_model, fct=mi.fct,
+                                       args=args, kwargs=mi.kwargs)
+                    self.app_manager.view_dict[view] = w, new_mi
             self.refresh_gui()
             self.create_lens_table()
             cmds.create_live_layout_view(opt_model, gui_parent=self)
