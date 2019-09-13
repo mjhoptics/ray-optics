@@ -13,7 +13,6 @@ from rayoptics.optical.surface import InteractionMode as imode
 from rayoptics.optical.etendue import obj_img_set, fld_ape_set
 from rayoptics.optical.model_constants import Intfc, Gap, Tfrm, Indx, Zdir
 from rayoptics.optical.model_constants import ht, slp, aoi
-from rayoptics.optical.model_enums import PupilType, FieldType
 from rayoptics.optical.idealimager import ideal_imager_setup
 from rayoptics.optical.specsheet import SpecSheet
 from rayoptics.util.dict2d import dict2D
@@ -214,33 +213,39 @@ def compute_first_order(opt_model, stop, wvl):
 
     yu = [0., 1.]
     pupil = opt_model.optical_spec.pupil
-    if pupil.pupil_type == PupilType.EPD:
-        slp0 = 0.5*pupil.value/obj2enp_dist
-    if pupil.pupil_type == PupilType.NAO:
-        slp0 = n_0*math.tan(math.asin(pupil.value/n_0))
-    if pupil.pupil_type == PupilType.FNO:
-        slpk = -1./(2.0*pupil.value)
-        slp0 = slpk/red
-    if pupil.pupil_type == PupilType.NA:
-        slpk = n_k*math.tan(math.asin(pupil.value/n_k))
-        slp0 = slpk/red
+    aperture, obj_img_key, value_key = pupil.key
+    if obj_img_key == 'object':
+        if value_key == 'pupil':
+            slp0 = 0.5*pupil.value/obj2enp_dist
+        elif value_key == 'NA':
+            slp0 = n_0*math.tan(math.asin(pupil.value/n_0))
+    elif obj_img_key == 'image':
+        if value_key == 'f/#':
+            slpk = -1./(2.0*pupil.value)
+            slp0 = slpk/red
+        elif value_key == 'NA':
+            slpk = n_k*math.tan(math.asin(pupil.value/n_k))
+            slp0 = slpk/red
     yu = [0., slp0]
 
     yu_bar = [1., 0.]
     fov = opt_model.optical_spec.field_of_view
+    field, obj_img_key, value_key = fov.key
     max_fld, fn = fov.max_field()
     if max_fld == 0.0:
         max_fld = 1.0
-    if fov.field_type == FieldType.OBJ_ANG:
-        ang = math.radians(max_fld)
-        slpbar0 = math.tan(ang)
-        ybar0 = -slpbar0*obj2enp_dist
-    elif fov.field_type == FieldType.IMG_HT:
-        ybar0 = red*max_fld
-        slpbar0 = -ybar0/obj2enp_dist
-    else:
-        ybar0 = -max_fld
-        slpbar0 = -ybar0/obj2enp_dist
+    if obj_img_key == 'object':
+        if value_key == 'angle':
+            ang = math.radians(max_fld)
+            slpbar0 = math.tan(ang)
+            ybar0 = -slpbar0*obj2enp_dist
+        elif value_key == 'height':
+            ybar0 = -max_fld
+            slpbar0 = -ybar0/obj2enp_dist
+    elif obj_img_key == 'image':
+        if value_key == 'height':
+            ybar0 = red*max_fld
+            slpbar0 = -ybar0/obj2enp_dist
     yu_bar = [ybar0, slpbar0]
 
     ax_ray, pr_ray = paraxial_trace(seq_model.path(wl=wvl), 0, yu, yu_bar)
@@ -293,7 +298,7 @@ def list_parax_trace(opt_model):
                       pr_ray[i][ht], pr_ray[i][slp], n*pr_ray[i][aoi]))
 
 
-def specsheet_from_parax_data(opt_model):
+def specsheet_from_parax_data(opt_model, specsheet):
     if opt_model is None:
         return None
     seq_model = opt_model.seq_model
@@ -303,26 +308,26 @@ def specsheet_from_parax_data(opt_model):
     if seq_model.gaps[0].thi > 10e8:
         conj_type = 'infinite'
 
-    imager_inputs = {}
-    if conj_type == 'finite':
-        imager_inputs['m'] = -1/parax_data.fod.red
-        imager_inputs['f'] = parax_data.fod.efl
-        frozen_imager_inputs = [False]*5
-    else:
-        imager_inputs['s'] = -math.inf
-        imager_inputs['f'] = parax_data.fod.efl
-        frozen_imager_inputs = [True, True, True, True, False]
+    specsheet.conjugate_type = conj_type
 
-    imager = ideal_imager_setup(**imager_inputs)
-    aperture = optical_spec.pupil.get_input_for_specsheet()
-    field = optical_spec.field_of_view.get_input_for_specsheet()
-    etendue_inputs = dict2D(fld_ape_set, obj_img_set)
-    specsheet = SpecSheet(conj_type, imager=imager,
-                          imager_inputs=imager_inputs,
-                          frozen_imager_inputs=frozen_imager_inputs,
-                          etendue_inputs=etendue_inputs)
+    specsheet.imager_inputs = {}
+    if conj_type == 'finite':
+        specsheet.imager_inputs['m'] = -1/parax_data.fod.red
+        specsheet.imager_inputs['f'] = parax_data.fod.efl
+        specsheet.frozen_imager_inputs = [False]*5
+    else:
+        specsheet.imager_inputs['s'] = -math.inf
+        specsheet.imager_inputs['f'] = parax_data.fod.efl
+        specsheet.frozen_imager_inputs = [True, True, True, True, False]
+
+    specsheet.imager = ideal_imager_setup(**specsheet.imager_inputs)
+
+    ape_key, ape_value = optical_spec.pupil.get_input_for_specsheet()
+    fld_key, fld_value = optical_spec.field_of_view.get_input_for_specsheet()
+
     etendue_inputs = specsheet.etendue_inputs
-    etendue_inputs[aperture[0]][aperture[1]][aperture[2]] = aperture[3]
-    etendue_inputs[field[0]][field[1]][field[2]] = field[3]
-    specsheet.generate_from_inputs(imager_inputs, etendue_inputs)
+    etendue_inputs[ape_key[0]][ape_key[1]][ape_key[2]] = ape_value
+    etendue_inputs[fld_key[0]][fld_key[1]][fld_key[2]] = fld_value
+    specsheet.generate_from_inputs(specsheet.imager_inputs, etendue_inputs)
+
     return specsheet

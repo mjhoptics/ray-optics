@@ -429,8 +429,9 @@ class MainWindow(QMainWindow):
                     view.close()
         elif command == 'Update':
             opt_model = self.app_manager.model
-            new_specsheet = firstorder.specsheet_from_parax_data(opt_model)
-            iid.specsheet_dict[specsheet.conjugate_type] = new_specsheet
+            specsheet = opt_model.specsheet
+            firstorder.specsheet_from_parax_data(opt_model, specsheet)
+            iid.specsheet_dict[specsheet.conjugate_type] = specsheet
             iid.update_values()
         elif command == 'New':
             opt_model = cmds.create_new_optical_model_from_specsheet(specsheet)

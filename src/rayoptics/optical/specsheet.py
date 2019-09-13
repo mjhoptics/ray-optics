@@ -54,6 +54,17 @@ def create_specsheets():
 
 
 class SpecSheet():
+    """ First order optical specification for :class:`~.OpticalModel`
+
+    Attributes:
+        conjugate_type: one of `infinite`, `finite`
+        imager: instance of `IdealImager`
+        imager_inputs: dict of inputs to `ideal_imager_setup`
+        frozen_imager_inputs: list of booleans, if True the parameter is frozen
+        etendue_inputs: field and aperture inputs used to define the etendue
+        etendue_values: dict2D of aperture/field vs object/image
+        partitions: 'imager', 'field', and 'aperture'; number of items in each
+    """
     def __init__(self, conjugate_type,
                  imager=None, imager_inputs=None, frozen_imager_inputs=None,
                  etendue_inputs=None, etendue_values=None):

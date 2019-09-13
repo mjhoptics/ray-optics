@@ -19,12 +19,72 @@ class PupilType(Enum):
     NA = 3   #: image space numerical aperture
 
 
+def get_ape_key_for_type(pupil_type):
+    if pupil_type == PupilType.EPD:
+        obj_img_key = 'object'
+        value_key = 'pupil'
+    elif pupil_type == PupilType.NAO:
+        obj_img_key = 'object'
+        value_key = 'NA'
+    elif pupil_type == PupilType.FNO:
+        obj_img_key = 'image'
+        value_key = 'f/#'
+    elif pupil_type == PupilType.NA:
+        obj_img_key = 'image'
+        value_key = 'NA'
+    return 'aperture', obj_img_key, value_key
+
+
+def get_ape_type_for_key(aperture_key):
+    aperture, obj_img_key, value_key = aperture_key
+    if obj_img_key == 'object':
+        if value_key == 'pupil':
+            pupil_type = PupilType.EPD
+        elif value_key == 'NA':
+            pupil_type = PupilType.NAO
+    elif obj_img_key == 'image':
+        if value_key is 'NA':
+            pupil_type = PupilType.NA
+        elif value_key == 'f/#':
+            pupil_type = PupilType.FNO
+    return pupil_type
+
+
 class FieldType(Enum):
     """ enum for different field specifications """
     OBJ_ANG = 0  #: object space angle in degrees
     OBJ_HT = 1   #: object height
     IMG_HT = 2   #: image height
     IMG_ANG = 3   #: image space angle in degrees
+
+
+def get_fld_key_for_type(field_type):
+    if field_type == FieldType.OBJ_HT:
+        obj_img_key = 'object'
+        value_key = 'height'
+    elif field_type == FieldType.OBJ_ANG:
+        obj_img_key = 'object'
+        value_key = 'angle'
+    elif field_type == FieldType.IMG_HT:
+        obj_img_key = 'image'
+        value_key = 'height'
+    elif field_type == FieldType.IMG_ANG:
+        obj_img_key = 'image'
+        value_key = 'angle'
+    return 'field', obj_img_key, value_key
+
+
+def get_fld_type_for_key(field_key):
+    field, obj_img_key, value_key = field_key
+    if obj_img_key == 'object':
+        if value_key == 'height':
+            field_type = FieldType.OBJ_HT
+        elif value_key == 'angle':
+            field_type = FieldType.OBJ_ANG
+    elif obj_img_key == 'image':
+        if value_key == 'height':
+            field_type = FieldType.IMG_HT
+    return field_type
 
 
 class DimensionType(Enum):

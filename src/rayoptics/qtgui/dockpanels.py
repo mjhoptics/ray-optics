@@ -225,7 +225,7 @@ class SpectrumWavelengthsPanel(QWidget):
 
 class AperturePanel(QWidget):
     rootEvalStr = '.optical_spec.pupil'
-    evalStr = '.value', '.pupil_type.value'
+    evalStr = '.value', '.get_pupil_type()'
     comboItems = ["Ent Pupil Diam", "Object NA", "F/#", "NA"]
     set_combo_str = '.mutate_pupil_type(PupilType({}))'
 
@@ -258,7 +258,7 @@ class AperturePanel(QWidget):
 
 class FieldOfViewPanel(QWidget):
     rootEvalStr = '.optical_spec.field_of_view'
-    evalStr = '.value', '.field_type.value'
+    evalStr = '.value', '.get_field_type()'
     comboItems = ["Object Angle", "Object Height", "Image Height"]
     set_combo_str = '.mutate_field_type(FieldType({}))'
 

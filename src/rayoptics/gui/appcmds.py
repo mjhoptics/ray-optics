@@ -63,8 +63,7 @@ def create_new_optical_system(efl=10.0, fov=1.0):
 
 def create_new_optical_model_from_specsheet(specsheet):
     """ create an OpticalModel with a basic thinlens model, given specsheet """
-    opt_model = OpticalModel()
-    opt_model.set_from_specsheet(specsheet)
+    opt_model = OpticalModel(specsheet=specsheet)
 
     seq_model = opt_model.seq_model
 
@@ -90,7 +89,8 @@ def create_new_optical_model_from_specsheet(specsheet):
 
 
 def update_specsheet(iid, opt_model):
-    specsheet = specsheet_from_parax_data(opt_model)
+    specsheet = opt_model.specsheet
+    specsheet_from_parax_data(opt_model, specsheet)
     iid.specsheet_dict[specsheet.conjugate_type] = specsheet
     iid.update_values()
 
@@ -100,7 +100,14 @@ def create_new_ideal_imager(**inputs):
                  else 'finite')
     specsheets = create_specsheets()
     if 'opt_model' in inputs:
-        specsheet = specsheet_from_parax_data(inputs['opt_model'])
+        opt_model = inputs['opt_model']
+        specsheet = opt_model.specsheet
+        if specsheet is None:
+            conj_type = 'finite'
+            if opt_model.seq_model.gaps[0].thi > 10e8:
+                conj_type = 'infinite'
+            specsheet = specsheets[conj_type]
+        specsheet_from_parax_data(opt_model, specsheet)
         conj_type = specsheet.conjugate_type
         specsheets[conj_type] = specsheet
 

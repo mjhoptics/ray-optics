@@ -13,7 +13,7 @@ import numpy as np
 
 from rayoptics.optical.firstorder import compute_first_order
 from rayoptics.optical.trace import aim_chief_ray
-from rayoptics.optical.model_enums import PupilType, FieldType
+from rayoptics.optical import model_enums
 import rayoptics.optical.model_constants as mc
 import rayoptics.util.colour_system as cs
 srgb = cs.cs_srgb
@@ -114,15 +114,18 @@ class OpticalSpecs:
     def obj_coords(self, fld):
         fov = self.field_of_view
         fod = self.parax_data.fod
-        if fov.field_type == FieldType.OBJ_ANG:
-            ang_dg = np.array([fld.x, fld.y, 0.0])
-            dir_tan = np.tan(np.deg2rad(ang_dg))
-            obj_pt = -dir_tan*(fod.obj_dist+fod.enp_dist)
-        elif fov.field_type == FieldType.IMG_HT:
-            img_pt = np.array([fld.x, fld.y, 0.0])
-            obj_pt = -fod.red*img_pt
-        else:
-            obj_pt = np.array([fld.x, fld.y, 0.0])
+        field, obj_img_key, value_key = fov.key
+        if obj_img_key == 'object':
+            if value_key == 'angle':
+                ang_dg = np.array([fld.x, fld.y, 0.0])
+                dir_tan = np.tan(np.deg2rad(ang_dg))
+                obj_pt = -dir_tan*(fod.obj_dist+fod.enp_dist)
+            elif value_key == 'height':
+                obj_pt = np.array([fld.x, fld.y, 0.0])
+        elif obj_img_key == 'image':
+            if value_key == 'height':
+                img_pt = np.array([fld.x, fld.y, 0.0])
+                obj_pt = -fod.red*img_pt
         return obj_pt
 
 
@@ -195,9 +198,9 @@ class PupilSpec:
     default_pupil_rays = [[0., 0.], [1., 0.], [-1., 0.], [0., 1.], [0., -1.]]
     default_ray_labels = ['00', '+X', '-X', '+Y', '-Y']
 
-    def __init__(self, parent, pupil_type=PupilType.EPD, value=1.0):
+    def __init__(self, parent, key=('object', 'pupil'), value=1.0):
         self.optical_spec = parent
-        self.pupil_type = pupil_type
+        self.key = 'aperture', key[0], key[1]
         self.value = value
         self.pupil_rays = PupilSpec.default_pupil_rays
         self.ray_labels = PupilSpec.default_ray_labels
@@ -208,10 +211,13 @@ class PupilSpec:
         return attrs
 
     def sync_to_restore(self, optical_spec):
+        if hasattr(self, 'pupil_type'):
+            self.key = model_enums.get_ape_key_for_type(self.pupil_type)
+            del self.pupil_type
         self.optical_spec = optical_spec
 
     def set_from_list(self, ppl_spec):
-        self.pupil_type = ppl_spec[0]
+        self.key = model_enums.get_ape_key_for_type(ppl_spec[0])
         self.value = ppl_spec[1]
 
     def set_from_specsheet(self, ss):
@@ -222,54 +228,38 @@ class PupilSpec:
                     value_key = k1
                     break
 
-        if obj_img_key == 'object':
-            if value_key == 'pupil':
-                self.pupil_type = PupilType.EPD
-            elif value_key == 'NA':
-                self.pupil_type = PupilType.NAO
-        elif obj_img_key == 'image':
-            if value_key is 'NA':
-                self.pupil_type = PupilType.NA
-            elif value_key == 'f/#':
-                self.pupil_type = PupilType.FNO
-
-        self.obj_img_key = obj_img_key
-        self.value_key = value_key
+        self.key = 'aperture', obj_img_key, value_key
         self.value = ss.etendue_inputs['aperture'][obj_img_key][value_key]
 
     def get_input_for_specsheet(self):
-        if self.pupil_type == PupilType.EPD:
-            obj_img_key = 'object'
-            value_key = 'pupil'
-        elif self.pupil_type == PupilType.NAO:
-            obj_img_key = 'object'
-            value_key = 'NA'
-        elif self.pupil_type == PupilType.FNO:
-            obj_img_key = 'image'
-            value_key = 'f/#'
-        elif self.pupil_type == PupilType.NA:
-            obj_img_key = 'image'
-            value_key = 'NA'
-        return 'aperture', obj_img_key, value_key, self.value
+        return self.key, self.value
 
     def update_model(self):
         if not hasattr(self, 'pupil_rays'):
             self.pupil_rays = PupilSpec.default_pupil_rays
             self.ray_labels = PupilSpec.default_ray_labels
 
+    def get_pupil_type(self):
+        return model_enums.get_ape_type_for_key(self.key).value
+
     def mutate_pupil_type(self, new_pupil_type):
+        ape_key = model_enums.get_ape_key_for_type(new_pupil_type)
+        aperture, obj_img_key, value_key = ape_key
         if self.optical_spec is not None:
             if self.optical_spec.parax_data is not None:
                 fod = self.optical_spec.parax_data.fod
-                if new_pupil_type == PupilType.FNO:
-                    self.value = fod.fno
-                elif new_pupil_type == PupilType.EPD:
-                    self.value = 2*fod.enp_radius
-                elif new_pupil_type == PupilType.NAO:
-                    self.value = fod.obj_na
-                elif new_pupil_type == PupilType.NA:
-                    self.value = fod.img_na
-        self.pupil_type = new_pupil_type
+                if obj_img_key == 'object':
+                    if value_key == 'pupil':
+                        self.value = 2*fod.enp_radius
+                    elif value_key == 'NA':
+                        self.value = fod.obj_na
+                elif obj_img_key == 'image':
+                    if value_key == 'f/#':
+                        self.value = fod.fno
+                    elif value_key == 'NA':
+                        self.value = fod.img_na
+
+        self.key = ape_key
 
 
 class FieldSpec:
@@ -279,9 +269,9 @@ class FieldSpec:
         field_type: :class:`~.FieldType` enum
         fields: list of Field instances
     """
-    def __init__(self, parent, field_type=FieldType.OBJ_ANG, flds=[0.]):
+    def __init__(self, parent, key=('object', 'angle'), flds=[0.]):
         self.optical_spec = parent
-        self.field_type = field_type
+        self.key = 'field', key[0], key[1]
         self.set_from_list(flds)
 
     def __json_encode__(self):
@@ -290,11 +280,13 @@ class FieldSpec:
         return attrs
 
     def sync_to_restore(self, optical_spec):
+        if hasattr(self, 'field_type'):
+            self.key = model_enums.get_fld_key_for_type(self.field_type)
+            del self.field_type
         self.optical_spec = optical_spec
 
     def __str__(self):
-        return "type={}, max field={}".format(self.field_type,
-                                              self.max_field()[0])
+        return "key={}, max field={}".format(self.key, self.max_field()[0])
 
     def set_from_list(self, flds):
         self.fields = [Field() for f in range(len(flds))]
@@ -310,32 +302,12 @@ class FieldSpec:
                     value_key = k1
                     break
 
-        if obj_img_key == 'object':
-            if value_key == 'height':
-                self.field_type = FieldType.OBJ_HT
-            elif value_key == 'angle':
-                self.field_type = FieldType.OBJ_ANG
-        elif obj_img_key == 'image':
-            if value_key == 'height':
-                self.field_type = FieldType.IMG_HT
-
-        self.obj_img_key = obj_img_key
-        self.value_key = value_key
+        self.key = 'field', obj_img_key, value_key
         flds = [0, ss.etendue_inputs['field'][obj_img_key][value_key]]
         self.set_from_list(flds)
 
     def get_input_for_specsheet(self):
-        if self.field_type == FieldType.OBJ_HT:
-            obj_img_key = 'object'
-            value_key = 'height'
-        elif self.field_type == FieldType.OBJ_ANG:
-            obj_img_key = 'object'
-            value_key = 'angle'
-        elif self.field_type == FieldType.IMG_HT:
-            obj_img_key = 'image'
-            value_key = 'height'
-
-        return 'field', obj_img_key, value_key, self.max_field()[0]
+        return self.key, self.max_field()[0]
 
     def update_model(self):
         for f in self.fields:
@@ -363,17 +335,25 @@ class FieldSpec:
             self.index_labels[-1] = 'edge'
         return self
 
+    def get_field_type(self):
+        return model_enums.get_fld_type_for_key(self.key).value
+
     def mutate_field_type(self, new_field_type):
+        osp = self.optical_spec
+        fld_key = model_enums.get_fld_key_for_type(new_field_type)
+        field, obj_img_key, value_key = fld_key
         if self.optical_spec is not None:
-            if self.optical_spec.parax_data is not None:
+            if osp.parax_data is not None:
                 fod = self.optical_spec.parax_data.fod
-                if new_field_type == FieldType.OBJ_HT:
-                    self.value = self.optical_spec.parax_data.pr_ray[0][mc.ht]
-                elif new_field_type == FieldType.OBJ_ANG:
-                    self.value = fod.obj_ang
-                elif new_field_type == FieldType.IMG_HT:
-                    self.value = fod.img_ht
-        self.field_type = new_field_type
+                if obj_img_key == 'object':
+                    if value_key == 'height':
+                        self.value = osp.parax_data.pr_ray[0][mc.ht]
+                    elif value_key == 'angle':
+                        self.value = fod.obj_ang
+                elif obj_img_key == 'image':
+                    if value_key == 'height':
+                        self.value = fod.img_ht
+        self.key = fld_key
 
     def max_field(self):
         """ calculates the maximum field of view

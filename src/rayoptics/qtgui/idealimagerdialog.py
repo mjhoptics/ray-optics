@@ -151,10 +151,13 @@ class IdealImagerDialog(QWidget):
         imager_groupbox = self.imager_stack[conj_type]
         etendue_groupbox = self.etendue_stack[conj_type]
 
-        imager_inputs = specsheet.imager_inputs
-        etendue_inputs = specsheet.etendue_inputs
+        imager_inputs = imager_groupbox.specsheet.imager_inputs
+        etendue_inputs = etendue_groupbox.specsheet.etendue_inputs
         imager, etendue_values = specsheet.generate_from_inputs(imager_inputs,
                                                                 etendue_inputs)
+
+        specsheet.imager_inputs = imager_inputs
+        specsheet.etendue_inputs = etendue_inputs
 
         imager_groupbox.update_values()
         etendue_groupbox.update_values()

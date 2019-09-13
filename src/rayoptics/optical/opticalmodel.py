@@ -98,13 +98,17 @@ class OpticalModel:
     aperture, field of view, spectrum and focus.
     """
 
-    def __init__(self, radius_mode=False):
+    def __init__(self, radius_mode=False, specsheet=None):
         self.radius_mode = radius_mode
+        self.specsheet = specsheet
         self.system_spec = SystemSpec()
         self.seq_model = SequentialModel(self)
         self.optical_spec = OpticalSpecs(self)
         self.parax_model = ParaxialModel(self)
         self.ele_model = ElementModel(self)
+
+        if self.specsheet:
+            self.set_from_specsheet()
 
     def name(self):
         return self.system_spec.title
@@ -121,9 +125,13 @@ class OpticalModel:
             del attrs['app_manager']
         return attrs
 
-    def set_from_specsheet(self, ss):
-        self.seq_model.set_from_specsheet(ss)
-        self.optical_spec.set_from_specsheet(ss)
+    def set_from_specsheet(self, specsheet=None):
+        if specsheet:
+            self.specsheet = specsheet
+        else:
+            specsheet = self.specsheet
+        self.seq_model.set_from_specsheet(specsheet)
+        self.optical_spec.set_from_specsheet(specsheet)
 
     def save_model(self, file_name):
         file_extension = os.path.splitext(file_name)[1]

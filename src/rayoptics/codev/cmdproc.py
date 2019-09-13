@@ -13,6 +13,7 @@ import math
 from . import tla
 from . import reader as cvr
 
+from rayoptics.optical import model_enums
 from rayoptics.optical.model_enums import PupilType, FieldType
 from rayoptics.optical.model_enums import DimensionType as dt
 from rayoptics.optical.model_enums import DecenterType as dec
@@ -140,7 +141,7 @@ def wvl_spec_data(optm, tla, qlist, dlist):
 
 def pupil_spec_data(optm, tla, qlist, dlist):
     osp = optm.optical_spec
-    osp.pupil.pupil_type = PupilType[tla]
+    osp.pupil.key = model_enums.get_ape_key_for_type(PupilType[tla])
     osp.pupil.value = dlist[0]
     logging.debug("pupil_spec_data: %s %f", tla, dlist[0])
 
@@ -148,11 +149,16 @@ def pupil_spec_data(optm, tla, qlist, dlist):
 def field_spec_data(optm, tla, qlist, dlist):
     fov = optm.optical_spec.field_of_view
     if tla == 'XOB' or tla == 'YOB':
-        fov.field_type = FieldType.OBJ_HT
+        field_type = FieldType.OBJ_HT
     elif tla == 'XAN' or tla == 'YAN':
-        fov.field_type = FieldType.OBJ_ANG
+        field_type = FieldType.OBJ_ANG
     elif tla == 'XIM' or tla == 'YIM':
-        fov.field_type = FieldType.IMG_HT
+        field_type = FieldType.IMG_HT
+    else:
+        field_type = None
+
+    if field_type:
+        fov.key = model_enums.get_fld_key_for_type(field_type)
 
     if len(fov.fields) != len(dlist):
         fov.fields = [Field() for f in range(len(dlist))]
