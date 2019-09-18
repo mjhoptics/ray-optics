@@ -90,6 +90,11 @@ class Interface:
         if hasattr(self, 'phase_element'):
             return self.phase_element.phase(pt, d_in, normal, wl=wl)
 
+    def apply_scale_factor(self, scale_factor):
+        self.max_aperture *= scale_factor
+        if self.decenter:
+            self.decenter.apply_scale_factor(scale_factor)
+
 
 class Surface(Interface):
     """ Container of profile, extent, position and orientation. """
@@ -140,6 +145,15 @@ class Surface(Interface):
     def set_optical_power(self, pwr, n_before, n_after):
         self.delta_n = n_after - n_before
         self.optical_power = pwr
+
+    def apply_scale_factor(self, scale_factor):
+        super().apply_scale_factor(scale_factor)
+        self.max_aperture *= scale_factor
+        self.profile.apply_scale_factor(scale_factor)
+        for e in self.edge_apertures:
+            e.apply_scale_factor(scale_factor)
+        for ca in self.clear_apertures:
+            ca.apply_scale_factor(scale_factor)
 
     def from_first_order(self, nu_before, nu_after, y):
         pass
@@ -257,6 +271,10 @@ class DecenterData():
         else:
             self.rot_mat = None
 
+    def apply_scale_factor(self, scale_factor):
+        self.dec *= scale_factor
+        self.rot_pt *= scale_factor
+
     def tform_before_surf(self):
         if self.dtype is not dec.REV:
             return self.rot_mat, self.dec
@@ -293,6 +311,10 @@ class Aperture():
         extent = np.array(self.dimension())
         return center-extent, center+extent
 
+    def apply_scale_factor(self, scale_factor):
+        self.x_offset *= scale_factor
+        self.y_offset *= scale_factor
+
 
 class Circular(Aperture):
     def __init__(self, radius=1.0, **kwargs):
@@ -308,6 +330,10 @@ class Circular(Aperture):
     def max_dimension(self):
         return self.radius
 
+    def apply_scale_factor(self, scale_factor):
+        super().apply_scale_factor(scale_factor)
+        self.radius *= scale_factor
+
 
 class Rectangular(Aperture):
     def __init__(self, x_half_width=1.0, y_half_width=1.0, **kwargs):
@@ -322,6 +348,11 @@ class Rectangular(Aperture):
         self.x_half_width = abs(x)
         self.y_half_width = abs(y)
 
+    def apply_scale_factor(self, scale_factor):
+        super().apply_scale_factor(scale_factor)
+        self.x_half_width *= scale_factor
+        self.y_half_width *= scale_factor
+
 
 class Elliptical(Aperture):
     def __init__(self, x_half_width=1.0, y_half_width=1.0, **kwargs):
@@ -335,3 +366,8 @@ class Elliptical(Aperture):
     def set_dimension(self, x, y):
         self.x_half_width = abs(x)
         self.y_half_width = abs(y)
+
+    def apply_scale_factor(self, scale_factor):
+        super().apply_scale_factor(scale_factor)
+        self.x_half_width *= scale_factor
+        self.y_half_width *= scale_factor

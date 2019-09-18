@@ -34,3 +34,6 @@ class Gap:
     def sync_to_restore(self, seq_model):
         if hasattr(self.medium, 'sync_to_restore'):
             self.medium.sync_to_restore()
+
+    def apply_scale_factor(self, scale_factor):
+        self.thi *= scale_factor

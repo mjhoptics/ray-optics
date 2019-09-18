@@ -68,7 +68,7 @@ class ThinLens(Interface):
 
     def set_max_aperture(self, max_ap):
         super().set_max_aperture(max_ap)
-        self.od = 2.0*max_ap
+        self.od = max_ap
 
     @property
     def optical_power(self):
@@ -89,6 +89,10 @@ class ThinLens(Interface):
     def set_optical_power(self, pwr, n_before, n_after):
         self.delta_n = n_after - n_before
         self.optical_power = pwr
+
+    def apply_scale_factor(self, scale_factor):
+        super().apply_scale_factor(scale_factor)
+        self.optical_power = self.optical_power/scale_factor
 
     def from_first_order(self, nu_before, nu_after, y):
         # nu_before used for reference point

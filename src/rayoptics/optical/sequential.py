@@ -269,8 +269,24 @@ class SequentialModel:
 
             self.set_clear_apertures()
 
-    def set_from_specsheet(self, ss):
-        pass
+    def apply_scale_factor(self, scale_factor):
+        for i, sg in enumerate(self.path()):
+            sg[Intfc].apply_scale_factor(scale_factor)
+            if sg[Gap]:
+                sg[Gap].apply_scale_factor(scale_factor)
+
+        self.gbl_tfrms = self.compute_global_coords()
+        self.lcl_tfrms = self.compute_local_transforms()
+
+    def set_from_specsheet(self, specsheet):
+        if self.opt_model.optical_spec.parax_data is None:
+            return
+        if len(specsheet.imager_inputs) == 2:
+            f_old = self.opt_model.optical_spec.parax_data[2].efl
+            f_new = specsheet.imager.f
+            scale_factor = f_new/f_old
+            if scale_factor != 1.0:
+                self.apply_scale_factor(scale_factor)
 
     def insert_surface_and_gap(self):
         s = surface.Surface()

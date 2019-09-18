@@ -61,6 +61,9 @@ class SurfaceProfile:
     def profile(self, sd, dir=1, steps=6):
         pass
 
+    def apply_scale_factor(self, scale_factor):
+        pass
+
     def intersect(self, p0, d, eps, z_dir):
         ''' Intersect a profile, starting from an arbitrary point.
 
@@ -133,6 +136,9 @@ class Spherical(SurfaceProfile):
 
     def mutate(self, new_profile):
         Spherical.copyDataFrom(new_profile, self)
+
+    def apply_scale_factor(self, scale_factor):
+        self.cv /= scale_factor
 
     def normal(self, p):
         return normalize(np.array(
@@ -302,6 +308,9 @@ class Conic(SurfaceProfile):
     def copyDataFrom(self, other):
         self.cv = other.cv
         self.cc = other.cc
+
+    def apply_scale_factor(self, scale_factor):
+        self.cv /= scale_factor
 
     def normal(self, p):
         return normalize(np.array(
@@ -528,6 +537,20 @@ class EvenPolynomial(SurfaceProfile):
                 self.max_nonzero_coef = i
         self.max_nonzero_coef += 1
 
+    def apply_scale_factor(self, scale_factor):
+        self.cv /= scale_factor
+        sf_sqr = scale_factor**2
+        self.coef2 *= sf_sqr
+        self.coef4 *= sf_sqr**2
+        self.coef6 *= sf_sqr**3
+        self.coef8 *= sf_sqr**4
+        self.coef10 *= sf_sqr**5
+        self.coef12 *= sf_sqr**6
+        self.coef14 *= sf_sqr**7
+        self.coef16 *= sf_sqr**8
+        self.coef18 *= sf_sqr**9
+        self.coef20 *= sf_sqr**10
+
     def update(self):
         self.gen_coef_list()
 
@@ -704,6 +727,19 @@ class RadialPolynomial(SurfaceProfile):
             if c != 0.0:
                 self.max_nonzero_coef = i
         self.max_nonzero_coef += 1
+
+    def apply_scale_factor(self, scale_factor):
+        self.cv /= scale_factor
+        self.coef1 *= scale_factor
+        self.coef2 *= scale_factor**2
+        self.coef3 *= scale_factor**3
+        self.coef4 *= scale_factor**4
+        self.coef5 *= scale_factor**5
+        self.coef6 *= scale_factor**6
+        self.coef7 *= scale_factor**7
+        self.coef8 *= scale_factor**8
+        self.coef9 *= scale_factor**9
+        self.coef10 *= scale_factor**10
 
     def update(self):
         self.gen_coef_list()
