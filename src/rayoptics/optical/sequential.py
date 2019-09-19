@@ -97,14 +97,14 @@ class SequentialModel:
 
         # add object gap
         self.gaps.append(gap.Gap())
-        self.z_dir.append(1.0)
+        self.z_dir.append(1)
         self.rndx.append([1.0])
 
         # add image interface
         self.ifcs.append(surface.Surface('Img'))
         self.gbl_tfrms.append(tfrm)
         self.lcl_tfrms.append(tfrm)
-        self.z_dir.append(1.0)
+        self.z_dir.append(1)
         self.rndx.append([1.0])
 
     def reset(self):
@@ -243,16 +243,16 @@ class SequentialModel:
         n_before = self.rndx.iloc[0]
 
         self.z_dir = []
-        z_dir_before = 1.0
+        z_dir_before = 1
 
         for i, s in enumerate(self.ifcs):
-            z_dir_after = copysign(1.0, z_dir_before)
+            z_dir_after = copysign(1, z_dir_before)
             if s.interact_mode == imode.Reflect:
                 z_dir_after = -z_dir_after
 
             # leave rndx data unsigned, track change of sign using z_dir
             n_after = self.rndx.iloc[i]
-            n_after = n_after if z_dir_after > 0.0 else -n_after
+            n_after = n_after if z_dir_after > 0 else -n_after
             s.delta_n = n_after.iloc[ref_wl] - n_before.iloc[ref_wl]
             n_before = n_after
 
@@ -308,6 +308,16 @@ class SequentialModel:
         return labels
 
     def list_model(self):
+        cvr = 'r' if self.opt_model.radius_mode else 'c'
+        print("           {}            t        medium     mode   zdr      sd"
+              .format(cvr))
+        for i, sg in enumerate(self.path()):
+            s = self.list_surface_and_gap(sg[Intfc], gp=sg[Gap])
+            s.append(self.z_dir[i])
+            print("{0:2n}: {1:12.6f} {2:#12.6g} {3:>9s} {4.name:>10s} {6:2n}"
+                  "  {5:#10.5g}".format(i, *s))
+
+    def list_model_old(self):
         cvr = 'r' if self.opt_model.radius_mode else 'c'
         print("           {}            t        medium     mode         sd"
               .format(cvr))
@@ -600,12 +610,12 @@ def gen_sequence(surf_data_list, **kwargs):
         gaps.append(g)
         rndx.append(rn)
         lcl_tfrms.append(tfrm)
-        z_dir.append(1.)
+        z_dir.append(1)
 
     n_before = 1.0
-    z_dir_before = 1.0
+    z_dir_before = 1
     for i, s in enumerate(ifcs):
-        z_dir_after = copysign(1.0, z_dir_before)
+        z_dir_after = copysign(1, z_dir_before)
         n_after = np.copysign(rndx[i], n_before)
         if s.interact_mode == imode.Reflect:
             n_after = -n_after
