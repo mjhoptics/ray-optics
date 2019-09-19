@@ -1,0 +1,25 @@
+len
+tit 'lens following reflection test'
+dim m
+rdm n
+so 0. 1e+11
+s 0 5
+sto
+
+s 0 -2.25 refl
+cir 1.5
+
+s -.67 -.25 nbk7_schott
+cir 0.875
+s 0. -0.05
+cir 0.875
+s 0. -.25 nbk7_schott
+cir 0.875
+s -.77095 -2.25
+cir 0.875
+
+si 0 0
+cir 2
+
+epd 1; wl 555
+yan 0

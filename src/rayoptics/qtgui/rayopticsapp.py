@@ -119,6 +119,8 @@ class MainWindow(QMainWindow):
 #            self.open_file(path / "codev/tests/ag_dblgauss.seq")
 #            self.open_file(path / "codev/tests/threemir.seq")
 #            self.open_file(path / "codev/tests/folded_lenses.seq")
+#            self.open_file(path / "codev/tests/unfolded_lenses_w_ape.seq")
+            self.open_file(path / "codev/tests/lens_reflection_test.seq")
 #            self.open_file(path / "codev/tests/dec_tilt_test.seq")
 #            self.open_file(path / "codev/tests/landscape_lens.seq")
 #            self.open_file(path / "codev/tests/mangin.seq")
@@ -288,8 +290,8 @@ class MainWindow(QMainWindow):
 
     def create_ray_table(self, opt_model):
         osp = opt_model.optical_spec
-        pupil = [0., 0.]
-        fi = 1
+        pupil = [0., 1.]
+        fi = 0
         wl = osp.spectral_region.reference_wvl
         fld, wvl, foc = osp.lookup_fld_wvl_focus(fi, wl)
         ray, ray_op, wvl = trace.trace_base(opt_model, pupil, fld, wvl)

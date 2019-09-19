@@ -1,0 +1,40 @@
+len
+tit 'dec/tilt lens test'
+dim m
+rdm n
+
+so 0. 1e+11
+s 0 5
+sto
+s 0 2.25 ! refl
+cir 1.5
+
+s .67 .25 nbk7_schott
+cir 0.8
+s 0. 0.05
+cir 0.8
+s 0. .25 nbk7_schott
+cir 0.8
+s .77095 2.25
+cir 0.8
+
+s 0 2.25 ! refl
+cir 1.5
+
+s -.67 0.25 nbk7_schott
+cir 0.8
+s 0. 0.05
+cir 0.8
+s 0 .25 nbk7_schott
+cir 0.8
+s -.59225 2.25
+cir 0.8
+
+s 0 5  ! refl
+cir 1.5
+
+si 0 0
+cir 2
+
+epd 1; wl 555
+yan 0
