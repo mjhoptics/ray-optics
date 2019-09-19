@@ -122,7 +122,6 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12):
     before_normal = srf_obj.normal(before_pt)
     tfrm_from_before = before[Tfrm]
     z_dir_before = before[Zdir]
-    n_before = before[Indx] if z_dir_before > 0.0 else -before[Indx]
 
     op_delta = 0.0
     surf = 0
@@ -139,7 +138,6 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12):
 
             ifc = after[Intfc]
             z_dir_after = after[Zdir]
-            n_after = after[Indx] if z_dir_after > 0.0 else -after[Indx]
 
             # intersect ray with profile
             pp_dst_intrsct, inc_pt = ifc.intersect(pp_pt_before, b4_dir,
@@ -155,7 +153,7 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12):
             # if the interface has a phase element, process that first
             if hasattr(ifc, 'phase_element'):
                 doe_dir, phs = phase(ifc, inc_pt, b4_dir, normal, wvl,
-                                     n_before, n_after)
+                                     before[Indx], after[Indx])
                 # the output of the phase element becomes the input for the
                 #  refraction/reflection calculation
                 b4_dir = doe_dir
@@ -165,7 +163,7 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12):
             if ifc.interact_mode == imode.Reflect:
                 after_dir = reflect(b4_dir, normal)
             elif ifc.interact_mode == imode.Transmit:
-                after_dir = bend(b4_dir, normal, n_before, n_after)
+                after_dir = bend(b4_dir, normal, before[Indx], after[Indx])
             else:  # no action, input becomes output
                 after_dir = b4_dir
 
@@ -187,11 +185,10 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12):
 #            print("e{}= {:12.5g} e{}'= {:12.5g} dW={:10.8g} n={:8.5g}"
 #                  " n'={:8.5g} zdirb4={:2.0f} zdiraftr={:2.0f}"
 #                  .format(surf, eic_dst_before, surf, eic_dst_after, dW,
-#                          n_before, n_after, z_dir_before, z_dir_after))
+#                          before[Indx], after[Indx], z_dir_before, z_dir_after))
             before_pt = inc_pt
             before_normal = normal
             before_dir = after_dir
-            n_before = n_after
             z_dir_before = z_dir_after
             before = after
             tfrm_from_before = before[Tfrm]
