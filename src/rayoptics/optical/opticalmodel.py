@@ -19,6 +19,7 @@ from rayoptics.optical.elements import ElementModel
 from rayoptics.optical.paraxialdesign import ParaxialModel
 from rayoptics.optical.sequential import SequentialModel
 from rayoptics.optical.opticalspec import OpticalSpecs
+from rayoptics.optical.specsheet import create_specsheet_from_model
 
 
 def open_model(file_name):
@@ -38,6 +39,7 @@ def open_model(file_name):
     if file_extension == '.seq':
         opm = OpticalModel()
         cvp.read_lens(opm, file_name)
+        create_specsheet_from_model(opm)
     elif file_extension == '.roa':
         with open(file_name, 'r') as f:
             obj_dict = json_tricks.load(f)

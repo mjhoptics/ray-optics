@@ -13,7 +13,8 @@ from rayoptics.optical.profiles import Spherical, Conic
 from rayoptics.optical.elements import (create_thinlens,
                                         insert_ifc_gp_ele)
 from rayoptics.optical.firstorder import specsheet_from_parax_data
-from rayoptics.optical.specsheet import create_specsheets
+from rayoptics.optical.specsheet import (create_specsheets,
+                                         create_specsheet_from_model)
 
 from rayoptics.gui import layout
 from rayoptics.gui.appmanager import ModelInfo
@@ -101,13 +102,8 @@ def create_new_ideal_imager(**inputs):
     specsheets = create_specsheets()
     if 'opt_model' in inputs:
         opt_model = inputs['opt_model']
-        specsheet = opt_model.specsheet
-        if specsheet is None:
-            conj_type = 'finite'
-            if opt_model.seq_model.gaps[0].thi > 10e8:
-                conj_type = 'infinite'
-            specsheet = specsheets[conj_type]
-        specsheet_from_parax_data(opt_model, specsheet)
+        specsheet = create_specsheet_from_model(opt_model,
+                                                specsheets=specsheets)
         conj_type = specsheet.conjugate_type
         specsheets[conj_type] = specsheet
 

@@ -9,6 +9,7 @@
 """
 import math
 
+from rayoptics.optical import firstorder
 from rayoptics.optical.idealimager import IdealImager, ideal_imager_setup
 
 from rayoptics.util import dict2d
@@ -51,6 +52,21 @@ def create_specsheets():
     specsheets['infinite'] = ifss
 
     return specsheets
+
+
+def create_specsheet_from_model(opt_model, specsheets=None):
+    if specsheets is None:
+        specsheets = create_specsheets()
+
+    specsheet = opt_model.specsheet
+    if specsheet is None:
+        conj_type = 'finite'
+        if opt_model.seq_model.gaps[0].thi > 10e8:
+            conj_type = 'infinite'
+        specsheet = specsheets[conj_type]
+    firstorder.specsheet_from_parax_data(opt_model, specsheet)
+    opt_model.specsheet = specsheet
+    return specsheet
 
 
 class SpecSheet():
