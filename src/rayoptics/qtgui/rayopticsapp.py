@@ -120,7 +120,7 @@ class MainWindow(QMainWindow):
 #            self.open_file(path / "codev/tests/threemir.seq")
 #            self.open_file(path / "codev/tests/folded_lenses.seq")
 #            self.open_file(path / "codev/tests/unfolded_lenses_w_ape.seq")
-            self.open_file(path / "codev/tests/lens_reflection_test.seq")
+#            self.open_file(path / "codev/tests/lens_reflection_test.seq")
 #            self.open_file(path / "codev/tests/dec_tilt_test.seq")
 #            self.open_file(path / "codev/tests/landscape_lens.seq")
 #            self.open_file(path / "codev/tests/mangin.seq")
