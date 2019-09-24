@@ -11,7 +11,7 @@
 from enum import Enum, auto
 
 from matplotlib.figure import Figure
-from scipy.interpolate import spline
+from scipy.interpolate import interp1d
 
 import numpy as np
 
@@ -145,9 +145,12 @@ class RayFanFigure(AxisArrayFigure):
 #                x_data, y_data, max_value, rc = self.eval_axis_data(i, j)
 #                rc = clip_to_range(rc, 0.0, 1.0)
                 for k in range(len(x_data)):
-                    x_smooth.append(np.linspace(x_data[k].min(),
-                                                x_data[k].max(), 100))
-                    y_smooth.append(spline(x_data[k], y_data[k], x_smooth[k]))
+                    interpolator = interp1d(x_data[k], y_data[k],
+                                            kind='cubic', assume_sorted=True)
+                    x_samp = np.linspace(x_data[k].min(), x_data[k].max(), 100)
+                    y_fit = interpolator(x_samp)
+                    x_smooth.append(x_samp)
+                    y_smooth.append(y_fit)
                 row.append((x_smooth, y_smooth, max_value, rc))
             self.axis_data_array.append(row)
         return self

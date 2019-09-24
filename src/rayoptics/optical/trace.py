@@ -178,9 +178,14 @@ def iterate_ray(opt_model, ifcx, xy_target, fld, wvl, **kwargs):
         y_target = xy_target[1]
         logging.captureWarnings(True)
         try:
-            start_y = newton(y_stop_coordinate, 0.,
-                             args=(seq_model, ifcx, pt0, dist,
-                                   wvl, y_target))
+            start_y, results = newton(y_stop_coordinate, 0.,
+                                      args=(seq_model, ifcx, pt0,
+                                            dist, wvl, y_target),
+                                      disp=False, full_output=True)
+        except RuntimeError as rte:
+            # if we come here, start_y is a RuntimeResults object
+            print(rte)
+            start_y = results.root
         except TraceError:
             start_y = 0.0
         start_coords = np.array([0., start_y])
