@@ -318,7 +318,8 @@ def specsheet_from_parax_data(opt_model, specsheet):
         specsheet.frozen_imager_inputs = [False]*5
     else:
         specsheet.imager_inputs['s'] = -math.inf
-        specsheet.imager_inputs['f'] = parax_data.fod.efl
+        if parax_data.fod.efl != 0:
+            specsheet.imager_inputs['f'] = parax_data.fod.efl
         specsheet.frozen_imager_inputs = [True, True, True, True, False]
 
     specsheet.imager = ideal_imager_setup(**specsheet.imager_inputs)

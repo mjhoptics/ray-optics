@@ -162,7 +162,7 @@ class SpecSheet():
 
         for fa_key, fa_value in etendue_inputs.items():
             for oi_key, oi_value in fa_value.items():
-                etendue.fill_in_etendue_data(fa_key,
+                etendue.fill_in_etendue_data(imager, fa_key,
                                              etendue_inputs[fa_key][oi_key],
                                              etendue_values[fa_key][oi_key])
 
