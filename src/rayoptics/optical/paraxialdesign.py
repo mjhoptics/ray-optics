@@ -13,7 +13,7 @@ from collections import namedtuple
 
 from rayoptics.optical.model_constants import ht, slp, aoi
 from rayoptics.optical.model_constants import pwr, tau, indx, rmd
-from rayoptics.optical.model_constants import Intfc, Gap, Indx
+from rayoptics.optical.model_constants import Intfc, Gap, Indx, Zdir
 from rayoptics.optical.elements import insert_ifc_gp_ele
 from rayoptics.optical.surface import InteractionMode as imode
 
@@ -255,7 +255,7 @@ class ParaxialModel():
         sys = []
         for i, sg in enumerate(self.seq_model.path()):
             if sg[Gap]:
-                n_after = sg[Indx]
+                n_after = sg[Indx] if sg[Zdir] > 0 else -sg[Indx]
                 tau = sg[Gap].thi/n_after
                 rmode = sg[Intfc].interact_mode
                 power = sg[Intfc].optical_power

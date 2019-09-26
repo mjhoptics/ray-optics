@@ -293,6 +293,7 @@ def list_parax_trace(opt_model):
           "        n*ibar")
     for i, ax in enumerate(ax_ray):
         n = seq_model.central_rndx(i)
+        n = n if seq_model.z_dir[i] > 0 else -n
         print("{:2} {:12.6g} {:12.6g} {:12.6g} {:12.6g} {:12.6g} {:12.6g}"
               .format(i, ax_ray[i][ht], ax_ray[i][slp], n*ax_ray[i][aoi],
                       pr_ray[i][ht], pr_ray[i][slp], n*pr_ray[i][aoi]))

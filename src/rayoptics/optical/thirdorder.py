@@ -30,6 +30,7 @@ def compute_third_order(opt_model):
     pd_index = ['S-I', 'S-II', 'S-III', 'S-IV', 'S-V']
     for c in range(1, len(ax_ray)-1):
         n_after = seq_model.central_rndx(c)
+        n_after = n_after if seq_model.z_dir[c] > 0 else -n_after
         cv = seq_model.ifcs[c].profile_cv
 
         A = n_after * ax_ray[c][aoi]
@@ -50,7 +51,8 @@ def compute_third_order(opt_model):
 
         # handle case of aspheric profile
         if hasattr(seq_model.ifcs[c], 'profile'):
-            to_asp = aspheric_seidel_contribution(seq_model, parax_data, c)
+            to_asp = aspheric_seidel_contribution(seq_model, parax_data, c,
+                                                  n_before, n_after)
             if to_asp:
                 ascoef = pd.Series(to_asp, index=pd_index)
                 third_order[col+'.asp'] = ascoef
@@ -77,17 +79,16 @@ def calc_4th_order_aspheric_term(p):
     return G
 
 
-def aspheric_seidel_contribution(seq_model, parax_data, i):
+def aspheric_seidel_contribution(seq_model, parax_data, i, n_before, n_after):
     def delta_E(z, y, u, n):
         return -z/(n*y*(y + z*u))
     ax_ray, pr_ray, fod = parax_data
     z = -pr_ray[i][ht]/pr_ray[i][slp]
-    e = fod.opt_inv*delta_E(z, ax_ray[i][ht], ax_ray[i][slp],
-                            seq_model.central_rndx(i))
+    e = fod.opt_inv*delta_E(z, ax_ray[i][ht], ax_ray[i][slp], n_after)
     G = calc_4th_order_aspheric_term(seq_model.ifcs[i].profile)
     if G == 0.0:
         return None
-    delta_n = seq_model.central_rndx(i) - seq_model.central_rndx(i-1)
+    delta_n = n_after - n_before
     SI_star = 8.0*G*delta_n*ax_ray[i][ht]**4
     SII_star = SI_star*e
     SIII_star = SI_star*e**2
