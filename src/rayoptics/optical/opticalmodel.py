@@ -142,16 +142,21 @@ class OpticalModel:
         fs_dict['optical_model'] = self
         with open(filename, 'w') as f:
             json_tricks.dump(fs_dict, f, indent=1,
-                             separators=(',', ':'))
+                             separators=(',', ':'), allow_nan=True)
 
     def sync_to_restore(self):
         self.seq_model.sync_to_restore(self)
         self.ele_model.sync_to_restore(self)
         self.optical_spec.sync_to_restore(self)
+
         if not hasattr(self, 'parax_model'):
             self.parax_model = ParaxialModel(self)
         else:
             self.parax_model.sync_to_restore(self)
+
+        if not hasattr(self, 'specsheet'):
+            self.specsheet = None
+
         self.update_model()
 
     def update_model(self):
@@ -159,6 +164,8 @@ class OpticalModel:
         self.optical_spec.update_model()
         self.parax_model.update_model()
         self.ele_model.update_model()
+        if self.specsheet is None:
+            self.specsheet = create_specsheet_from_model(self)
 
     def nm_to_sys_units(self, nm):
         """ convert nm to system units
