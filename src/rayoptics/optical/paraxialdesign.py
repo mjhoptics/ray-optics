@@ -233,19 +233,19 @@ class ParaxialModel():
         ax_ray = self.ax
         pr_ray = self.pr
 
-        print("      ax_ray_ht    ax_ray_slp")
+        print("       ax_ray_ht    ax_ray_slp")
         for i in range(0, len(ax_ray)):
-            print("{}: {:12.5g}  {:12.6g}".format(i, ax_ray[i][ht],
+            print("{:2}: {:12.5g}  {:12.6g}".format(i, ax_ray[i][ht],
                   ax_ray[i][slp]))
 
-        print("\n      pr_ray_ht    pr_ray_slp")
+        print("\n       pr_ray_ht    pr_ray_slp")
         for i in range(0, len(pr_ray)):
-            print("{}: {:12.5g}  {:12.6g}".format(i, pr_ray[i][ht],
+            print("{:2}: {:12.5g}  {:12.6g}".format(i, pr_ray[i][ht],
                   pr_ray[i][slp]))
 
         print("\n           power           tau        index    type")
         for i in range(0, len(sys)):
-            print("{}: {:13.7g}  {:12.5g} {:12.5f}    {}".format(i,
+            print("{:2}: {:13.7g}  {:12.5g} {:12.5f}    {}".format(i,
                   sys[i][pwr], sys[i][tau], sys[i][indx], sys[i][rmd].name))
 
     def seq_model_to_paraxial_lens(self):
