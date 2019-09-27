@@ -184,7 +184,7 @@ def compute_first_order(opt_model, stop, wvl):
     p_ray, q_ray = paraxial_trace(seq_model.path(wl=wvl), 1,
                                   [1., 0.], [0., 1.])
 
-    n_k = seq_model.central_rndx(-1)
+    n_k = seq_model.z_dir[-1]*seq_model.central_rndx(-1)
     ak1 = p_ray[-1][ht]
     bk1 = q_ray[-1][ht]
     ck1 = n_k*p_ray[-1][slp]
@@ -193,7 +193,7 @@ def compute_first_order(opt_model, stop, wvl):
 #    print(p_ray[-2][ht], q_ray[-2][ht], n_k*p_ray[-2][slp], n_k*q_ray[-2][slp])
 #    print(ak1, bk1, ck1, dk1)
 
-    n_s = seq_model.central_rndx(stop)
+    n_s = seq_model.z_dir[stop]*seq_model.central_rndx(stop)
     as1 = p_ray[stop][ht]
     bs1 = q_ray[stop][ht]
     cs1 = n_s*p_ray[stop][slp]
