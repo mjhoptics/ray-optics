@@ -83,8 +83,12 @@ def aspheric_seidel_contribution(seq_model, parax_data, i, n_before, n_after):
     def delta_E(z, y, u, n):
         return -z/(n*y*(y + z*u))
     ax_ray, pr_ray, fod = parax_data
-    z = -pr_ray[i][ht]/pr_ray[i][slp]
-    e = fod.opt_inv*delta_E(z, ax_ray[i][ht], ax_ray[i][slp], n_after)
+
+    if pr_ray[i][slp] == 0:
+        e = pr_ray[i][ht]/ax_ray[i][ht]
+    else:
+        z = -pr_ray[i][ht]/pr_ray[i][slp]
+        e = fod.opt_inv*delta_E(z, ax_ray[i][ht], ax_ray[i][slp], n_after)
     G = calc_4th_order_aspheric_term(seq_model.ifcs[i].profile)
     if G == 0.0:
         return None
