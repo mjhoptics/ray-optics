@@ -311,18 +311,32 @@ def specsheet_from_parax_data(opt_model, specsheet):
 
     specsheet.conjugate_type = conj_type
 
-    specsheet.imager_inputs = {}
-    if conj_type == 'finite':
-        specsheet.imager_inputs['m'] = -1/parax_data.fod.red
-        specsheet.imager_inputs['f'] = parax_data.fod.efl
-        specsheet.frozen_imager_inputs = [False]*5
-    else:
-        specsheet.imager_inputs['s'] = -math.inf
-        if parax_data.fod.efl != 0:
-            specsheet.imager_inputs['f'] = parax_data.fod.efl
-        specsheet.frozen_imager_inputs = [True, True, True, True, False]
+    imager_inputs = dict(specsheet.imager_inputs)
+    num_imager_inputs = len(imager_inputs)
+    if num_imager_inputs == 0:
+        if conj_type == 'finite':
+            imager_inputs['m'] = -1/parax_data.fod.red
+            imager_inputs['f'] = parax_data.fod.efl
+            specsheet.frozen_imager_inputs = [False]*5
+        else:
+            imager_inputs['s'] = -math.inf
+            if parax_data.fod.efl != 0:
+                imager_inputs['f'] = parax_data.fod.efl
+            specsheet.frozen_imager_inputs = [True, True, True, True, False]
+    elif num_imager_inputs == 1:
+        if conj_type == 'finite':
+            if 'm' in imager_inputs:
+                imager_inputs['f'] = parax_data.fod.efl
+            else:
+                imager_inputs['m'] = -1/parax_data.fod.red
+            specsheet.frozen_imager_inputs = [False]*5
+        else:
+            imager_inputs['s'] = -math.inf
+            if parax_data.fod.efl != 0:
+                imager_inputs['f'] = parax_data.fod.efl
+            specsheet.frozen_imager_inputs = [True, True, True, True, False]
 
-    specsheet.imager = ideal_imager_setup(**specsheet.imager_inputs)
+    specsheet.imager = ideal_imager_setup(**imager_inputs)
 
     ape_key, ape_value = optical_spec.pupil.get_input_for_specsheet()
     fld_key, fld_value = optical_spec.field_of_view.get_input_for_specsheet()
@@ -330,6 +344,6 @@ def specsheet_from_parax_data(opt_model, specsheet):
     etendue_inputs = specsheet.etendue_inputs
     etendue_inputs[ape_key[0]][ape_key[1]][ape_key[2]] = ape_value
     etendue_inputs[fld_key[0]][fld_key[1]][fld_key[2]] = fld_value
-    specsheet.generate_from_inputs(specsheet.imager_inputs, etendue_inputs)
+    specsheet.generate_from_inputs(imager_inputs, etendue_inputs)
 
     return specsheet
