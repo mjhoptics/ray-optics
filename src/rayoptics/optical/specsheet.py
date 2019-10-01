@@ -103,6 +103,11 @@ class SpecSheet():
 
         self.partition_defined()
 
+    def __json_encode__(self):
+        attrs = dict(vars(self))
+        del attrs['partitions']
+        return attrs
+
     def sync_to_restore(self, opt_model):
         # imager is exported as a list. convert back to an IdealImager
         self.imager = IdealImager(*self.imager)

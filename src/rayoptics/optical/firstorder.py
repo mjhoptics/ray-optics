@@ -63,6 +63,7 @@ class FirstOrderData:
         self.ffl = None
         self.bfl = None
         self.fno = None
+        self.m = None
         self.red = None
         self.n_obj = None
         self.n_img = None
@@ -85,6 +86,7 @@ class FirstOrderData:
         print("bfl        {:12.4g}".format(self.bfl))
         print("ppk        {:12.4g}".format(self.ppk))
         print("f/#        {:12.4g}".format(self.fno))
+        print("m          {:12.4g}".format(self.m))
         print("red        {:12.4g}".format(self.red))
         print("obj_dist   {:12.4g}".format(self.obj_dist))
         print("obj_ang    {:12.4g}".format(self.obj_ang))
@@ -185,10 +187,11 @@ def compute_first_order(opt_model, stop, wvl):
                                   [1., 0.], [0., 1.])
 
     n_k = seq_model.z_dir[-1]*seq_model.central_rndx(-1)
-    ak1 = p_ray[-1][ht]
-    bk1 = q_ray[-1][ht]
-    ck1 = n_k*p_ray[-1][slp]
-    dk1 = n_k*q_ray[-1][slp]
+    img = -2 if seq_model.get_num_surfaces() > 2 else -1
+    ak1 = p_ray[img][ht]
+    bk1 = q_ray[img][ht]
+    ck1 = n_k*p_ray[img][slp]
+    dk1 = n_k*q_ray[img][slp]
 
 #    print(p_ray[-2][ht], q_ray[-2][ht], n_k*p_ray[-2][slp], n_k*q_ray[-2][slp])
 #    print(ak1, bk1, ck1, dk1)
@@ -255,8 +258,8 @@ def compute_first_order(opt_model, stop, wvl):
 
     fod = FirstOrderData()
     fod.opt_inv = opt_inv
-    fod.obj_dist = seq_model.gaps[0].thi
-    fod.img_dist = seq_model.gaps[-1].thi
+    fod.obj_dist = obj_dist = seq_model.gaps[0].thi
+    fod.img_dist = img_dist = seq_model.gaps[-1].thi
     if ck1 == 0.0:
         fod.efl = 0.0
         fod.pp1 = 0.0
@@ -268,7 +271,9 @@ def compute_first_order(opt_model, stop, wvl):
     fod.ffl = fod.pp1 - fod.efl
     fod.bfl = fod.efl - fod.ppk
     fod.fno = -1.0/(2.0*n_k*ax_ray[-1][slp])
-    fod.red = dk1 + ck1*fod.obj_dist
+
+    fod.m = ak1 + ck1*img_dist/n_k
+    fod.red = dk1 + ck1*obj_dist
     fod.n_obj = n_0
     fod.n_img = n_k
     fod.img_ht = -fod.opt_inv/(n_k*ax_ray[-1][slp])
@@ -300,40 +305,46 @@ def list_parax_trace(opt_model):
 
 
 def specsheet_from_parax_data(opt_model, specsheet):
+    """ update specsheet to contents of opt_model, while preserving inputs """
     if opt_model is None:
         return None
     seq_model = opt_model.seq_model
     optical_spec = opt_model.optical_spec
-    parax_data = optical_spec.parax_data
+    fod = optical_spec.parax_data.fod
     conj_type = 'finite'
     if seq_model.gaps[0].thi > 10e8:
         conj_type = 'infinite'
 
     specsheet.conjugate_type = conj_type
 
+    # specsheet.imager_inputs contains values of independent variables of
+    # the optical system. Augment these as needed to get a defined imager.
     imager_inputs = dict(specsheet.imager_inputs)
     num_imager_inputs = len(imager_inputs)
     if num_imager_inputs == 0:
+        # no user inputs, use model values
         if conj_type == 'finite':
-            imager_inputs['m'] = -1/parax_data.fod.red
-            imager_inputs['f'] = parax_data.fod.efl
+            imager_inputs['m'] = fod.m
+            imager_inputs['f'] = fod.efl
             specsheet.frozen_imager_inputs = [False]*5
-        else:
+        else:  # conj_type == 'infinite'
             imager_inputs['s'] = -math.inf
-            if parax_data.fod.efl != 0:
-                imager_inputs['f'] = parax_data.fod.efl
+            if fod.efl != 0:
+                imager_inputs['f'] = fod.efl
             specsheet.frozen_imager_inputs = [True, True, True, True, False]
     elif num_imager_inputs == 1:
+        # some/partial user input specification
         if conj_type == 'finite':
+            # make sure that m is specified
             if 'm' in imager_inputs:
-                imager_inputs['f'] = parax_data.fod.efl
+                imager_inputs['f'] = fod.efl
             else:
-                imager_inputs['m'] = -1/parax_data.fod.red
+                imager_inputs['m'] = fod.m
             specsheet.frozen_imager_inputs = [False]*5
-        else:
+        else:  # conj_type == 'infinite'
             imager_inputs['s'] = -math.inf
-            if parax_data.fod.efl != 0:
-                imager_inputs['f'] = parax_data.fod.efl
+            if fod.efl != 0:
+                imager_inputs['f'] = fod.efl
             specsheet.frozen_imager_inputs = [True, True, True, True, False]
 
     specsheet.imager = ideal_imager_setup(**imager_inputs)

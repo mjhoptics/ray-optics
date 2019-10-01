@@ -282,11 +282,18 @@ class SequentialModel:
         if self.opt_model.optical_spec.parax_data is None:
             return
         if len(specsheet.imager_inputs) == 2:
-            f_old = self.opt_model.optical_spec.parax_data[2].efl
+            fod = self.opt_model.optical_spec.parax_data.fod
+            f_old = fod.efl
             f_new = specsheet.imager.f
             scale_factor = f_new/f_old
             if scale_factor != 1.0:
                 self.apply_scale_factor(scale_factor)
+
+            if specsheet.conjugate_type == 'finite':
+                self.gaps[0].thi = scale_factor*fod.pp1 - specsheet.imager.s
+                self.gaps[-1].thi = specsheet.imager.sp - scale_factor*fod.ppk
+            elif specsheet.conjugate_type == 'infinite':
+                self.gaps[-1].thi = specsheet.imager.sp - scale_factor*fod.ppk
 
     def insert_surface_and_gap(self):
         s = surface.Surface()

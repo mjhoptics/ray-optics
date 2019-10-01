@@ -125,7 +125,7 @@ class OpticalSpecs:
         elif obj_img_key == 'image':
             if value_key == 'height':
                 img_pt = np.array([fld.x, fld.y, 0.0])
-                obj_pt = -fod.red*img_pt
+                obj_pt = fod.red*img_pt
         return obj_pt
 
     def list_first_order_data(self):
