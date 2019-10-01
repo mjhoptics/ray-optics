@@ -17,7 +17,8 @@ from matplotlib.patches import Patch, Polygon
 
 import numpy as np
 
-import rayoptics.gui.layout as layout
+#import rayoptics.gui.layout as layout
+from rayoptics.gui.layout import LensLayout, bbox_from_poly, scale_bounds
 from rayoptics.util.rgb2mpl import rgb2mpl, backgrnd_color
 
 
@@ -50,7 +51,7 @@ class InteractiveLayout(Figure):
                  do_paraxial_layout=True,
                  **kwargs):
         self.refresh_gui = refresh_gui
-        self.layout = layout.LensLayout(opt_model)
+        self.layout = LensLayout(opt_model)
         self.linewidth = 0.5
         self.do_draw_frame = do_draw_frame
         self.do_draw_rays = do_draw_rays
@@ -87,25 +88,27 @@ class InteractiveLayout(Figure):
     def update_data(self):
         self.artists = []
         concat_bbox = []
+        layout = self.layout
 
-        self.ele_shapes = self.layout.create_element_model(self)
+        self.ele_shapes = layout.create_element_model(self)
         self.ele_bbox = self.update_patches(self.ele_shapes)
         concat_bbox.append(self.ele_bbox)
 
         if self.do_draw_rays:
-            system_length = self.layout.system_length(self.ele_bbox)
-            start_offset = self.offset_factor*system_length
-            self.ray_shapes = self.layout.create_ray_model(self, start_offset)
+            sl_so = layout.system_length(self.ele_bbox,
+                                         offset_factor=self.offset_factor)
+            system_length, start_offset = sl_so
+            self.ray_shapes = layout.create_ray_model(self, start_offset)
             self.ray_bbox = self.update_patches(self.ray_shapes)
             concat_bbox.append(self.ray_bbox)
 
         if self.do_paraxial_layout:
-            self.parax_shapes = self.layout.create_paraxial_layout(self)
+            self.parax_shapes = layout.create_paraxial_layout(self)
             self.parax_bbox = self.update_patches(self.parax_shapes)
             concat_bbox.append(self.parax_bbox)
 
         sys_bbox = np.concatenate(concat_bbox)
-        self.sys_bbox = layout.bbox_from_poly(sys_bbox)
+        self.sys_bbox = bbox_from_poly(sys_bbox)
 
         return self
 
@@ -122,7 +125,7 @@ class InteractiveLayout(Figure):
                     bbox_list = bbox
                 else:
                     bbox_list = np.vstack((bbox_list, bbox))
-        bbox = layout.bbox_from_poly(bbox_list)
+        bbox = bbox_from_poly(bbox_list)
         return bbox
 
     def create_polygon(self, poly, rgb_color, **kwargs):
@@ -202,8 +205,8 @@ class InteractiveLayout(Figure):
                 self.ax.add_artist(a)
 
         if self.do_scale_bounds:
-            self.view_bbox = layout.scale_bounds(self.sys_bbox,
-                                                 self.oversize_factor)
+            self.view_bbox = scale_bounds(self.sys_bbox,
+                                          self.oversize_factor)
         self.update_axis_limits()
 
         self.draw_frame(self.do_draw_frame)
