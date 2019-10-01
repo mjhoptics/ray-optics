@@ -99,7 +99,7 @@ def do_etendue_via_imager(conj_type, imager, etendue_inputs, etendue_grid,
 def do_field_via_imager(conj_type, imager, etendue_inputs, obj_img_key,
                         etendue_grid, n_0=1, n_k=1):
     input_cell = etendue_inputs['field'][obj_img_key]
-    if obj_img_key is 'object':
+    if obj_img_key == 'object':
         output_cell = etendue_grid['field']['image']
         if 'angle' in input_cell:
             efl = imager.f
@@ -111,7 +111,7 @@ def do_field_via_imager(conj_type, imager, etendue_inputs, obj_img_key,
             obj_ht = input_cell['height']
             output_cell['height'] = m*obj_ht
 
-    elif obj_img_key is 'image':
+    elif obj_img_key == 'image':
         output_cell = etendue_grid['field']['object']
         if imager.m == 0:  # infinite conjugate
             efl = imager.f
@@ -131,10 +131,10 @@ def do_aperture_via_imager(conj_type, imager, etendue_inputs, obj_img_key,
                            etendue_grid, n_0=1, n_k=1):
     inpt = etendue_inputs['aperture'][obj_img_key]
     input_cell = etendue_grid['aperture'][obj_img_key]
-    if conj_type is 'infinite':
+    if conj_type == 'infinite':
         efl = imager.f
 
-        if obj_img_key is 'object':
+        if obj_img_key == 'object':
             epd = inpt['pupil']
             slpk = (epd/2.0)/efl
             na, fno, pupil = get_aperture_from_slope(imager, slpk, n=n_k)
@@ -143,7 +143,7 @@ def do_aperture_via_imager(conj_type, imager, etendue_inputs, obj_img_key,
             output_cell['NA'] = na
             output_cell['pupil'] = pupil
 
-        elif obj_img_key is 'image':
+        elif obj_img_key == 'image':
             slpk = get_slope_from_aperture(imager, inpt, n=n_k)
             na, fno, pupil = get_aperture_from_slope(imager, slpk, n=n_k)
             input_cell['f/#'] = fno
@@ -158,7 +158,7 @@ def do_aperture_via_imager(conj_type, imager, etendue_inputs, obj_img_key,
     else:
         mag = imager.m
 
-        if obj_img_key is 'object':
+        if obj_img_key == 'object':
             slp0 = get_slope_from_aperture(imager, inpt, n=n_0)
             na, fno, pupil = get_aperture_from_slope(imager, slp0, n=n_0)
             input_cell['f/#'] = fno
@@ -169,7 +169,7 @@ def do_aperture_via_imager(conj_type, imager, etendue_inputs, obj_img_key,
             na, fno, pupil = get_aperture_from_slope(imager, slpk, n=n_k)
             output_cell = etendue_grid['aperture']['image']
 
-        elif obj_img_key is 'image':
+        elif obj_img_key == 'image':
             slpk = get_slope_from_aperture(imager, inpt, n=n_k)
             na, fno, pupil = get_aperture_from_slope(imager, slpk, n=n_k)
             input_cell['f/#'] = fno
