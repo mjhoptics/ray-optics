@@ -103,6 +103,10 @@ class SpecSheet():
 
         self.partition_defined()
 
+    def sync_to_restore(self, opt_model):
+        # imager is exported as a list. convert back to an IdealImager
+        self.imager = IdealImager(*self.imager)
+
     def imager_defined(self):
         """ compute imager and etendue values given input dicts """
         if self.conjugate_type == 'finite':

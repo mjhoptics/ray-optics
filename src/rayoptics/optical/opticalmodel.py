@@ -149,12 +149,14 @@ class OpticalModel:
         self.ele_model.sync_to_restore(self)
         self.optical_spec.sync_to_restore(self)
 
-        if not hasattr(self, 'parax_model'):
-            self.parax_model = ParaxialModel(self)
-        else:
+        if hasattr(self, 'parax_model'):
             self.parax_model.sync_to_restore(self)
+        else:
+            self.parax_model = ParaxialModel(self)
 
-        if not hasattr(self, 'specsheet'):
+        if hasattr(self, 'specsheet'):
+            self.specsheet.sync_to_restore(self)
+        else:
             self.specsheet = None
 
         self.update_model()
