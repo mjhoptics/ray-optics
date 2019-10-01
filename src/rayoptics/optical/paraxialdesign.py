@@ -243,7 +243,7 @@ class ParaxialModel():
             print("{:2}: {:12.5g}  {:12.6g}".format(i, pr_ray[i][ht],
                   pr_ray[i][slp]))
 
-        print("\n           power           tau        index    type")
+        print("\n            power           tau        index    type")
         for i in range(0, len(sys)):
             print("{:2}: {:13.7g}  {:12.5g} {:12.5f}    {}".format(i,
                   sys[i][pwr], sys[i][tau], sys[i][indx], sys[i][rmd].name))

@@ -11,7 +11,7 @@
 import math
 import numpy as np
 
-from rayoptics.optical.firstorder import compute_first_order
+from rayoptics.optical.firstorder import compute_first_order, list_parax_trace
 from rayoptics.optical.trace import aim_chief_ray
 from rayoptics.optical import model_enums
 import rayoptics.optical.model_constants as mc
@@ -127,6 +127,12 @@ class OpticalSpecs:
                 img_pt = np.array([fld.x, fld.y, 0.0])
                 obj_pt = -fod.red*img_pt
         return obj_pt
+
+    def list_first_order_data(self):
+        self.parax_data.fod.list_first_order_data()
+
+    def list_parax_trace(self):
+        list_parax_trace(self.opt_model)
 
 
 class WvlSpec:
