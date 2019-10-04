@@ -445,7 +445,7 @@ class ThinElement():
 
     label_format = 'TL{}'
 
-    def __init__(self, ifc, tfrm=None, idx=0, label='ThinLens'):
+    def __init__(self, ifc, tfrm=None, idx=0, sd=None, label='ThinLens'):
         self.label = label
         self.render_color = (192, 192, 192)
         if tfrm is not None:
@@ -454,7 +454,10 @@ class ThinElement():
             self.trfm = (np.identity(3), np.array([0., 0., 0.]))
         self.intrfc = ifc
         self.intrfc_indx = idx
-        self.sd = ifc.od
+        if sd is not None:
+            self.sd = sd
+        else:
+            self.sd = ifc.max_aperture
         self.handles = {}
         self.actions = {}
 
@@ -516,7 +519,7 @@ class DummyInterface():
         if sd is not None:
             self.sd = sd
         else:
-            self.sd = ifc.od
+            self.sd = ifc.max_aperture
         self.handles = {}
         self.actions = {}
 

@@ -112,7 +112,7 @@ def paraxial_trace(path, start, start_yu, start_yu_bar):
 
     before = next(path)
     z_dir_before = before[Zdir]
-    n_before = before[Indx] if z_dir_before > 0.0 else -before[Indx]
+    n_before = before[Indx] if z_dir_before > 0 else -before[Indx]
 
     b4_yui = start_yu
     b4_yui_bar = start_yu_bar
@@ -140,7 +140,7 @@ def paraxial_trace(path, start, start_yu, start_yu_bar):
             after = next(path)
 
             z_dir_after = after[Zdir]
-            n_after = after[Indx] if z_dir_after > 0.0 else -after[Indx]
+            n_after = after[Indx] if z_dir_after > 0 else -after[Indx]
 
             # Transfer
             t = before[Gap].thi

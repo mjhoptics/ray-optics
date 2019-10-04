@@ -24,7 +24,6 @@ class ThinLens(Interface):
         self.optical_power = power
         self.ref_index = ref_index
         self.bending = 0.0
-        self.od = 1.0
 
     def list_thinlens(self):
         if len(self.label) > 0:
@@ -64,11 +63,10 @@ class ThinLens(Interface):
         self._power = cv
 
     def surface_od(self):
-        return self.od
+        return self.max_aperture
 
     def set_max_aperture(self, max_ap):
         super().set_max_aperture(max_ap)
-        self.od = max_ap
 
     @property
     def optical_power(self):
