@@ -294,11 +294,9 @@ class ParaxialDesignFigure(Figure):
             hit_vertex, x_hit, y_hit, x_data, y_data, mkr = press
             new_vertex = hit_vertex + pdfig.data_slice.start
 #            print("add_point:", new_vertex)
-            pdfig.parax_model.add_node(new_vertex, (x_hit, y_hit),
-                                       pdfig.type_sel, factory)
-#            pdfig.opt_model.seq_model.set_cur_surface(new_vertex)
+            pdfig.parax_model.add_object(new_vertex, (x_hit, y_hit),
+                                         pdfig.type_sel, factory)
             new_vertex += 1
-            pdfig.apply_data(new_vertex)
             pdfig.parax_model.paraxial_lens_to_seq_model()
             pdfig.skip_build = True
             pdfig.refresh_gui()

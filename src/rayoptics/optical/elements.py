@@ -35,14 +35,17 @@ GraphicsHandle = namedtuple('GraphicsHandle', ['polydata', 'tfrm', 'polytype'])
 """
 
 
-def create_thinlens(power=0., indx=1.5):
-    tl = thinlens.ThinLens(power=power, ref_index=indx)
+def create_thinlens(power=0., indx=1.5, sd=None):
+    tl = thinlens.ThinLens(power=power, ref_index=indx, max_ap=sd)
     tle = ThinElement(tl)
-    return ([tl], []), [tle]
+    return [[tl, None, None, 1, +1]], [tle]
 
 
-def create_mirror(c=0.0, r=None, cc=0.0, ec=None, profile=None):
-    if r:
+def create_mirror(c=0.0, r=None, cc=0.0, ec=None,
+                  power=None, profile=None, sd=None):
+    if power:
+        cv = power/2
+    elif r:
         cv = 1.0/r
     else:
         cv = c
@@ -62,25 +65,30 @@ def create_mirror(c=0.0, r=None, cc=0.0, ec=None, profile=None):
         else:
             prf = Conic(c=cv, cc=k)
 
-    m = Surface(profile=prf, interact_mode=imode.Reflect)
-    me = Mirror(m)
-    return ([m], []), [me]
+    m = Surface(profile=prf, interact_mode=imode.Reflect, max_ap=sd)
+    me = Mirror(m, sd=sd)
+    return [[m, None, None, 1, -1]], [me]
 
 
-def create_lens(power=0., bending=0., th=0., sd=1., med=None):
-    s1 = Surface()
-    s2 = Surface()
+def create_lens(power=0., bending=0., th=None, sd=1., med=None):
     if med is None:
         med = Glass()
+    rndx = med.rindex('d')
+    cv1 = power/(2*(rndx - 1))
+    cv2 = -power/(2*(rndx - 1))
+    s1 = Surface(profile=Spherical(c=cv1), max_ap=sd, delta_n=(rndx - 1))
+    s2 = Surface(profile=Spherical(c=cv2), max_ap=sd, delta_n=(1 - rndx))
+    if th is None:
+        th = sd/5
     g = Gap(t=th, med=med)
     le = Element(s1, s2, g, sd=sd)
-    return ([s1, s2], [g]), [le]
+    return [[s1, g, None, rndx, 1], [s2, None, None, 1, 1]], [le]
 
 
 def create_dummy_plane(sd=1.):
     s = Surface()
     se = DummyInterface(s, sd=sd)
-    return ([s], []), [se]
+    return [[s, None, None, 1, +1]], [se]
 
 
 def create_air_gap(t=0., ref_ifc=None):
@@ -91,14 +99,14 @@ def create_air_gap(t=0., ref_ifc=None):
 
 def insert_ifc_gp_ele(opt_model, seq, ele, idx=None, t=0.):
     """ insert interfaces and gaps into seq_model and eles into ele_model """
-    if idx:
+    if idx is not None:
         opt_model.seq_model.cur_surface = idx
-    g, ag = create_air_gap(t=t, ref_ifc=seq[mc.Surf][-1])
-    seq[mc.Gap].append(g)
+    g, ag = create_air_gap(t=t, ref_ifc=seq[-1][mc.Intfc])
+    seq[-1][mc.Gap] = g
     ele.append(ag)
 
-    for s, g in zip(seq[mc.Surf], seq[mc.Gap]):
-        opt_model.seq_model.insert(s, g)
+    for sg in seq:
+        opt_model.seq_model.insert(sg[mc.Intfc], sg[mc.Gap])
     for e in ele:
         opt_model.ele_model.add_element(e)
 

@@ -10,12 +10,15 @@
 
 from collections import namedtuple
 
+from math import copysign
 
 from rayoptics.optical.model_constants import ht, slp, aoi
 from rayoptics.optical.model_constants import pwr, tau, indx, rmd
-from rayoptics.optical.model_constants import Intfc, Gap, Indx, Zdir
+import rayoptics.optical.model_constants as mc
 from rayoptics.optical.elements import insert_ifc_gp_ele
-from rayoptics.optical.surface import InteractionMode as imode
+from rayoptics.optical.firstorder import compute_principle_points
+from rayoptics.optical.gap import Gap
+from rayoptics.optical.surface import Surface
 
 ParaxData = namedtuple('ParaxData', ['ht', 'slp', 'aoi'])
 """ paraxial ray data at an interface
@@ -61,7 +64,7 @@ class ParaxialModel():
         self.build_lens()
 
     def build_lens(self):
-        self.sys = self.seq_model_to_paraxial_lens()
+        self.sys = self.seq_path_to_paraxial_lens(self.seq_model.path())
         sys = self.sys
         ax_ray, pr_ray, fod = self.parax_data
         self.opt_inv = fod.opt_inv
@@ -90,12 +93,24 @@ class ParaxialModel():
         pr_node[type_sel] = new_vertex[0]
         self.pr.insert(new_surf, pr_node)
 
-        seq, ele = factory()
-        insert_ifc_gp_ele(self.opt_model, seq, ele, idx=surf)
+        if type_sel == ht:
+            self.apply_ht_dgm_data(new_surf, new_vertex=new_vertex)
+        elif type_sel == slp:
+            self.apply_slope_dgm_data(new_surf, new_vertex=new_vertex)
+        return new_surf
 
-        self.sys[new_surf][rmd] = seq[0][0].interact_mode
-        if seq[0][0].interact_mode == imode.Reflect:
-            self.sys[new_surf][indx] = -self.sys[new_surf][indx]
+    def add_object(self, surf, new_vertex, type_sel, factory):
+        new_surf = self.add_node(surf, new_vertex, type_sel, factory)
+        n = self.sys[new_surf][indx]
+        # estimate new airspace distance
+        power = self.sys[new_surf][pwr]
+        thi = n*self.sys[new_surf][tau]
+        sd = abs(self.ax[new_surf][ht]) + abs(self.pr[new_surf][ht])
+
+        seq, ele = factory(power=power, sd=sd)
+        insert_ifc_gp_ele(self.opt_model, seq, ele, idx=surf, t=thi)
+
+        self.replace_node_with_seq(new_surf, seq)
 
     def delete_node(self, surf):
         """ delete the node at position surf """
@@ -248,20 +263,20 @@ class ParaxialModel():
             print("{:2}: {:13.7g}  {:12.5g} {:12.5f}    {}".format(i,
                   sys[i][pwr], sys[i][tau], sys[i][indx], sys[i][rmd].name))
 
-    def seq_model_to_paraxial_lens(self):
+    def seq_path_to_paraxial_lens(self, path):
         """ returns lists of power, reduced thickness, signed index and refract
             mode
         """
         sys = []
-        for i, sg in enumerate(self.seq_model.path()):
-            if sg[Gap]:
-                n_after = sg[Indx] if sg[Zdir] > 0 else -sg[Indx]
-                tau = sg[Gap].thi/n_after
-                rmode = sg[Intfc].interact_mode
-                power = sg[Intfc].optical_power
+        for i, sg in enumerate(path):
+            n_after = sg[mc.Indx] if sg[mc.Zdir] > 0 else -sg[mc.Indx]
+            rmode = sg[mc.Intfc].interact_mode
+            power = sg[mc.Intfc].optical_power
+            if sg[mc.Gap]:
+                tau = sg[mc.Gap].thi/n_after
                 sys.append([power, tau, n_after, rmode])
             else:
-                sys.append([0.0, 0.0, n_after, sg[Intfc].interact_mode])
+                sys.append([power, 0.0, n_after, rmode])
         return sys
 
     def paraxial_lens_to_seq_model(self):
@@ -272,17 +287,38 @@ class ParaxialModel():
         n_before = sys[0][indx]
         slp_before = self.ax[0][slp]
         for i, sg in enumerate(self.seq_model.path()):
-            if sg[Gap]:
+            if sg[mc.Gap]:
                 n_after = sys[i][indx]
                 slp_after = ax_ray[i][slp]
-                sg[Gap].thi = n_after*sys[i][tau]
+                sg[mc.Gap].thi = n_after*sys[i][tau]
 
-                sg[Intfc].set_optical_power(sys[i][pwr], n_before, n_after)
-                sg[Intfc].from_first_order(slp_before, slp_after,
+                sg[mc.Intfc].set_optical_power(sys[i][pwr], n_before, n_after)
+                sg[mc.Intfc].from_first_order(slp_before, slp_after,
                                            ax_ray[i][ht])
 
                 n_before = n_after
                 slp_before = slp_after
+
+    def replace_node_with_seq(self, node, seq):
+        """ replaces the data at node with seq """
+        n_0 = self.sys[node-1][indx]
+        z_dir_before = copysign(1, n_0)
+        n_k = seq[-1][mc.Indx]
+        path = [[Surface(), Gap(), None, n_0, z_dir_before]]
+        path.extend(seq)
+        pp_info = compute_principle_points(iter(path), n_k=n_k)
+        efl, pp1, ppk, ffl, bfl = pp_info[2]
+        seq_sys = self.seq_path_to_paraxial_lens(iter(seq))
+        self.sys[node-1][tau] -= pp1/n_0
+        orig_node = self.sys.pop(node)
+        seq_sys[-1][tau] = orig_node[tau] - ppk/seq_sys[-1][indx]
+        ray_node = [0.0, 0.0, 0.0]
+        for ss in seq_sys:
+            self.sys.insert(node, ss)
+            self.ax.insert(node, ray_node)
+            self.pr.insert(node, ray_node)
+            node += 1
+        self.paraxial_trace()
 
     def pwr_slope_solve(self, ray, surf, slp_new):
         p = ray[surf-1]

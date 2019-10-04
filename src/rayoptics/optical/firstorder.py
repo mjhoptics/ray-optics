@@ -289,6 +289,33 @@ def compute_first_order(opt_model, stop, wvl):
     return ParaxData(ax_ray, pr_ray, fod)
 
 
+def compute_principle_points(path, n_0=1.0, n_k=1.0):
+    """ Returns paraxial p and q rays, plus partial first order data. """
+    p_ray, q_ray = paraxial_trace(path, 0, [1., 0.], [0., 1.])
+
+    img = -1
+    ak1 = p_ray[img][ht]
+    bk1 = q_ray[img][ht]
+    ck1 = n_k*p_ray[img][slp]
+    dk1 = n_k*q_ray[img][slp]
+
+#    print(p_ray[-2][ht], q_ray[-2][ht], n_k*p_ray[-2][slp], n_k*q_ray[-2][slp])
+#    print(ak1, bk1, ck1, dk1)
+
+    if ck1 == 0.0:
+        efl = 0.0
+        pp1 = 0.0
+        ppk = 0.0
+    else:
+        efl = -1.0/ck1
+        pp1 = (dk1 - 1.0)*(n_0/ck1)
+        ppk = (p_ray[-1][ht] - 1.0)*(n_k/ck1)
+    ffl = pp1 - efl
+    bfl = efl - ppk
+
+    return p_ray, q_ray, (efl, pp1, ppk, ffl, bfl)
+
+
 def list_parax_trace(opt_model):
     """ list the paraxial axial and chief ray data """
     seq_model = opt_model.seq_model
