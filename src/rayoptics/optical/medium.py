@@ -123,9 +123,9 @@ class InterpolatedGlass():
                                       assume_sorted=False)
 
     def glass_code(self):
-        nd = self.rindex_interp(spectra['d'])
-        nF = self.rindex_interp(spectra['F'])
-        nC = self.rindex_interp(spectra['C'])
+        nd = self.rindex('d')
+        nF = self.rindex('F')
+        nC = self.rindex('C')
         vd = (nd - 1)/(nF - nC)
         return str(glass_encode(nd, vd))
 
@@ -136,4 +136,21 @@ class InterpolatedGlass():
             return self.label
 
     def rindex(self, wv_nm):
-        return float(self.rindex_interp(wv_nm))
+        """ returns the interpolated refractive index at wv_nm
+
+        Args:
+            wvl: either the wavelength in nm or a string with a spectral line
+                 identifier. for the refractive index query
+
+        Returns:
+            float: the refractive index at wv_nm
+
+        Raises:
+            KeyError: if ``wvl`` is not in the spectra dictionary
+        """
+        if isinstance(wv_nm, float):
+            return float(self.rindex_interp(wv_nm))
+        elif isinstance(wv_nm, int):
+            return float(self.rindex_interp(wv_nm))
+        else:
+            return float(self.rindex_interp(spectra[wv_nm]))
