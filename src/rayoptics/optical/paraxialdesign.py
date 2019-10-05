@@ -10,8 +10,6 @@
 
 from collections import namedtuple
 
-from math import copysign
-
 from rayoptics.optical.model_constants import ht, slp, aoi
 from rayoptics.optical.model_constants import pwr, tau, indx, rmd
 import rayoptics.optical.model_constants as mc
@@ -19,6 +17,7 @@ from rayoptics.optical.elements import insert_ifc_gp_ele
 from rayoptics.optical.firstorder import compute_principle_points
 from rayoptics.optical.gap import Gap
 from rayoptics.optical.surface import Surface
+from rayoptics.optical.surface import InteractionMode as imode
 
 ParaxData = namedtuple('ParaxData', ['ht', 'slp', 'aoi'])
 """ paraxial ray data at an interface
@@ -109,6 +108,10 @@ class ParaxialModel():
 
         seq, ele = factory(power=power, sd=sd)
         insert_ifc_gp_ele(self.opt_model, seq, ele, idx=surf, t=thi)
+
+        self.sys[new_surf][rmd] = seq[0][0].interact_mode
+        if seq[0][0].interact_mode == imode.Reflect:
+            self.sys[new_surf][indx] = -self.sys[new_surf][indx]
 
         self.replace_node_with_seq(new_surf, seq)
 
@@ -302,7 +305,7 @@ class ParaxialModel():
     def replace_node_with_seq(self, node, seq):
         """ replaces the data at node with seq """
         n_0 = self.sys[node-1][indx]
-        z_dir_before = copysign(1, n_0)
+        z_dir_before = 1 if n_0 > 0 else -1
         n_k = seq[-1][mc.Indx]
         path = [[Surface(), Gap(), None, n_0, z_dir_before]]
         path.extend(seq)
@@ -310,13 +313,12 @@ class ParaxialModel():
         efl, pp1, ppk, ffl, bfl = pp_info[2]
         seq_sys = self.seq_path_to_paraxial_lens(iter(seq))
         self.sys[node-1][tau] -= pp1/n_0
-        orig_node = self.sys.pop(node)
-        seq_sys[-1][tau] = orig_node[tau] - ppk/seq_sys[-1][indx]
-        ray_node = [0.0, 0.0, 0.0]
+        seq_sys[-1][tau] = self.sys[node][tau] - ppk/seq_sys[-1][indx]
+        self.delete_node(node)
         for ss in seq_sys:
             self.sys.insert(node, ss)
-            self.ax.insert(node, ray_node)
-            self.pr.insert(node, ray_node)
+            self.ax.insert(node, [0.0, 0.0, 0.0])
+            self.pr.insert(node, [0.0, 0.0, 0.0])
             node += 1
         self.paraxial_trace()
 
