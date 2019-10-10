@@ -273,12 +273,13 @@ class InteractiveLayout(Figure):
                     logging.debug("hilite_change: no object found")
                 else:
                     shape, handle = self.hilited.artist.shape
-                    logging.debug("hilite_change:", shape.get_label(), handle,
+                    logging.debug("hilite_change: %s %s %d",
+                                  shape.get_label(), handle,
                                   self.hilited.artist.get_zorder())
         else:
             self.do_action(event, self.selected, 'drag')
             shape, handle = self.selected.artist.shape
-            logging.debug("on_drag:", shape.get_label(), handle,
+            logging.debug("on_drag: %s %s %d", shape.get_label(), handle,
                           self.selected.artist.get_zorder())
 
     def on_release(self, event):

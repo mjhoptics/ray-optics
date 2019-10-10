@@ -458,7 +458,7 @@ class LensLayout():
         else:
             img_dist = abs(osp.parax_data[2].img_dist)
             ele_length = ele_bbox[1][0] - ele_bbox[0][0]
-            return ele_length+img_dist
+            return ele_length+img_dist, offset_factor*img_dist
 
     def create_element_model(self, view):
         ele_model = self.opt_model.ele_model

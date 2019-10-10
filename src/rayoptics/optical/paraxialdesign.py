@@ -297,7 +297,7 @@ class ParaxialModel():
 
                 sg[mc.Intfc].set_optical_power(sys[i][pwr], n_before, n_after)
                 sg[mc.Intfc].from_first_order(slp_before, slp_after,
-                                           ax_ray[i][ht])
+                                              ax_ray[i][ht])
 
                 n_before = n_after
                 slp_before = slp_after

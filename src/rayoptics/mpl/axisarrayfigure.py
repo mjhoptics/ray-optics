@@ -97,8 +97,10 @@ class AxisArrayFigure(Figure):
 
 class RayFanFigure(AxisArrayFigure):
 
-    def __init__(self, opt_model, data_type, **kwargs):
+    def __init__(self, opt_model, data_type, override_style=True,
+                 **kwargs):
         self.max_value_all = 0.0
+        self.override_style = override_style
         seq_model = opt_model.seq_model
         osp = opt_model.optical_spec
 
@@ -169,7 +171,10 @@ class RayFanFigure(AxisArrayFigure):
                 x_data, y_data, max_value, rc = self.axis_data_array[m-i][n-j]
                 ax = self.ax_arr[m-i][n-j]
                 for k in range(len(x_data)):
-                    ax.plot(x_data[k], y_data[k], c=rc[k])
+                    if self.override_style:
+                        ax.plot(x_data[k], y_data[k], c=rc[k])
+                    else:
+                        ax.plot(x_data[k], y_data[k])
 
                 if max_value > self.max_value_all:
                     self.max_value_all = max_value
