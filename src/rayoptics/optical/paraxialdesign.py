@@ -9,15 +9,24 @@
 """
 
 from collections import namedtuple
+import numpy as np
 
 from rayoptics.optical.model_constants import ht, slp, aoi
 from rayoptics.optical.model_constants import pwr, tau, indx, rmd
 import rayoptics.optical.model_constants as mc
 from rayoptics.optical.elements import insert_ifc_gp_ele
-from rayoptics.optical.firstorder import compute_principle_points
+import rayoptics.optical.firstorder as fo
 from rayoptics.optical.gap import Gap
 from rayoptics.optical.surface import Surface
 from rayoptics.optical.surface import InteractionMode as imode
+from rayoptics.util.rgb2mpl import rgb2mpl, backgrnd_color
+
+
+def bbox_from_poly(poly):
+    minx, miny = np.min(poly, axis=0)
+    maxx, maxy = np.max(poly, axis=0)
+    return np.array([[minx, miny], [maxx, maxy]])
+
 
 ParaxData = namedtuple('ParaxData', ['ht', 'slp', 'aoi'])
 """ paraxial ray data at an interface
@@ -75,14 +84,14 @@ class ParaxialModel():
             self.ax.append([ax_ray[i][ht], n*ax_ray[i][slp], n*ax_ray[i][aoi]])
             self.pr.append([pr_ray[i][ht], n*pr_ray[i][slp], n*pr_ray[i][aoi]])
 
-    def add_node(self, surf, new_vertex, type_sel, factory):
-        """ Add a node in the paraxial data structures and the sequential model """
+    def add_node(self, surf, new_vertex, type_sel):
+        """ Add a node in the paraxial data structures """
         ns = self.seq_model.get_num_surfaces()
         if surf >= ns - 1:
             surf = ns - 2
         n = self.sys[surf][indx]
         new_surf = surf + 1
-        self.sys.insert(new_surf, [0.0, 0.0, n, ''])
+        self.sys.insert(new_surf, [0.0, 0.0, n, imode.Transmit])
 
         ax_node = [0.0, 0.0, 0.0]
         ax_node[type_sel] = new_vertex[1]
@@ -98,22 +107,50 @@ class ParaxialModel():
             self.apply_slope_dgm_data(new_surf, new_vertex=new_vertex)
         return new_surf
 
-    def add_object(self, surf, new_vertex, type_sel, factory):
-        new_surf = self.add_node(surf, new_vertex, type_sel, factory)
-        n = self.sys[new_surf][indx]
-        # estimate new airspace distance
-        power = self.sys[new_surf][pwr]
-        thi = n*self.sys[new_surf][tau]
-        sd = abs(self.ax[new_surf][ht]) + abs(self.pr[new_surf][ht])
+    def assign_object_to_node(self, node, factory):
+        """ create a new element from `factory` and replace `node` with it """
 
+        # extract optical properties of node
+        n = self.sys[node][indx]
+        power = self.sys[node][pwr]
+        thi = n*self.sys[node][tau]
+        sd = abs(self.ax[node][ht]) + abs(self.pr[node][ht])
+
+        # create an element with the node's properties
         seq, ele = factory(power=power, sd=sd)
-        insert_ifc_gp_ele(self.opt_model, seq, ele, idx=surf, t=thi)
+        # insert the path sequence and elements into the
+        #  sequential and element models
+        insert_ifc_gp_ele(self.opt_model, seq, ele, idx=node-1, t=thi)
 
-        self.sys[new_surf][rmd] = seq[0][0].interact_mode
+        self.sys[node][rmd] = seq[0][0].interact_mode
         if seq[0][0].interact_mode == imode.Reflect:
-            self.sys[new_surf][indx] = -self.sys[new_surf][indx]
+            self.sys[node][indx] = -self.sys[node][indx]
 
-        self.replace_node_with_seq(new_surf, seq)
+        self.replace_node_with_seq(node, seq)
+
+    def replace_node_with_seq(self, node, seq):
+        """ replaces the data at node with seq """
+        n_0 = self.sys[node-1][indx]
+        z_dir_before = 1 if n_0 > 0 else -1
+        n_k = seq[-1][mc.Indx]
+        path = [[Surface(), Gap(), None, n_0, z_dir_before]]
+        path.extend(seq)
+        pp_info = fo.compute_principle_points(iter(path), n_k=n_k)
+        efl, pp1, ppk, ffl, bfl = pp_info[2]
+        seq_sys = self.seq_path_to_paraxial_lens(iter(seq))
+        self.sys[node-1][tau] -= pp1/n_0
+        seq_sys[-1][tau] = self.sys[node][tau] - ppk/seq_sys[-1][indx]
+        self.delete_node(node)
+        for ss in seq_sys:
+            self.sys.insert(node, ss)
+            self.ax.insert(node, [0.0, 0.0, 0.0])
+            self.pr.insert(node, [0.0, 0.0, 0.0])
+            node += 1
+        self.paraxial_trace()
+
+    def add_object(self, surf, new_vertex, type_sel, factory):
+        new_surf = self.add_node(surf, new_vertex, type_sel)
+        self.assign_object_to_node(new_surf, factory)
 
     def delete_node(self, surf):
         """ delete the node at position surf """
@@ -302,26 +339,6 @@ class ParaxialModel():
                 n_before = n_after
                 slp_before = slp_after
 
-    def replace_node_with_seq(self, node, seq):
-        """ replaces the data at node with seq """
-        n_0 = self.sys[node-1][indx]
-        z_dir_before = 1 if n_0 > 0 else -1
-        n_k = seq[-1][mc.Indx]
-        path = [[Surface(), Gap(), None, n_0, z_dir_before]]
-        path.extend(seq)
-        pp_info = compute_principle_points(iter(path), n_k=n_k)
-        efl, pp1, ppk, ffl, bfl = pp_info[2]
-        seq_sys = self.seq_path_to_paraxial_lens(iter(seq))
-        self.sys[node-1][tau] -= pp1/n_0
-        seq_sys[-1][tau] = self.sys[node][tau] - ppk/seq_sys[-1][indx]
-        self.delete_node(node)
-        for ss in seq_sys:
-            self.sys.insert(node, ss)
-            self.ax.insert(node, [0.0, 0.0, 0.0])
-            self.pr.insert(node, [0.0, 0.0, 0.0])
-            node += 1
-        self.paraxial_trace()
-
     def pwr_slope_solve(self, ray, surf, slp_new):
         p = ray[surf-1]
         c = ray[surf]
@@ -348,3 +365,198 @@ class ParaxialModel():
         c_slp_new = (lcl_pt[1] - c[ht])/lcl_pt[0]
         pwr = (p[slp] - c_slp_new)/c[ht]
         self.opt_model.seq_model.ifcs[vertex].optical_power = pwr
+
+
+class Diagram():
+    """ class for paraxial ray rendering/editing """
+    def __init__(self, opt_model, dgm_type, seq_start=1,
+                 label='paraxial'):
+        self.label = label
+        self.opt_model = opt_model
+
+        self.setup_dgm_type(dgm_type)
+
+        if opt_model.specsheet.conjugate_type == 'finite':
+            self.seq_start = 0
+        elif opt_model.specsheet.conjugate_type == 'infinite':
+            self.seq_start = 1
+        else:
+            self.seq_start = seq_start
+
+        self.handles = {}
+        self.actions = self.edit_diagram_actions()
+        self.cur_node = None
+
+    def setup_dgm_type(self, dgm_type):
+        parax_model = self.opt_model.parax_model
+        if dgm_type == 'ht':
+            self.type_sel = ht
+            self.apply_data = parax_model.apply_ht_dgm_data
+        elif dgm_type == 'slp':
+            self.type_sel = slp
+            self.apply_data = parax_model.apply_slope_dgm_data
+
+    def get_label(self):
+        return self.label
+
+    def register_commands(self, *args, **kwargs):
+        fig = kwargs.pop('figure')
+        cmd_actions = kwargs.pop('cmd_actions')
+        actions = cmd_actions(**kwargs)
+
+        def do_command_action(event, target, event_key):
+            nonlocal fig, actions
+            if target is not None:
+                shape, handle = target.artist.shape
+                try:
+                    action = actions[event_key]
+                    action(fig, handle, event, target.info)
+                except KeyError:
+                    pass
+        fig.do_action = do_command_action
+
+    def render_handles(self):
+        parax_model = self.opt_model.parax_model
+        self.handles = {}
+
+        shape = []
+        for x, y in zip(parax_model.pr, parax_model.ax):
+            shape.append([x[self.type_sel], y[self.type_sel]])
+
+        n_color = rgb2mpl([138, 43, 226])  # blueviolet
+        self.handles['nodes'] = shape, 'polyline', {'linestyle': '',
+                                                    'marker': 's',
+                                                    'picker': 6,
+                                                    'color': n_color,
+                                                    'hilite': n_color}
+        e_color = rgb2mpl([198, 113, 113])  # sgi salmon
+        self.handles['edges'] = shape, 'polyline', {'color': e_color,
+                                                    'hilite': e_color}
+
+        return self.handles
+
+    def handle_actions(self):
+        self.actions = {}
+
+        node_actions = {}
+#        node_actions['pt'] = BendAction(self)
+        self.actions['nodes'] = node_actions
+
+        edge_actions = {}
+#        edge_actions['pt'] = SagAction(self.s1)
+        self.actions['edges'] = edge_actions
+
+        return self.actions
+
+    def update_shape(self, view):
+        def gen_poly_artist(poly, key, kwargs):
+            rp = view.create_polyline(poly, linewidth=1,
+                                      **kwargs)
+            return rp, bbox_from_poly(poly)
+
+        handles = self.render_handles()
+
+        gui_handles = {}
+        for key, graphics_handle in handles.items():
+            poly = np.array(graphics_handle[0])
+            if graphics_handle[1] == 'polyline':
+                gui_handles[key] = gen_poly_artist(poly, key,
+                                                   graphics_handle[2])
+
+        return gui_handles
+
+    def edit_diagram_actions(self):
+        parax_model = self.opt_model.parax_model
+        actions = {}
+
+        def on_select_point(fig, handle, event, info):
+            self.cur_node = self.seq_start
+            if 'ind' in info:
+                self.cur_node += info['ind'][0]
+        actions['press'] = on_select_point
+
+        def on_edit_point(fig, handle, event, info):
+            event_data = np.array([event.xdata, event.ydata])
+            self.apply_data(self.cur_node, event_data)
+            parax_model.paraxial_lens_to_seq_model()
+            fig.refresh_gui()
+        actions['drag'] = on_edit_point
+
+        def on_release_point(fig, handle, event, info):
+            event_data = np.array([event.xdata, event.ydata])
+            self.apply_data(self.cur_node, event_data)
+            parax_model.paraxial_lens_to_seq_model()
+            fig.refresh_gui()
+            self.cur_node = None
+        actions['release'] = on_release_point
+
+        return actions
+
+    def add_element_actions(self, factory=None, node_init=None, **kwargs):
+        parax_model = self.opt_model.parax_model
+        actions = {}
+
+        def on_press_add_point(fig, handle, event, info):
+            self.cur_node = self.seq_start
+            if 'ind' in info:
+                self.cur_node += info['ind'][0]
+            print("add_point: press", self.cur_node)
+            event_data = np.array([event.xdata, event.ydata])
+            parax_model.add_node(self.cur_node, event_data, self.type_sel)
+            self.cur_node += 1
+            parax_model.assign_object_to_node(self.cur_node, node_init)
+            fig.parax_model.paraxial_lens_to_seq_model()
+            fig.skip_build = True
+            fig.refresh_gui()
+        actions['press'] = on_press_add_point
+
+        def on_drag_add_point(fig, handle, event, info):
+            print("add_point: drag", self.cur_node)
+            event_data = np.array([event.xdata, event.ydata])
+            self.apply_data(self.cur_node, event_data)
+            parax_model.paraxial_lens_to_seq_model()
+            fig.refresh_gui()
+        actions['drag'] = on_drag_add_point
+
+        def on_release_add_point(fig, handle, event, info):
+            print("add_point: release", self.cur_node)
+            parax_model.assign_object_to_node(self.cur_node, factory)
+            parax_model.paraxial_lens_to_seq_model()
+            fig.skip_build = True
+            fig.refresh_gui()
+            self.cur_node = None
+        actions['release'] = on_release_add_point
+
+        return actions
+
+
+
+class EditNodeAction():
+    """ Action to move a diagram node, using an input pt """
+    def __init__(self, dgm, parax_model, dgm_type):
+        self.parax_model = parax_model
+        self.select_pt_lcl = None
+        self.cur_value = None
+        self.new_value = None
+        self.actions = {}
+
+        def on_select(fig, event):
+            self.cur_node = self.seq_start
+            if 'ind' in info:
+                self.cur_node += info['ind'][0]
+        self.actions['press'] = on_select
+
+        def on_edit(fig, event, pt):
+            event_data = np.array([event.xdata, event.ydata])
+            self.apply_data(self.cur_node, event_data)
+            self.parax_model.paraxial_lens_to_seq_model()
+            fig.refresh_gui()
+        self.actions['drag'] = on_edit
+
+        def on_release(fig, event):
+            self.cv_new = self.ele.reference_interface().profile_cv
+            xsag = sag(self.cv_new, event.lcl_pt[1])
+#            print('on_release: {:.3f} {:.3f} {:.5f}'
+#                  .format(event.lcl_pt[0], xsag, self.cv_new))
+            fig.refresh_gui()
+        self.actions['release'] = on_release

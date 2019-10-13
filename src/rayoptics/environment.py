@@ -55,7 +55,7 @@ import rayoptics.optical.raytrace as rt
 import rayoptics.optical.model_constants as mc
 
 import rayoptics.mpl.paraxdgnfigure as pdfig
-from rayoptics.mpl.paraxdgnfigure import ParaxialDesignFigure, Dgm
+from rayoptics.mpl.paraxdgnfigure import ParaxialDesignFigure
 
 # axis array figures
 from rayoptics.mpl.axisarrayfigure import Fit

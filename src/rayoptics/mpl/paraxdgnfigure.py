@@ -8,7 +8,7 @@
 .. codeauthor: Michael J. Hayford
 """
 
-from enum import Enum, auto
+from collections import namedtuple
 
 import numpy as np
 from matplotlib.figure import Figure
@@ -16,12 +16,17 @@ from matplotlib.figure import Figure
 from rayoptics.optical.model_constants import ht, slp, aoi
 from rayoptics.optical.elements import (create_thinlens, create_mirror,
                                         create_lens)
+
 from rayoptics.util.misc_math import distance_sqr_2d, perpendicular_distance_2d
 
 
-class Dgm(Enum):
-    ht = auto()
-    slp = auto()
+SelectInfo = namedtuple('SelectInfo', ['artist', 'info'])
+""" tuple grouping together an artist and info returned from contains(event)
+
+    Attributes:
+        artist: the artist
+        info: a dictionary of artist specific details of selection
+"""
 
 
 def create_parax_design_commands(fig):
@@ -181,7 +186,7 @@ class ParaxialDesignFigure(Figure):
         self.select_point()
 
     def setup_dgm_type(self, dgm_type):
-        if dgm_type == Dgm.ht:
+        if dgm_type == 'ht':
             self.type_sel = ht
             self.data_slice = slice(0, None)
 #            self.data_slice = slice(1, None)
@@ -189,7 +194,7 @@ class ParaxialDesignFigure(Figure):
             self.y_label = 'y'
             self.apply_data = self.parax_model.apply_ht_dgm_data
             self.header = r'$y-\overline{y}$ Diagram'
-        elif dgm_type == Dgm.slp:
+        elif dgm_type == 'slp':
             self.type_sel = slp
             self.data_slice = slice(0, -1)
             self.x_label = r'$\overline{\omega}$'

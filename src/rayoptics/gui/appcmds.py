@@ -28,6 +28,8 @@ from rayoptics.mpl.axisarrayfigure import (RayFanFigure, SpotDiagramFigure,
 from rayoptics.mpl.analysisplots import FieldCurveFigure, ThirdOrderBarChart
 from rayoptics.mpl.paraxdgnfigure import (ParaxialDesignFigure,
                                           create_parax_design_commands)
+import rayoptics.mpl.interactivediagram as dgm
+
 import rayoptics.qtgui.plotview as plotview
 from rayoptics.qtgui.idealimagerdialog import IdealImagerDialog
 from rayoptics.qtgui.pytablemodel import PyTableModel
@@ -195,6 +197,18 @@ def create_paraxial_design_view(opt_model, dgm_type, gui_parent=None):
     view_width = 650
     view_ht = 500
     title = "Paraxial Design View"
+    plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht,
+                              commands=cmds)
+
+
+def create_paraxial_design_view_v2(opt_model, dgm_type, gui_parent=None):
+    fig = dgm.InteractiveDiagram(opt_model, gui_parent.refresh_gui, dgm_type,
+                                 do_draw_frame=True, do_draw_axes=True,
+                                 figsize=(5, 4))
+    cmds = dgm.create_parax_design_commands(fig)
+    view_width = 650
+    view_ht = 500
+    title = "Paraxial Design View V2"
     plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht,
                               commands=cmds)
 
