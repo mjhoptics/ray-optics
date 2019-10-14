@@ -106,35 +106,35 @@ def scale_bounds(bbox, oversize_factor):
 
 
 def transform_poly(tfrm, poly):
-        coord_flip = np.array([[0., 1.], [1., 0.]])
+    coord_flip = np.array([[0., 1.], [1., 0.]])
 
-        poly = np.matmul(coord_flip, poly.T)
-        poly = np.matmul(tfrm[0][1:, 1:], poly).T
+    poly = np.matmul(coord_flip, poly.T)
+    poly = np.matmul(tfrm[0][1:, 1:], poly).T
 
-        t = np.array([tfrm[1][1], tfrm[1][2]])
-        poly += t
+    t = np.array([tfrm[1][1], tfrm[1][2]])
+    poly += t
 
-        # flip coordinates back to 2D plot coordinates, +y points up
-        poly = np.matmul(poly, coord_flip)
-        bbox = bbox_from_poly(poly)
-        return poly, bbox
+    # flip coordinates back to 2D plot coordinates, +y points up
+    poly = np.matmul(poly, coord_flip)
+    bbox = bbox_from_poly(poly)
+    return poly, bbox
 
 
 def inv_transform_poly(tfrm, poly):
-        coord_flip = np.array([[0., 1.], [1., 0.]])
-        try:
-            poly = np.matmul(coord_flip, poly.T)
-        except TypeError:
-            print(poly)
+    coord_flip = np.array([[0., 1.], [1., 0.]])
+    try:
+        poly = np.matmul(coord_flip, poly.T)
+    except TypeError:
+        print(poly)
 
-        t = np.array([tfrm[1][1], tfrm[1][2]])
-        poly -= t
+    t = np.array([tfrm[1][1], tfrm[1][2]])
+    poly -= t
 
-        poly = np.matmul(tfrm[0][1:, 1:], poly).T
+    poly = np.matmul(tfrm[0][1:, 1:], poly).T
 
-        # flip coordinates back to 2D plot coordinates, +y points up
-        poly = np.matmul(poly, coord_flip)
-        return poly
+    # flip coordinates back to 2D plot coordinates, +y points up
+    poly = np.matmul(poly, coord_flip)
+    return poly
 
 
 def create_optical_element(opt_model, e):
@@ -162,7 +162,7 @@ class OpticalElement():
             elif graphics_handle.polytype == 'polyline':
                 priority = 2.
                 hc = 'red'
-                if key is 'ct':
+                if key == 'ct':
                     priority = 3.
                     hc = 'blue'
                 p = view.create_polyline(poly_gbl, hilite=hc, zorder=priority)
@@ -350,7 +350,7 @@ class RayBundle():
         actions = {}
 
         def on_select_ray(fig, handle, event, info):
-            if handle is not 'shape':
+            if handle != 'shape':
                 ray_table = self.ray_table_callback()
                 ray_table.root = self.rayset[handle].ray
                 fig.refresh_gui()
