@@ -27,7 +27,6 @@ from rayoptics.optical.opticalmodel import open_model
 from rayoptics.optical.trace import RaySeg
 import rayoptics.gui.appcmds as cmds
 from rayoptics.gui.appmanager import ModelInfo, AppManager
-from rayoptics.mpl.paraxdgnfigure import Dgm
 import rayoptics.qtgui.dockpanels as dock
 from rayoptics.qtgui.graphicsitems import OpticalElement, RayBundle
 from rayoptics.qtgui.ipyconsole import create_ipython_console
@@ -72,6 +71,7 @@ class MainWindow(QMainWindow):
         view.addAction("Lens View")
         view.addSeparator()
         view.addAction("Paraxial Height View")
+        view.addAction("Paraxial Height View V2")
         view.addAction("Paraxial Slope View")
         view.addAction("Paraxial Ray Table")
         view.addAction("Ray Table")
@@ -262,11 +262,15 @@ class MainWindow(QMainWindow):
             cmds.create_3rd_order_bar_chart(opt_model, gui_parent=self)
 
         if q.text() == "Paraxial Height View":
-            cmds.create_paraxial_design_view(opt_model, Dgm.ht,
+            cmds.create_paraxial_design_view(opt_model, 'ht',
                                              gui_parent=self)
 
+        if q.text() == "Paraxial Height View V2":
+            cmds.create_paraxial_design_view_v2(opt_model, 'ht',
+                                                gui_parent=self)
+
         if q.text() == "Paraxial Slope View":
-            cmds.create_paraxial_design_view(opt_model, Dgm.slp,
+            cmds.create_paraxial_design_view(opt_model, 'slp',
                                              gui_parent=self)
 
         if q.text() == "Paraxial Ray Table":
@@ -449,7 +453,7 @@ class MainWindow(QMainWindow):
             self.refresh_gui()
             self.create_lens_table()
             cmds.create_live_layout_view(opt_model, gui_parent=self)
-            cmds.create_paraxial_design_view(opt_model, Dgm.ht,
+            cmds.create_paraxial_design_view(opt_model, 'ht',
                                              gui_parent=self)
             self.refresh_gui()
 

@@ -419,8 +419,10 @@ class Diagram():
         parax_model = self.opt_model.parax_model
         self.handles = {}
 
+        # render the diagram into a shape list
         shape = []
-        for x, y in zip(parax_model.pr, parax_model.ax):
+        start = self.seq_start
+        for x, y in zip(parax_model.pr[start:], parax_model.ax[start:]):
             shape.append([x[self.type_sel], y[self.type_sel]])
 
         n_color = rgb2mpl([138, 43, 226])  # blueviolet

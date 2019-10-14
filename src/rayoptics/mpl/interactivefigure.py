@@ -45,11 +45,13 @@ class InteractiveFigure(Figure):
                  do_draw_frame=False,
                  do_draw_axes=False,
                  oversize_factor=0.05,
+                 aspect='equal',
                  **kwargs):
         self.linewidth = 0.5
         self.do_draw_frame = do_draw_frame
         self.do_draw_axes = do_draw_axes
         self.oversize_factor = oversize_factor
+        self.aspect = aspect
         self.hilited = None
         self.selected = None
         self.do_scale_bounds = True
@@ -169,7 +171,7 @@ class InteractiveFigure(Figure):
         try:
             self.ax.cla()
         except AttributeError:
-            self.ax = self.add_subplot(1, 1, 1, aspect=1.0)
+            self.ax = self.add_subplot(1, 1, 1, aspect=self.aspect)
 
         for a in self.artists:
             a.set_picker(5)

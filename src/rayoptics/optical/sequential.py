@@ -194,7 +194,7 @@ class SequentialModel:
     def insert(self, ifc, gap):
         """ insert surf and gap at the cur_gap edge of the sequential model
             graph """
-        if self.stop_surface > self.cur_surface:
+        if len(self.ifcs) > 2 and self.stop_surface > self.cur_surface:
             self.stop_surface += 1
         self.cur_surface += 1
         surf = self.cur_surface

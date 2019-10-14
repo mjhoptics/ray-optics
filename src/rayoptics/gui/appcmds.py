@@ -204,7 +204,7 @@ def create_paraxial_design_view(opt_model, dgm_type, gui_parent=None):
 def create_paraxial_design_view_v2(opt_model, dgm_type, gui_parent=None):
     fig = dgm.InteractiveDiagram(opt_model, gui_parent.refresh_gui, dgm_type,
                                  do_draw_frame=True, do_draw_axes=True,
-                                 figsize=(5, 4))
+                                 aspect='auto', figsize=(5, 4))
     cmds = dgm.create_parax_design_commands(fig)
     view_width = 650
     view_ht = 500

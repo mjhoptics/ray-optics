@@ -42,9 +42,7 @@ class InteractiveLayout(InteractiveFigure):
         self.offset_factor = offset_factor
         self.do_scale_bounds = True
 
-        super().__init__(self, **kwargs)
-
-#        self.set_facecolor(backgrnd_color)
+        super().__init__(**kwargs)
 
         self.update_data()
 
