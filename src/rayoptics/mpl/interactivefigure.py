@@ -16,7 +16,7 @@ from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch, Polygon
 
-from rayoptics.gui.layout import bbox_from_poly, scale_bounds
+from rayoptics.gui.util import bbox_from_poly, scale_bounds
 
 from rayoptics.util.rgb2mpl import rgb2mpl, backgrnd_color
 
@@ -118,19 +118,20 @@ class InteractiveFigure(Figure):
 
         if 'linewidth' not in kwargs:
             kwargs['linewidth'] = self.linewidth
-        p = Polygon(poly, closed=True, fc=rgb2mpl(rgb_color),
+        fill_color = rgb2mpl(kwargs.pop('fill_color', rgb_color))
+        p = Polygon(poly, closed=True, fc=fill_color,
                     ec='black', **kwargs)
         p.highlight = highlight
         p.unhighlight = unhighlight
         return p
 
-    def create_polyline(self, poly, hilite='red', **kwargs):
+    def create_polyline(self, poly, **kwargs):
         def highlight(p):
             lw = p.get_linewidth()
             c = p.get_color()
             p.unhilite = (c, lw)
             p.set_linewidth(2)
-            p.set_color(hilite)
+            p.set_color(hilite_color)
 
         def unhighlight(p):
             c, lw = p.unhilite
@@ -140,6 +141,31 @@ class InteractiveFigure(Figure):
 
         x = poly.T[0]
         y = poly.T[1]
+        hilite_color = kwargs.pop('hilite', 'red')
+        if 'linewidth' not in kwargs:
+            kwargs['linewidth'] = self.linewidth
+        p = Line2D(x, y, **kwargs)
+        p.highlight = highlight
+        p.unhighlight = unhighlight
+        return p
+
+    def create_vertex(self, vertex, **kwargs):
+        def highlight(p):
+            lw = p.get_linewidth()
+            c = p.get_color()
+            p.unhilite = (c, lw)
+            p.set_linewidth(2)
+            p.set_color(hilite_color)
+
+        def unhighlight(p):
+            c, lw = p.unhilite
+            p.set_linewidth(lw)
+            p.set_color(c)
+            p.unhilite = None
+
+        x = [vertex[0]]
+        y = [vertex[1]]
+        hilite_color = kwargs.pop('hilite', 'red')
         if 'linewidth' not in kwargs:
             kwargs['linewidth'] = self.linewidth
         p = Line2D(x, y, **kwargs)

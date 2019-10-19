@@ -17,8 +17,10 @@
 .. codeauthor: Michael J. Hayford
 """
 
-from collections import namedtuple
 import numpy as np
+
+from rayoptics.gui.util import (GUIHandle, transform_ray_seg, bbox_from_poly,
+                                transform_poly, inv_transform_poly)
 
 from rayoptics.optical import transform
 from rayoptics.optical.trace import (trace_boundary_rays_at_field,
@@ -28,14 +30,6 @@ from rayoptics.optical.elements import (create_thinlens, create_mirror,
 import rayoptics.optical.model_constants as mc
 from rayoptics.util.rgb2mpl import rgb2mpl
 import rayoptics.gui.appcmds as cmds
-
-GUIHandle = namedtuple('GUIHandle', ['poly', 'bbox'])
-""" tuple grouping together graphics entity and bounding box
-
-    Attributes:
-        poly: poly entity for underlying graphics system (e.g. mpl)
-        bbox: bounding box for poly
-"""
 
 
 def setup_shift_of_ray_bundle(seq_model, start_offset):
@@ -83,58 +77,6 @@ def shift_start_of_ray_bundle(start_bundle, ray_bundle, rot, t):
         pt = b4_pt + dst*b4_dir
         ray0 = RaySeg(pt, b4_dir, dst, r.ray[0].nrml)
         start_bundle[ri] = ray0
-
-
-def transform_ray_seg(poly, r, tfrm):
-    rot, trns = tfrm
-    p = rot.dot(r.p) + trns
-    poly.append([p[2], p[1]])
-
-
-def bbox_from_poly(poly):
-    minx, miny = np.min(poly, axis=0)
-    maxx, maxy = np.max(poly, axis=0)
-    return np.array([[minx, miny], [maxx, maxy]])
-
-
-def scale_bounds(bbox, oversize_factor):
-    inc_x = oversize_factor*(bbox[1][0] - bbox[0][0])
-    inc_y = oversize_factor*(bbox[1][1] - bbox[0][1])
-    incr = max(inc_x, inc_y)
-    return np.array([[bbox[0][0]-incr, bbox[0][1]-incr],
-                     [bbox[1][0]+incr, bbox[1][1]+incr]])
-
-
-def transform_poly(tfrm, poly):
-    coord_flip = np.array([[0., 1.], [1., 0.]])
-
-    poly = np.matmul(coord_flip, poly.T)
-    poly = np.matmul(tfrm[0][1:, 1:], poly).T
-
-    t = np.array([tfrm[1][1], tfrm[1][2]])
-    poly += t
-
-    # flip coordinates back to 2D plot coordinates, +y points up
-    poly = np.matmul(poly, coord_flip)
-    bbox = bbox_from_poly(poly)
-    return poly, bbox
-
-
-def inv_transform_poly(tfrm, poly):
-    coord_flip = np.array([[0., 1.], [1., 0.]])
-    try:
-        poly = np.matmul(coord_flip, poly.T)
-    except TypeError:
-        print(poly)
-
-    t = np.array([tfrm[1][1], tfrm[1][2]])
-    poly -= t
-
-    poly = np.matmul(tfrm[0][1:, 1:], poly).T
-
-    # flip coordinates back to 2D plot coordinates, +y points up
-    poly = np.matmul(poly, coord_flip)
-    return poly
 
 
 def create_optical_element(opt_model, e):

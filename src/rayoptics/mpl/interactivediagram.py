@@ -8,12 +8,13 @@
 .. codeauthor: Michael J. Hayford
 """
 
-from rayoptics.gui.layout import bbox_from_poly
+import numpy as np
+
+from rayoptics.gui.diagram import Diagram, DiagramNode, DiagramEdge
+from rayoptics.gui.util import bbox_from_poly
 
 from rayoptics.mpl.interactivefigure import InteractiveFigure
 
-from rayoptics.optical.paraxialdesign import Diagram
-from rayoptics.optical.model_constants import ht, slp
 from rayoptics.optical.elements import (create_thinlens, create_mirror,
                                         create_lens)
 
@@ -66,27 +67,62 @@ class InteractiveDiagram(InteractiveFigure):
 
     def setup_dgm_type(self, dgm_type):
         if dgm_type == 'ht':
-            self.type_sel = ht
             self.x_label = r'$\overline{y}$'
             self.y_label = 'y'
-            self.apply_data = self.parax_model.apply_ht_dgm_data
             self.header = r'$y-\overline{y}$ Diagram'
         elif dgm_type == 'slp':
-            self.type_sel = slp
             self.x_label = r'$\overline{\omega}$'
             self.y_label = r'$\omega$'
-            self.apply_data = self.parax_model.apply_slope_dgm_data
             self.header = r'$\omega-\overline{\omega}$ Diagram'
 
     def update_data(self):
         self.artists = []
+        concat_bbox = []
 
         if not self.skip_build:
             self.parax_model.build_lens()
+            self.diagram.shape = self.diagram.render_shape()
         self.skip_build = False
 
-        dgm_bbox = self.update_patches([self.diagram])
+        self.node_list = []
+        for i in range(len(self.parax_model.sys)):
+            self.node_list.append(DiagramNode(self.diagram, i))
+        self.node_bbox = self.update_patches(self.node_list)
+        concat_bbox.append(self.node_bbox)
 
+        self.edge_list = []
+        for i in range(len(self.parax_model.sys)-1):
+            self.edge_list.append(DiagramEdge(self.diagram, i))
+        self.edge_bbox = self.update_patches(self.edge_list)
+        concat_bbox.append(self.edge_bbox)
+
+#        dgm_bbox = self.update_patches([self.diagram])
+        dgm_bbox = np.concatenate(concat_bbox)
         self.sys_bbox = bbox_from_poly(dgm_bbox)
 
         return self
+
+    def update_axis_limits(self):
+        x_min, x_max = self.fit_data_range([x[0] for x in self.diagram.shape])
+        y_min, y_max = self.fit_data_range([x[1] for x in self.diagram.shape])
+        self.ax.set_xlim(x_min, x_max)
+        self.ax.set_ylim(y_min, y_max)
+
+    def fit_data_range(self, x_data, margin=0.05, range_trunc=0.25):
+        x_min = min(0., min(x_data))
+        x_max = max(0., max(x_data))
+        x_range = x_max - x_min
+        if x_range != 0.0 and len(x_data) > 2:
+            x1_min = min(0., min(x_data[1:]))
+            x1_max = max(0., max(x_data[1:]))
+            x1_range = x1_max - x1_min
+            if abs(x1_range/x_range) < range_trunc:
+                x_min = x1_min
+                x_max = x1_max
+                x_range = x1_range
+
+        if x_range > 0.:
+            x_margin = margin*x_range
+        else:
+            x_margin = 0.01
+        return x_min-x_margin, x_max+x_margin

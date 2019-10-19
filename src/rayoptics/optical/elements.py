@@ -210,7 +210,7 @@ class Element():
         try:
             gc = float(self.g.medium.glass_code())
         except AttributeError:
-            return (255, 255, 255)  # white
+            return (255, 255, 255, 64)  # white
         else:
             # set element color based on V-number
             indx, vnbr = glass_decode(gc)
@@ -609,6 +609,7 @@ class AirGap():
         else:
             self.trfm = (np.identity(3), np.array([0., 0., 0.]))
         self.label = label
+        self.render_color = (237, 243, 254, 64)  # light blue
         self.g = g
         self.ref_ifc = ref_ifc
         self.idx = idx
@@ -633,6 +634,8 @@ class AirGap():
         self.g = gaps[self.idx]
         self.ref_ifc = surfs[self.idx]
         self.tfrm = tfrms[self.idx]
+        if not hasattr(self, 'render_color'):
+            self.render_color = (237, 243, 254, 64)  # light blue
 
     def reference_interface(self):
         return self.ref_ifc

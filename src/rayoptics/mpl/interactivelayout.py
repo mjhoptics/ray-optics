@@ -10,11 +10,10 @@
 
 import numpy as np
 
-from rayoptics.gui.layout import bbox_from_poly
+from rayoptics.gui.util import bbox_from_poly
 
 from rayoptics.mpl.interactivefigure import InteractiveFigure
 
-#import rayoptics.gui.layout as layout
 from rayoptics.gui.layout import LensLayout
 from rayoptics.util.rgb2mpl import rgb2mpl, backgrnd_color
 
