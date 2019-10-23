@@ -122,8 +122,6 @@ class OpticalElement():
         return self.e.label
 
     def edit_shape_actions(self):
-        actions = {}
-
         def add_event_data(self, event, handle):
             gbl_pt = np.array([event.xdata, event.ydata])
             lcl_pt = inv_transform_poly(self.e.handles[handle].tfrm, gbl_pt)
@@ -143,8 +141,6 @@ class OpticalElement():
             self.select_pt = ((event.x, event.y), (event.xdata, event.ydata))
 #            print('select pt:', self.select_pt)
 #            print('select pt:', event.x, event.y)
-
-        actions['press'] = on_select_shape
 
         def on_edit_shape(fig, handle, event, info):
             handle_actions = self.handle_actions[handle]
@@ -183,8 +179,6 @@ class OpticalElement():
 
             fig.refresh_gui()
 
-        actions['drag'] = on_edit_shape
-
         def on_release_shape(fig, handle, event, info):
 #            print('release pt:', event.x, event.y)
             handle_actions = self.handle_actions[handle]
@@ -195,8 +189,10 @@ class OpticalElement():
             self.move_direction = None
             fig.refresh_gui()
 
+        actions = {}
+        actions['press'] = on_select_shape
+        actions['drag'] = on_edit_shape
         actions['release'] = on_release_shape
-
         return actions
 
 
@@ -289,16 +285,14 @@ class RayBundle():
         return self.handles
 
     def edit_ray_bundle_actions(self):
-        actions = {}
-
         def on_select_ray(fig, handle, event, info):
             if handle != 'shape':
                 ray_table = self.ray_table_callback()
                 ray_table.root = self.rayset[handle].ray
                 fig.refresh_gui()
 
+        actions = {}
         actions['press'] = on_select_ray
-
         return actions
 
 
@@ -348,8 +342,6 @@ class ParaxialRay():
         self.opt_model.seq_model.ifcs[vertex].optical_power = pwr
 
     def edit_paraxial_layout_actions(self):
-        actions = {}
-
         def add_event_data(shape, event, handle, info):
             gbl_pt = np.array([event.xdata, event.ydata])
             lcl_pt = inv_transform_poly(shape.tfrm, gbl_pt)
@@ -361,13 +353,11 @@ class ParaxialRay():
                 self.vertex += info['ind'][0]
             seq_model = self.opt_model.seq_model
             self.tfrm = seq_model.gbl_tfrms[self.vertex]
-        actions['press'] = on_select_point
 
         def on_edit_point(fig, handle, event, info):
             add_event_data(self, event, handle, info)
             self.apply_data(self.vertex, event.lcl_pt)
             fig.refresh_gui()
-        actions['drag'] = on_edit_point
 
         def on_release_point(fig, handle, event, info):
             add_event_data(self, event, handle, info)
@@ -375,8 +365,11 @@ class ParaxialRay():
             fig.refresh_gui()
             self.vertex = None
             self.tfrm = None
-        actions['release'] = on_release_point
 
+        actions = {}
+        actions['press'] = on_select_point
+        actions['drag'] = on_edit_point
+        actions['release'] = on_release_point
         return actions
 
 
@@ -457,7 +450,6 @@ class LensLayout():
     def add_element_cmd_actions(self, **kwargs):
         seq_start = 1
         idx = seq_start
-        actions = {}
 
         def add_event_data(tfrm, event, handle, info):
             gbl_pt = np.array([event.xdata, event.ydata])
@@ -473,7 +465,6 @@ class LensLayout():
             add_event_data(tfrm, event, handle, info)
             self.apply_fct(self.opt_model, idx, event.lcl_pt, **kwargs)
             fig.refresh_gui()
-        actions['press'] = on_select_cmd
 
 #        def on_edit_cmd(fig, handle, event, info):
 #            add_event_data(self, event, handle, info)
@@ -487,8 +478,10 @@ class LensLayout():
 #            self.apply_fct(idx, event.lcl_pt)
 #            fig.refresh_gui()
             idx = None
-        actions['release'] = on_release_cmd
 
+        actions = {}
+        actions['press'] = on_select_cmd
+        actions['release'] = on_release_cmd
         return actions
 
 

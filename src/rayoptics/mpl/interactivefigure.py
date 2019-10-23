@@ -82,7 +82,13 @@ class InteractiveFigure(Figure):
     def update_data(self):
         pass
 
+    def action_complete(self):
+        pass
+
     def update_patches(self, shapes):
+        """ loop over the input shapes, fetching their current geometry
+        and attaching it to the corresponding ``Artist``
+        """
         bbox_list = []
         for shape in shapes:
             handles = shape.update_shape(self)
@@ -295,4 +301,4 @@ class InteractiveFigure(Figure):
         self.do_action(event, self.selected, 'release')
         self.do_scale_bounds = True
         self.selected = None
-        self.do_action = self.do_shape_action
+        self.action_complete()

@@ -22,25 +22,23 @@ from rayoptics.optical.elements import (create_thinlens, create_mirror,
 def create_parax_design_commands(fig):
     cmds = []
     dgm = fig.diagram
+    # initialize dgm with a Select command
+    dgm.register_commands((), figure=fig)
     # Select an existing point
-    cmds.append(('Select', (dgm.register_commands, (),
-                            {'cmd_actions': dgm.edit_diagram_actions})))
+    cmds.append(('Select', (dgm.register_commands, (), {})))
     # Add thin lens
     cmds.append(('Add Thin Lens',
                  (dgm.register_commands, (),
-                  {'cmd_actions': dgm.add_element_actions,
-                   'node_init': create_thinlens,
+                  {'node_init': create_thinlens,
                    'factory': create_thinlens})))
     # Add lens
     cmds.append(('Add Lens', (dgm.register_commands, (),
-                              {'cmd_actions': dgm.add_element_actions,
-                               'node_init': create_thinlens,
+                              {'node_init': create_thinlens,
                                'factory': create_lens})))
     # Add mirror
     cmds.append(('Add Mirror',
                  (dgm.register_commands, (),
-                  {'cmd_actions': dgm.add_element_actions,
-                   'node_init': create_mirror,
+                  {'node_init': create_mirror,
                    'factory': create_mirror})))
 
     return cmds
@@ -101,6 +99,9 @@ class InteractiveDiagram(InteractiveFigure):
         self.sys_bbox = bbox_from_poly(dgm_bbox)
 
         return self
+
+    def action_complete(self):
+        self.diagram.register_commands((), figure=self)
 
     def update_axis_limits(self):
         x_min, x_max = self.fit_data_range([x[0] for x in self.diagram.shape])
