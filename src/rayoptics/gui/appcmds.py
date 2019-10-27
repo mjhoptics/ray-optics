@@ -210,7 +210,7 @@ def create_paraxial_design_view_v2(opt_model, dgm_type, gui_parent=None):
     view_ht = 500
     title = "Paraxial Design View V2"
     plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht,
-                              commands=cmds)
+                              commands=cmds, add_nav_toolbar=True)
 
 
 def create_ray_fan_view(opt_model, data_type, gui_parent=None):
