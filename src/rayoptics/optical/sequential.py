@@ -208,6 +208,25 @@ class SequentialModel:
         self.z_dir.insert(surf, self.z_dir[surf-1])
 #        self.rndx.insert(surf, self.rndx[surf-1])
 
+    def remove(self, *args):
+        """ remove surf and gap at cur_surface or an input index argument """
+        if len(args) == 0:
+            idx = self.cur_surface
+        else:
+            idx = args[0]
+        print('sequential.remove', idx)
+
+        # don't allow object or image interfaces to be removed
+        if idx == 0 or idx == -1 or idx == len(self.ifcs):
+            raise IndexError
+
+        del self.ifcs[idx]
+        del self.gaps[idx]
+        del self.gbl_tfrms[idx]
+        del self.lcl_tfrms[idx]
+        del self.z_dir[idx]
+        self.rndx.drop(index=idx)
+
     def add_surface(self, surf_data, **kwargs):
         """ add a surface where surf is a list that contains:
             [curvature, thickness, refractive_index, v-number] """

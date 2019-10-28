@@ -97,13 +97,17 @@ def create_air_gap(t=0., ref_ifc=None):
     return g, ag
 
 
-def insert_ifc_gp_ele(opt_model, seq, ele, idx=None, t=0.):
+def insert_ifc_gp_ele(opt_model, seq, ele, idx=None, t=0., add_air_gap=True):
     """ insert interfaces and gaps into seq_model and eles into ele_model """
     if idx is not None:
         opt_model.seq_model.cur_surface = idx
-    g, ag = create_air_gap(t=t, ref_ifc=seq[-1][mc.Intfc])
-    seq[-1][mc.Gap] = g
-    ele.append(ag)
+
+    if add_air_gap:
+        g, ag = create_air_gap(t=t, ref_ifc=seq[-1][mc.Intfc])
+        seq[-1][mc.Gap] = g
+        ele.append(ag)
+    else:
+        seq[-1][mc.Gap] = opt_model.seq_model.gaps[idx+len(seq)-1]
 
     for sg in seq:
         opt_model.seq_model.insert(sg[mc.Intfc], sg[mc.Gap])
@@ -123,12 +127,12 @@ class Element():
         if tfrm is not None:
             self.tfrm = tfrm
         else:
-            self.trfm = (np.identity(3), np.array([0., 0., 0.]))
+            self.tfrm = (np.identity(3), np.array([0., 0., 0.]))
         self.s1 = s1
         self.s1_indx = idx
         self.s2 = s2
         self.s2_indx = idx2
-        self.g = g
+        self.gap = g
         self._sd = sd
         self.flat1 = None
         self.flat2 = None
@@ -151,15 +155,15 @@ class Element():
         del attrs['tfrm']
         del attrs['s1']
         del attrs['s2']
-        del attrs['g']
+        del attrs['gap']
         del attrs['handles']
         del attrs['actions']
         return attrs
 
     def __str__(self):
         fmt = 'Element: {!r}, {!r}, t={:.4f}, sd={:.4f}, glass: {}'
-        return fmt.format(self.s1.profile, self.s2.profile, self.g.thi,
-                          self.sd, self.g.medium.name())
+        return fmt.format(self.s1.profile, self.s2.profile, self.gap.thi,
+                          self.sd, self.gap.medium.name())
 
     def sync_to_restore(self, ele_model, surfs, gaps, tfrms):
         # when restoring, we want to use the stored indices to look up the
@@ -167,7 +171,7 @@ class Element():
         self.parent = ele_model
         self.tfrm = tfrms[self.s1_indx]
         self.s1 = surfs[self.s1_indx]
-        self.g = gaps[self.s1_indx]
+        self.gap = gaps[self.s1_indx]
         self.s2 = surfs[self.s2_indx]
 
     def sync_to_update(self, seq_model):
@@ -180,6 +184,12 @@ class Element():
 
     def reference_interface(self):
         return self.s1
+
+    def interface_list(self):
+        return [self.s1, self.s2]
+
+    def gap_list(self):
+        return [self.gap]
 
     def get_bending(self):
         cv1 = self.s1.profile_cv
@@ -208,7 +218,7 @@ class Element():
 
     def calc_render_color(self):
         try:
-            gc = float(self.g.medium.glass_code())
+            gc = float(self.gap.medium.glass_code())
         except AttributeError:
             return (255, 255, 255, 64)  # white
         else:
@@ -240,7 +250,7 @@ class Element():
             self.flat2 = self.compute_flat(self.s2)
         poly2 = self.s2.full_profile(self.extent(), self.flat2, -1)
         for p in poly2:
-            p[0] += self.g.thi
+            p[0] += self.gap.thi
         poly += poly2
         poly.append(poly[0])
         return poly
@@ -271,19 +281,19 @@ class Element():
 
         poly_sd_upr = []
         poly_sd_upr.append([poly_s1[-1][0], extent[1]])
-        poly_sd_upr.append([poly_s2[0][0]+self.g.thi, extent[1]])
+        poly_sd_upr.append([poly_s2[0][0]+self.gap.thi, extent[1]])
         self.handles['sd_upr'] = GraphicsHandle(poly_sd_upr, self.tfrm,
                                                 'polyline')
 
         poly_sd_lwr = []
-        poly_sd_lwr.append([poly_s2[-1][0]+self.g.thi, extent[0]])
+        poly_sd_lwr.append([poly_s2[-1][0]+self.gap.thi, extent[0]])
         poly_sd_lwr.append([poly_s1[0][0], extent[0]])
         self.handles['sd_lwr'] = GraphicsHandle(poly_sd_lwr, self.tfrm,
                                                 'polyline')
 
         poly_ct = []
         poly_ct.append([0., 0.])
-        poly_ct.append([self.g.thi, 0.])
+        poly_ct.append([self.gap.thi, 0.])
         self.handles['ct'] = GraphicsHandle(poly_ct, self.tfrm, 'polyline')
 
         return self.handles
@@ -313,7 +323,7 @@ class Element():
         self.actions['sd_lwr'] = sd_lwr_action
 
         ct_action = {}
-        ct_action['x'] = AttrAction(self.g, 'thi')
+        ct_action['x'] = AttrAction(self.gap, 'thi')
         self.actions['ct'] = ct_action
 
         return self.actions
@@ -332,7 +342,7 @@ class Mirror():
         if tfrm is not None:
             self.tfrm = tfrm
         else:
-            self.trfm = (np.identity(3), np.array([0., 0., 0.]))
+            self.tfrm = (np.identity(3), np.array([0., 0., 0.]))
         self.s = ifc
         self.s_indx = idx
         self.z_dir = z_dir
@@ -369,6 +379,12 @@ class Mirror():
 
     def reference_interface(self):
         return self.s
+
+    def interface_list(self):
+        return [self.s]
+
+    def gap_list(self):
+        return []
 
     def sync_to_update(self, seq_model):
         self.s_indx = seq_model.ifcs.index(self.s)
@@ -459,7 +475,7 @@ class ThinElement():
         if tfrm is not None:
             self.tfrm = tfrm
         else:
-            self.trfm = (np.identity(3), np.array([0., 0., 0.]))
+            self.tfrm = (np.identity(3), np.array([0., 0., 0.]))
         self.intrfc = ifc
         self.intrfc_indx = idx
         if sd is not None:
@@ -488,6 +504,12 @@ class ThinElement():
 
     def reference_interface(self):
         return self.intrfc
+
+    def interface_list(self):
+        return [self.intrfc]
+
+    def gap_list(self):
+        return []
 
     def sync_to_update(self, seq_model):
         self.intrfc_indx = seq_model.ifcs.index(self.intrfc)
@@ -521,7 +543,7 @@ class DummyInterface():
         if tfrm is not None:
             self.tfrm = tfrm
         else:
-            self.trfm = (np.identity(3), np.array([0., 0., 0.]))
+            self.tfrm = (np.identity(3), np.array([0., 0., 0.]))
         self.ref_ifc = ifc
         self.idx = idx
         if sd is not None:
@@ -550,6 +572,12 @@ class DummyInterface():
 
     def reference_interface(self):
         return self.ref_ifc
+
+    def interface_list(self):
+        return [self.ref_ifc]
+
+    def gap_list(self):
+        return []
 
     def sync_to_update(self, seq_model):
         self.idx = seq_model.ifcs.index(self.ref_ifc)
@@ -607,10 +635,10 @@ class AirGap():
         if tfrm is not None:
             self.tfrm = tfrm
         else:
-            self.trfm = (np.identity(3), np.array([0., 0., 0.]))
+            self.tfrm = (np.identity(3), np.array([0., 0., 0.]))
         self.label = label
         self.render_color = (237, 243, 254, 64)  # light blue
-        self.g = g
+        self.gap = g
         self.ref_ifc = ref_ifc
         self.idx = idx
         self.handles = {}
@@ -620,18 +648,18 @@ class AirGap():
         attrs = dict(vars(self))
         del attrs['parent']
         del attrs['tfrm']
-        del attrs['g']
+        del attrs['gap']
         del attrs['ref_ifc']
         del attrs['handles']
         del attrs['actions']
         return attrs
 
     def __str__(self):
-        return str(self.g)
+        return str(self.gap)
 
     def sync_to_restore(self, ele_model, surfs, gaps, tfrms):
         self.parent = ele_model
-        self.g = gaps[self.idx]
+        self.gap = gaps[self.idx]
         self.ref_ifc = surfs[self.idx]
         self.tfrm = tfrms[self.idx]
         if not hasattr(self, 'render_color'):
@@ -640,8 +668,14 @@ class AirGap():
     def reference_interface(self):
         return self.ref_ifc
 
+    def interface_list(self):
+        return [self.ref_ifc]
+
+    def gap_list(self):
+        return [self.gap]
+
     def sync_to_update(self, seq_model):
-        self.idx = seq_model.gaps.index(self.g)
+        self.idx = seq_model.gaps.index(self.gap)
 
     def update_size(self):
         pass
@@ -651,7 +685,7 @@ class AirGap():
 
         poly_ct = []
         poly_ct.append([0., 0.])
-        poly_ct.append([self.g.thi, 0.])
+        poly_ct.append([self.gap.thi, 0.])
         self.handles['ct'] = GraphicsHandle(poly_ct, self.tfrm, 'polyline')
 
         return self.handles
@@ -660,7 +694,7 @@ class AirGap():
         self.actions = {}
 
         ct_action = {}
-        ct_action['x'] = AttrAction(self.g, 'thi')
+        ct_action['x'] = AttrAction(self.gap, 'thi')
         self.actions['ct'] = ct_action
 
         return self.actions
@@ -671,6 +705,8 @@ class ElementModel:
     def __init__(self, opt_model):
         self.opt_model = opt_model
         self.elements = []
+        self.ifcs_dict = {}
+        self.gap_dict = {}
 
     def reset(self):
         self.__init__()
@@ -678,6 +714,8 @@ class ElementModel:
     def __json_encode__(self):
         attrs = dict(vars(self))
         del attrs['opt_model']
+        del attrs['ifcs_dict']
+        del attrs['gap_dict']
         return attrs
 
     def sync_to_restore(self, opt_model):
@@ -691,8 +729,14 @@ class ElementModel:
         self.airgaps_from_sequence(seq_model, tfrms)
         self.add_dummy_interface_at_image(seq_model, tfrms)
 
+        self.ifcs_dict = {}
+        self.gap_dict = {}
         for i, e in enumerate(self.elements):
             e.sync_to_restore(self, surfs, gaps, tfrms)
+            for ifc in e.interface_list():
+                self.ifcs_dict[ifc] = e
+            for g in e.gap_list():
+                self.gap_dict[g] = e
             if not hasattr(e, 'label'):
                 e.label = e.label_format.format(i+1)
         self.sequence_elements()
@@ -825,8 +869,22 @@ class ElementModel:
                 e.label = AirGap.label_format.format(eb + '-' + ea)
 
     def add_element(self, e):
+#        print('elements.add_element', e.label)
         e.parent = self
         self.elements.append(e)
+        for ifc in e.interface_list():
+            self.ifcs_dict[ifc] = e
+        for g in e.gap_list():
+            self.gap_dict[g] = e
+
+    def remove_element(self, e):
+#        print('elements.remove_element', e.label)
+        for ifc in e.interface_list():
+            self.ifcs_dict.pop(ifc)
+        for g in e.gap_list():
+            self.gap_dict.pop(g)
+        e.parent = None
+        self.elements.remove(e)
 
     def get_num_elements(self):
         return len(self.elements)

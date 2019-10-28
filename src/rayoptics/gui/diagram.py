@@ -12,6 +12,7 @@ import numpy as np
 from rayoptics.gui.util import GUIHandle, bbox_from_poly
 
 from rayoptics.optical.model_constants import ht, slp
+from rayoptics.optical.model_constants import pwr, tau, indx, rmd
 from rayoptics.util.rgb2mpl import rgb2mpl
 
 
@@ -37,24 +38,56 @@ class Diagram():
     def get_label(self):
         return self.label
 
+    def update_data(self, fig):
+        parax_model = self.opt_model.parax_model
+#        print('Diagram.update_data: build=', (not fig.skip_build))
+
+        if not fig.skip_build:
+            parax_model.build_lens()
+            self.shape = self.render_shape()
+
+            self.node_list = []
+            for i in range(len(parax_model.sys)):
+                self.node_list.append(DiagramNode(self, i))
+
+            self.edge_list = []
+            for i in range(len(parax_model.sys)-1):
+                self.edge_list.append(DiagramEdge(self, i))
+
+        concat_bbox = []
+
+        self.node_bbox = fig.update_patches(self.node_list)
+        concat_bbox.append(self.node_bbox)
+
+        self.edge_bbox = fig.update_patches(self.edge_list)
+        concat_bbox.append(self.edge_bbox)
+
+#        dgm_bbox = self.update_patches([self.diagram])
+        dgm_bbox = np.concatenate(concat_bbox)
+        sys_bbox = bbox_from_poly(dgm_bbox)
+
+        return sys_bbox
+
     def apply_data(self, node, vertex):
         self._apply_data(node, vertex)
         self.opt_model.parax_model.paraxial_lens_to_seq_model()
 
-    def assign_object_to_node(self, node, factory):
+    def assign_object_to_node(self, node, factory, **kwargs):
         parax_model = self.opt_model.parax_model
-        parax_model.assign_object_to_node(node, factory)
+        parax_model.assign_object_to_node(node, factory, **kwargs)
         parax_model.paraxial_lens_to_seq_model()
 
     def register_commands(self, *args, **inputs):
         fig = inputs.pop('figure')
         self.command_inputs = dict(inputs)
+#        print('command_inputs:', self.command_inputs)
 
         def do_command_action(event, target, event_key):
             nonlocal fig
             if target is not None:
                 shape, handle = target.artist.shape
                 try:
+#                    print(type(shape).__name__, shape.node, handle, event_key)
                     handle_action_obj = shape.actions[handle]
                     handle_action_obj.actions[event_key](fig, event)
                 except KeyError:
@@ -87,27 +120,27 @@ class DiagramNode():
                                                              'marker': 's',
                                                              'picker': 6,
                                                              'color': n_color,
-                                                             'hilite': 'red'}
+                                                             'hilite': 'red',
+                                                             'zorder': 3.}
         if self.node > 1 and self.node < num_nodes-1:
             pt0 = shape[self.node-1]
             pt2 = shape[self.node+1]
             seg = [pt0, pt2]
             self.handles['dist'] = seg, 'polyline', {'picker': 6,
                                                      'color': n_color,
-                                                     'hilite': 'red'}
+                                                     'hilite': n_color,
+                                                     'zorder': 1.}
         gui_handles = {}
         for key, graphics_handle in self.handles.items():
             poly_data, poly_type, kwargs = graphics_handle
             poly = np.array(poly_data)
             if poly_type == 'vertex':
-                priority = 2.5
-                p = view.create_vertex(poly, zorder=priority, **kwargs)
+                p = view.create_vertex(poly, **kwargs)
             elif poly_type == 'polyline':
-                priority = 2.
-                p = view.create_polyline(poly, zorder=priority, **kwargs)
+                p = view.create_polyline(poly, **kwargs)
             elif poly_type == 'polygon':
                 p = view.create_polygon(poly, self.render_color(),
-                                        zorder=2.5, **kwargs)
+                                        **kwargs)
             else:
                 break
             if len(poly.shape) > 1:
@@ -136,7 +169,7 @@ class DiagramNode():
 class DiagramEdge():
     def __init__(self, diagram, idx):
         self.diagram = diagram
-        self.edge = idx
+        self.node = idx
         self.select_pt = None
         self.move_direction = None
         self.handles = {}
@@ -144,7 +177,7 @@ class DiagramEdge():
 
     def update_shape(self, view):
         shape = self.diagram.shape
-        edge_poly = shape[self.edge:self.edge+2]
+        edge_poly = shape[self.node:self.node+2]
         self.handles['shape'] = edge_poly, 'polyline', {'picker': 6,
                                                         'hilite': 'red'}
         area_poly = [[0, 0]]
@@ -168,14 +201,21 @@ class DiagramEdge():
         return gui_handles
 
     def render_color(self):
-        if self.edge == 0:
+        if self.node == 0:
             return (237, 243, 254, 64)  # light blue
         else:
-            e = self.diagram.opt_model.ele_model.elements[self.edge-1]
+            elements = self.diagram.opt_model.ele_model.elements
+            if hasattr(elements[self.node-1], 'gap'):
+                e = elements[self.node-1]
+            else:
+                try:
+                    e = elements[self.node]
+                except IndexError:
+                    pass
             return e.render_color
 
     def get_label(self):
-        return 'edge' + str(self.edge)
+        return 'edge' + str(self.node)
 
     def handle_actions(self):
         actions = {}
@@ -220,7 +260,9 @@ class AddElementAction():
             if 'node_init' in diagram.command_inputs and \
                'factory' in diagram.command_inputs:
 
-                self.cur_node = dgm_edge.edge
+                self.cur_node = dgm_edge.node
+#                print("on_press_add_point", self.cur_node,
+                      diagram.command_inputs['node_init'])
                 event_data = np.array([event.xdata, event.ydata])
                 parax_model.add_node(self.cur_node, event_data,
                                      diagram.type_sel)
@@ -234,12 +276,24 @@ class AddElementAction():
             if self.cur_node is not None:
                 event_data = np.array([event.xdata, event.ydata])
                 diagram.apply_data(self.cur_node, event_data)
+                fig.skip_build = True
                 fig.refresh_gui()
 
         def on_release_add_point(fig, event):
             if self.cur_node is not None:
                 factory = diagram.command_inputs['factory']
-                diagram.assign_object_to_node(self.cur_node, factory)
+#                print('on_release_add_point', self.cur_node, factory)
+                if factory != diagram.command_inputs['node_init']:
+                    seq_model = diagram.opt_model.seq_model
+                    prev_ifc = seq_model.ifcs[self.cur_node]
+                    diagram.assign_object_to_node(self.cur_node, factory)
+                    ele_model = diagram.opt_model.ele_model
+                    ele_model.remove_element(ele_model.ifcs_dict[prev_ifc])
+                    idx = seq_model.ifcs.index(prev_ifc)
+                    n_after = parax_model.sys[idx-1][indx]
+                    thi = n_after*parax_model.sys[idx-1][tau]
+                    seq_model.gaps[idx-1].thi = thi
+                    seq_model.remove(idx)
                 fig.skip_build = False
                 fig.refresh_gui()
             self.cur_node = None

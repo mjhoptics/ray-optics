@@ -186,7 +186,6 @@ class InteractiveFigure(Figure):
     def draw_frame(self, do_draw_frame):
         if do_draw_frame:
             self.ax.set_axis_on()
-            self.tight_layout(pad=0.)
         else:
             self.ax.set_axis_off()
             self.tight_layout(pad=0.)
@@ -196,6 +195,12 @@ class InteractiveFigure(Figure):
             self.ax.grid(True)
             self.ax.axvline(0, c='black', lw=1)
             self.ax.axhline(0, c='black', lw=1)
+            if hasattr(self, 'header'):
+                self.ax.set_title(self.header, pad=10.0, fontsize=18)
+            if hasattr(self, 'x_label'):
+                self.ax.set_xlabel(self.x_label)
+            if hasattr(self, 'y_label'):
+                self.ax.set_ylabel(self.y_label)
         else:
             self.ax.grid(False)
 

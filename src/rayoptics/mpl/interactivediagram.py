@@ -75,32 +75,11 @@ class InteractiveDiagram(InteractiveFigure):
 
     def update_data(self):
         self.artists = []
-        concat_bbox = []
-
-        if not self.skip_build:
-            self.parax_model.build_lens()
-            self.diagram.shape = self.diagram.render_shape()
-        self.skip_build = False
-
-        self.node_list = []
-        for i in range(len(self.parax_model.sys)):
-            self.node_list.append(DiagramNode(self.diagram, i))
-        self.node_bbox = self.update_patches(self.node_list)
-        concat_bbox.append(self.node_bbox)
-
-        self.edge_list = []
-        for i in range(len(self.parax_model.sys)-1):
-            self.edge_list.append(DiagramEdge(self.diagram, i))
-        self.edge_bbox = self.update_patches(self.edge_list)
-        concat_bbox.append(self.edge_bbox)
-
-#        dgm_bbox = self.update_patches([self.diagram])
-        dgm_bbox = np.concatenate(concat_bbox)
-        self.sys_bbox = bbox_from_poly(dgm_bbox)
-
+        self.sys_bbox = self.diagram.update_data(self)
         return self
 
     def action_complete(self):
+#        print('action_complete')
         self.diagram.register_commands((), figure=self)
 
     def update_axis_limits(self):

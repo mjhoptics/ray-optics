@@ -90,6 +90,7 @@ class ParaxialModel():
         if surf >= ns - 1:
             surf = ns - 2
         n = self.sys[surf][indx]
+#        print('parax_model.add_node', surf)
         new_surf = surf + 1
         self.sys.insert(new_surf, [0.0, 0.0, n, imode.Transmit])
 
@@ -107,7 +108,7 @@ class ParaxialModel():
             self.apply_slope_dgm_data(new_surf, new_vertex=new_vertex)
         return new_surf
 
-    def assign_object_to_node(self, node, factory):
+    def assign_object_to_node(self, node, factory, **kwargs):
         """ create a new element from `factory` and replace `node` with it """
 
         # extract optical properties of node
@@ -120,7 +121,7 @@ class ParaxialModel():
         seq, ele = factory(power=power, sd=sd)
         # insert the path sequence and elements into the
         #  sequential and element models
-        insert_ifc_gp_ele(self.opt_model, seq, ele, idx=node-1, t=thi)
+        insert_ifc_gp_ele(self.opt_model, seq, ele, idx=node-1, t=thi, **kwargs)
 
         self.sys[node][rmd] = seq[0][0].interact_mode
         if seq[0][0].interact_mode == imode.Reflect:
@@ -154,6 +155,7 @@ class ParaxialModel():
 
     def delete_node(self, surf):
         """ delete the node at position surf """
+#        print('parax_model.delete_node', surf)
         del self.sys[surf]
         del self.ax[surf]
         del self.pr[surf]
