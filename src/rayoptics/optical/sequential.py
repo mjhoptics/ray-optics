@@ -20,7 +20,6 @@ from rayoptics.optical.model_constants import Intfc, Gap, Indx, Tfrm, Zdir
 from opticalglass import glassfactory as gfact
 from opticalglass import glasserror as ge
 import numpy as np
-import pandas as pd
 from math import copysign, sqrt
 from rayoptics.util.misc_math import isanumber
 
@@ -58,7 +57,7 @@ class SequentialModel:
         ifcs: list of :class:`~rayoptics.optical.surface.Interface`
         gaps: list of :class:`~rayoptics.optical.gap.Gap`
         lcl_tfrms: forward transform, interface to interface
-        rndx: a |DataFrame| with refractive indices for all **wvls**
+        rndx: a list with refractive indices for all **wvls**
         z_dir: -1 if gap follows an odd number of reflections, otherwise +1
         gbl_tfrms: global coordinates of each interface wrt the 1st interface
         stop_surface (int): index of stop interface
@@ -74,6 +73,7 @@ class SequentialModel:
         self.z_dir = []
         self.stop_surface = 1
         self.cur_surface = 0
+        self.wvlns = []
         self.rndx = []
         self._initialize_arrays()
 
@@ -83,6 +83,7 @@ class SequentialModel:
         del attrs['gbl_tfrms']
         del attrs['lcl_tfrms']
         del attrs['z_dir']
+        del attrs['wvlns']
         del attrs['rndx']
         return attrs
 
@@ -94,6 +95,8 @@ class SequentialModel:
         tfrm = np.identity(3), np.array([0., 0., 0.])
         self.gbl_tfrms.append(tfrm)
         self.lcl_tfrms.append(tfrm)
+
+        self.wvlns = [550.]
 
         # add object gap
         self.gaps.append(gap.Gap())
@@ -132,15 +135,18 @@ class SequentialModel:
             gap_start = start - 1
         else:
             gap_start = start
+
+        wl_idx = self.index_for_wavelength(wl)
+        rndx = [n[wl_idx] for n in self.rndx[start::step]]
         path = itertools.zip_longest(self.ifcs[start::step],
                                      self.gaps[gap_start::step],
                                      self.lcl_tfrms[start::step],
-                                     self.rndx[start::step][wl],
+                                     rndx,
                                      self.z_dir[start::step])
         return path
 
     def calc_ref_indices_for_spectrum(self, wvls):
-        """ returns a |DataFrame| with refractive indices for all **wvls**
+        """ returns a list with refractive indices for all **wvls**
 
         Args:
             wvls: list of wavelengths in nm
@@ -155,16 +161,20 @@ class SequentialModel:
             indices.append(ri)
         indices.append(indices[-1])
 
-        return pd.DataFrame(indices, columns=wvls)
+        return indices
 
     def central_wavelength(self):
         """ returns the central wavelength in nm of the model's ``WvlSpec`` """
         return self.opt_model.optical_spec.spectral_region.central_wvl
 
+    def index_for_wavelength(self, wvl):
+        """ returns index into rndx array for wavelength `wvl` in nm """
+        return self.wvlns.index(wvl)
+
     def central_rndx(self, i):
         """ returns the central refractive index of the model's ``WvlSpec`` """
-        central_wvl = self.central_wavelength()
-        return self.rndx[central_wvl].iloc[i]
+        central_wvl = self.opt_model.optical_spec.spectral_region.reference_wvl
+        return self.rndx[i][central_wvl]
 
     def get_surface_and_gap(self, srf=None):
         if not srf:
@@ -206,7 +216,7 @@ class SequentialModel:
         self.lcl_tfrms.insert(surf, tfrm)
 
         self.z_dir.insert(surf, self.z_dir[surf-1])
-#        self.rndx.insert(surf, self.rndx[surf-1])
+        self.rndx.insert(surf, self.rndx[surf-1])
 
     def remove(self, *args):
         """ remove surf and gap at cur_surface or an input index argument """
@@ -225,7 +235,7 @@ class SequentialModel:
         del self.gbl_tfrms[idx]
         del self.lcl_tfrms[idx]
         del self.z_dir[idx]
-        self.rndx.drop(index=idx)
+        del self.rndx[idx]
 
     def add_surface(self, surf_data, **kwargs):
         """ add a surface where surf is a list that contains:
@@ -259,9 +269,9 @@ class SequentialModel:
         osp = self.opt_model.optical_spec
         ref_wl = osp.spectral_region.reference_wvl
 
-        wvlns = osp.spectral_region.wavelengths
-        self.rndx = self.calc_ref_indices_for_spectrum(wvlns)
-        n_before = self.rndx.iloc[0]
+        self.wvlns = osp.spectral_region.wavelengths
+        self.rndx = self.calc_ref_indices_for_spectrum(self.wvlns)
+        n_before = self.rndx[0]
 
         self.z_dir = []
         z_dir_before = 1
@@ -272,9 +282,10 @@ class SequentialModel:
                 z_dir_after = -z_dir_after
 
             # leave rndx data unsigned, track change of sign using z_dir
-            n_after = self.rndx.iloc[i]
-            n_after = n_after if z_dir_after > 0 else -n_after
-            s.delta_n = n_after.iloc[ref_wl] - n_before.iloc[ref_wl]
+            n_after = self.rndx[i]
+            if z_dir_after < 0:
+                n_after = [-n for n in n_after]
+            s.delta_n = n_after[ref_wl] - n_before[ref_wl]
             n_before = n_after
 
             z_dir_before = z_dir_after

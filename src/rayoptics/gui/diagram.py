@@ -262,7 +262,7 @@ class AddElementAction():
 
                 self.cur_node = dgm_edge.node
 #                print("on_press_add_point", self.cur_node,
-                      diagram.command_inputs['node_init'])
+#                      diagram.command_inputs['node_init'])
                 event_data = np.array([event.xdata, event.ydata])
                 parax_model.add_node(self.cur_node, event_data,
                                      diagram.type_sel)

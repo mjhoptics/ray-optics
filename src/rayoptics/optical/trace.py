@@ -403,8 +403,9 @@ def setup_pupil_coords(opt_model, fld, wvl, foc,
                   ref_dir, ref_sphere_radius)
 
     z_dir = seq_model.z_dir[-1]
-    n_obj = seq_model.rndx[wvl].iloc[0]
-    n_img = seq_model.rndx[wvl].iloc[-1]
+    wl = seq_model.index_for_wavelength(wvl)
+    n_obj = seq_model.rndx[0][wl]
+    n_img = seq_model.rndx[-1][wl]
     ref_sphere_pkg = (ref_sphere, opt_model.optical_spec.parax_data,
                       n_obj, n_img, z_dir)
 
@@ -446,8 +447,9 @@ def setup_canonical_coords(opt_model, fld, wvl, image_pt=None):
                   ref_dir, ref_sphere_radius)
 
     z_dir = seq_model.z_dir[-1]
-    n_obj = seq_model.rndx[wvl].iloc[0]
-    n_img = seq_model.rndx[wvl].iloc[-1]
+    wl = seq_model.index_for_wavelength(wvl)
+    n_obj = seq_model.rndx[0][wl]
+    n_img = seq_model.rndx[-1][wl]
     ref_sphere_pkg = (ref_sphere, osp.parax_data, n_obj, n_img, z_dir)
     fld.ref_sphere = ref_sphere_pkg
     return ref_sphere_pkg, cr
@@ -466,13 +468,14 @@ def trace_coddington_fan(opt_model, ray_pkg, foc=None):
 .. note:: spherical surfaces only
     """
     seq_model = opt_model.seq_model
-    wvl = ray_pkg.wvl
+    wl = seq_model.index_for_wavelength(ray_pkg.wvl)
 
     path = itertools.zip_longest(ray_pkg.ray, seq_model.ifcs,
-                                 seq_model.rndx[wvl], seq_model.lcl_tfrms,
+                                 [n[wl] for n in seq_model.rndx],
+                                 seq_model.lcl_tfrms,
                                  seq_model.z_dir)
 
-    before_rind = seq_model.rndx[wvl][0]
+    before_rind = seq_model.rndx[0][wl]
     before_dir = None
     for r, ifc, after_rind, tfrm, z_dir in path:
         pt, after_dir, after_dst, normal = r
