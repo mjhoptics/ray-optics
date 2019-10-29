@@ -97,22 +97,45 @@ def create_air_gap(t=0., ref_ifc=None):
     return g, ag
 
 
-def insert_ifc_gp_ele(opt_model, seq, ele, idx=None, t=0., add_air_gap=True):
+def insert_ifc_gp_ele(opt_model, *args, **kwargs):
     """ insert interfaces and gaps into seq_model and eles into ele_model """
-    if idx is not None:
-        opt_model.seq_model.cur_surface = idx
+    seq, ele = args
+    if 'idx' in kwargs:
+        opt_model.seq_model.cur_surface = kwargs['idx']
+    t = kwargs['t'] if 't' in kwargs else 0.
 
-    if add_air_gap:
-        g, ag = create_air_gap(t=t, ref_ifc=seq[-1][mc.Intfc])
-        seq[-1][mc.Gap] = g
-        ele.append(ag)
-    else:
-        seq[-1][mc.Gap] = opt_model.seq_model.gaps[idx+len(seq)-1]
+    g, ag = create_air_gap(t=t, ref_ifc=seq[-1][mc.Intfc])
+    seq[-1][mc.Gap] = g
+    ele.append(ag)
 
     for sg in seq:
         opt_model.seq_model.insert(sg[mc.Intfc], sg[mc.Gap])
+
     for e in ele:
         opt_model.ele_model.add_element(e)
+    opt_model.ele_model.sequence_elements()
+
+
+def remove_ifc_gp_ele(opt_model, *args, **kwargs):
+    """ remove interfaces and gaps from seq_model and eles from ele_model """
+    seq, ele = args
+    sg = seq[0]
+    idx = opt_model.seq_model.ifcs.index(sg[mc.Intfc])
+
+    # verify that the sequences match
+    seq_match = True
+    for i, sg in enumerate(seq):
+        if sg[0] is not opt_model.seq_model.ifcs[idx+i]:
+            seq_match = False
+            break
+
+    if seq_match:
+        # remove interfaces in reverse
+        for i in range(idx+len(seq)-1, idx-1, -1):
+            opt_model.seq_model.remove(i)
+
+    for e in ele:
+        opt_model.ele_model.remove_element(e)
 
 
 class Element():
@@ -669,7 +692,7 @@ class AirGap():
         return self.ref_ifc
 
     def interface_list(self):
-        return [self.ref_ifc]
+        return []
 
     def gap_list(self):
         return [self.gap]
@@ -869,7 +892,6 @@ class ElementModel:
                 e.label = AirGap.label_format.format(eb + '-' + ea)
 
     def add_element(self, e):
-#        print('elements.add_element', e.label)
         e.parent = self
         self.elements.append(e)
         for ifc in e.interface_list():
@@ -878,7 +900,6 @@ class ElementModel:
             self.gap_dict[g] = e
 
     def remove_element(self, e):
-#        print('elements.remove_element', e.label)
         for ifc in e.interface_list():
             self.ifcs_dict.pop(ifc)
         for g in e.gap_list():

@@ -79,7 +79,6 @@ class InteractiveDiagram(InteractiveFigure):
         return self
 
     def action_complete(self):
-#        print('action_complete')
         self.diagram.register_commands((), figure=self)
 
     def update_axis_limits(self):

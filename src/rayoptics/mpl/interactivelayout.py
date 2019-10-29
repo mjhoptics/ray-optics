@@ -71,3 +71,6 @@ class InteractiveLayout(InteractiveFigure):
         self.sys_bbox = bbox_from_poly(sys_bbox)
 
         return self
+
+    def action_complete(self):
+        self.do_action = self.do_shape_action

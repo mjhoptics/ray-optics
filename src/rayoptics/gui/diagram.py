@@ -11,6 +11,7 @@ import numpy as np
 
 from rayoptics.gui.util import GUIHandle, bbox_from_poly
 
+from rayoptics.optical.elements import remove_ifc_gp_ele
 from rayoptics.optical.model_constants import ht, slp
 from rayoptics.optical.model_constants import pwr, tau, indx, rmd
 from rayoptics.util.rgb2mpl import rgb2mpl
@@ -40,7 +41,6 @@ class Diagram():
 
     def update_data(self, fig):
         parax_model = self.opt_model.parax_model
-#        print('Diagram.update_data: build=', (not fig.skip_build))
 
         if not fig.skip_build:
             parax_model.build_lens()
@@ -72,15 +72,15 @@ class Diagram():
         self._apply_data(node, vertex)
         self.opt_model.parax_model.paraxial_lens_to_seq_model()
 
-    def assign_object_to_node(self, node, factory, **kwargs):
+    def assign_object_to_node(self, node, factory):
         parax_model = self.opt_model.parax_model
-        parax_model.assign_object_to_node(node, factory, **kwargs)
+        inputs = parax_model.assign_object_to_node(node, factory)
         parax_model.paraxial_lens_to_seq_model()
+        return inputs
 
     def register_commands(self, *args, **inputs):
         fig = inputs.pop('figure')
         self.command_inputs = dict(inputs)
-#        print('command_inputs:', self.command_inputs)
 
         def do_command_action(event, target, event_key):
             nonlocal fig
@@ -204,15 +204,20 @@ class DiagramEdge():
         if self.node == 0:
             return (237, 243, 254, 64)  # light blue
         else:
+            # there is no element for the object space airgap so decrement
+            #  index into element list
+            ele_idx = self.node - 1
             elements = self.diagram.opt_model.ele_model.elements
-            if hasattr(elements[self.node-1], 'gap'):
-                e = elements[self.node-1]
+            if hasattr(elements[ele_idx], 'gap'):
+                e = elements[ele_idx]
+                return e.render_color
             else:
+                # single surface element, like mirror or thinlens, use airgap
                 try:
-                    e = elements[self.node]
+                    e = elements[ele_idx+1]
+                    return e.render_color
                 except IndexError:
-                    pass
-            return e.render_color
+                    return (237, 243, 254, 64)  # light blue
 
     def get_label(self):
         return 'edge' + str(self.node)
@@ -252,6 +257,7 @@ class EditNodeAction():
 class AddElementAction():
     def __init__(self, dgm_edge, **kwargs):
         diagram = dgm_edge.diagram
+        seq_model = diagram.opt_model.seq_model
         parax_model = diagram.opt_model.parax_model
         self.cur_node = None
 
@@ -261,14 +267,13 @@ class AddElementAction():
                'factory' in diagram.command_inputs:
 
                 self.cur_node = dgm_edge.node
-#                print("on_press_add_point", self.cur_node,
-#                      diagram.command_inputs['node_init'])
                 event_data = np.array([event.xdata, event.ydata])
                 parax_model.add_node(self.cur_node, event_data,
                                      diagram.type_sel)
                 self.cur_node += 1
                 node_init = diagram.command_inputs['node_init']
-                diagram.assign_object_to_node(self.cur_node, node_init)
+                self.init_inputs = diagram.assign_object_to_node(self.cur_node,
+                                                                 node_init)
                 fig.skip_build = False
                 fig.refresh_gui()
 
@@ -276,24 +281,22 @@ class AddElementAction():
             if self.cur_node is not None:
                 event_data = np.array([event.xdata, event.ydata])
                 diagram.apply_data(self.cur_node, event_data)
-                fig.skip_build = True
+#                fig.skip_build = True
                 fig.refresh_gui()
 
         def on_release_add_point(fig, event):
             if self.cur_node is not None:
                 factory = diagram.command_inputs['factory']
-#                print('on_release_add_point', self.cur_node, factory)
                 if factory != diagram.command_inputs['node_init']:
-                    seq_model = diagram.opt_model.seq_model
                     prev_ifc = seq_model.ifcs[self.cur_node]
-                    diagram.assign_object_to_node(self.cur_node, factory)
-                    ele_model = diagram.opt_model.ele_model
-                    ele_model.remove_element(ele_model.ifcs_dict[prev_ifc])
+                    inputs = diagram.assign_object_to_node(self.cur_node,
+                                                           factory)
                     idx = seq_model.ifcs.index(prev_ifc)
                     n_after = parax_model.sys[idx-1][indx]
                     thi = n_after*parax_model.sys[idx-1][tau]
                     seq_model.gaps[idx-1].thi = thi
-                    seq_model.remove(idx)
+                    args, kwargs = self.init_inputs
+                    remove_ifc_gp_ele(diagram.opt_model, *args, **kwargs)
                 fig.skip_build = False
                 fig.refresh_gui()
             self.cur_node = None

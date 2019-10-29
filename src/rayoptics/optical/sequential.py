@@ -218,17 +218,22 @@ class SequentialModel:
         self.z_dir.insert(surf, self.z_dir[surf-1])
         self.rndx.insert(surf, self.rndx[surf-1])
 
+        if ifc.interact_mode == imode.Reflect:
+            self.update_reflections(start=surf)
+
     def remove(self, *args):
         """ remove surf and gap at cur_surface or an input index argument """
         if len(args) == 0:
             idx = self.cur_surface
         else:
             idx = args[0]
-        print('sequential.remove', idx)
 
         # don't allow object or image interfaces to be removed
         if idx == 0 or idx == -1 or idx == len(self.ifcs):
             raise IndexError
+
+        if self.ifcs[idx].interact_mode == imode.Reflect:
+            self.update_reflections(start=idx)
 
         del self.ifcs[idx]
         del self.gaps[idx]
@@ -332,6 +337,15 @@ class SequentialModel:
         g = gap.Gap()
         self.insert(s, g)
         return s, g
+
+    def update_reflections(self, start):
+        """ update interfaces and gaps following insertion of a mirror """
+        for i, sg in enumerate(self.path(start=start), start=start):
+            if i > start:
+                sg[Intfc].apply_scale_factor(-1)
+            if sg[Gap]:
+                sg[Gap].apply_scale_factor(-1)
+            self.z_dir[i] = -sg[Zdir]
 
     def surface_label_list(self):
         """ list of surface labels or surface number, if no label """

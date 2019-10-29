@@ -26,7 +26,8 @@ from rayoptics.optical import transform
 from rayoptics.optical.trace import (trace_boundary_rays_at_field,
                                      boundary_ray_dict, RaySeg)
 from rayoptics.optical.elements import (create_thinlens, create_mirror,
-                                        create_lens, insert_ifc_gp_ele)
+                                        create_lens, insert_ifc_gp_ele,
+                                        AirGap)
 import rayoptics.optical.model_constants as mc
 from rayoptics.util.rgb2mpl import rgb2mpl
 import rayoptics.gui.appcmds as cmds
@@ -440,41 +441,39 @@ class LensLayout():
             nonlocal fig, actions
             if target is not None:
                 shape, handle = target.artist.shape
-                try:
-                    action = actions[event_key]
-                    action(fig, handle, event, target.info)
-                except KeyError:
-                    pass
+                if handle == 'ct' and isinstance(shape.e, AirGap):
+                    try:
+                        action = actions[event_key]
+                        action(fig, shape, event, target.info)
+                    except KeyError:
+                        pass
         fig.do_action = do_command_action
 
     def add_element_cmd_actions(self, **kwargs):
-        seq_start = 1
-        idx = seq_start
+        idx = None
 
-        def add_event_data(tfrm, event, handle, info):
+        def add_event_data(tfrm, event):
             gbl_pt = np.array([event.xdata, event.ydata])
             lcl_pt = inv_transform_poly(tfrm, gbl_pt)
             event.lcl_pt = lcl_pt
 
-        def on_select_cmd(fig, handle, event, info):
-            nonlocal idx, seq_start
-            idx = seq_start
-            if 'ind' in info:
-                idx += info['ind'][0]
+        def on_select_cmd(fig, shape, event, info):
+            nonlocal idx
+            idx = shape.e.idx
             tfrm = self.opt_model.seq_model.gbl_tfrms[idx]
-            add_event_data(tfrm, event, handle, info)
+            add_event_data(tfrm, event)
             self.apply_fct(self.opt_model, idx, event.lcl_pt, **kwargs)
             fig.refresh_gui()
 
-#        def on_edit_cmd(fig, handle, event, info):
-#            add_event_data(self, event, handle, info)
+#        def on_edit_cmd(fig, shape, event, info):
+#            add_event_data(self, event)
 #            self.apply_fct(idx, event.lcl_pt)
 #            fig.refresh_gui()
 #        actions['drag'] = on_edit_cmd
 
-        def on_release_cmd(fig, handle, event, info):
+        def on_release_cmd(fig, shape, event, info):
             nonlocal idx
-#            add_event_data(self, event, handle, info)
+#            add_event_data(self, event)
 #            self.apply_fct(idx, event.lcl_pt)
 #            fig.refresh_gui()
             idx = None
@@ -500,7 +499,7 @@ def add_reflector(opt_model, idx, lcl_pt, create, **kwargs):
     seq_model = opt_model.seq_model
     g = seq_model.gaps[idx]
     x, y = lcl_pt
-    t_new = -(g.thi - x)
+    t_new = g.thi - x
     g.thi = x
 
     insert_ifc_gp_ele(opt_model, *create(**kwargs), idx=idx, t=t_new)
