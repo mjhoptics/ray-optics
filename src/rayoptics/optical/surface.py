@@ -42,11 +42,8 @@ class InteractionMode(Enum):
     Reflect = auto()   #: propagate in reflection at this interface
 
 
-imode = InteractionMode
-
-
 class Interface:
-    def __init__(self, interact_mode=imode.Transmit, delta_n=0.0,
+    def __init__(self, interact_mode='transmit', delta_n=0.0,
                  max_ap=1.0, decenter=None, phase_element=None):
         self.interact_mode = interact_mode
         self.delta_n = delta_n
@@ -65,6 +62,11 @@ class Interface:
     def sync_to_restore(self, opt_model):
         if not hasattr(self, 'max_aperture'):
             self.max_aperture = 1.0
+        if isinstance(self.interact_mode, InteractionMode):
+            if self.interact_mode == InteractionMode.Reflect:
+                self.interact_mode = 'reflect'
+            elif self.interact_mode == InteractionMode.Transmit:
+                self.interact_mode = 'transmit'
 
     @property
     def profile_cv(self):

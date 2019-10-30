@@ -11,13 +11,12 @@
 
 import numpy as np
 from rayoptics.optical.surface import Interface
-from rayoptics.optical.surface import InteractionMode as imode
 from rayoptics.optical.doe import HolographicElement
 
 
 class ThinLens(Interface):
     def __init__(self, lbl='', power=0.0, ref_index=1.5, **kwargs):
-        super().__init__(interact_mode=imode.Transmit,
+        super().__init__(interact_mode='transmit',
                          phase_element=HolographicElement(),
                          **kwargs)
         self.label = lbl

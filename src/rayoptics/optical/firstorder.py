@@ -9,7 +9,6 @@
 """
 import math
 from collections import namedtuple
-from rayoptics.optical.surface import InteractionMode as imode
 from rayoptics.optical.etendue import obj_img_set, fld_ape_set
 from rayoptics.optical.model_constants import Intfc, Gap, Tfrm, Indx, Zdir
 from rayoptics.optical.model_constants import ht, slp, aoi

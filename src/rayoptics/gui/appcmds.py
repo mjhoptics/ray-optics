@@ -289,7 +289,7 @@ def create_lens_table_model(seq_model):
     colEvalStr = ['.ifcs[{}].interface_type()',
                   '.ifcs[{}].profile_cv',
                   '.ifcs[{}].surface_od()', '.gaps[{}].thi',
-                  '.gaps[{}].medium.name()', '.ifcs[{}].interact_mode.name']
+                  '.gaps[{}].medium.name()', '.ifcs[{}].interact_mode']
     rowHeaders = seq_model.surface_label_list()
     colHeaders = ['type', 'cv', 'sd', 'thi', 'medium', 'mode']
     colFormats = ['{:s}', '{:12.7g}', '{:12.5g}', '{:12.5g}',

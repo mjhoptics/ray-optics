@@ -18,7 +18,6 @@ from rayoptics.optical.elements import insert_ifc_gp_ele
 import rayoptics.optical.firstorder as fo
 from rayoptics.optical.gap import Gap
 from rayoptics.optical.surface import Surface
-from rayoptics.optical.surface import InteractionMode as imode
 from rayoptics.util.rgb2mpl import rgb2mpl, backgrnd_color
 
 
@@ -91,7 +90,7 @@ class ParaxialModel():
             surf = ns - 2
         n = self.sys[surf][indx]
         new_surf = surf + 1
-        self.sys.insert(new_surf, [0.0, 0.0, n, imode.Transmit])
+        self.sys.insert(new_surf, [0.0, 0.0, n, 'transmit'])
 
         ax_node = [0.0, 0.0, 0.0]
         ax_node[type_sel] = new_vertex[1]
@@ -125,7 +124,7 @@ class ParaxialModel():
         insert_ifc_gp_ele(self.opt_model, *args, **kwargs)
 
         self.sys[node][rmd] = seq[0][0].interact_mode
-        if seq[0][0].interact_mode == imode.Reflect:
+        if seq[0][0].interact_mode == 'reflect':
             for i in range(node, len(self.sys)):
                 self.sys[i][indx] = -self.sys[i][indx]
 
@@ -316,13 +315,13 @@ class ParaxialModel():
         sys = []
         for i, sg in enumerate(path):
             n_after = sg[mc.Indx] if sg[mc.Zdir] > 0 else -sg[mc.Indx]
-            rmode = sg[mc.Intfc].interact_mode
+            imode = sg[mc.Intfc].interact_mode
             power = sg[mc.Intfc].optical_power
             if sg[mc.Gap]:
                 tau = sg[mc.Gap].thi/n_after
-                sys.append([power, tau, n_after, rmode])
+                sys.append([power, tau, n_after, imode])
             else:
-                sys.append([power, 0.0, n_after, rmode])
+                sys.append([power, 0.0, n_after, imode])
         return sys
 
     def paraxial_lens_to_seq_model(self):

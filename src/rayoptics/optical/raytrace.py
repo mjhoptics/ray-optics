@@ -12,7 +12,6 @@ import numpy as np
 from numpy.linalg import norm
 from math import sqrt, copysign
 
-from rayoptics.optical.surface import InteractionMode as imode
 import rayoptics.optical.model_constants as mc
 from rayoptics.optical.model_constants import Intfc, Gap, Indx, Tfrm, Zdir
 from .traceerror import (TraceMissedSurfaceError, TraceTIRError,
@@ -160,9 +159,9 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12):
                 op_delta += phs
 
             # refract or reflect ray at interface
-            if ifc.interact_mode == imode.Reflect:
+            if ifc.interact_mode == 'reflect':
                 after_dir = reflect(b4_dir, normal)
-            elif ifc.interact_mode == imode.Transmit:
+            elif ifc.interact_mode == 'transmit':
                 after_dir = bend(b4_dir, normal, before[Indx], after[Indx])
             else:  # no action, input becomes output
                 after_dir = b4_dir

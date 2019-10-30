@@ -19,7 +19,6 @@ from rayoptics.optical.model_enums import DimensionType as dt
 from rayoptics.optical.model_enums import DecenterType as dec
 from rayoptics.optical.surface import (DecenterData, Circular, Rectangular,
                                        Elliptical)
-from rayoptics.optical.surface import InteractionMode as imode
 from rayoptics.optical import profiles
 from rayoptics.optical import doe
 from rayoptics.optical.medium import Air, Glass, InterpolatedGlass
@@ -258,7 +257,7 @@ def update_surface_and_gap(opt_model, dlist, idx=None):
             g.medium = Air()
         else:
             if dlist[2].upper() == 'REFL':
-                s.interact_mode = imode.Reflect
+                s.interact_mode = 'reflect'
                 g.medium = seq_model.gaps[seq_model.cur_surface-1].medium
             else:
                 g.medium = process_glass_data(dlist[2])

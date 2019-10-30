@@ -18,7 +18,6 @@ import rayoptics.util.rgbtable as rgbt
 import rayoptics.optical.thinlens as thinlens
 from rayoptics.optical.profiles import Spherical, Conic
 from rayoptics.optical.surface import Surface
-from rayoptics.optical.surface import InteractionMode as imode
 from rayoptics.optical.gap import Gap
 from rayoptics.gui.actions import Action, AttrAction, SagAction, BendAction
 from rayoptics.optical.medium import Glass, glass_decode
@@ -65,7 +64,7 @@ def create_mirror(c=0.0, r=None, cc=0.0, ec=None,
         else:
             prf = Conic(c=cv, cc=k)
 
-    m = Surface(profile=prf, interact_mode=imode.Reflect, max_ap=sd)
+    m = Surface(profile=prf, interact_mode='reflect', max_ap=sd)
     me = Mirror(m, sd=sd)
     return [[m, None, None, 1, -1]], [me]
 
@@ -784,7 +783,7 @@ class ElementModel:
                                         num_elements, add_ele=True)
             else:  # a non-air medium
                 # handle buried mirror, e.g. prism or Mangin mirror
-                if s1.interact_mode == imode.Reflect:
+                if s1.interact_mode == 'reflect':
                     gp = seq_model.gaps[i-1]
                     if gp.medium.name().lower() == g.medium.name().lower():
                         continue
@@ -801,14 +800,14 @@ class ElementModel:
         self.relabel_airgaps()
 
     def process_airgap(self, seq_model, i, g, s, tfrm, num_ele, add_ele=True):
-        if s.interact_mode == imode.Reflect and add_ele:
+        if s.interact_mode == 'reflect' and add_ele:
             sd = s.surface_od()
             z_dir = seq_model.z_dir[i]
             m = Mirror(s, sd=sd, tfrm=tfrm, idx=i, z_dir=z_dir)
             num_ele += 1
             m.label = Mirror.label_format.format(num_ele)
             self.add_element(m)
-        elif s.interact_mode is imode.Transmit:
+        elif s.interact_mode == 'transmit':
             add_dummy = False
             if i == 0:
                 add_dummy = True  # add dummy for the object

@@ -15,7 +15,6 @@ from . import medium as m
 from . import raytrace as rt
 from . import trace as trace
 from . import transform as trns
-from rayoptics.optical.surface import InteractionMode as imode
 from rayoptics.optical.model_constants import Intfc, Gap, Indx, Tfrm, Zdir
 from opticalglass import glassfactory as gfact
 from opticalglass import glasserror as ge
@@ -218,7 +217,7 @@ class SequentialModel:
         self.z_dir.insert(surf, self.z_dir[surf-1])
         self.rndx.insert(surf, self.rndx[surf-1])
 
-        if ifc.interact_mode == imode.Reflect:
+        if ifc.interact_mode == 'reflect':
             self.update_reflections(start=surf)
 
     def remove(self, *args):
@@ -232,7 +231,7 @@ class SequentialModel:
         if idx == 0 or idx == -1 or idx == len(self.ifcs):
             raise IndexError
 
-        if self.ifcs[idx].interact_mode == imode.Reflect:
+        if self.ifcs[idx].interact_mode == 'reflect':
             self.update_reflections(start=idx)
 
         del self.ifcs[idx]
@@ -283,7 +282,7 @@ class SequentialModel:
 
         for i, s in enumerate(self.ifcs):
             z_dir_after = copysign(1, z_dir_before)
-            if s.interact_mode == imode.Reflect:
+            if s.interact_mode == 'reflect':
                 z_dir_after = -z_dir_after
 
             # leave rndx data unsigned, track change of sign using z_dir
@@ -670,7 +669,7 @@ def gen_sequence(surf_data_list, **kwargs):
     for i, s in enumerate(ifcs):
         z_dir_after = copysign(1, z_dir_before)
         n_after = np.copysign(rndx[i], n_before)
-        if s.interact_mode == imode.Reflect:
+        if s.interact_mode == 'reflect':
             n_after = -n_after
             z_dir_after = -z_dir_after
 
@@ -709,7 +708,7 @@ def create_surface_and_gap(surf_data, radius_mode=False, prev_medium=None,
 
         else:
             if surf_data[2].upper() == 'REFL':
-                s.interact_mode = imode.Reflect
+                s.interact_mode = 'reflect'
                 mat = prev_medium
             else:
                 name, cat = surf_data[2], surf_data[3]
