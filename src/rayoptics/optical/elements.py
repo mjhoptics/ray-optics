@@ -155,6 +155,7 @@ class Element():
         self.s2 = s2
         self.s2_indx = idx2
         self.gap = g
+        self.medium_name = self.gap.medium.name()
         self._sd = sd
         self.flat1 = None
         self.flat2 = None
@@ -195,6 +196,8 @@ class Element():
         self.s1 = surfs[self.s1_indx]
         self.gap = gaps[self.s1_indx]
         self.s2 = surfs[self.s2_indx]
+        if not hasattr(self, 'medium_name'):
+            self.medium_name = self.gap.medium.name()
 
     def sync_to_update(self, seq_model):
         # when updating, we want to use the stored object instances to get the
@@ -206,6 +209,9 @@ class Element():
 
     def reference_interface(self):
         return self.s1
+
+    def reference_idx(self):
+        return self.s1_indx
 
     def interface_list(self):
         return [self.s1, self.s2]
@@ -371,6 +377,7 @@ class Mirror():
         self.sd = sd
         self.flat = None
         self.thi = thi
+        self.medium_name = 'Mirror'
         self.handles = {}
         self.actions = {}
 
@@ -398,9 +405,14 @@ class Mirror():
         self.parent = ele_model
         self.tfrm = tfrms[self.s_indx]
         self.s = surfs[self.s_indx]
+        if not hasattr(self, 'medium_name'):
+            self.medium_name = 'Mirror'
 
     def reference_interface(self):
         return self.s
+
+    def reference_idx(self):
+        return self.s_indx
 
     def interface_list(self):
         return [self.s]
@@ -500,6 +512,7 @@ class ThinElement():
             self.tfrm = (np.identity(3), np.array([0., 0., 0.]))
         self.intrfc = ifc
         self.intrfc_indx = idx
+        self.medium_name = 'Thin Element'
         if sd is not None:
             self.sd = sd
         else:
@@ -523,9 +536,14 @@ class ThinElement():
         self.parent = ele_model
         self.tfrm = tfrms[self.intrfc_indx]
         self.intrfc = surfs[self.intrfc_indx]
+        if not hasattr(self, 'medium_name'):
+            self.medium_name = 'Thin Element'
 
     def reference_interface(self):
         return self.intrfc
+
+    def reference_idx(self):
+        return self.intrfc_indx
 
     def interface_list(self):
         return [self.intrfc]
@@ -568,6 +586,7 @@ class DummyInterface():
             self.tfrm = (np.identity(3), np.array([0., 0., 0.]))
         self.ref_ifc = ifc
         self.idx = idx
+        self.medium_name = 'Interface'
         if sd is not None:
             self.sd = sd
         else:
@@ -591,9 +610,14 @@ class DummyInterface():
         self.parent = ele_model
         self.tfrm = tfrms[self.idx]
         self.ref_ifc = surfs[self.idx]
+        if not hasattr(self, 'medium_name'):
+            self.medium_name = 'Interface'
 
     def reference_interface(self):
         return self.ref_ifc
+
+    def reference_idx(self):
+        return self.idx
 
     def interface_list(self):
         return [self.ref_ifc]
@@ -661,6 +685,7 @@ class AirGap():
         self.label = label
         self.render_color = (237, 243, 254, 64)  # light blue
         self.gap = g
+        self.medium_name = self.gap.medium.name()
         self.ref_ifc = ref_ifc
         self.idx = idx
         self.handles = {}
@@ -686,9 +711,14 @@ class AirGap():
         self.tfrm = tfrms[self.idx]
         if not hasattr(self, 'render_color'):
             self.render_color = (237, 243, 254, 64)  # light blue
+        if not hasattr(self, 'medium_name'):
+            self.medium_name = self.gap.medium.name()
 
     def reference_interface(self):
         return self.ref_ifc
+
+    def reference_idx(self):
+        return self.idx
 
     def interface_list(self):
         return []
@@ -913,3 +943,6 @@ class ElementModel:
         for i, ele in enumerate(self.elements):
             print("%d: %s (%s): %s" %
                   (i, ele.label, type(ele).__name__, ele))
+
+    def element_type(self, i):
+        return type(self.elements[i]).__name__

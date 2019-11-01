@@ -68,8 +68,10 @@ class MainWindow(QMainWindow):
         view.addAction("Spec Sheet")
         view.addAction("Optical Layout")
         view.addAction("Lens Table")
+        view.addAction("Element Table")
         view.addAction("Lens View")
         view.addSeparator()
+        view.addAction("Paraxial Model")
         view.addAction("Paraxial Height View")
         view.addAction("Paraxial Height View V2")
         view.addAction("Paraxial Slope View")
@@ -243,6 +245,10 @@ class MainWindow(QMainWindow):
         if q.text() == "Lens Table":
             self.create_lens_table()
 
+        if q.text() == "Element Table":
+            model = cmds.create_element_table_model(opt_model)
+            self.create_table_view(model, "Element Table")
+
         if q.text() == "Ray Fans":
             cmds.create_ray_fan_view(opt_model, "Ray", gui_parent=self)
 
@@ -276,6 +282,10 @@ class MainWindow(QMainWindow):
         if q.text() == "Paraxial Ray Table":
             model = cmds.create_parax_table_model(opt_model)
             self.create_table_view(model, "Paraxial Ray Table")
+
+        if q.text() == "Paraxial Model":
+            model = cmds.create_parax_model_table(opt_model)
+            self.create_table_view(model, "Paraxial Model")
 
         if q.text() == "Ray Table":
             self.create_ray_table(opt_model)

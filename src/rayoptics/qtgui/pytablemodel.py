@@ -12,6 +12,8 @@ import logging
 from PyQt5.QtCore import Qt, QAbstractTableModel
 from PyQt5.QtCore import pyqtSignal
 
+from rayoptics.util.misc_math import isanumber
+
 
 class PyTableModel(QAbstractTableModel):
 
@@ -70,6 +72,8 @@ class PyTableModel(QAbstractTableModel):
             elif orientation == Qt.Vertical:
                 if self.get_row_headers is not None:
                     self.rowHeaders = self.get_row_headers()
+                if len(self.rowHeaders) == 0:
+                    return None
                 return self.rowHeaders[section]
         else:
             return None
@@ -116,6 +120,8 @@ class PyTableModel(QAbstractTableModel):
             r = index.row()
             c = index.column()
             exec_str = ('root' + self.colEvalStr[c]).format(r)
+            if not isanumber(value):
+                value = "'" + value + "'"
             exec_str = exec_str + '=' + value
             try:
                 exec(exec_str)

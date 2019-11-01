@@ -300,6 +300,28 @@ def create_lens_table_model(seq_model):
                         get_row_headers=seq_model.surface_label_list)
 
 
+def create_element_table_model(opt_model):
+    ele_model = opt_model.ele_model
+
+    def get_row_headers():
+        return [str(i) for i in range(ele_model.get_num_elements())]
+    colEvalStr = ['.elements[{}].label', '.element_type({})',
+                  '.elements[{}].medium_name',
+                  '.elements[{}].tfrm[1][1]',
+                  '.elements[{}].tfrm[1][2]',
+                  '.elements[{}].reference_idx()',
+                  '.elements[{}].reference_interface().interface_type()']
+
+    rowHeaders = get_row_headers()
+    colHeaders = ['label', 'type', 'medium', 'y', 'z', 'idx', 'ref ifc']
+    colFormats = ['{:s}', '{:s}', '{:s}', '{:12.5g}', '{:12.5g}',
+                  '{:d}', '{:s}']
+    return PyTableModel(ele_model, '', colEvalStr, rowHeaders,
+                        colHeaders, colFormats, True,
+                        get_num_rows=ele_model.get_num_elements,
+                        get_row_headers=get_row_headers)
+
+
 def create_ray_table_model(opt_model, ray):
     colEvalStr = ['[{}].p[0]', '[{}].p[1]', '[{}].p[2]',
                   '[{}].d[0]', '[{}].d[1]', '[{}].d[2]',
@@ -326,5 +348,20 @@ def create_parax_table_model(opt_model):
                   '{:9.6f}', '{:9.6f}']
     return PyTableModel(opt_model, rootEvalStr, colEvalStr, rowHeaders,
                         colHeaders, colFormats, False,
+                        get_num_rows=seq_model.get_num_surfaces,
+                        get_row_headers=seq_model.surface_label_list)
+
+
+def create_parax_model_table(opt_model):
+    rootEvalStr = ".parax_model"
+    colEvalStr = ['.ax[{}][0]', '.pr[{}][0]', '.ax[{}][1]', '.pr[{}][1]',
+                  '.sys[{}][0]', '.sys[{}][1]', '.sys[{}][2]', '.sys[{}][3]']
+    seq_model = opt_model.seq_model
+    rowHeaders = seq_model.surface_label_list()
+    colHeaders = ['y', 'y-bar', 'u', 'u-bar', 'pwr', 'tau', 'n after', 'mode']
+    colFormats = ['{:12.5g}', '{:12.5g}', '{:9.6f}', '{:9.6f}',
+                  '{:12.7g}', '{:12.5g}', '{:7.4f}', '{:s}']
+    return PyTableModel(opt_model, rootEvalStr, colEvalStr, rowHeaders,
+                        colHeaders, colFormats, True,
                         get_num_rows=seq_model.get_num_surfaces,
                         get_row_headers=seq_model.surface_label_list)
