@@ -201,23 +201,13 @@ class DiagramEdge():
         return gui_handles
 
     def render_color(self):
-        if self.node == 0:
-            return (237, 243, 254, 64)  # light blue
+        gap = self.diagram.opt_model.seq_model.gaps[self.node]
+        e = self.diagram.opt_model.ele_model.gap_dict.get(gap)
+        if hasattr(e, 'gap'):
+            return e.render_color
         else:
-            # there is no element for the object space airgap so decrement
-            #  index into element list
-            ele_idx = self.node - 1
-            elements = self.diagram.opt_model.ele_model.elements
-            if hasattr(elements[ele_idx], 'gap'):
-                e = elements[ele_idx]
-                return e.render_color
-            else:
-                # single surface element, like mirror or thinlens, use airgap
-                try:
-                    e = elements[ele_idx+1]
-                    return e.render_color
-                except IndexError:
-                    return (237, 243, 254, 64)  # light blue
+            # single surface element, like mirror or thinlens, use airgap
+            return (237, 243, 254, 64)  # light blue
 
     def get_label(self):
         return 'edge' + str(self.node)
