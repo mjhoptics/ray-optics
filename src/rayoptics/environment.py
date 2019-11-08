@@ -55,6 +55,7 @@ import rayoptics.optical.model_constants as mc
 
 import rayoptics.mpl.paraxdgnfigure as pdfig
 from rayoptics.mpl.paraxdgnfigure import ParaxialDesignFigure
+from rayoptics.mpl.interactivediagram import InteractiveDiagram
 
 # axis array figures
 from rayoptics.mpl.axisarrayfigure import Fit

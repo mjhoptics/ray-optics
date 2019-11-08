@@ -366,7 +366,7 @@ class SequentialModel:
         for i, sg in enumerate(self.path()):
             s = self.list_surface_and_gap(sg[Intfc], gp=sg[Gap])
             s.append(self.z_dir[i])
-            print("{0:2n}: {1:12.6f} {2:#12.6g} {3:>9s} {4.name:>10s} {6:2n}"
+            print("{0:2n}: {1:12.6f} {2:#12.6g} {3:>9s} {4:>10s} {6:2n}"
                   "  {5:#10.5g}".format(i, *s))
 
     def list_model_old(self):

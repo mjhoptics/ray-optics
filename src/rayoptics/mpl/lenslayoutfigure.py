@@ -15,6 +15,7 @@ from matplotlib.patches import Patch, Polygon
 import numpy as np
 
 from rayoptics.gui import layout
+from rayoptics.gui import util
 from rayoptics.util.rgb2mpl import rgb2mpl, backgrnd_color
 
 
@@ -67,7 +68,7 @@ class LensLayoutFigure(Figure):
             self.ray_bbox = self.update_patches(self.ray_shapes)
 
             concat_bbox = np.concatenate((self.ele_bbox, self.ray_bbox))
-            self.sys_bbox = layout.bbox_from_poly(concat_bbox)
+            self.sys_bbox = util.bbox_from_poly(concat_bbox)
         else:
             self.sys_bbox = self.ele_bbox
 
@@ -88,7 +89,7 @@ class LensLayoutFigure(Figure):
                 bbox_list = bbox
             else:
                 bbox_list = np.vstack((bbox_list, bbox))
-        bbox = layout.bbox_from_poly(bbox_list)
+        bbox = util.bbox_from_poly(bbox_list)
         return bbox
 
     def create_element_model(self, ele_model):
@@ -134,7 +135,7 @@ class LensLayoutFigure(Figure):
         return handles['shape']
 
     def scale_bounds(self, oversize_factor):
-        bbox = layout.scale_bounds(self.sys_bbox, oversize_factor)
+        bbox = util.scale_bounds(self.sys_bbox, oversize_factor)
         self.ax.set_xlim(bbox[0][0], bbox[1][0])
         self.ax.set_ylim(bbox[0][1], bbox[1][1])
 

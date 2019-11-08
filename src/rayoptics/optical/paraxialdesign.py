@@ -306,7 +306,7 @@ class ParaxialModel():
         print("\n            power           tau        index    type")
         for i in range(0, len(sys)):
             print("{:2}: {:13.7g}  {:12.5g} {:12.5f}    {}".format(i,
-                  sys[i][pwr], sys[i][tau], sys[i][indx], sys[i][rmd].name))
+                  sys[i][pwr], sys[i][tau], sys[i][indx], sys[i][rmd]))
 
     def seq_path_to_paraxial_lens(self, path):
         """ returns lists of power, reduced thickness, signed index and refract
