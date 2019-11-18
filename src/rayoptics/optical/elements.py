@@ -34,16 +34,17 @@ GraphicsHandle = namedtuple('GraphicsHandle', ['polydata', 'tfrm', 'polytype'])
 """
 
 
-def create_thinlens(power=0., indx=1.5, sd=None):
-    tl = thinlens.ThinLens(power=power, ref_index=indx, max_ap=sd)
+def create_thinlens(power=0., indx=1.5, sd=None, **kwargs):
+    tl = thinlens.ThinLens(power=power, ref_index=indx, max_ap=sd, **kwargs)
     tle = ThinElement(tl)
     return [[tl, None, None, 1, +1]], [tle]
 
 
 def create_mirror(c=0.0, r=None, cc=0.0, ec=None,
-                  power=None, profile=None, sd=None):
+                  power=None, profile=None, sd=None, **kwargs):
+    delta_n = kwargs['delta_n'] if 'delta_n' in kwargs else -2
     if power:
-        cv = power/2
+        cv = power/delta_n
     elif r:
         cv = 1.0/r
     else:
@@ -64,7 +65,8 @@ def create_mirror(c=0.0, r=None, cc=0.0, ec=None,
         else:
             prf = Conic(c=cv, cc=k)
 
-    m = Surface(profile=prf, interact_mode='reflect', max_ap=sd)
+    m = Surface(profile=prf, interact_mode='reflect', max_ap=sd,
+                delta_n=delta_n, **kwargs)
     me = Mirror(m, sd=sd)
     return [[m, None, None, 1, -1]], [me]
 
@@ -84,8 +86,8 @@ def create_lens(power=0., bending=0., th=None, sd=1., med=None):
     return [[s1, g, None, rndx, 1], [s2, None, None, 1, 1]], [le]
 
 
-def create_dummy_plane(sd=1.):
-    s = Surface()
+def create_dummy_plane(sd=1., **kwargs):
+    s = Surface(**kwargs)
     se = DummyInterface(s, sd=sd)
     return [[s, None, None, 1, +1]], [se]
 

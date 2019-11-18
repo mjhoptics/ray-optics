@@ -45,8 +45,15 @@ class Diagram():
     def update_data(self, fig):
         parax_model = self.opt_model.parax_model
 
-        if not fig.skip_build:
-            parax_model.build_lens()
+        if fig.build == 'update':
+            # just a change in node positions
+            self.shape = self.render_shape()
+        else:
+            # number of nodes have changed, rebuild everything
+            if fig.build == 'full_rebuild':
+                # change from another non-parax_model source,
+                #  rebuild parax_model
+                parax_model.build_lens()
             self.shape = self.render_shape()
 
             self.node_list = []
@@ -339,6 +346,7 @@ class EditNodeAction():
                     event_data = self.filter(event_data)
                 event_data = constrain_to_wedge(event_data)
                 diagram.apply_data(self.cur_node, event_data)
+                fig.build = 'update'
                 fig.refresh_gui()
 
         def on_release(fig, event):
@@ -348,6 +356,7 @@ class EditNodeAction():
                     event_data = self.filter(event_data)
                 event_data = constrain_to_wedge(event_data)
                 diagram.apply_data(self.cur_node, event_data)
+                fig.build = 'update'
                 fig.refresh_gui()
                 self.cur_node = None
 
@@ -371,20 +380,21 @@ class AddElementAction():
 
                 self.cur_node = dgm_edge.node
                 event_data = np.array([event.xdata, event.ydata])
+                interact = diagram.command_inputs['interact_mode']
                 parax_model.add_node(self.cur_node, event_data,
-                                     diagram.type_sel)
+                                     diagram.type_sel, interact)
                 self.cur_node += 1
                 node_init = diagram.command_inputs['node_init']
                 self.init_inputs = diagram.assign_object_to_node(self.cur_node,
                                                                  node_init)
-                fig.skip_build = False
+                fig.build = 'rebuild'
                 fig.refresh_gui()
 
         def on_drag_add_point(fig, event):
             if self.cur_node is not None:
                 event_data = np.array([event.xdata, event.ydata])
                 diagram.apply_data(self.cur_node, event_data)
-#                fig.skip_build = True
+                fig.build = 'update'
                 fig.refresh_gui()
 
         def on_release_add_point(fig, event):
@@ -400,7 +410,7 @@ class AddElementAction():
                     seq_model.gaps[idx-1].thi = thi
                     args, kwargs = self.init_inputs
                     remove_ifc_gp_ele(diagram.opt_model, *args, **kwargs)
-                fig.skip_build = False
+                fig.build = 'rebuild'
                 fig.refresh_gui()
             self.cur_node = None
 

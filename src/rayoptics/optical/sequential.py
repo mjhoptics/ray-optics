@@ -95,8 +95,6 @@ class SequentialModel:
         self.gbl_tfrms.append(tfrm)
         self.lcl_tfrms.append(tfrm)
 
-        self.wvlns = [550.]
-
         # add object gap
         self.gaps.append(gap.Gap())
         self.z_dir.append(1)
@@ -136,12 +134,12 @@ class SequentialModel:
             gap_start = start
 
         wl_idx = self.index_for_wavelength(wl)
-        rndx = [n[wl_idx] for n in self.rndx[start::step]]
-        path = itertools.zip_longest(self.ifcs[start::step],
-                                     self.gaps[gap_start::step],
-                                     self.lcl_tfrms[start::step],
+        rndx = [n[wl_idx] for n in self.rndx[start:stop:step]]
+        path = itertools.zip_longest(self.ifcs[start:stop:step],
+                                     self.gaps[gap_start:stop:step],
+                                     self.lcl_tfrms[start:stop:step],
                                      rndx,
-                                     self.z_dir[start::step])
+                                     self.z_dir[start:stop:step])
         return path
 
     def calc_ref_indices_for_spectrum(self, wvls):
@@ -168,6 +166,10 @@ class SequentialModel:
 
     def index_for_wavelength(self, wvl):
         """ returns index into rndx array for wavelength `wvl` in nm """
+        if len(self.wvlns) == 0:
+            rgn = self.opt_model.optical_spec.spectral_region
+            self.wvlns = rgn.wavelengths
+
         return self.wvlns.index(wvl)
 
     def central_rndx(self, i):
@@ -215,7 +217,10 @@ class SequentialModel:
         self.lcl_tfrms.insert(surf, tfrm)
 
         self.z_dir.insert(surf, self.z_dir[surf-1])
-        self.rndx.insert(surf, self.rndx[surf-1])
+
+        wvls = self.opt_model.optical_spec.spectral_region.wavelengths
+        rindex = [gap.medium.rindex(w) for w in wvls]
+        self.rndx.insert(surf, rindex)
 
         if ifc.interact_mode == 'reflect':
             self.update_reflections(start=surf)
@@ -339,11 +344,13 @@ class SequentialModel:
 
     def update_reflections(self, start):
         """ update interfaces and gaps following insertion of a mirror """
+        ref_wl = self.opt_model.optical_spec.spectral_region.reference_wvl
+
         for i, sg in enumerate(self.path(start=start), start=start):
             if i > start:
                 sg[Intfc].apply_scale_factor(-1)
-            if sg[Gap]:
-                sg[Gap].apply_scale_factor(-1)
+                if sg[Gap]:
+                    sg[Gap].apply_scale_factor(-1)
             self.z_dir[i] = -sg[Zdir]
 
     def surface_label_list(self):
@@ -361,13 +368,14 @@ class SequentialModel:
 
     def list_model(self):
         cvr = 'r' if self.opt_model.radius_mode else 'c'
-        print("           {}            t        medium     mode   zdr      sd"
-              .format(cvr))
+        print("             {}            t        medium     mode   zdr"
+              "      sd".format(cvr))
+        labels = self.surface_label_list()
         for i, sg in enumerate(self.path()):
             s = self.list_surface_and_gap(sg[Intfc], gp=sg[Gap])
             s.append(self.z_dir[i])
-            print("{0:2n}: {1:12.6f} {2:#12.6g} {3:>9s} {4:>10s} {6:2n}"
-                  "  {5:#10.5g}".format(i, *s))
+            print("{0:>4s}: {1:12.6f} {2:#12.6g} {3:>9s} {4:>10s} {6:2n}"
+                  "  {5:#10.5g}".format(labels[i], *s))
 
     def list_model_old(self):
         cvr = 'r' if self.opt_model.radius_mode else 'c'

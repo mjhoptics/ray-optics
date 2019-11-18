@@ -300,7 +300,7 @@ class ParaxialDesignFigure(Figure):
             new_vertex = hit_vertex + pdfig.data_slice.start
 #            print("add_point:", new_vertex)
             pdfig.parax_model.add_object(new_vertex, (x_hit, y_hit),
-                                         pdfig.type_sel, factory)
+                                         pdfig.type_sel, factory, 'transmit')
             new_vertex += 1
             pdfig.parax_model.paraxial_lens_to_seq_model()
             pdfig.skip_build = True

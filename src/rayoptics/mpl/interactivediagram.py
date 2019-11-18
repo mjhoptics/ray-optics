@@ -30,16 +30,19 @@ def create_parax_design_commands(fig):
     cmds.append(('Add Thin Lens',
                  (dgm.register_commands, (),
                   {'node_init': create_thinlens,
-                   'factory': create_thinlens})))
+                   'factory': create_thinlens,
+                   'interact_mode': 'transmit'})))
     # Add lens
     cmds.append(('Add Lens', (dgm.register_commands, (),
                               {'node_init': create_thinlens,
-                               'factory': create_lens})))
+                               'factory': create_lens,
+                               'interact_mode': 'transmit'})))
     # Add mirror
     cmds.append(('Add Mirror',
                  (dgm.register_commands, (),
                   {'node_init': create_mirror,
-                   'factory': create_mirror})))
+                   'factory': create_mirror,
+                   'interact_mode': 'reflect'})))
 
     return cmds
 
@@ -59,7 +62,7 @@ class InteractiveDiagram(InteractiveFigure):
         self.diagram = Diagram(opt_model, dgm_type)
         self.setup_dgm_type(dgm_type)
 
-        self.skip_build = False
+        self.build = 'rebuild'
 
         super().__init__(**kwargs)
 
@@ -76,6 +79,7 @@ class InteractiveDiagram(InteractiveFigure):
     def update_data(self):
         self.artists = []
         self.sys_bbox = self.diagram.update_data(self)
+        self.build == 'full_rebuild'
         return self
 
     def action_complete(self):

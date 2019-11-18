@@ -278,7 +278,9 @@ class InteractiveFigure(Figure):
             artists = self.find_artists_at_location(event)
             next_hilited = artists[0] if len(artists) > 0 else None
 
-            if next_hilited is not self.hilited:
+            cur_art = self.hilited.artist if self.hilited is not None else None
+            nxt_art = next_hilited.artist if next_hilited is not None else None
+            if nxt_art is not cur_art:
                 if self.hilited:
                     self.hilited.artist.unhighlight(self.hilited.artist)
                     self.hilited.artist.figure.canvas.draw()

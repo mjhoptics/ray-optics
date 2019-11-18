@@ -71,8 +71,10 @@ class ParaxialModel():
         self.build_lens()
 
     def build_lens(self):
-        self.sys = self.seq_path_to_paraxial_lens(self.seq_model.path())
-        sys = self.sys
+        # rebuild the `sys` description from the seq_model path
+        self.sys = sys = self.seq_path_to_paraxial_lens(self.seq_model.path())
+
+        # precalculate the reduced forms of the paraxial axial and chief rays
         ax_ray, pr_ray, fod = self.parax_data
         self.opt_inv = fod.opt_inv
 
@@ -83,28 +85,33 @@ class ParaxialModel():
             self.ax.append([ax_ray[i][ht], n*ax_ray[i][slp], n*ax_ray[i][aoi]])
             self.pr.append([pr_ray[i][ht], n*pr_ray[i][slp], n*pr_ray[i][aoi]])
 
-    def add_node(self, surf, new_vertex, type_sel):
+    def add_node(self, node, new_vertex, type_sel, interact_mode):
         """ Add a node in the paraxial data structures """
         ns = self.seq_model.get_num_surfaces()
-        if surf >= ns - 1:
-            surf = ns - 2
-        n = self.sys[surf][indx]
-        new_surf = surf + 1
-        self.sys.insert(new_surf, [0.0, 0.0, n, 'transmit'])
+        if node >= ns - 1:
+            node = ns - 2
+        n = self.sys[node][indx]
+        new_node = node + 1
+        self.sys.insert(new_node, [0.0, 0.0, n, interact_mode])
 
         ax_node = [0.0, 0.0, 0.0]
         ax_node[type_sel] = new_vertex[1]
-        self.ax.insert(new_surf, ax_node)
+        self.ax.insert(new_node, ax_node)
 
         pr_node = [0.0, 0.0, 0.0]
         pr_node[type_sel] = new_vertex[0]
-        self.pr.insert(new_surf, pr_node)
+        self.pr.insert(new_node, pr_node)
 
         if type_sel == ht:
-            self.apply_ht_dgm_data(new_surf, new_vertex=new_vertex)
+            self.apply_ht_dgm_data(new_node, new_vertex=new_vertex)
         elif type_sel == slp:
-            self.apply_slope_dgm_data(new_surf, new_vertex=new_vertex)
-        return new_surf
+            self.apply_slope_dgm_data(new_node, new_vertex=new_vertex)
+
+        if interact_mode == 'reflect':
+            for i in range(new_node, len(self.sys)):
+                self.sys[i][indx] = -self.sys[i][indx]
+
+        return new_node
 
     def assign_object_to_node(self, node, factory):
         """ create a new element from `factory` and replace `node` with it """
@@ -117,43 +124,53 @@ class ParaxialModel():
 
         # create an element with the node's properties
         seq, ele = factory(power=power, sd=sd)
+
+        n_before = self.sys[node-1][indx]
+        thi_before = n_before*self.sys[node-1][tau]
+        self.seq_model.gaps[node-1].thi = thi_before
+
         # insert the path sequence and elements into the
         #  sequential and element models
         args = seq, ele
         kwargs = dict(idx=node-1, t=thi)
         insert_ifc_gp_ele(self.opt_model, *args, **kwargs)
 
-        self.sys[node][rmd] = seq[0][0].interact_mode
-        if seq[0][0].interact_mode == 'reflect':
-            for i in range(node, len(self.sys)):
-                self.sys[i][indx] = -self.sys[i][indx]
-
-        self.replace_node_with_seq(node, seq)
+        path_stop = node + len(seq)
+        inserted_seq = list(self.seq_model.path(start=node-1, stop=path_stop))
+        sys_seq = self.seq_path_to_paraxial_lens(inserted_seq[1:])
+        pp_info = self.compute_principle_points(node, inserted_seq)
+        self.replace_node_with_seq(node, sys_seq, pp_info)
 
         return args, kwargs
 
-    def replace_node_with_seq(self, node, seq):
-        """ replaces the data at node with seq """
-        n_0 = self.sys[node-1][indx]
-        z_dir_before = 1 if n_0 > 0 else -1
+    def compute_principle_points(self, node, seq):
+        n_0 = seq[0][mc.Indx]
+        z_dir_before = seq[0][mc.Zdir]
         n_k = seq[-1][mc.Indx]
+        z_dir_k = seq[-1][mc.Zdir]
         path = [[Surface(), Gap(), None, n_0, z_dir_before]]
-        path.extend(seq)
-        pp_info = fo.compute_principle_points(iter(path), n_k=n_k)
+        path.extend(seq[1:])
+        pp_info = fo.compute_principle_points(iter(path),
+                                              n_0=z_dir_before*n_0,
+                                              n_k=z_dir_k*n_k)
+        return pp_info
+
+    def replace_node_with_seq(self, node, sys_seq, pp_info):
+        """ replaces the data at node with sys_seq """
         efl, pp1, ppk, ffl, bfl = pp_info[2]
-        seq_sys = self.seq_path_to_paraxial_lens(iter(seq))
-        self.sys[node-1][tau] -= pp1/n_0
-        seq_sys[-1][tau] = self.sys[node][tau] - ppk/seq_sys[-1][indx]
+        self.sys[node-1][tau] -= pp1/self.sys[node-1][indx]
+        sys_seq[-1][tau] = self.sys[node][tau] - ppk/sys_seq[-1][indx]
+
         self.delete_node(node)
-        for ss in seq_sys:
+        for ss in sys_seq:
             self.sys.insert(node, ss)
             self.ax.insert(node, [0.0, 0.0, 0.0])
             self.pr.insert(node, [0.0, 0.0, 0.0])
             node += 1
         self.paraxial_trace()
 
-    def add_object(self, surf, new_vertex, type_sel, factory):
-        new_surf = self.add_node(surf, new_vertex, type_sel)
+    def add_object(self, surf, new_vertex, type_sel, factory, interact_mode):
+        new_surf = self.add_node(surf, new_vertex, type_sel, interact_mode)
         self.assign_object_to_node(new_surf, factory)
 
     def delete_node(self, surf):

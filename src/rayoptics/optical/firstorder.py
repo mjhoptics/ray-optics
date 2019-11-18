@@ -115,7 +115,7 @@ def paraxial_trace(path, start, start_yu, start_yu_bar):
 
     b4_yui = start_yu
     b4_yui_bar = start_yu_bar
-    if start is 1:
+    if start == 1:
         # compute object coords from 1st surface data
         t0 = before[Gap].thi
         obj_ht = start_yu[ht] - t0*start_yu[slp]
@@ -182,8 +182,11 @@ def paraxial_trace(path, start, start_yu, start_yu_bar):
 def compute_first_order(opt_model, stop, wvl):
     """ Returns paraxial axial and chief rays, plus first order data. """
     seq_model = opt_model.seq_model
-    p_ray, q_ray = paraxial_trace(seq_model.path(wl=wvl), 1,
-                                  [1., 0.], [0., 1.])
+    start = 1
+    n_0 = seq_model.z_dir[start-1]*seq_model.central_rndx(start-1)
+    uq0 = 1/n_0
+    p_ray, q_ray = paraxial_trace(seq_model.path(wl=wvl), start,
+                                  [1., 0.], [0., uq0])
 
     n_k = seq_model.z_dir[-1]*seq_model.central_rndx(-1)
     img = -2 if seq_model.get_num_surfaces() > 2 else -1
@@ -277,10 +280,21 @@ def compute_first_order(opt_model, stop, wvl):
     fod.n_img = n_k
     fod.img_ht = -fod.opt_inv/(n_k*ax_ray[-1][slp])
     fod.obj_ang = math.degrees(math.atan(pr_ray[0][slp]))
-    fod.enp_dist = -pr_ray[1][ht]/(n_0*pr_ray[0][slp])
-    fod.enp_radius = abs(fod.opt_inv/(n_0*pr_ray[0][slp]))
-    fod.exp_dist = -(pr_ray[-1][ht]/pr_ray[-1][slp] - fod.img_dist)
-    fod.exp_radius = abs(fod.opt_inv/(n_k*pr_ray[-1][slp]))
+    if pr_ray[0][slp] != 0:
+        nu_pr0 = n_0*pr_ray[0][slp]
+        fod.enp_dist = -pr_ray[1][ht]/nu_pr0
+        fod.enp_radius = abs(fod.opt_inv/nu_pr0)
+    else:
+        fod.enp_dist = -1e10
+        fod.enp_radius = 1e10
+
+    if pr_ray[-1][slp] != 0:
+        fod.exp_dist = -(pr_ray[-1][ht]/pr_ray[-1][slp] - fod.img_dist)
+        fod.exp_radius = abs(fod.opt_inv/(n_k*pr_ray[-1][slp]))
+    else:
+        fod.exp_dist = -1e10
+        fod.exp_radius = 1e10
+
     # compute object and image space numerical apertures
     fod.obj_na = n_0*math.sin(math.atan(seq_model.z_dir[0]*ax_ray[0][slp]))
     fod.img_na = n_k*math.sin(math.atan(seq_model.z_dir[-1]*ax_ray[-1][slp]))
@@ -290,7 +304,8 @@ def compute_first_order(opt_model, stop, wvl):
 
 def compute_principle_points(path, n_0=1.0, n_k=1.0):
     """ Returns paraxial p and q rays, plus partial first order data. """
-    p_ray, q_ray = paraxial_trace(path, 0, [1., 0.], [0., 1.])
+    uq0 = 1/n_0
+    p_ray, q_ray = paraxial_trace(path, 0, [1., 0.], [0., uq0])
 
     img = -1
     ak1 = p_ray[img][ht]

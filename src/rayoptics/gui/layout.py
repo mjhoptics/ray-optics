@@ -499,7 +499,7 @@ def add_reflector(opt_model, idx, lcl_pt, create, **kwargs):
     seq_model = opt_model.seq_model
     g = seq_model.gaps[idx]
     x, y = lcl_pt
-    t_new = g.thi - x
+    t_new = x - g.thi
     g.thi = x
 
     insert_ifc_gp_ele(opt_model, *create(**kwargs), idx=idx, t=t_new)
