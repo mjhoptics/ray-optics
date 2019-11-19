@@ -79,7 +79,7 @@ def ideal_imager_setup(**inputs):
         elif 'f' in inputs:
             f = inputs['f']
             tt = -f*(m - 1)**2/m
-            s = tt/(m - 1)
+            s = -f*(m - 1)/m  # = tt/(m - 1)
             sp = m*s
         else:
             return IdealImager(m, None, None, None, None)
