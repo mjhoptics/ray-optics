@@ -116,7 +116,6 @@ class MainWindow(QMainWindow):
 #            self.open_file(path / "codev/tests/paraboloid_f8.seq")
 #            self.open_file(path / "codev/tests/schmidt.seq")
 #            self.open_file(path / "codev/tests/questar35.seq")
-#            self.open_file(path / "codev/tests/conic_mirror.seq")
 #            self.open_file(path / "codev/tests/rc_f16.seq")
 #            self.open_file(path / "codev/tests/ag_dblgauss.seq")
 #            self.open_file(path / "codev/tests/threemir.seq")

@@ -173,7 +173,8 @@
           "SchottGlass"
          ],
          "attributes":{
-          "gindex":25
+          "gindex":25,
+          "gname":"N-BK7"
          }
         }
        }
@@ -235,7 +236,15 @@
          "PupilSpec"
         ],
         "attributes":{
-         "type":"FNO",
+        "pupil_type":{
+         "__enum__":{
+          "__enum_instance_type__":[
+           "rayoptics.optical.model_enums",
+           "PupilType"
+          ],
+          "name":"FNO"
+         }
+        },
          "value":3.0,
          "pupil_rays":[
           [
@@ -274,7 +283,15 @@
          "FieldSpec"
         ],
         "attributes":{
-         "type":"IMG_HT",
+         "field_type":{
+          "__enum__":{
+           "__enum_instance_type__":[
+            "rayoptics.optical.model_enums",
+            "FieldType"
+           ],
+           "name":"IMG_HT"
+          }
+         },
          "fields":[
           {
            "__instance_type__":[

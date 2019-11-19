@@ -779,12 +779,13 @@ class ElementModel:
         gaps = seq_model.gaps
         tfrms = seq_model.compute_global_coords(1)
 
+        self.ifcs_dict = {}
+        self.gap_dict = {}
+
         # special processing for older models
         self.airgaps_from_sequence(seq_model, tfrms)
         self.add_dummy_interface_at_image(seq_model, tfrms)
 
-        self.ifcs_dict = {}
-        self.gap_dict = {}
         for i, e in enumerate(self.elements):
             e.sync_to_restore(self, surfs, gaps, tfrms)
             for ifc in e.interface_list():

@@ -62,11 +62,18 @@ class Interface:
     def sync_to_restore(self, opt_model):
         if not hasattr(self, 'max_aperture'):
             self.max_aperture = 1.0
-        if isinstance(self.interact_mode, InteractionMode):
-            if self.interact_mode == InteractionMode.Reflect:
+        if hasattr(self, 'interact_mode'):
+            if isinstance(self.interact_mode, InteractionMode):
+                if self.interact_mode == InteractionMode.Reflect:
+                    self.interact_mode = 'reflect'
+                elif self.interact_mode == InteractionMode.Transmit:
+                    self.interact_mode = 'transmit'
+        if hasattr(self, 'refract_mode'):  # really old models
+            if self.refract_mode == 'REFL':
                 self.interact_mode = 'reflect'
-            elif self.interact_mode == InteractionMode.Transmit:
+            else:
                 self.interact_mode = 'transmit'
+            delattr(self, 'refract_mode')
 
     @property
     def profile_cv(self):
@@ -127,6 +134,13 @@ class Surface(Interface):
     def update(self):
         super().update()
         self.profile.update()
+
+    def sync_to_restore(self, opt_model):
+        super().sync_to_restore(opt_model)
+        for ca in self.clear_apertures:
+            ca.sync_to_restore(opt_model)
+        for ea in self.edge_apertures:
+            ea.sync_to_restore(opt_model)
 
     @property
     def profile_cv(self):
@@ -297,6 +311,14 @@ class Aperture():
         self.x_offset = x_offset
         self.y_offset = y_offset
         self.rotation = rotation
+
+    def sync_to_restore(self, opt_model):
+        if not hasattr(self, 'x_offset'):
+            self.x_offset = 0.0
+        if not hasattr(self, 'y_offset'):
+            self.y_offset = 0.0
+        if not hasattr(self, 'rotation'):
+            self.rotation = 0.0
 
     def dimension(self):
         pass
