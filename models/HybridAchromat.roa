@@ -5,7 +5,71 @@
    "OpticalModel"
   ],
   "attributes":{
+   "ro_version":"0.4.5a1",
    "radius_mode":false,
+   "specsheet":{
+    "__instance_type__":[
+     "rayoptics.optical.specsheet",
+     "SpecSheet"
+    ],
+    "attributes":{
+     "conjugate_type":"infinite",
+     "imager":[
+      -0.0,
+      -Infinity,
+      49.99959666532167,
+      Infinity,
+      49.99959666532167
+     ],
+     "imager_inputs":{
+      "s":-Infinity
+     },
+     "frozen_imager_inputs":[
+      true,
+      true,
+      true,
+      true,
+      false
+     ],
+     "etendue_inputs":{
+      "field":{
+       "object":{
+        "height":1.0
+       },
+       "image":{}
+      },
+      "aperture":{
+       "object":{
+        "pupil":5.0
+       },
+       "image":{}
+      }
+     },
+     "etendue_values":{
+      "field":{
+       "object":{
+        "angle":null,
+        "height":1.0
+       },
+       "image":{
+        "height":-0.0
+       }
+      },
+      "aperture":{
+       "object":{
+        "pupil":5.0,
+        "NA":-0.04993801877400767,
+        "f/#":9.999919333064334
+       },
+       "image":{
+        "f/#":-9.999919333064334,
+        "NA":0.04993801877400767,
+        "pupil":-5.0
+       }
+      }
+     }
+    }
+   },
    "system_spec":{
     "__instance_type__":[
      "rayoptics.optical.opticalmodel",
@@ -40,15 +104,7 @@
         "Surface"
        ],
        "attributes":{
-        "interact_mode":{
-         "__enum__":{
-          "__enum_instance_type__":[
-           "rayoptics.optical.surface",
-           "InteractionMode"
-          ],
-          "name":"Transmit"
-         }
-        },
+        "interact_mode":"transmit",
         "delta_n":0.0,
         "decenter":null,
         "max_aperture":1.0,
@@ -72,15 +128,7 @@
         "Surface"
        ],
        "attributes":{
-        "interact_mode":{
-         "__enum__":{
-          "__enum_instance_type__":[
-           "rayoptics.optical.surface",
-           "InteractionMode"
-          ],
-          "name":"Transmit"
-         }
-        },
+        "interact_mode":"transmit",
         "delta_n":0.5168000345005885,
         "decenter":null,
         "max_aperture":2.500000000042428,
@@ -121,18 +169,10 @@
         "Surface"
        ],
        "attributes":{
-        "interact_mode":{
-         "__enum__":{
-          "__enum_instance_type__":[
-           "rayoptics.optical.surface",
-           "InteractionMode"
-          ],
-          "name":"Transmit"
-         }
-        },
+        "interact_mode":"transmit",
         "delta_n":-0.5168000345005885,
         "decenter":null,
-        "max_aperture":2.4694487854331766,
+        "max_aperture":2.467971672912295,
         "label":"",
         "profile":{
          "__instance_type__":[
@@ -153,18 +193,10 @@
         "Surface"
        ],
        "attributes":{
-        "interact_mode":{
-         "__enum__":{
-          "__enum_instance_type__":[
-           "rayoptics.optical.surface",
-           "InteractionMode"
-          ],
-          "name":"Transmit"
-         }
-        },
+        "interact_mode":"transmit",
         "delta_n":0.0,
         "decenter":null,
-        "max_aperture":3.5892722090170207e-06,
+        "max_aperture":4.5264056023909926e-09,
         "label":"Img",
         "profile":{
          "__instance_type__":[
@@ -225,7 +257,7 @@
         "Gap"
        ],
        "attributes":{
-        "thi":46.79292544173911,
+        "thi":44.604773338483795,
         "medium":{
          "__instance_type__":[
           "rayoptics.optical.medium",
@@ -280,15 +312,11 @@
        "PupilSpec"
       ],
       "attributes":{
-       "pupil_type":{
-        "__enum__":{
-         "__enum_instance_type__":[
-          "rayoptics.optical.model_enums",
-          "PupilType"
-         ],
-         "name":"EPD"
-        }
-       },
+       "key":[
+        "aperture",
+        "object",
+        "pupil"
+       ],
        "value":5.0,
        "pupil_rays":[
         [
@@ -327,15 +355,11 @@
        "FieldSpec"
       ],
       "attributes":{
-       "field_type":{
-        "__enum__":{
-         "__enum_instance_type__":[
-          "rayoptics.optical.model_enums",
-          "FieldType"
-         ],
-         "name":"OBJ_HT"
-        }
-       },
+       "key":[
+        "field",
+        "object",
+        "height"
+       ],
        "fields":[
         {
          "__instance_type__":[
@@ -378,7 +402,7 @@
           "aim_pt":{
            "__ndarray__":[
             0.0,
-            -1.3552527156068805e-20
+            0.0
            ],
            "dtype":"float64",
            "shape":[
@@ -423,6 +447,7 @@
         "label":"E1",
         "s1_indx":1,
         "s2_indx":2,
+        "medium_name":"N-BK7",
         "_sd":2.500000000042428,
         "flat1":null,
         "flat2":null,
@@ -445,6 +470,13 @@
        ],
        "attributes":{
         "label":"AirGap E1-Image",
+        "render_color":[
+         237,
+         243,
+         254,
+         64
+        ],
+        "medium_name":"air",
         "idx":2
        }
       },
@@ -461,7 +493,8 @@
          192
         ],
         "idx":3,
-        "sd":3.5892722090170207e-06
+        "medium_name":"Interface",
+        "sd":4.5264056023909926e-09
        }
       }
      ]

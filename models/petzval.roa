@@ -5,7 +5,70 @@
    "OpticalModel"
   ],
   "attributes":{
+   "ro_version":"0.4.5a1",
    "radius_mode":false,
+   "specsheet":{
+    "__instance_type__":[
+     "rayoptics.optical.specsheet",
+     "SpecSheet"
+    ],
+    "attributes":{
+     "conjugate_type":"infinite",
+     "imager":[
+      -0.0,
+      -Infinity,
+      6.0060060060060065,
+      Infinity,
+      6.0060060060060065
+     ],
+     "imager_inputs":{
+      "s":-Infinity
+     },
+     "frozen_imager_inputs":[
+      true,
+      true,
+      true,
+      true,
+      false
+     ],
+     "etendue_inputs":{
+      "field":{
+       "object":{},
+       "image":{
+        "height":0.5
+       }
+      },
+      "aperture":{
+       "object":{
+        "pupil":1.0
+       },
+       "image":{}
+      }
+     },
+     "etendue_values":{
+      "field":{
+       "object":{
+        "angle":4.758899938351421
+       },
+       "image":{
+        "height":0.5
+       }
+      },
+      "aperture":{
+       "object":{
+        "pupil":1.0,
+        "NA":-0.08296300624844168,
+        "f/#":6.0060060060060065
+       },
+       "image":{
+        "f/#":-6.0060060060060065,
+        "NA":0.08296300624844168,
+        "pupil":-1.0
+       }
+      }
+     }
+    }
+   },
    "system_spec":{
     "__instance_type__":[
      "rayoptics.optical.opticalmodel",
@@ -40,15 +103,7 @@
         "Surface"
        ],
        "attributes":{
-        "interact_mode":{
-         "__enum__":{
-          "__enum_instance_type__":[
-           "rayoptics.optical.surface",
-           "InteractionMode"
-          ],
-          "name":"Transmit"
-         }
-        },
+        "interact_mode":"transmit",
         "delta_n":0.0,
         "decenter":null,
         "max_aperture":832499999.6499999,
@@ -72,15 +127,7 @@
         "ThinLens"
        ],
        "attributes":{
-        "interact_mode":{
-         "__enum__":{
-          "__enum_instance_type__":[
-           "rayoptics.optical.surface",
-           "InteractionMode"
-          ],
-          "name":"Transmit"
-         }
-        },
+        "interact_mode":"transmit",
         "delta_n":0.0,
         "decenter":null,
         "max_aperture":0.500000210762644,
@@ -121,8 +168,7 @@
         "label":"L1",
         "_power":0.095,
         "ref_index":1.5,
-        "bending":0.0,
-        "od":1.000000421525288
+        "bending":0.0
        }
       },
       {
@@ -131,15 +177,7 @@
         "ThinLens"
        ],
        "attributes":{
-        "interact_mode":{
-         "__enum__":{
-          "__enum_instance_type__":[
-           "rayoptics.optical.surface",
-           "InteractionMode"
-          ],
-          "name":"Transmit"
-         }
-        },
+        "interact_mode":"transmit",
         "delta_n":0.0,
         "decenter":null,
         "max_aperture":0.6066169214480992,
@@ -180,8 +218,7 @@
         "label":"L2",
         "_power":0.09999999999999996,
         "ref_index":1.5,
-        "bending":0.0,
-        "od":1.2132338428961984
+        "bending":0.0
        }
       },
       {
@@ -190,15 +227,7 @@
         "Surface"
        ],
        "attributes":{
-        "interact_mode":{
-         "__enum__":{
-          "__enum_instance_type__":[
-           "rayoptics.optical.surface",
-           "InteractionMode"
-          ],
-          "name":"Transmit"
-         }
-        },
+        "interact_mode":"transmit",
         "delta_n":0.0,
         "decenter":null,
         "max_aperture":0.5059546708914623,
@@ -311,15 +340,11 @@
        "PupilSpec"
       ],
       "attributes":{
-       "pupil_type":{
-        "__enum__":{
-         "__enum_instance_type__":[
-          "rayoptics.optical.model_enums",
-          "PupilType"
-         ],
-         "name":"EPD"
-        }
-       },
+       "key":[
+        "aperture",
+        "object",
+        "pupil"
+       ],
        "value":1.0,
        "pupil_rays":[
         [
@@ -358,15 +383,11 @@
        "FieldSpec"
       ],
       "attributes":{
-       "field_type":{
-        "__enum__":{
-         "__enum_instance_type__":[
-          "rayoptics.optical.model_enums",
-          "FieldType"
-         ],
-         "name":"IMG_HT"
-        }
-       },
+       "key":[
+        "field",
+        "image",
+        "height"
+       ],
        "fields":[
         {
          "__instance_type__":[
@@ -409,7 +430,7 @@
           "aim_pt":{
            "__ndarray__":[
             0.0,
-            -6.146897935266206e-08
+            6.140308053321027e-08
            ],
            "dtype":"float64",
            "shape":[
@@ -458,7 +479,8 @@
          192
         ],
         "idx":1,
-        "sd":1.000000421525288
+        "medium_name":"Interface",
+        "sd":0.500000210762644
        }
       },
       {
@@ -468,6 +490,13 @@
        ],
        "attributes":{
         "label":"AirGap Aperture Stop-D2",
+        "render_color":[
+         237,
+         243,
+         254,
+         64
+        ],
+        "medium_name":"air",
         "idx":1
        }
       },
@@ -484,7 +513,8 @@
          192
         ],
         "idx":2,
-        "sd":1.2132338428961984
+        "medium_name":"Interface",
+        "sd":0.6066169214480992
        }
       },
       {
@@ -494,6 +524,13 @@
        ],
        "attributes":{
         "label":"AirGap D2-Image",
+        "render_color":[
+         237,
+         243,
+         254,
+         64
+        ],
+        "medium_name":"air",
         "idx":2
        }
       },
@@ -510,6 +547,7 @@
          192
         ],
         "idx":3,
+        "medium_name":"Interface",
         "sd":0.5059546708914623
        }
       }
