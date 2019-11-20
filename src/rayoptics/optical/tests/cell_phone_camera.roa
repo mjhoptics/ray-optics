@@ -5,7 +5,68 @@
    "OpticalModel"
   ],
   "attributes":{
+   "ro_version":"0.4a6+66.gd3cdd57.dirty",
    "radius_mode":true,
+   "specsheet":{
+    "__instance_type__":[
+     "rayoptics.optical.specsheet",
+     "SpecSheet"
+    ],
+    "attributes":{
+     "conjugate_type":"infinite",
+     "imager":[
+      -0.0,
+      -Infinity,
+      5.5870725027251655,
+      Infinity,
+      5.5870725027251655
+     ],
+     "imager_inputs":{
+      "s":-Infinity
+     },
+     "frozen_imager_inputs":[
+      true,
+      true,
+      true,
+      true,
+      false
+     ],
+     "etendue_inputs":{
+      "field":{
+       "object":{},
+       "image":{
+        "height":3.5
+       }
+      },
+      "aperture":{
+       "object":{},
+       "image":{
+        "f/#":3.5
+       }
+      }
+     },
+     "etendue_values":{
+      "field":{
+       "object":{
+        "angle":32.06492754047277
+       },
+       "image":{
+        "height":3.5
+       }
+      },
+      "aperture":{
+       "object":{
+        "pupil":-1.5963064293500473
+       },
+       "image":{
+        "f/#":3.5,
+        "NA":-0.1414213562373095,
+        "pupil":1.5963064293500473
+       }
+      }
+     }
+    }
+   },
    "system_spec":{
     "__instance_type__":[
      "rayoptics.optical.opticalmodel",
@@ -32,15 +93,7 @@
         "Surface"
        ],
        "attributes":{
-        "interact_mode":{
-         "__enum__":{
-          "__enum_instance_type__":[
-           "rayoptics.optical.surface",
-           "InteractionMode"
-          ],
-          "name":"Transmit"
-         }
-        },
+        "interact_mode":"transmit",
         "delta_n":0.0,
         "decenter":null,
         "max_aperture":6264461389.327506,
@@ -64,15 +117,7 @@
         "Surface"
        ],
        "attributes":{
-        "interact_mode":{
-         "__enum__":{
-          "__enum_instance_type__":[
-           "rayoptics.optical.surface",
-           "InteractionMode"
-          ],
-          "name":"Transmit"
-         }
-        },
+        "interact_mode":"transmit",
         "delta_n":0.0,
         "decenter":null,
         "max_aperture":0.9234416308817883,
@@ -96,15 +141,7 @@
         "Surface"
        ],
        "attributes":{
-        "interact_mode":{
-         "__enum__":{
-          "__enum_instance_type__":[
-           "rayoptics.optical.surface",
-           "InteractionMode"
-          ],
-          "name":"Transmit"
-         }
-        },
+        "interact_mode":"transmit",
         "delta_n":0.4710000000000001,
         "decenter":null,
         "max_aperture":0.9434579726017993,
@@ -153,15 +190,7 @@
         "Surface"
        ],
        "attributes":{
-        "interact_mode":{
-         "__enum__":{
-          "__enum_instance_type__":[
-           "rayoptics.optical.surface",
-           "InteractionMode"
-          ],
-          "name":"Transmit"
-         }
-        },
+        "interact_mode":"transmit",
         "delta_n":-0.4710000000000001,
         "decenter":null,
         "max_aperture":1.0863183163224912,
@@ -210,15 +239,7 @@
         "Surface"
        ],
        "attributes":{
-        "interact_mode":{
-         "__enum__":{
-          "__enum_instance_type__":[
-           "rayoptics.optical.surface",
-           "InteractionMode"
-          ],
-          "name":"Transmit"
-         }
-        },
+        "interact_mode":"transmit",
         "delta_n":0.603,
         "decenter":null,
         "max_aperture":1.1336762299942154,
@@ -267,15 +288,7 @@
         "Surface"
        ],
        "attributes":{
-        "interact_mode":{
-         "__enum__":{
-          "__enum_instance_type__":[
-           "rayoptics.optical.surface",
-           "InteractionMode"
-          ],
-          "name":"Transmit"
-         }
-        },
+        "interact_mode":"transmit",
         "delta_n":-0.603,
         "decenter":null,
         "max_aperture":1.5362279831866577,
@@ -324,15 +337,7 @@
         "Surface"
        ],
        "attributes":{
-        "interact_mode":{
-         "__enum__":{
-          "__enum_instance_type__":[
-           "rayoptics.optical.surface",
-           "InteractionMode"
-          ],
-          "name":"Transmit"
-         }
-        },
+        "interact_mode":"transmit",
         "delta_n":0.51,
         "decenter":null,
         "max_aperture":1.8592866743247831,
@@ -381,15 +386,7 @@
         "Surface"
        ],
        "attributes":{
-        "interact_mode":{
-         "__enum__":{
-          "__enum_instance_type__":[
-           "rayoptics.optical.surface",
-           "InteractionMode"
-          ],
-          "name":"Transmit"
-         }
-        },
+        "interact_mode":"transmit",
         "delta_n":-0.51,
         "decenter":null,
         "max_aperture":2.3609459764272107,
@@ -438,15 +435,7 @@
         "Surface"
        ],
        "attributes":{
-        "interact_mode":{
-         "__enum__":{
-          "__enum_instance_type__":[
-           "rayoptics.optical.surface",
-           "InteractionMode"
-          ],
-          "name":"Transmit"
-         }
-        },
+        "interact_mode":"transmit",
         "delta_n":0.51,
         "decenter":null,
         "max_aperture":2.4379206145923282,
@@ -495,15 +484,7 @@
         "Surface"
        ],
        "attributes":{
-        "interact_mode":{
-         "__enum__":{
-          "__enum_instance_type__":[
-           "rayoptics.optical.surface",
-           "InteractionMode"
-          ],
-          "name":"Transmit"
-         }
-        },
+        "interact_mode":"transmit",
         "delta_n":-0.51,
         "decenter":null,
         "max_aperture":2.876521780103687,
@@ -552,15 +533,7 @@
         "Surface"
        ],
        "attributes":{
-        "interact_mode":{
-         "__enum__":{
-          "__enum_instance_type__":[
-           "rayoptics.optical.surface",
-           "InteractionMode"
-          ],
-          "name":"Transmit"
-         }
-        },
+        "interact_mode":"transmit",
         "delta_n":0.516,
         "decenter":null,
         "max_aperture":3.2055190447630184,
@@ -584,15 +557,7 @@
         "Surface"
        ],
        "attributes":{
-        "interact_mode":{
-         "__enum__":{
-          "__enum_instance_type__":[
-           "rayoptics.optical.surface",
-           "InteractionMode"
-          ],
-          "name":"Transmit"
-         }
-        },
+        "interact_mode":"transmit",
         "delta_n":-0.516,
         "decenter":null,
         "max_aperture":3.2985067566910504,
@@ -616,15 +581,7 @@
         "Surface"
        ],
        "attributes":{
-        "interact_mode":{
-         "__enum__":{
-          "__enum_instance_type__":[
-           "rayoptics.optical.surface",
-           "InteractionMode"
-          ],
-          "name":"Transmit"
-         }
-        },
+        "interact_mode":"transmit",
         "delta_n":0.0,
         "decenter":null,
         "max_aperture":3.5438205453889724,
@@ -919,15 +876,11 @@
        "PupilSpec"
       ],
       "attributes":{
-       "pupil_type":{
-        "__enum__":{
-         "__enum_instance_type__":[
-          "rayoptics.optical.model_enums",
-          "PupilType"
-         ],
-         "name":"FNO"
-        }
-       },
+       "key":[
+        "aperture",
+        "image",
+        "f/#"
+       ],
        "value":3.5,
        "pupil_rays":[
         [
@@ -966,15 +919,11 @@
        "FieldSpec"
       ],
       "attributes":{
-       "field_type":{
-        "__enum__":{
-         "__enum_instance_type__":[
-          "rayoptics.optical.model_enums",
-          "FieldType"
-         ],
-         "name":"IMG_HT"
-        }
-       },
+       "key":[
+        "field",
+        "image",
+        "height"
+       ],
        "fields":[
         {
          "__instance_type__":[
@@ -1017,7 +966,7 @@
           "aim_pt":{
            "__ndarray__":[
             0.0,
-            3.269552536555298e-07
+            -3.259336696295537e-07
            ],
            "dtype":"float64",
            "shape":[
@@ -1042,7 +991,7 @@
           "aim_pt":{
            "__ndarray__":[
             0.0,
-            7.360059251766637e-07
+            -7.474945722717046e-07
            ],
            "dtype":"float64",
            "shape":[
@@ -1092,6 +1041,7 @@
          192
         ],
         "idx":1,
+        "medium_name":"Interface",
         "sd":0.9234416308817883
        }
       },
@@ -1102,6 +1052,13 @@
        ],
        "attributes":{
         "label":"AirGap D1-E1",
+        "render_color":[
+         237,
+         243,
+         254,
+         64
+        ],
+        "medium_name":"air",
         "idx":1
        }
       },
@@ -1114,6 +1071,7 @@
         "label":"E1",
         "s1_indx":2,
         "s2_indx":3,
+        "medium_name":"471.766",
         "_sd":1.25,
         "flat1":null,
         "flat2":1.0863183163224912,
@@ -1136,6 +1094,13 @@
        ],
        "attributes":{
         "label":"AirGap E1-E2",
+        "render_color":[
+         237,
+         243,
+         254,
+         64
+        ],
+        "medium_name":"air",
         "idx":3
        }
       },
@@ -1148,6 +1113,7 @@
         "label":"E2",
         "s1_indx":4,
         "s2_indx":5,
+        "medium_name":"603.275",
         "_sd":1.75,
         "flat1":1.1336762299942154,
         "flat2":null,
@@ -1170,6 +1136,13 @@
        ],
        "attributes":{
         "label":"AirGap E2-E3",
+        "render_color":[
+         237,
+         243,
+         254,
+         64
+        ],
+        "medium_name":"air",
         "idx":5
        }
       },
@@ -1182,6 +1155,7 @@
         "label":"E3",
         "s1_indx":6,
         "s2_indx":7,
+        "medium_name":"510.562",
         "_sd":2.5,
         "flat1":2.1,
         "flat2":2.3609459764272107,
@@ -1204,6 +1178,13 @@
        ],
        "attributes":{
         "label":"AirGap E3-E4",
+        "render_color":[
+         237,
+         243,
+         254,
+         64
+        ],
+        "medium_name":"air",
         "idx":7
        }
       },
@@ -1216,6 +1197,7 @@
         "label":"E4",
         "s1_indx":8,
         "s2_indx":9,
+        "medium_name":"510.562",
         "_sd":3.0,
         "flat1":2.6,
         "flat2":null,
@@ -1238,6 +1220,13 @@
        ],
        "attributes":{
         "label":"AirGap E4-E5",
+        "render_color":[
+         237,
+         243,
+         254,
+         64
+        ],
+        "medium_name":"air",
         "idx":9
        }
       },
@@ -1250,6 +1239,7 @@
         "label":"E5",
         "s1_indx":10,
         "s2_indx":11,
+        "medium_name":"516.641",
         "_sd":3.5,
         "flat1":null,
         "flat2":null,
@@ -1272,6 +1262,13 @@
        ],
        "attributes":{
         "label":"AirGap E5-Image",
+        "render_color":[
+         237,
+         243,
+         254,
+         64
+        ],
+        "medium_name":"air",
         "idx":11
        }
       },
@@ -1288,6 +1285,7 @@
          192
         ],
         "idx":12,
+        "medium_name":"Interface",
         "sd":3.5438205453889724
        }
       }
