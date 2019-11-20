@@ -11,15 +11,16 @@
 import os.path
 import json_tricks
 
-import rayoptics.codev.cmdproc as cvp
+import rayoptics
 
-from rayoptics.optical.model_enums import DimensionType as dt
+import rayoptics.codev.cmdproc as cvp
 
 from rayoptics.optical.elements import ElementModel
 from rayoptics.optical.paraxialdesign import ParaxialModel
 from rayoptics.optical.sequential import SequentialModel
 from rayoptics.optical.opticalspec import OpticalSpecs
 from rayoptics.optical.specsheet import create_specsheet_from_model
+from rayoptics.optical.model_enums import DimensionType as dt
 
 
 def open_model(file_name):
@@ -101,6 +102,7 @@ class OpticalModel:
     """
 
     def __init__(self, radius_mode=False, specsheet=None):
+        self.ro_version = rayoptics.__version__
         self.radius_mode = radius_mode
         self.specsheet = specsheet
         self.system_spec = SystemSpec()
@@ -145,6 +147,9 @@ class OpticalModel:
                              separators=(',', ':'), allow_nan=True)
 
     def sync_to_restore(self):
+        if not hasattr(self, 'ro_version'):
+            self.ro_version = rayoptics.__version__
+
         self.seq_model.sync_to_restore(self)
         self.ele_model.sync_to_restore(self)
         self.optical_spec.sync_to_restore(self)
