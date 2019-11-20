@@ -7,7 +7,7 @@ Triplet example
 
 This triplet design, used in Jose Sasian's `Lens Design OPTI 517 <https://wp.optics.arizona.edu/jsasian/courses/opti-517/>`_ course at the Univ. of Arizona, is attributed to Geiser.
 
-.. code:: python
+.. code:: ipython3
 
     %matplotlib inline
 
@@ -16,7 +16,7 @@ Setup the rayoptics environment
 
 The ``environment.py`` module imports many useful classes and functions. All the symbols defined in the module are intended to be imported into a rayoptics interactive session.
 
-.. code:: python
+.. code:: ipython3
 
     from rayoptics.environment import *
 
@@ -25,7 +25,7 @@ Create a new model
 
 Create a new :class:`~opticalmodel.OpticalModel` instance and set up some convenient aliases to important constituents of the model.
 
-.. code:: python
+.. code:: ipython3
 
     opm = OpticalModel()
     sm  = opm.seq_model
@@ -35,16 +35,16 @@ Create a new :class:`~opticalmodel.OpticalModel` instance and set up some conven
 Define first order aperture and field for system
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. code:: python
+.. code:: ipython3
 
-    osp.pupil = PupilSpec(osp, pupil_type=PupilType.EPD, value=12.5)
-    osp.field_of_view = FieldSpec(osp, field_type=FieldType.OBJ_ANG, flds=[0., 20.0])
+    osp.pupil = PupilSpec(osp, key=['object', 'pupil'], value=12.5)
+    osp.field_of_view = FieldSpec(osp, key=['object', 'angle'], flds=[0., 20.0])
     osp.spectral_region = WvlSpec([(486.1327, 0.5), (587.5618, 1.0), (656.2725, 0.5)], ref_wl=1)
 
 Define interface and gap data for the sequential model
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. code:: python
+.. code:: ipython3
 
     opm.radius_mode = True
     
@@ -62,14 +62,14 @@ Define interface and gap data for the sequential model
 Update the model
 ~~~~~~~~~~~~~~~~
 
-.. code:: python
+.. code:: ipython3
 
     opm.update_model()
 
 Draw a lens picture
 -------------------
 
-.. code:: python
+.. code:: ipython3
 
     layout_plt = plt.figure(FigureClass=LensLayoutFigure, opt_model=opm).plot()
 
@@ -81,9 +81,9 @@ Draw a lens picture
 Draw a |ybar| diagram
 ---------------------
 
-.. code:: python
+.. code:: ipython3
 
-    yybar_plt = plt.figure(FigureClass=ParaxialDesignFigure, opt_model=opm, dgm_type=Dgm.ht, refresh_gui=None).plot()
+    yybar_plt = plt.figure(FigureClass=InteractiveDiagram, opt_model=opm, dgm_type='ht', refresh_gui=None).plot()
 
 
 
@@ -93,7 +93,7 @@ Draw a |ybar| diagram
 Plot the transverse ray aberrations
 -----------------------------------
 
-.. code:: python
+.. code:: ipython3
 
     abr_plt = plt.figure(FigureClass=RayFanFigure, opt_model=opm, data_type='Ray', scale_type=Fit.All_Same).plot()
 
@@ -105,7 +105,7 @@ Plot the transverse ray aberrations
 Plot the wavefront aberration
 -----------------------------
 
-.. code:: python
+.. code:: ipython3
 
     wav_plt = plt.figure(FigureClass=RayFanFigure, opt_model=opm, data_type='OPD', scale_type=Fit.All_Same).plot()
 
@@ -117,7 +117,7 @@ Plot the wavefront aberration
 List the optical specifications
 -------------------------------
 
-.. code:: python
+.. code:: ipython3
 
     osp.parax_data.fod.list_first_order_data()
 
@@ -130,6 +130,7 @@ List the optical specifications
     bfl               41.24
     ppk               8.763
     f/#                   4
+    m             2.298e-05
     red              -2e+08
     obj_dist          1e+10
     obj_ang              20
@@ -149,42 +150,42 @@ List the optical specifications
 List the paraxial model
 -----------------------
 
-.. code:: python
+.. code:: ipython3
 
     pm.list_lens()
 
 
 .. parsed-literal::
 
-          ax_ray_ht    ax_ray_slp
-    0:            0      6.25e-10
-    1:         6.25     -0.182126
-    2:       5.7297     -0.181586
-    3:       4.6656    -0.0532508
-    4:       4.6346     0.0891357
-    5:       5.0644        0.0488
-    6:       5.1546     -0.124998
-    7:   0.00014365     -0.124998
+           ax_ray_ht    ax_ray_slp
+     0:            0      6.25e-10
+     1:         6.25     -0.182126
+     2:       5.7297     -0.181586
+     3:       4.6656    -0.0532508
+     4:       4.6346     0.0891357
+     5:       5.0644        0.0488
+     6:       5.1546     -0.124998
+     7:   0.00014365     -0.124998
     
-          pr_ray_ht    pr_ray_slp
-    0:  -3.6397e+09       0.36397
-    1:      -4.2509      0.487842
-    2:      -2.8572      0.487573
-    3:   3.5341e-07      0.487573
-    4:       0.2842      0.496304
-    5:       2.6774       0.47498
-    6:       3.5557      0.355092
-    7:       18.198      0.355092
+           pr_ray_ht    pr_ray_slp
+     0:  -3.6397e+09       0.36397
+     1:      -4.2509      0.487842
+     2:      -2.8572      0.487573
+     3:   3.5341e-07      0.487573
+     4:       0.2842      0.496304
+     5:       2.6774       0.47498
+     6:       3.5557      0.355092
+     7:       18.198      0.355092
     
-              power           tau        index    type
-    0:            0         1e+10      1.00000    
-    1:   0.02914022        2.8569      1.69100    
-    2: -9.425384e-05          5.86      1.00000    
-    3:  -0.02750683       0.58289      1.67271    
-    4:  -0.03072283         4.822      1.00000    
-    5:  0.007964615        1.8492      1.69100    
-    6:   0.03371696        41.236      1.00000    
-    7:            0             0      1.00000    
+                power           tau        index    type
+     0:             0         1e+10      1.00000    transmit
+     1:    0.02914022        2.8569      1.69100    transmit
+     2: -9.425384e-05          5.86      1.00000    transmit
+     3:   -0.02750683       0.58289      1.67271    transmit
+     4:   -0.03072283         4.822      1.00000    transmit
+     5:   0.007964615        1.8492      1.69100    transmit
+     6:    0.03371696        41.236      1.00000    transmit
+     7:             0             0      1.00000    transmit
 
 
 Third Order Seidel aberrations
@@ -193,7 +194,7 @@ Third Order Seidel aberrations
 Computation and tabular display
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. code:: python
+.. code:: ipython3
 
     to_pkg = compute_third_order(opm)
     to_pkg
@@ -230,7 +231,7 @@ Computation and tabular display
       </thead>
       <tbody>
         <tr>
-          <th>1</th>
+          <td>1</td>
           <td>0.027654</td>
           <td>0.019379</td>
           <td>0.013581</td>
@@ -238,7 +239,7 @@ Computation and tabular display
           <td>0.072010</td>
         </tr>
         <tr>
-          <th>2</th>
+          <td>2</td>
           <td>0.022082</td>
           <td>-0.059501</td>
           <td>0.160327</td>
@@ -246,7 +247,7 @@ Computation and tabular display
           <td>-0.431229</td>
         </tr>
         <tr>
-          <th>3</th>
+          <td>3</td>
           <td>-0.105156</td>
           <td>0.137692</td>
           <td>-0.180295</td>
@@ -254,7 +255,7 @@ Computation and tabular display
           <td>0.347506</td>
         </tr>
         <tr>
-          <th>4</th>
+          <td>4</td>
           <td>-0.045358</td>
           <td>-0.076796</td>
           <td>-0.130024</td>
@@ -262,7 +263,7 @@ Computation and tabular display
           <td>-0.381069</td>
         </tr>
         <tr>
-          <th>5</th>
+          <td>5</td>
           <td>0.007942</td>
           <td>0.028382</td>
           <td>0.101431</td>
@@ -270,7 +271,7 @@ Computation and tabular display
           <td>0.449596</td>
         </tr>
         <tr>
-          <th>6</th>
+          <td>6</td>
           <td>0.103810</td>
           <td>-0.050068</td>
           <td>0.024148</td>
@@ -278,7 +279,7 @@ Computation and tabular display
           <td>-0.061411</td>
         </tr>
         <tr>
-          <th>sum</th>
+          <td>sum</td>
           <td>0.010973</td>
           <td>-0.000912</td>
           <td>-0.010832</td>
@@ -294,7 +295,7 @@ Computation and tabular display
 Bar chart for surface by surface third order aberrations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. code:: python
+.. code:: ipython3
 
     fig, ax = plt.subplots()
     ax.set_xlabel('Surface')
@@ -312,10 +313,10 @@ Bar chart for surface by surface third order aberrations
 convert aberration sums to transverse measure
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. code:: python
+.. code:: ipython3
 
     ax_ray, pr_ray, fod = osp.parax_data
-    n_last = sm.central_rndx(-1)
+    n_last = pm.sys[-1][mc.indx]
     u_last = ax_ray[-1][mc.slp]
     to.seidel_to_transverse_aberration(to_pkg.loc['sum',:], n_last, u_last)
 
@@ -337,7 +338,7 @@ convert aberration sums to transverse measure
 convert sums to wavefront measure
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. code:: python
+.. code:: ipython3
 
     central_wv = opm.nm_to_sys_units(sm.central_wavelength())
     to.seidel_to_wavefront(to_pkg.loc['sum',:], central_wv).T
@@ -359,7 +360,7 @@ convert sums to wavefront measure
 compute Petzval, sagittal and tangential field curvature
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. code:: python
+.. code:: ipython3
 
     to.seidel_to_field_curv(to_pkg.loc['sum',:], n_last, fod.opt_inv)
 
@@ -378,6 +379,6 @@ compute Petzval, sagittal and tangential field curvature
 Save the model
 --------------
 
-.. code:: python
+.. code:: ipython3
 
     opm.save_model('Sasian Triplet')

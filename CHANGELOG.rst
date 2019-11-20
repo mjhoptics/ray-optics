@@ -2,6 +2,11 @@
 Changelog
 =========
 
+Version 0.4.5
+=============
+
+Add SpecSheet capability. V2 of y-ybar diagram with more editing capability
+
 Version 0.4.0
 =============
 

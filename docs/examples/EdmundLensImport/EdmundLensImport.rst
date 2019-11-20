@@ -39,6 +39,21 @@ Setup convenient aliases for using rayoptics functions
     osp = opm.optical_spec
     pm = opm.parax_model
 
+.. code:: ipython3
+
+    sm.list_model()
+
+
+.. parsed-literal::
+
+                 r            t        medium     mode   zdr      sd
+     Obj:     0.000000  1.00000e+13       air   transmit  1      0.0000
+    32327:    61.470000      6.00000     N-BK7   transmit  1      12.000
+       2:   -44.640000      2.50000     N-SF5   transmit  1      12.289
+       3:  -129.940000      95.9519       air   transmit  1      12.000
+     Img:     0.000000      0.00000             transmit  1   0.0046062
+
+
 Display first order properties of the model
 -------------------------------------------
 
@@ -65,6 +80,7 @@ Other essential optical specification data is also managed by the :class:`~.opti
     bfl               95.95
     ppk               4.079
     f/#               4.001
+    m             4.441e-16
     red          -9.997e+10
     obj_dist          1e+13
     obj_ang               1
@@ -93,7 +109,7 @@ All graphics in rayoptics are based on matplotlib.
 
 
 
-.. image:: output_10_0.png
+.. image:: output_11_0.png
 
 
 Draw a transverse ray aberration plot
@@ -107,7 +123,7 @@ This is done using the :mod:`.axisarrayfigure` module.
 
 
 
-.. image:: output_12_0.png
+.. image:: output_13_0.png
 
 
 The model in the CODE V seq file only had 1 wavelength defined. Use the :class:`~.opticalspec.OpticalSpecs` instance, ``osp``, to modify the :attr:`~.opticalspec.OpticalSpecs.spectral_region` in the optical subpackage to add wavelengths in the red and blue
@@ -134,7 +150,7 @@ The aberration plot can be updated by calling :meth:`~.axisarrayfigure.AxisArray
 
 
 
-.. image:: output_18_0.png
+.. image:: output_19_0.png
 
 
 

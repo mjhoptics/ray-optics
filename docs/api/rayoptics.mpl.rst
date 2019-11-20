@@ -25,6 +25,22 @@ rayoptics.mpl.axisarrayfigure module
    :undoc-members:
    :show-inheritance:
 
+rayoptics.mpl.interactivediagram module
+---------------------------------------
+
+.. automodule:: rayoptics.mpl.interactivediagram
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+rayoptics.mpl.interactivefigure module
+--------------------------------------
+
+.. automodule:: rayoptics.mpl.interactivefigure
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 rayoptics.mpl.interactivelayout module
 --------------------------------------
 
