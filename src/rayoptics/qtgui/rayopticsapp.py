@@ -112,6 +112,7 @@ class MainWindow(QMainWindow):
 #        else:
 #            path = Path(*pth.parts[:root_pos+1])
 #            self.open_file(path / "codev/tests/asp46.seq")
+#            self.open_file(path / "codev/tests/dar_test.seq")
 #            self.open_file(path / "codev/tests/paraboloid.seq")
 #            self.open_file(path / "codev/tests/paraboloid_f8.seq")
 #            self.open_file(path / "codev/tests/schmidt.seq")
@@ -138,6 +139,9 @@ class MainWindow(QMainWindow):
 #            self.open_file(path / "models/TwoSphericalMirror.roa")
 #            self.open_file(path / "models/Sasian Triplet.roa")
 #            self.open_file(path / "models/singlet_f5.roa")
+#            self.open_file(path / "models/thinlens.roa")
+#            self.open_file(path / "models/thin_triplet.roa")
+#            self.open_file(path / "models/Cassegrain.roa")
 #            self.open_file(path / "models/Ritchey_Chretien.roa")
 #        finally:
 #            self.add_ipython_subwindow()
