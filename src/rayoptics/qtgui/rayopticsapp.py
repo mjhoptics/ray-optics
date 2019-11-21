@@ -73,8 +73,8 @@ class MainWindow(QMainWindow):
         view.addSeparator()
         view.addAction("Paraxial Model")
         view.addAction("Paraxial Height View")
-        view.addAction("Paraxial Height View V2")
         view.addAction("Paraxial Slope View")
+        view.addAction("Paraxial Slope View V2")
         view.addAction("Paraxial Ray Table")
         view.addAction("Ray Table")
         view.addSeparator()
@@ -271,16 +271,16 @@ class MainWindow(QMainWindow):
             cmds.create_3rd_order_bar_chart(opt_model, gui_parent=self)
 
         if q.text() == "Paraxial Height View":
-            cmds.create_paraxial_design_view(opt_model, 'ht',
-                                             gui_parent=self)
-
-        if q.text() == "Paraxial Height View V2":
             cmds.create_paraxial_design_view_v2(opt_model, 'ht',
                                                 gui_parent=self)
 
         if q.text() == "Paraxial Slope View":
             cmds.create_paraxial_design_view(opt_model, 'slp',
                                              gui_parent=self)
+
+        if q.text() == "Paraxial Slope View V2":
+            cmds.create_paraxial_design_view_v2(opt_model, 'slp',
+                                                gui_parent=self)
 
         if q.text() == "Paraxial Ray Table":
             model = cmds.create_parax_table_model(opt_model)
@@ -466,8 +466,8 @@ class MainWindow(QMainWindow):
             self.refresh_gui()
             self.create_lens_table()
             cmds.create_live_layout_view(opt_model, gui_parent=self)
-            cmds.create_paraxial_design_view(opt_model, 'ht',
-                                             gui_parent=self)
+            cmds.create_paraxial_design_view_v2(opt_model, 'ht',
+                                                gui_parent=self)
             self.refresh_gui()
 
     @pyqtSlot(object, int)
