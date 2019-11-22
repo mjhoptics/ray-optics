@@ -26,8 +26,7 @@ from rayoptics.optical import transform
 from rayoptics.optical.trace import (trace_boundary_rays_at_field,
                                      boundary_ray_dict, RaySeg)
 from rayoptics.optical.elements import (create_thinlens, create_mirror,
-                                        create_lens, insert_ifc_gp_ele,
-                                        AirGap)
+                                        create_lens, AirGap)
 import rayoptics.optical.model_constants as mc
 from rayoptics.util.rgb2mpl import rgb2mpl
 import rayoptics.gui.appcmds as cmds
@@ -484,25 +483,25 @@ class LensLayout():
         return actions
 
 
-#    def apply_data(self, vertex, lcl_pt):
-def add_elements(opt_model, idx, lcl_pt, create, **kwargs):
-    seq_model = opt_model.seq_model
-    g = seq_model.gaps[idx]
+def split_gap(opt_model, idx, lcl_pt):
+    """ split g=gap[idx] into t_old = t_0 + t_k using t_0 = lcl_pt.x """
+    g = opt_model.seq_model.gaps[idx]
     x, y = lcl_pt
-    t_new = g.thi - x
-    g.thi = x
+    t_k = g.thi - x
+    t_0 = x
+    return g, t_0, t_k
 
-    insert_ifc_gp_ele(opt_model, *create(**kwargs), idx=idx, t=t_new)
+
+def add_elements(opt_model, idx, lcl_pt, create, **kwargs):
+    g, t_0, t_k = split_gap(opt_model, idx, lcl_pt)
+    g.thi = t_0
+    opt_model.insert_ifc_gp_ele(*create(**kwargs), idx=idx, t=t_k)
 
 
 def add_reflector(opt_model, idx, lcl_pt, create, **kwargs):
-    seq_model = opt_model.seq_model
-    g = seq_model.gaps[idx]
-    x, y = lcl_pt
-    t_new = x - g.thi
-    g.thi = x
-
-    insert_ifc_gp_ele(opt_model, *create(**kwargs), idx=idx, t=t_new)
+    g, t_0, t_k = split_gap(opt_model, idx, lcl_pt)
+    g.thi = t_0
+    opt_model.insert_ifc_gp_ele(*create(**kwargs), idx=idx, t=-t_k)
 
 
 def add_thinlens(opt_model, idx, lcl_pt, **kwargs):
@@ -510,17 +509,18 @@ def add_thinlens(opt_model, idx, lcl_pt, **kwargs):
 
 
 def add_lens(opt_model, idx, lcl_pt, **kwargs):
-    seq_model = opt_model.seq_model
-    g = seq_model.gaps[idx]
-    x, y = lcl_pt
-    t0_orig = g.thi
-    t_ct = 0.05*t0_orig
-    t0_new = x
-    t1_new = t0_orig - t_ct - t0_new
+    g, t_0, t_k = split_gap(opt_model, idx, lcl_pt)
+    t_old = g.thi
+    if 'th' in kwargs:
+        t_ct = kwargs['th']
+    else:
+        t_ct = 0.05*t_old
+    t0_new = t_0 - t_ct/2
+    tk_new = t_k - t_ct/2
     g.thi = t0_new
 
     seq, ele = create_lens(th=t_ct)
-    insert_ifc_gp_ele(opt_model, seq, ele, idx=idx, t=t1_new)
+    opt_model.insert_ifc_gp_ele(seq, ele, idx=idx, t=tk_new)
 
 
 def add_mirror(opt_model, idx, lcl_pt, **kwargs):

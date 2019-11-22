@@ -8,10 +8,9 @@
 .. codeauthor: Michael J. Hayford
 """
 
-from rayoptics.optical.opticalmodel import OpticalModel, open_model
+from rayoptics.optical.opticalmodel import (OpticalModel, open_model)
 from rayoptics.optical.profiles import Spherical, Conic
-from rayoptics.optical.elements import (create_thinlens,
-                                        insert_ifc_gp_ele)
+from rayoptics.optical.elements import create_thinlens
 from rayoptics.optical.firstorder import specsheet_from_parax_data
 from rayoptics.optical.specsheet import (create_specsheets,
                                          create_specsheet_from_model)
@@ -50,11 +49,8 @@ def create_new_optical_system(efl=10.0, fov=1.0):
     opt_model.optical_spec.field_of_view.type = 'OBJ_ANG'
     opt_model.optical_spec.field_of_view.set_from_list([0., fov])
 
-    insert_ifc_gp_ele(opt_model, *create_thinlens(power=1/efl, indx=1.5),
-                      idx=0, t=efl)
-
-#    insert_ifc_gp_ele(opt_model, *create_mirror(r=-2*efl, cc=-1),
-#                      idx=0, t=-efl)
+    opt_model.insert_ifc_gp_ele(*create_thinlens(power=1/efl, indx=1.5),
+                                idx=0, t=efl)
 
     opt_model.ele_model.add_dummy_interface_at_image(seq_model,
                                                      seq_model.gbl_tfrms)
@@ -77,11 +73,8 @@ def create_new_optical_model_from_specsheet(specsheet):
     else:
         opt_model.seq_model.gaps[0].thi = 1.0e10
 
-    insert_ifc_gp_ele(opt_model, *create_thinlens(power=1/imager.f, indx=1.5),
-                      idx=0, t=imager.sp)
-
-#    insert_ifc_gp_ele(opt_model, *create_mirror(r=-2*efl, cc=-1),
-#                      idx=0, t=-efl)
+    opt_model.insert_ifc_gp_ele(*create_thinlens(power=1/imager.f, indx=1.5),
+                                idx=0, t=imager.sp)
 
     opt_model.ele_model.add_dummy_interface_at_image(seq_model,
                                                      seq_model.gbl_tfrms)

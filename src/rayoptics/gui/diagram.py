@@ -12,7 +12,6 @@ import numpy as np
 
 from rayoptics.gui.util import GUIHandle, bbox_from_poly
 
-from rayoptics.optical.elements import remove_ifc_gp_ele
 from rayoptics.optical.model_constants import ht, slp
 from rayoptics.optical.model_constants import pwr, tau, indx, rmd
 from rayoptics.util.rgb2mpl import rgb2mpl
@@ -409,7 +408,7 @@ class AddElementAction():
                     thi = n_after*parax_model.sys[idx-1][tau]
                     seq_model.gaps[idx-1].thi = thi
                     args, kwargs = self.init_inputs
-                    remove_ifc_gp_ele(diagram.opt_model, *args, **kwargs)
+                    diagram.opt_model.remove_ifc_gp_ele(*args, **kwargs)
                 fig.build = 'rebuild'
                 fig.refresh_gui()
             self.cur_node = None

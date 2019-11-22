@@ -15,6 +15,9 @@ import rayoptics
 
 import rayoptics.codev.cmdproc as cvp
 
+from rayoptics.optical import elements
+import rayoptics.optical.model_constants as mc
+
 from rayoptics.optical.elements import ElementModel
 from rayoptics.optical.paraxialdesign import ParaxialModel
 from rayoptics.optical.sequential import SequentialModel
@@ -184,3 +187,44 @@ class OpticalModel:
             double: value converted to system units
         """
         return self.system_spec.nm_to_sys_units(nm)
+
+    def insert_ifc_gp_ele(self, *args, **kwargs):
+        """ insert interfaces and gaps into seq_model and eles into ele_model
+        """
+        seq, ele = args
+        if 'idx' in kwargs:
+            self.seq_model.cur_surface = kwargs['idx']
+        t = kwargs['t'] if 't' in kwargs else 0.
+
+        g, ag = elements.create_air_gap(t=t, ref_ifc=seq[-1][mc.Intfc])
+        seq[-1][mc.Gap] = g
+        ele.append(ag)
+
+        for sg in seq:
+            self.seq_model.insert(sg[mc.Intfc], sg[mc.Gap])
+
+        for e in ele:
+            self.ele_model.add_element(e)
+        self.ele_model.sequence_elements()
+
+    def remove_ifc_gp_ele(self, *args, **kwargs):
+        """ remove interfaces and gaps from seq_model and eles from ele_model
+        """
+        seq, ele = args
+        sg = seq[0]
+        idx = self.seq_model.ifcs.index(sg[mc.Intfc])
+
+        # verify that the sequences match
+        seq_match = True
+        for i, sg in enumerate(seq):
+            if sg[0] is not self.seq_model.ifcs[idx+i]:
+                seq_match = False
+                break
+
+        if seq_match:
+            # remove interfaces in reverse
+            for i in range(idx+len(seq)-1, idx-1, -1):
+                self.seq_model.remove(i)
+
+        for e in ele:
+            self.ele_model.remove_element(e)

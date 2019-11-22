@@ -14,7 +14,6 @@ import numpy as np
 from rayoptics.optical.model_constants import ht, slp, aoi
 from rayoptics.optical.model_constants import pwr, tau, indx, rmd
 import rayoptics.optical.model_constants as mc
-from rayoptics.optical.elements import insert_ifc_gp_ele
 import rayoptics.optical.firstorder as fo
 from rayoptics.optical.gap import Gap
 from rayoptics.optical.surface import Surface
@@ -133,7 +132,7 @@ class ParaxialModel():
         #  sequential and element models
         args = seq, ele
         kwargs = dict(idx=node-1, t=thi)
-        insert_ifc_gp_ele(self.opt_model, *args, **kwargs)
+        self.opt_model.insert_ifc_gp_ele(*args, **kwargs)
 
         path_stop = node + len(seq)
         inserted_seq = list(self.seq_model.path(start=node-1, stop=path_stop))

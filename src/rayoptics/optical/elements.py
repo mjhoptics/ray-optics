@@ -98,47 +98,6 @@ def create_air_gap(t=0., ref_ifc=None):
     return g, ag
 
 
-def insert_ifc_gp_ele(opt_model, *args, **kwargs):
-    """ insert interfaces and gaps into seq_model and eles into ele_model """
-    seq, ele = args
-    if 'idx' in kwargs:
-        opt_model.seq_model.cur_surface = kwargs['idx']
-    t = kwargs['t'] if 't' in kwargs else 0.
-
-    g, ag = create_air_gap(t=t, ref_ifc=seq[-1][mc.Intfc])
-    seq[-1][mc.Gap] = g
-    ele.append(ag)
-
-    for sg in seq:
-        opt_model.seq_model.insert(sg[mc.Intfc], sg[mc.Gap])
-
-    for e in ele:
-        opt_model.ele_model.add_element(e)
-    opt_model.ele_model.sequence_elements()
-
-
-def remove_ifc_gp_ele(opt_model, *args, **kwargs):
-    """ remove interfaces and gaps from seq_model and eles from ele_model """
-    seq, ele = args
-    sg = seq[0]
-    idx = opt_model.seq_model.ifcs.index(sg[mc.Intfc])
-
-    # verify that the sequences match
-    seq_match = True
-    for i, sg in enumerate(seq):
-        if sg[0] is not opt_model.seq_model.ifcs[idx+i]:
-            seq_match = False
-            break
-
-    if seq_match:
-        # remove interfaces in reverse
-        for i in range(idx+len(seq)-1, idx-1, -1):
-            opt_model.seq_model.remove(i)
-
-    for e in ele:
-        opt_model.ele_model.remove_element(e)
-
-
 class Element():
     clut = rgbt.RGBTable(filename='red_blue64.csv',
                          data_range=[10.0, 100.])
