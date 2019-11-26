@@ -22,12 +22,16 @@ from rayoptics.util import misc_math
 class Diagram():
     """ class for paraxial ray rendering/editing """
     def __init__(self, opt_model, dgm_type, seq_start=1,
+                 do_barrel_constraint=False, barrel_constraint=1.0,
                  label='paraxial'):
         self.label = label
         self.opt_model = opt_model
 
         self.dgm_type = dgm_type
         self.setup_dgm_type(dgm_type)
+
+        self.do_barrel_constraint = do_barrel_constraint
+        self.barrel_constraint_radius = barrel_constraint
 
     def setup_dgm_type(self, dgm_type):
         parax_model = self.opt_model.parax_model
@@ -63,6 +67,9 @@ class Diagram():
             for i in range(len(parax_model.sys)-1):
                 self.edge_list.append(DiagramEdge(self, i))
 
+            if self.do_barrel_constraint:
+                self.barrel_constraint = BarrelConstraint(self)
+
         concat_bbox = []
 
         self.node_bbox = fig.update_patches(self.node_list)
@@ -70,6 +77,10 @@ class Diagram():
 
         self.edge_bbox = fig.update_patches(self.edge_list)
         concat_bbox.append(self.edge_bbox)
+
+        if self.do_barrel_constraint:
+            self.barrel_bbox = fig.update_patches([self.barrel_constraint])
+            concat_bbox.append(self.barrel_bbox)
 
 #        dgm_bbox = self.update_patches([self.diagram])
         dgm_bbox = np.concatenate(concat_bbox)
@@ -169,17 +180,19 @@ class DiagramNode():
                                                              'hilite': 'red',
                                                              'zorder': 3.}
         # define the "constant spacing" or "slide" constraint
-        slide_pts = compute_slide_line(shape, self.node, sys[self.node][rmd])
-        if slide_pts is not None:
-            seg = [*slide_pts]
-            f_color = rgb2mpl([138, 43, 226, 63])  # blueviolet
-            h_color = rgb2mpl([138, 43, 226, 255])  # blueviolet
+        if view.enable_slide:
+            slide_pts = compute_slide_line(shape, self.node,
+                                           sys[self.node][rmd])
+            if slide_pts is not None:
+                seg = [*slide_pts]
+                f_color = rgb2mpl([138, 43, 226, 127])  # blueviolet
+                h_color = rgb2mpl([138, 43, 226, 255])  # blueviolet
 
-            self.handles['slide'] = seg, 'polyline', {'linestyle': ':',
-                                                      'picker': 6,
-                                                      'color': f_color,
-                                                      'hilite': h_color,
-                                                      'zorder': 2.5}
+                self.handles['slide'] = seg, 'polyline', {'linestyle': ':',
+                                                          'picker': 6,
+                                                          'color': f_color,
+                                                          'hilite': h_color,
+                                                          'zorder': 2.5}
         gui_handles = {}
         for key, graphics_handle in self.handles.items():
             poly_data, poly_type, kwargs = graphics_handle
@@ -280,6 +293,48 @@ class DiagramEdge():
     def handle_actions(self):
         actions = {}
         actions['shape'] = AddElementAction(self)
+        return actions
+
+
+class BarrelConstraint():
+    def __init__(self, diagram):
+        self.diagram = diagram
+        self.handles = {}
+        self.actions = self.handle_actions()
+
+    def update_shape(self, view):
+        barrel_radius = self.diagram.barrel_constraint_radius
+        diamond = []
+        diamond.append([0., barrel_radius])
+        diamond.append([barrel_radius, 0.])
+        diamond.append([0., -barrel_radius])
+        diamond.append([-barrel_radius, 0.])
+        diamond.append([0., barrel_radius])
+        diamond = np.array(diamond)
+        self.handles['shape'] = diamond, 'polyline', {'color': 'black',
+                                                      'zorder': 1.}
+
+        gui_handles = {}
+        for key, graphics_handle in self.handles.items():
+            poly_data, poly_type, kwargs = graphics_handle
+            poly = np.array(poly_data)
+            if poly_type == 'polygon':
+                p = view.create_polygon(poly, self.render_color(), **kwargs)
+            elif poly_type == 'polyline':
+                p = view.create_polyline(poly, **kwargs)
+            else:
+                break
+            gui_handles[key] = GUIHandle(p, bbox_from_poly(poly))
+        return gui_handles
+
+    def render_color(self):
+        return 'black'
+
+    def get_label(self):
+        return 'barrel constraint'
+
+    def handle_actions(self):
+        actions = {}
         return actions
 
 

@@ -179,7 +179,7 @@ def create_draw_rays_groupbox(app, pc):
 
     def attr_check(fig, attr, state):
         checked = state == qt.Checked
-#        cur_value = getattr(obj, attr, None)
+#        cur_value = getattr(fig, attr, None)
         setattr(fig, attr, checked)
         fig.refresh()
 
@@ -199,3 +199,69 @@ def create_draw_rays_groupbox(app, pc):
     groupBox.setLayout(hbox)
 
     return groupBox
+
+
+def create_diagram_controls_groupbox(app, pc):
+    groupBox = QGroupBox("", app)
+
+    def attr_check(fig, attr, state):
+        checked = state == qt.Checked
+#        cur_value = getattr(fig, attr, None)
+        setattr(fig, attr, checked)
+        print('attr_check: {}={}'.format(attr, checked))
+        fig.refresh()
+
+    barrel_value_wdgt = QLineEdit()
+    barrel_value_wdgt.setReadOnly(True)
+    fig = pc.figure
+    cntxt = fig, barrel_value_wdgt
+    barrel_value_wdgt.editingFinished.connect(lambda:
+                                              on_barrel_constraint_changed(
+                                                      cntxt))
+
+    slide_checkBox = QCheckBox("&slide")
+    slide_checkBox.setChecked(fig.enable_slide)
+    slide_checkBox.stateChanged.connect(lambda checked: attr_check(fig,
+                                        'enable_slide', checked))
+    barrel_checkBox = QCheckBox("&barrel constraint")
+    barrel_checkBox.setChecked(fig.diagram.do_barrel_constraint)
+    barrel_checkBox.stateChanged.connect(lambda checked:
+                                         on_barrel_constraint_toggled(
+                                                 cntxt, checked))
+
+    hbox = QHBoxLayout()
+    hbox.addWidget(slide_checkBox)
+    hbox.addWidget(barrel_checkBox)
+    hbox.addWidget(barrel_value_wdgt)
+
+    groupBox.setLayout(hbox)
+
+    return groupBox
+
+
+def on_barrel_constraint_toggled(cntxt, state):
+    fig, barrel_wdgt = cntxt
+    diagram = fig.diagram
+    checked = state == qt.Checked
+    if checked:
+        diagram.do_barrel_constraint = True
+        barrel_wdgt.setReadOnly(False)
+        barrel_wdgt.setText('{:7.4f}'.format(diagram.barrel_constraint_radius))
+    else:
+        diagram.do_barrel_constraint = False
+        barrel_wdgt.setReadOnly(True)
+
+    fig.refresh()
+
+
+def on_barrel_constraint_changed(cntxt):
+    fig, barrel_wdgt = cntxt
+    eval_str = barrel_wdgt.text()
+    try:
+        val = eval(eval_str)
+        fig.diagram.barrel_constraint_radius = val
+        barrel_wdgt.setText('{:7.4f}'.format(val))
+    except IndexError:
+        return ''
+
+    fig.refresh()

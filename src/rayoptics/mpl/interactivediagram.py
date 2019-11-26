@@ -56,11 +56,15 @@ class InteractiveDiagram(InteractiveFigure):
         dgm_type: diagram type, 'ht' or 'slp'
     """
     def __init__(self, opt_model, refresh_gui, dgm_type,
-                 **kwargs):
+                 do_barrel_constraint=False, barrel_constraint=1.0,
+                 enable_slide=False, **kwargs):
         self.refresh_gui = refresh_gui
         self.parax_model = opt_model.parax_model
-        self.diagram = Diagram(opt_model, dgm_type)
+        self.diagram = Diagram(opt_model, dgm_type,
+                               do_barrel_constraint=do_barrel_constraint,
+                               barrel_constraint=barrel_constraint)
         self.setup_dgm_type(dgm_type)
+        self.enable_slide = enable_slide
 
         self.build = 'rebuild'
 
@@ -79,7 +83,7 @@ class InteractiveDiagram(InteractiveFigure):
     def update_data(self):
         self.artists = []
         self.sys_bbox = self.diagram.update_data(self)
-        self.build == 'full_rebuild'
+        self.build = 'rebuild'
         return self
 
     def action_complete(self):
