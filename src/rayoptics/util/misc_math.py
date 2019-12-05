@@ -9,7 +9,7 @@
 """
 import numpy as np
 from numpy.linalg import norm
-from math import sqrt
+from math import sqrt, pi, acos
 
 
 def normalize(v):
@@ -116,3 +116,40 @@ def transpose(mat):
     for j in range(len(mat[0])):
         mat_t.append([mat[i][j] for i in range(len(mat))])
     return mat_t
+
+
+def circle_intersection_area(ra, rb, d):
+    """ return the area of the intersection of 2 circles
+
+    Args:
+        ra: radius of first circle
+        rb: radius of second circle
+        d: separation of the circles' centers of curvature
+
+    Returns:
+        area of the circle intersection
+
+    `Weisstein, Eric W. "Circle-Circle Intersection." From MathWorld--A Wolfram Web
+    Resource. <http://mathworld.wolfram.com/Circle-CircleIntersection.html>`_
+    """
+    if ra < rb:  # sort into ascending order for convenience
+        r, R = ra, rb
+    else:
+        r, R = rb, ra
+
+    r2 = r**2
+    if R >= r + d:  # smaller circle contained inside the larger one
+        return pi*r2
+
+    if d > r + R:  # circles are completely separated - no overlap
+        return 0
+
+    R2 = R**2
+    d2 = d**2
+
+    # calculate area via eq 14 in the referenced link
+    p1 = r2*acos((d2 + r2 - R2)/(2*d*r))
+    p2 = R2*acos((d2 + R2 - r2)/(2*d*R))
+    p3 = sqrt((-d + r + R)*(d + r - R)*(d - r + R)*(d + r + R))/2
+    area = p1 + p2 - p3
+    return area
