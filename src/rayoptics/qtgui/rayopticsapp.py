@@ -444,7 +444,7 @@ class MainWindow(QMainWindow):
 
         sub.show()
 
-        return sub
+        return tableView
 
     def eventFilter(self, obj, event):
         if (event.type() == QEvent.Close):
