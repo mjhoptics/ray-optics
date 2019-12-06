@@ -195,6 +195,9 @@ class SequentialModel:
         self.stop_surface = self.cur_surface
         return self.stop_surface
 
+    def set_stop_surface(self, stop_surface):
+        self.stop_surface = stop_surface
+
     def __iadd__(self, node):
         if isinstance(node, gap.Gap):
             self.gaps.append(node)

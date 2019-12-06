@@ -18,7 +18,7 @@ from PyQt5.QtCore import Qt as qt
 from PyQt5.QtCore import QEvent
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (QApplication, QAction, QMainWindow, QMdiArea,
-                             QFileDialog, QTableView, QWidget,
+                             QFileDialog, QTableView, QWidget, QMenu,
                              QVBoxLayout, QGraphicsView, QGraphicsScene)
 from PyQt5.QtCore import pyqtSlot
 from traitlets.config.configurable import MultipleInstanceError
@@ -302,8 +302,28 @@ class MainWindow(QMainWindow):
 
     def create_lens_table(self):
         seq_model = self.app_manager.model.seq_model
+
+        def set_stop_surface(stop_surface):
+            seq_model.set_stop_surface(stop_surface)
+            self.refresh_gui()
+
+        def handle_context_menu(point):
+            row = vheader.logicalIndexAt(point.y())
+            # show menu about the row
+            menu = QMenu(self)
+            if row != seq_model.stop_surface:
+                menu.addAction('Set Stop Surface',
+                               lambda: set_stop_surface(row))
+#            if seq_model.stop_surface is not None:
+#                menu.addAction('Float Stop Surface',
+#                               lambda: set_stop_surface(None))
+            menu.popup(vheader.mapToGlobal(point))
+
         model = cmds.create_lens_table_model(seq_model)
-        self.create_table_view(model, "Surface Data Table")
+        view = self.create_table_view(model, "Surface Data Table")
+        vheader = view.verticalHeader()
+        vheader.setContextMenuPolicy(qt.CustomContextMenu)
+        vheader.customContextMenuRequested.connect(handle_context_menu)
 
     def create_ray_table(self, opt_model):
         osp = opt_model.optical_spec
