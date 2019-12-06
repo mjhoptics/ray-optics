@@ -127,12 +127,11 @@ def trace_base(opt_model, pupil, fld, wvl, **kwargs):
 
 
 def iterate_ray(opt_model, ifcx, xy_target, fld, wvl, **kwargs):
-    """ iterates a ray to xy_target on interface ifcx, returns aim points in
-    object space plane
+    """ iterates a ray to xy_target on interface ifcx, returns aim points on
+    the paraxial entrance pupil plane
 
-    The default implementation returns the aim points on the paraxial entrance
-    pupil plane.
-    
+    If idcx is None, i.e. a floating stop surface, returns xy_target.
+
     If the iteration fails, a TraceError will be raised
     """
     def y_stop_coordinate(y1, *args):
@@ -173,32 +172,36 @@ def iterate_ray(opt_model, ifcx, xy_target, fld, wvl, **kwargs):
     dist = fod.obj_dist + fod.enp_dist
 
     pt0 = osp.obj_coords(fld)
-    if pt0[0] == 0.0 and xy_target[0] == 0.0:
-        # do 1D iteration if field and target points are zero in x
-        y_target = xy_target[1]
-        logging.captureWarnings(True)
-        try:
-            start_y, results = newton(y_stop_coordinate, 0.,
-                                      args=(seq_model, ifcx, pt0,
-                                            dist, wvl, y_target),
-                                      disp=False, full_output=True)
-        except RuntimeError as rte:
-            # if we come here, start_y is a RuntimeResults object
-            print(rte)
-            start_y = results.root
-        except TraceError:
-            start_y = 0.0
-        start_coords = np.array([0., start_y])
-    else:
-        # do 2D iteration. epsfcn is a parameter increment,
-        #  make proportional to  pupil radius
-        try:
-            start_coords = fsolve(surface_coordinate, np.array([0., 0.]),
-                                  epsfcn=0.0001*fod.enp_radius,
-                                  args=(seq_model, ifcx, pt0, dist,
-                                        wvl, xy_target))
-        except TraceError:
-            start_coords = np.array([0., 0.])
+    if ifcx is not None:
+        if pt0[0] == 0.0 and xy_target[0] == 0.0:
+            # do 1D iteration if field and target points are zero in x
+            y_target = xy_target[1]
+            logging.captureWarnings(True)
+            try:
+                start_y, results = newton(y_stop_coordinate, 0.,
+                                          args=(seq_model, ifcx, pt0,
+                                                dist, wvl, y_target),
+                                          disp=False, full_output=True)
+            except RuntimeError as rte:
+                # if we come here, start_y is a RuntimeResults object
+                print(rte)
+                start_y = results.root
+            except TraceError:
+                start_y = 0.0
+            start_coords = np.array([0., start_y])
+        else:
+            # do 2D iteration. epsfcn is a parameter increment,
+            #  make proportional to pupil radius
+            try:
+                start_coords = fsolve(surface_coordinate, np.array([0., 0.]),
+                                      epsfcn=0.0001*fod.enp_radius,
+                                      args=(seq_model, ifcx, pt0, dist,
+                                            wvl, xy_target))
+            except TraceError:
+                start_coords = np.array([0., 0.])
+    else:  # floating stop surface - use entrance pupil for aiming
+        start_coords = np.array([0., 0.]) + xy_target
+
     return start_coords
 
 

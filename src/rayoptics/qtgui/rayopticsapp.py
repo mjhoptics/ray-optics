@@ -314,9 +314,9 @@ class MainWindow(QMainWindow):
             if row != seq_model.stop_surface:
                 menu.addAction('Set Stop Surface',
                                lambda: set_stop_surface(row))
-#            if seq_model.stop_surface is not None:
-#                menu.addAction('Float Stop Surface',
-#                               lambda: set_stop_surface(None))
+            if seq_model.stop_surface is not None:
+                menu.addAction('Float Stop Surface',
+                               lambda: set_stop_surface(None))
             menu.popup(vheader.mapToGlobal(point))
 
         model = cmds.create_lens_table_model(seq_model)

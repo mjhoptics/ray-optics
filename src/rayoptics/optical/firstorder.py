@@ -198,60 +198,67 @@ def compute_first_order(opt_model, stop, wvl):
 #    print(p_ray[-2][ht], q_ray[-2][ht], n_k*p_ray[-2][slp], n_k*q_ray[-2][slp])
 #    print(ak1, bk1, ck1, dk1)
 
-    n_s = seq_model.z_dir[stop]*seq_model.central_rndx(stop)
-    as1 = p_ray[stop][ht]
-    bs1 = q_ray[stop][ht]
-    cs1 = n_s*p_ray[stop][slp]
-    ds1 = n_s*q_ray[stop][slp]
+    if stop is not None:
+        n_s = seq_model.z_dir[stop]*seq_model.central_rndx(stop)
+        as1 = p_ray[stop][ht]
+        bs1 = q_ray[stop][ht]
+        cs1 = n_s*p_ray[stop][slp]
+        ds1 = n_s*q_ray[stop][slp]
+    
+        # find entrance pupil location w.r.t. first surface
+        ybar1 = -bs1
+        ubar1 = as1
+        n_0 = seq_model.gaps[0].medium.rindex(wvl)
+        enp_dist = -ybar1/(n_0*ubar1)
+    
+        thi0 = seq_model.gaps[0].thi
+    
+        # calculate reduction ratio for given object distance
+        red = dk1 + thi0*ck1
+        obj2enp_dist = thi0 + enp_dist
+    
+        yu = [0., 1.]
+        pupil = opt_model.optical_spec.pupil
+        aperture, obj_img_key, value_key = pupil.key
+        if obj_img_key == 'object':
+            if value_key == 'pupil':
+                slp0 = 0.5*pupil.value/obj2enp_dist
+            elif value_key == 'NA':
+                slp0 = n_0*math.tan(math.asin(pupil.value/n_0))
+        elif obj_img_key == 'image':
+            if value_key == 'f/#':
+                slpk = -1./(2.0*pupil.value)
+                slp0 = slpk/red
+            elif value_key == 'NA':
+                slpk = n_k*math.tan(math.asin(pupil.value/n_k))
+                slp0 = slpk/red
+        yu = [0., slp0]
+    
+        yu_bar = [1., 0.]
+        fov = opt_model.optical_spec.field_of_view
+        field, obj_img_key, value_key = fov.key
+        max_fld, fn = fov.max_field()
+        if max_fld == 0.0:
+            max_fld = 1.0
+        if obj_img_key == 'object':
+            if value_key == 'angle':
+                ang = math.radians(max_fld)
+                slpbar0 = math.tan(ang)
+                ybar0 = -slpbar0*obj2enp_dist
+            elif value_key == 'height':
+                ybar0 = -max_fld
+                slpbar0 = -ybar0/obj2enp_dist
+        elif obj_img_key == 'image':
+            if value_key == 'height':
+                ybar0 = red*max_fld
+                slpbar0 = -ybar0/obj2enp_dist
+        yu_bar = [ybar0, slpbar0]
 
-    # find entrance pupil location w.r.t. first surface
-    ybar1 = -bs1
-    ubar1 = as1
-    n_0 = seq_model.gaps[0].medium.rindex(wvl)
-    enp_dist = -ybar1/(n_0*ubar1)
-
-    thi0 = seq_model.gaps[0].thi
-
-    # calculate reduction ratio for given object distance
-    red = dk1 + thi0*ck1
-    obj2enp_dist = thi0 + enp_dist
-
-    yu = [0., 1.]
-    pupil = opt_model.optical_spec.pupil
-    aperture, obj_img_key, value_key = pupil.key
-    if obj_img_key == 'object':
-        if value_key == 'pupil':
-            slp0 = 0.5*pupil.value/obj2enp_dist
-        elif value_key == 'NA':
-            slp0 = n_0*math.tan(math.asin(pupil.value/n_0))
-    elif obj_img_key == 'image':
-        if value_key == 'f/#':
-            slpk = -1./(2.0*pupil.value)
-            slp0 = slpk/red
-        elif value_key == 'NA':
-            slpk = n_k*math.tan(math.asin(pupil.value/n_k))
-            slp0 = slpk/red
-    yu = [0., slp0]
-
-    yu_bar = [1., 0.]
-    fov = opt_model.optical_spec.field_of_view
-    field, obj_img_key, value_key = fov.key
-    max_fld, fn = fov.max_field()
-    if max_fld == 0.0:
-        max_fld = 1.0
-    if obj_img_key == 'object':
-        if value_key == 'angle':
-            ang = math.radians(max_fld)
-            slpbar0 = math.tan(ang)
-            ybar0 = -slpbar0*obj2enp_dist
-        elif value_key == 'height':
-            ybar0 = -max_fld
-            slpbar0 = -ybar0/obj2enp_dist
-    elif obj_img_key == 'image':
-        if value_key == 'height':
-            ybar0 = red*max_fld
-            slpbar0 = -ybar0/obj2enp_dist
-    yu_bar = [ybar0, slpbar0]
+    else:  # floating stop surface - use parax_model for starting data
+        ax_ray = opt_model.parax_model.ax
+        pr_ray = opt_model.parax_model.pr
+        yu = [0., ax_ray[0][slp]/n_0]
+        yu_bar = [pr_ray[0][ht], pr_ray[0][slp]/n_0]
 
     ax_ray, pr_ray = paraxial_trace(seq_model.path(wl=wvl), 0, yu, yu_bar)
 
