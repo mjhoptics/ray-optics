@@ -10,7 +10,7 @@
 import math
 import numpy as np
 
-from rayoptics.gui.util import GUIHandle, bbox_from_poly
+from rayoptics.gui.util import GUIHandle, bbox_from_poly, fit_data_range
 
 from rayoptics.optical.model_constants import ht, slp
 from rayoptics.optical.model_constants import pwr, tau, indx, rmd
@@ -48,16 +48,17 @@ class Diagram():
     def update_data(self, fig):
         parax_model = self.opt_model.parax_model
 
+        self.shape = self.render_shape()
         if fig.build == 'update':
-            # just a change in node positions
-            self.shape = self.render_shape()
+            # just a change in node positions - handled above
+            # self.shape = self.render_shape()
+            pass
         else:
             # number of nodes have changed, rebuild everything
             if fig.build == 'full_rebuild':
                 # change from another non-parax_model source,
                 #  rebuild parax_model
                 parax_model.build_lens()
-            self.shape = self.render_shape()
 
             self.node_list = []
             for i in range(len(parax_model.sys)):
@@ -70,22 +71,13 @@ class Diagram():
             if self.do_barrel_constraint:
                 self.barrel_constraint = BarrelConstraint(self)
 
-        concat_bbox = []
-
         self.node_bbox = fig.update_patches(self.node_list)
-        concat_bbox.append(self.node_bbox)
-
         self.edge_bbox = fig.update_patches(self.edge_list)
-        concat_bbox.append(self.edge_bbox)
 
         if self.do_barrel_constraint:
             self.barrel_bbox = fig.update_patches([self.barrel_constraint])
-            concat_bbox.append(self.barrel_bbox)
 
-#        dgm_bbox = self.update_patches([self.diagram])
-        dgm_bbox = np.concatenate(concat_bbox)
-        sys_bbox = bbox_from_poly(dgm_bbox)
-
+        sys_bbox = bbox_from_poly(self.shape)
         return sys_bbox
 
     def apply_data(self, node, vertex):
@@ -122,6 +114,12 @@ class Diagram():
             shape.append([x[self.type_sel], y[self.type_sel]])
         shape = np.array(shape)
         return shape
+
+    def fit_axis_limits(self):
+        ''' define diagram axis limits as the extent of the shape polygon '''
+        x_min, x_max = fit_data_range([x[0] for x in self.shape])
+        y_min, y_max = fit_data_range([x[1] for x in self.shape])
+        return np.array([[x_min, y_min], [x_max, y_max]])
 
 
 def compute_slide_line(shape, node, imode):
@@ -312,6 +310,15 @@ class BarrelConstraint():
         diamond.append([0., barrel_radius])
         diamond = np.array(diamond)
         self.handles['shape'] = diamond, 'polyline', {'color': 'black',
+                                                      'zorder': 1.}
+        square = []
+        square.append([ barrel_radius,  barrel_radius])
+        square.append([-barrel_radius,  barrel_radius])
+        square.append([-barrel_radius, -barrel_radius])
+        square.append([ barrel_radius, -barrel_radius])
+        square.append([ barrel_radius,  barrel_radius])
+        square = np.array(square)
+        self.handles['square'] = square, 'polyline', {'color': 'black',
                                                       'zorder': 1.}
 
         gui_handles = {}

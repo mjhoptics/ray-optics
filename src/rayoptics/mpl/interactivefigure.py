@@ -46,6 +46,8 @@ class InteractiveFigure(Figure):
                  do_draw_axes=False,
                  oversize_factor=0.05,
                  aspect='equal',
+                 view_bbox=None,
+                 do_scale_bounds=False,
                  **kwargs):
         self.linewidth = 0.5
         self.do_draw_frame = do_draw_frame
@@ -54,7 +56,7 @@ class InteractiveFigure(Figure):
         self.aspect = aspect
         self.hilited = None
         self.selected = None
-        self.do_scale_bounds = True
+        self.do_scale_bounds = do_scale_bounds
         self.do_action = self.do_shape_action
 
         super().__init__(**kwargs)
@@ -62,6 +64,7 @@ class InteractiveFigure(Figure):
         self.set_facecolor(backgrnd_color)
 
         self.update_data()
+        self.view_bbox = view_bbox if view_bbox else self.fit_axis_limits()
 
     def connect(self, action_dict):
         'connect to all the events we need'
@@ -74,6 +77,14 @@ class InteractiveFigure(Figure):
         for clbk in self.callback_ids:
             self.canvas.mpl_disconnect(clbk)
         self.callback_ids = None
+
+    @property
+    def is_unit_aspect_ratio(self):
+        return self.aspect == 'equal'
+
+    @is_unit_aspect_ratio.setter
+    def is_unit_aspect_ratio(self, value):
+        self.aspect = 'equal' if value else 'auto'
 
     def refresh(self):
         self.update_data()
@@ -179,9 +190,41 @@ class InteractiveFigure(Figure):
         p.unhighlight = unhighlight
         return p
 
-    def update_axis_limits(self):
-        self.ax.set_xlim(self.view_bbox[0][0], self.view_bbox[1][0])
-        self.ax.set_ylim(self.view_bbox[0][1], self.view_bbox[1][1])
+    def update_axis_limits(self, bbox):
+        self.ax.set_xlim(bbox[0][0], bbox[1][0])
+        self.ax.set_ylim(bbox[0][1], bbox[1][1])
+
+    def fit_axis_limits(self):
+        """ returns a numpy bounding box that fits the current data """
+        pass
+
+    def fit(self):
+        self.view_bbox = self.fit_axis_limits()
+        self.update_axis_limits(bbox=self.view_bbox)
+        self.plot()
+
+    def zoom(self, factor):
+        bbox = self.view_bbox
+        # calculate the bbox half-widths
+        hlf_x, hlf_y = (bbox[1][0] - bbox[0][0])/2, (bbox[1][1] - bbox[0][1])/2
+        # calculate the center of the bbox
+        cen_x, cen_y = (bbox[1][0] + bbox[0][0])/2, (bbox[1][1] + bbox[0][1])/2
+        # scale the bbox dimensions by the requested factor
+        hlf_x *= factor
+        hlf_y *= factor
+        # rebuild the scaled bbox
+        view_bbox = np.array([[cen_x-hlf_x, cen_y-hlf_y],
+                              [cen_x+hlf_x, cen_y+hlf_y]])
+
+        self.view_bbox = view_bbox
+        self.update_axis_limits(bbox=self.view_bbox)
+        self.plot()
+
+    def zoom_in(self):
+        self.zoom(factor=0.8)
+
+    def zoom_out(self):
+        self.zoom(factor=1.2)
 
     def draw_frame(self, do_draw_frame):
         if do_draw_frame:
@@ -222,7 +265,9 @@ class InteractiveFigure(Figure):
         if self.do_scale_bounds:
             self.view_bbox = scale_bounds(self.sys_bbox,
                                           self.oversize_factor)
-        self.update_axis_limits()
+
+        self.ax.set_aspect(self.aspect, adjustable='datalim')
+        self.update_axis_limits(bbox=self.view_bbox)
 
         self.draw_frame(self.do_draw_frame)
         self.ax.set_facecolor(backgrnd_color)
@@ -269,6 +314,7 @@ class InteractiveFigure(Figure):
                 pass
 
     def on_press(self, event):
+        self.save_do_scale_bounds = self.do_scale_bounds
         self.do_scale_bounds = False
         target_artist = self.selected = self.hilited
         self.do_action(event, target_artist, 'press')
@@ -306,6 +352,6 @@ class InteractiveFigure(Figure):
         logging.debug("on_release")
 
         self.do_action(event, self.selected, 'release')
-        self.do_scale_bounds = True
+        self.do_scale_bounds = self.save_do_scale_bounds
         self.selected = None
         self.action_complete()

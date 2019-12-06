@@ -10,13 +10,12 @@
 from PyQt5.QtCore import Qt as qt
 from PyQt5.QtWidgets import (QHBoxLayout, QVBoxLayout, QWidget, QLineEdit,
                              QRadioButton, QGroupBox, QSizePolicy, QCheckBox,
-                             QListWidget, QListWidgetItem)
+                             QListWidget, QListWidgetItem, QPushButton)
 
 from matplotlib.backends.backend_qt5agg \
      import (NavigationToolbar2QT as NavigationToolbar)
 
 from rayoptics.gui.appmanager import ModelInfo
-#from rayoptics.gui.appcmds import update_figure_view
 from rayoptics.qtgui.plotcanvas import PlotCanvas
 from rayoptics.mpl.axisarrayfigure import Fit
 
@@ -171,6 +170,48 @@ def on_plot_scale_changed(cntxt):
         return ''
 
     plotFigure.plot()
+
+
+def create_2d_figure_control_panel(app, pc):
+    """ zoom, fit and pan commands for figures
+    Zoom In, Out
+    Zoom Box
+    Fit
+    1:1
+    """
+
+    def attr_check(fig, attr, state):
+        checked = state == qt.Checked
+#        cur_value = getattr(fig, attr, None)
+        setattr(fig, attr, checked)
+        fig.refresh()
+
+    groupBox = QGroupBox("Zoom/Fit", app)
+
+    fig = pc.figure
+
+    fit_btn = QPushButton("Fit")
+    fit_btn.clicked.connect(fig.fit)
+
+    zoom_in_btn = QPushButton("Zoom In")
+    zoom_in_btn.clicked.connect(fig.zoom_in)
+
+    zoom_out_btn = QPushButton("Zoom Out")
+    zoom_out_btn.clicked.connect(fig.zoom_out)
+
+    aratio_checkBox = QCheckBox("1:1")
+    aratio_checkBox.setChecked(fig.is_unit_aspect_ratio)
+    aratio_checkBox.stateChanged.connect(lambda checked: attr_check(fig,
+                                         'is_unit_aspect_ratio', checked))
+    box = QHBoxLayout()
+    box.addWidget(fit_btn)
+    box.addWidget(zoom_in_btn)
+    box.addWidget(zoom_out_btn)
+    box.addWidget(aratio_checkBox)
+
+    groupBox.setLayout(box)
+
+    return groupBox
 
 
 def create_draw_rays_groupbox(app, pc):

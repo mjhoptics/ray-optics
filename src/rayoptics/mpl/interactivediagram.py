@@ -89,27 +89,5 @@ class InteractiveDiagram(InteractiveFigure):
     def action_complete(self):
         self.diagram.register_commands((), figure=self)
 
-    def update_axis_limits(self):
-        x_min, x_max = self.fit_data_range([x[0] for x in self.diagram.shape])
-        y_min, y_max = self.fit_data_range([x[1] for x in self.diagram.shape])
-        self.ax.set_xlim(x_min, x_max)
-        self.ax.set_ylim(y_min, y_max)
-
-    def fit_data_range(self, x_data, margin=0.05, range_trunc=0.25):
-        x_min = min(0., min(x_data))
-        x_max = max(0., max(x_data))
-        x_range = x_max - x_min
-        if x_range != 0.0 and len(x_data) > 2:
-            x1_min = min(0., min(x_data[1:]))
-            x1_max = max(0., max(x_data[1:]))
-            x1_range = x1_max - x1_min
-            if abs(x1_range/x_range) < range_trunc:
-                x_min = x1_min
-                x_max = x1_max
-                x_range = x1_range
-
-        if x_range > 0.:
-            x_margin = margin*x_range
-        else:
-            x_margin = 0.01
-        return x_min-x_margin, x_max+x_margin
+    def fit_axis_limits(self):
+        return self.diagram.fit_axis_limits()

@@ -34,7 +34,8 @@ from rayoptics.qtgui.idealimagerdialog import IdealImagerDialog
 from rayoptics.qtgui.pytablemodel import PyTableModel
 from rayoptics.qtgui.plotview import (create_plot_scale_panel,
                                       create_draw_rays_groupbox,
-                                      create_diagram_controls_groupbox)
+                                      create_diagram_controls_groupbox,
+                                      create_2d_figure_control_panel)
 
 
 def create_new_model():
@@ -198,14 +199,17 @@ def create_paraxial_design_view(opt_model, dgm_type, gui_parent=None):
 def create_paraxial_design_view_v2(opt_model, dgm_type, gui_parent=None):
     fig = dgm.InteractiveDiagram(opt_model, gui_parent.refresh_gui, dgm_type,
                                  do_draw_frame=True, do_draw_axes=True,
-                                 aspect='auto', figsize=(5, 4))
+                                 aspect='auto')
     cmds = dgm.create_parax_design_commands(fig)
     view_width = 650
     view_ht = 500
     title = "Paraxial Design View V2"
-    panel_fcts = [create_diagram_controls_groupbox]
+    panel_fcts = [create_2d_figure_control_panel,
+                  create_diagram_controls_groupbox,
+                  ]
     plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht,
-                              add_panel_fcts=panel_fcts, add_nav_toolbar=True,
+                              add_panel_fcts=panel_fcts,
+                              add_nav_toolbar=True,
                               commands=cmds)
 
 

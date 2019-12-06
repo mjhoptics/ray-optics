@@ -70,3 +70,23 @@ def inv_transform_poly(tfrm, poly):
     # flip coordinates back to 2D plot coordinates, +y points up
     poly = np.matmul(poly, coord_flip)
     return poly
+
+
+def fit_data_range(x_data, margin=0.05, range_trunc=0.25, **kwargs):
+    x_min = min(0., min(x_data))
+    x_max = max(0., max(x_data))
+    x_range = x_max - x_min
+    if x_range != 0.0 and len(x_data) > 2:
+        x1_min = min(0., min(x_data[1:]))
+        x1_max = max(0., max(x_data[1:]))
+        x1_range = x1_max - x1_min
+        if abs(x1_range/x_range) < range_trunc:
+            x_min = x1_min
+            x_max = x1_max
+            x_range = x1_range
+
+    if x_range > 0.:
+        x_margin = margin*x_range
+    else:
+        x_margin = 0.01
+    return x_min-x_margin, x_max+x_margin

@@ -39,11 +39,10 @@ class InteractiveLayout(InteractiveFigure):
         self.do_draw_rays = do_draw_rays
         self.do_paraxial_layout = do_paraxial_layout
         self.offset_factor = offset_factor
-        self.do_scale_bounds = True
+        if 'do_scale_bounds' not in kwargs:
+            kwargs['do_scale_bounds'] = True
 
         super().__init__(**kwargs)
-
-        self.update_data()
 
     def update_data(self):
         self.artists = []
@@ -74,3 +73,6 @@ class InteractiveLayout(InteractiveFigure):
 
     def action_complete(self):
         self.do_action = self.do_shape_action
+
+    def fit_axis_limits(self):
+        return self.sys_bbox
