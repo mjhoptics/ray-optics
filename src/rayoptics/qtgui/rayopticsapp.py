@@ -304,7 +304,7 @@ class MainWindow(QMainWindow):
         seq_model = self.app_manager.model.seq_model
 
         def set_stop_surface(stop_surface):
-            seq_model.set_stop_surface(stop_surface)
+            seq_model.stop_surface = stop_surface
             self.refresh_gui()
 
         def handle_context_menu(point):
