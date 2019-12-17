@@ -204,19 +204,19 @@ def compute_first_order(opt_model, stop, wvl):
         bs1 = q_ray[stop][ht]
         cs1 = n_s*p_ray[stop][slp]
         ds1 = n_s*q_ray[stop][slp]
-    
+
         # find entrance pupil location w.r.t. first surface
         ybar1 = -bs1
         ubar1 = as1
         n_0 = seq_model.gaps[0].medium.rindex(wvl)
         enp_dist = -ybar1/(n_0*ubar1)
-    
+
         thi0 = seq_model.gaps[0].thi
-    
+
         # calculate reduction ratio for given object distance
         red = dk1 + thi0*ck1
         obj2enp_dist = thi0 + enp_dist
-    
+
         yu = [0., 1.]
         pupil = opt_model.optical_spec.pupil
         aperture, obj_img_key, value_key = pupil.key
@@ -233,7 +233,7 @@ def compute_first_order(opt_model, stop, wvl):
                 slpk = n_k*math.tan(math.asin(pupil.value/n_k))
                 slp0 = slpk/red
         yu = [0., slp0]
-    
+
         yu_bar = [1., 0.]
         fov = opt_model.optical_spec.field_of_view
         field, obj_img_key, value_key = fov.key
@@ -255,10 +255,10 @@ def compute_first_order(opt_model, stop, wvl):
         yu_bar = [ybar0, slpbar0]
 
     else:  # floating stop surface - use parax_model for starting data
-        ax_ray = opt_model.parax_model.ax
-        pr_ray = opt_model.parax_model.pr
-        yu = [0., ax_ray[0][slp]/n_0]
-        yu_bar = [pr_ray[0][ht], pr_ray[0][slp]/n_0]
+        ax = opt_model.parax_model.ax
+        pr = opt_model.parax_model.pr
+        yu = [0., ax[0][slp]/n_0]
+        yu_bar = [pr[0][ht], pr[0][slp]/n_0]
 
     ax_ray, pr_ray = paraxial_trace(seq_model.path(wl=wvl), 0, yu, yu_bar)
 
