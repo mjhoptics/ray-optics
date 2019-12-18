@@ -9,6 +9,7 @@
 
 import math
 import numpy as np
+from copy import deepcopy
 
 from rayoptics.gui.util import GUIHandle, bbox_from_poly, fit_data_range
 
@@ -49,6 +50,7 @@ class Diagram():
         parax_model = self.opt_model.parax_model
 
         self.shape = self.render_shape()
+        self.shape_bbox = bbox_from_poly(self.shape)
         if fig.build == 'update':
             # just a change in node positions - handled above
             # self.shape = self.render_shape()
@@ -68,17 +70,25 @@ class Diagram():
             for i in range(len(parax_model.sys)-1):
                 self.edge_list.append(DiagramEdge(self, i))
 
+            self.object_shift = ConjugateLine(self, 'object_image')
+            if self.opt_model.seq_model.stop_surface is None:
+                # stop shift conjugate line is only editable for floating stop
+                self.stop_shift = ConjugateLine(self, 'stop')
+
             if self.do_barrel_constraint:
                 self.barrel_constraint = BarrelConstraint(self)
 
         self.node_bbox = fig.update_patches(self.node_list)
         self.edge_bbox = fig.update_patches(self.edge_list)
 
+        self.object_shift_bbox = fig.update_patches([self.object_shift])
+        if self.opt_model.seq_model.stop_surface is None:
+            self.stop_shift_bbox = fig.update_patches([self.stop_shift])
+
         if self.do_barrel_constraint:
             self.barrel_bbox = fig.update_patches([self.barrel_constraint])
 
-        sys_bbox = bbox_from_poly(self.shape)
-        return sys_bbox
+        return self.shape_bbox
 
     def apply_data(self, node, vertex):
         self._apply_data(node, vertex)
@@ -101,7 +111,10 @@ class Diagram():
                 try:
 #                    print(type(shape).__name__, shape.node, handle, event_key)
                     handle_action_obj = shape.actions[handle]
-                    handle_action_obj.actions[event_key](fig, event)
+                    if isinstance(handle_action_obj, dict):
+                        handle_action_obj[event_key](fig, event)
+                    else:
+                        handle_action_obj.actions[event_key](fig, event)
                 except KeyError:
                     pass
         fig.do_action = do_command_action
@@ -114,6 +127,13 @@ class Diagram():
             shape.append([x[self.type_sel], y[self.type_sel]])
         shape = np.array(shape)
         return shape
+
+    def update_diagram_from_shape(self, shape):
+        ''' use the shape list to update the paraxial model '''
+        parax_model = self.opt_model.parax_model
+        for x, y, shp in zip(parax_model.pr, parax_model.ax, shape):
+            x[self.type_sel] = shp[0]
+            y[self.type_sel] = shp[1]
 
     def fit_axis_limits(self):
         ''' define diagram axis limits as the extent of the shape polygon '''
@@ -342,6 +362,146 @@ class BarrelConstraint():
 
     def handle_actions(self):
         actions = {}
+        return actions
+
+
+class ConjugateLine():
+    def __init__(self, diagram, line_type):
+        self.diagram = diagram
+        self.line_type = line_type
+        self.sys_orig = []
+        self.shape_orig = []
+        self.handles = {}
+        self.actions = self.handle_actions()
+
+    def update_shape(self, view):
+        shape_bbox = self.diagram.shape_bbox
+        line = []
+        if self.line_type == 'stop':
+            ht = shape_bbox[1][1] - shape_bbox[0][1]
+            line.append([0., -2*ht])
+            line.append([0., 2*ht])
+        elif self.line_type == 'object_image':
+            wid = shape_bbox[1][0] - shape_bbox[0][0]
+            line.append([-2*wid, 0.])
+            line.append([2*wid, 0.])
+        self.handles['shape'] = line, 'polyline', {'color': 'black',
+                                                   'zorder': 1.}
+
+        if len(self.shape_orig) > 0:
+            conj_line = []
+            if self.line_type == 'stop':
+                lwr, upr = view.ax.get_ybound()
+                ht = upr - lwr
+                conj_line.append([self.k*ht, -ht])
+                conj_line.append([-self.k*ht, ht])
+            elif self.line_type == 'object_image':
+                lwr, upr = view.ax.get_xbound()
+                wid = upr - lwr
+                conj_line.append([-wid, self.k*wid])
+                conj_line.append([wid, -self.k*wid])
+            self.handles['conj_line'] = conj_line, 'polyline', \
+                                                  {'color': 'orange',
+                                                   'zorder': 1.}
+            self.handles['shift'] = self.shape_orig, 'polyline', \
+                                                    {'color': 'blue',
+                                                     'zorder': 1.}
+
+        gui_handles = {}
+        for key, graphics_handle in self.handles.items():
+            poly_data, poly_type, kwargs = graphics_handle
+            poly = np.array(poly_data)
+            if poly_type == 'polygon':
+                p = view.create_polygon(poly, self.render_color(), **kwargs)
+            elif poly_type == 'polyline':
+                p = view.create_polyline(poly, **kwargs)
+            else:
+                break
+            gui_handles[key] = GUIHandle(p, bbox_from_poly(poly))
+        return gui_handles
+
+    def render_color(self):
+        return 'black'
+
+    def get_label(self):
+        if self.line_type == 'stop':
+            return 'stop shift line'
+        elif self.line_type == 'object_image':
+            return 'object shift line'
+        else:
+            return ''
+
+    def edit_conjugate_line_actions(self):
+        dgm = self.diagram
+        pm = dgm.opt_model.parax_model
+
+        def calculate_slope(x, y):
+            ''' x=ybar, y=y  '''
+            if self.line_type == 'stop':
+                k = -x/y
+                return k, np.array([[1, 0], [k, 1]])
+            elif self.line_type == 'object_image':
+                k = -y/x
+                return k, np.array([[1, k], [0, 1]])
+            else:
+                return 0, np.array([[1, 0], [0, 1]])
+
+        def apply_data(event_data):
+            self.k, mat = calculate_slope(event_data[0], event_data[1])
+            # apply the shear transformation to the original shape
+            dgm.shape = self.shape_orig.dot(mat)
+
+            dgm.update_diagram_from_shape(dgm.shape)
+
+            # update slope values
+            for i in range(1, len(dgm.shape)):
+                pm.pr[i-1][slp] = ((pm.pr[i][ht] - pm.pr[i-1][ht]) /
+                                   self.sys_orig[i-1][tau])
+                pm.ax[i-1][slp] = ((pm.ax[i][ht] - pm.ax[i-1][ht]) /
+                                   self.sys_orig[i-1][tau])
+            pm.pr[-1][slp] = pm.pr[-2][slp]
+            pm.ax[-1][slp] = pm.ax[-2][slp]
+
+            if self.line_type == 'object_image':
+                # update object distance and object y and ybar
+                pm.sys[0][tau] = pm.ax[1][ht]/pm.ax[0][slp]
+                pm.ax[0][ht] = 0
+                pm.pr[0][ht] = pm.pr[1][ht] - pm.sys[0][tau]*pm.pr[0][slp]
+
+                # update image distance and image y and ybar
+                pm.sys[-2][tau] = -pm.ax[-2][ht]/pm.ax[-2][slp]
+                pm.ax[-1][ht] = 0
+                pm.pr[-1][ht] = pm.pr[-2][ht] + pm.sys[-2][tau]*pm.pr[-2][slp]
+
+            pm.paraxial_lens_to_seq_model()
+
+        def on_select(fig, event):
+            self.sys_orig = deepcopy(pm.sys)
+            self.shape_orig = deepcopy(dgm.shape)
+
+        def on_edit(fig, event):
+            if event.xdata is not None and event.ydata is not None:
+                event_data = np.array([event.xdata, event.ydata])
+                apply_data(event_data)
+                fig.build = 'update'
+                fig.refresh_gui()
+
+        def on_release(fig, event):
+            event_data = np.array([event.xdata, event.ydata])
+            apply_data(event_data)
+            self.sys_orig = []
+            self.shape_orig = []
+            fig.refresh_gui()
+
+        actions = {}
+        actions['press'] = on_select
+        actions['drag'] = on_edit
+        actions['release'] = on_release
+        return actions
+
+    def handle_actions(self):
+        actions = {}
+        actions['shape'] = self.edit_conjugate_line_actions()
         return actions
 
 
