@@ -10,6 +10,7 @@
 
 import logging
 from collections import namedtuple
+from copy import deepcopy
 
 import numpy as np
 from matplotlib.figure import Figure
@@ -58,6 +59,7 @@ class InteractiveFigure(Figure):
         self.selected = None
         self.do_scale_bounds = do_scale_bounds
         self.do_action = self.do_shape_action
+        self.on_finished = None
 
         super().__init__(**kwargs)
 
@@ -94,7 +96,31 @@ class InteractiveFigure(Figure):
         pass
 
     def action_complete(self):
-        pass
+        if self.on_finished:
+            self.on_finished()
+            self.on_finished = None
+
+    def register_action(self, *args, **kwargs):
+        action_obj = args[0]
+        fig = kwargs.pop('figure')
+
+        def do_command_action(event, target, event_key):
+            nonlocal action_obj, fig
+            try:
+                action_obj.actions[event_key](fig, event)
+            except KeyError:
+                pass
+        self.do_action = do_command_action
+
+    def register_pan(self, on_finished):
+        action_obj = PanAction()
+        self.register_action(action_obj, figure=self)
+        self.on_finished = on_finished
+
+    def register_zoom_box(self, on_finished):
+        action_obj = ZoomBoxAction()
+        self.register_action(action_obj, figure=self)
+        self.on_finished = on_finished
 
     def update_patches(self, shapes):
         """ loop over the input shapes, fetching their current geometry
@@ -355,3 +381,57 @@ class InteractiveFigure(Figure):
         self.do_scale_bounds = self.save_do_scale_bounds
         self.selected = None
         self.action_complete()
+
+
+class PanAction():
+    ''' wrapper class to handle pan action, handing off to Axes '''
+    def __init__(self, **kwargs):
+
+        def on_press(fig, event):
+            self._button_pressed = event.button
+            fig.ax.start_pan(event.x, event.y, event.button)
+
+        def on_drag(fig, event):
+            fig.ax.drag_pan(self._button_pressed, event.key, event.x, event.y)
+            fig.canvas.draw_idle()
+
+        def on_release(fig, event):
+            fig.ax.end_pan()
+            # update figure view_bbox with result of pan action
+            x_min, x_max = fig.ax.get_xbound()
+            y_min, y_max = fig.ax.get_ybound()
+            fig.view_bbox = np.array([[x_min, y_min], [x_max, y_max]])
+
+        self.actions = {}
+        self.actions['press'] = on_press
+        self.actions['drag'] = on_drag
+        self.actions['release'] = on_release
+
+
+class ZoomBoxAction():
+    def __init__(self, **kwargs):
+
+        def on_press(fig, event):
+            # get current bbox value
+            self.initial_pt = np.array([event.xdata, event.ydata])
+            self.view_bbox = deepcopy(fig.view_bbox)
+
+        def on_drag(fig, event):
+            # get current point and offset axes to match
+            drag_pt = np.array([event.xdata, event.ydata])
+            pan = drag_pt - self.initial_pt
+            panned_bbox = self.view_bbox + (pan[0], pan[1])
+            fig.update_axis_limits(bbox=panned_bbox)
+            fig.canvas.draw_idle()
+
+        def on_release(fig, event):
+            release_pt = np.array([event.xdata, event.ydata])
+            pan = release_pt - self.initial_pt
+            panned_bbox = self.view_bbox + (pan[0], pan[1])
+            fig.update_axis_limits(bbox=panned_bbox)
+            fig.canvas.draw_idle()
+
+        self.actions = {}
+        self.actions['press'] = on_press
+        self.actions['drag'] = on_drag
+        self.actions['release'] = on_release

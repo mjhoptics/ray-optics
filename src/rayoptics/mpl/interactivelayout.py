@@ -72,6 +72,7 @@ class InteractiveLayout(InteractiveFigure):
         return self
 
     def action_complete(self):
+        super().action_complete()
         self.do_action = self.do_shape_action
 
     def fit_axis_limits(self):
