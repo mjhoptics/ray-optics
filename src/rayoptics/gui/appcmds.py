@@ -35,7 +35,6 @@ from rayoptics.qtgui.pytablemodel import PyTableModel
 from rayoptics.qtgui.plotview import (create_plot_scale_panel,
                                       create_draw_rays_groupbox,
                                       create_diagram_controls_groupbox,
-#                                      create_2d_figure_control_panel,
                                       create_2d_figure_toolbar)
 
 
@@ -153,9 +152,11 @@ def create_live_layout_view(opt_model, gui_parent=None):
     view_width = 880
     view_ht = 660
     title = "Optical Layout"
-    panel_fcts = [create_draw_rays_groupbox]
+    panel_fcts = [create_2d_figure_toolbar,
+                  create_draw_rays_groupbox,
+                  ]
     plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht,
-                              add_panel_fcts=panel_fcts, add_nav_toolbar=True,
+                              add_panel_fcts=panel_fcts,
                               commands=cmds)
 
 
@@ -202,16 +203,14 @@ def create_paraxial_design_view_v2(opt_model, dgm_type, gui_parent=None):
                                  do_draw_frame=True, do_draw_axes=True,
                                  aspect='auto')
     cmds = dgm.create_parax_design_commands(fig)
-    view_width = 650
-    view_ht = 500
-    title = "Paraxial Design View V2"
+    view_width = 880
+    view_ht = 660
+    title = "Paraxial Design View"
     panel_fcts = [create_2d_figure_toolbar,
-#                  create_2d_figure_control_panel,
                   create_diagram_controls_groupbox,
                   ]
     plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht,
                               add_panel_fcts=panel_fcts,
-                              add_nav_toolbar=True,
                               commands=cmds)
 
 

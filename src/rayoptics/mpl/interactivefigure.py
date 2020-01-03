@@ -16,6 +16,7 @@ import numpy as np
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch, Polygon
+from matplotlib.widgets import RectangleSelector
 
 from rayoptics.gui.util import bbox_from_poly, scale_bounds
 
@@ -42,6 +43,7 @@ class InteractiveFigure(Figure):
         do_draw_rays: if True, draw edge rays
         do_paraxial_layout: if True, draw editable paraxial axial and chief ray
     """
+
     def __init__(self,
                  do_draw_frame=False,
                  do_draw_axes=False,
@@ -58,7 +60,10 @@ class InteractiveFigure(Figure):
         self.hilited = None
         self.selected = None
         self.do_scale_bounds = do_scale_bounds
+
         self.do_action = self.do_shape_action
+        self.event_dict = {}
+
         self.on_finished = None
 
         super().__init__(**kwargs)
@@ -68,17 +73,25 @@ class InteractiveFigure(Figure):
         self.update_data()
         self.view_bbox = view_bbox if view_bbox else self.fit_axis_limits()
 
-    def connect(self, action_dict):
+    def connect_events(self, action_dict=None):
         'connect to all the events we need'
+        if action_dict is None:
+            action_dict = {'button_press_event': self.on_press,
+                           'button_release_event': self.on_release,
+                           'motion_notify_event': self.on_motion}
         self.callback_ids = []
         for event, action in action_dict.items():
-            self.callback_ids.append(self.canvas.mpl_connect(event, action))
+            self.event_dict[event] = action
+            cid = self.canvas.mpl_connect(event, action)
+            self.callback_ids.append(cid)
 
-    def disconnect(self):
+    def disconnect_events(self):
         'disconnect all the stored connection ids'
         for clbk in self.callback_ids:
             self.canvas.mpl_disconnect(clbk)
         self.callback_ids = None
+        event_dict, self.event_dict = self.event_dict, {}
+        return event_dict
 
     @property
     def is_unit_aspect_ratio(self):
@@ -118,8 +131,11 @@ class InteractiveFigure(Figure):
         self.on_finished = on_finished
 
     def register_zoom_box(self, on_finished):
-        action_obj = ZoomBoxAction()
-        self.register_action(action_obj, figure=self)
+        self.zoom_box_action = ZoomBoxAction(self)
+        def do_command_action(event, target, event_key):
+            pass
+
+        self.do_action = do_command_action
         self.on_finished = on_finished
 
     def update_patches(self, shapes):
@@ -224,9 +240,12 @@ class InteractiveFigure(Figure):
         """ returns a numpy bounding box that fits the current data """
         pass
 
-    def fit(self):
-        self.view_bbox = self.fit_axis_limits()
+    def set_view_bbox(self, bbox):
+        self.view_bbox = bbox
         self.update_axis_limits(bbox=self.view_bbox)
+        
+    def fit(self):
+        self.set_view_bbox(self.fit_axis_limits())
         self.plot()
 
     def zoom(self, factor):
@@ -242,8 +261,7 @@ class InteractiveFigure(Figure):
         view_bbox = np.array([[cen_x-hlf_x, cen_y-hlf_y],
                               [cen_x+hlf_x, cen_y+hlf_y]])
 
-        self.view_bbox = view_bbox
-        self.update_axis_limits(bbox=self.view_bbox)
+        self.set_view_bbox(view_bbox)
         self.plot()
 
     def zoom_in(self):
@@ -300,11 +318,7 @@ class InteractiveFigure(Figure):
 
         self.draw_axes(self.do_draw_axes)
 
-        default_actions = {'button_press_event': self.on_press,
-                           'button_release_event': self.on_release,
-                           'motion_notify_event': self.on_motion}
-
-        self.connect(default_actions)
+        self.connect_events()
         self.canvas.draw()
 
         return self
@@ -409,29 +423,22 @@ class PanAction():
 
 
 class ZoomBoxAction():
-    def __init__(self, **kwargs):
-
-        def on_press(fig, event):
-            # get current bbox value
-            self.initial_pt = np.array([event.xdata, event.ydata])
-            self.view_bbox = deepcopy(fig.view_bbox)
-
-        def on_drag(fig, event):
-            # get current point and offset axes to match
-            drag_pt = np.array([event.xdata, event.ydata])
-            pan = drag_pt - self.initial_pt
-            panned_bbox = self.view_bbox + (pan[0], pan[1])
-            fig.update_axis_limits(bbox=panned_bbox)
+    def __init__(self, fig, **kwargs):
+        def on_release(press_event, release_event):
+            bbox = np.array([[press_event.xdata, press_event.ydata],
+                             [release_event.xdata, release_event.ydata]])
+            fig.set_view_bbox(bbox)
             fig.canvas.draw_idle()
+            self.rubber_box.disconnect_events()
+            fig.connect_events(self.saved_events)
+            fig.action_complete()
 
-        def on_release(fig, event):
-            release_pt = np.array([event.xdata, event.ydata])
-            pan = release_pt - self.initial_pt
-            panned_bbox = self.view_bbox + (pan[0], pan[1])
-            fig.update_axis_limits(bbox=panned_bbox)
-            fig.canvas.draw_idle()
-
-        self.actions = {}
-        self.actions['press'] = on_press
-        self.actions['drag'] = on_drag
-        self.actions['release'] = on_release
+        self.saved_events = fig.disconnect_events()
+        rectprops = dict(edgecolor='black', fill=False)
+        self.rubber_box = RectangleSelector(fig.ax, on_release,
+                                            drawtype='box', useblit=False,
+                                            button=[1, 3],  # don't use middle button
+                                            minspanx=5, minspany=5,
+                                            spancoords='pixels',
+                                            rectprops=rectprops,
+                                            interactive=False)

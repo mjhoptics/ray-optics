@@ -94,9 +94,9 @@ class MainWindow(QMainWindow):
 
         dock.create_dock_windows(self)
         for pi in dock.panels.values():
-            wnd.addAction(pi.menu_action)
+            wnd_menu.addAction(pi.menu_action)
 
-        wnd.triggered[QAction].connect(self.window_action)
+        wnd_menu.triggered[QAction].connect(self.window_action)
 
         self.setWindowTitle("Ray Optics")
         self.show()

@@ -10,6 +10,7 @@
 from pathlib import Path
 
 from PyQt5.QtCore import Qt as qt
+from PyQt5.QtCore import QSize
 from PyQt5 import QtGui
 from PyQt5.QtWidgets import (QHBoxLayout, QVBoxLayout, QWidget, QLineEdit,
                              QRadioButton, QGroupBox, QSizePolicy, QCheckBox,
@@ -176,59 +177,9 @@ def on_plot_scale_changed(cntxt):
     plotFigure.plot()
 
 
-#def create_2d_figure_control_panel(app, pc):
-#    """ zoom, fit and pan commands for figures
-#    Zoom In, Out
-#    Zoom Box
-#    Fit
-#    1:1
-#    """
-#
-#    def attr_check(fig, attr, state):
-#        checked = state == qt.Checked
-##        cur_value = getattr(fig, attr, None)
-#        setattr(fig, attr, checked)
-#        fig.refresh()
-#
-#    groupBox = QGroupBox("Zoom/Fit", app)
-#
-#    fig = pc.figure
-#
-#    pan_btn = QPushButton("Pan")
-#    pan_btn.setCheckable(True)
-#    pan_btn.clicked.connect(fig.register_pan)
-#
-#    zoom_box_btn = QPushButton("Box")
-#    zoom_box_btn.clicked.connect(fig.register_zoom_box)
-#
-#    fit_btn = QPushButton("Fit")
-#    fit_btn.clicked.connect(fig.fit)
-#
-#    zoom_in_btn = QPushButton("Zoom In")
-#    zoom_in_btn.clicked.connect(fig.zoom_in)
-#
-#    zoom_out_btn = QPushButton("Zoom Out")
-#    zoom_out_btn.clicked.connect(fig.zoom_out)
-#
-#    aratio_checkBox = QCheckBox("1:1")
-#    aratio_checkBox.setChecked(fig.is_unit_aspect_ratio)
-#    aratio_checkBox.stateChanged.connect(lambda checked: attr_check(fig,
-#                                         'is_unit_aspect_ratio', checked))
-#    box = QHBoxLayout()
-#    box.addWidget(pan_btn)
-#    box.addWidget(zoom_box_btn)
-#    box.addWidget(fit_btn)
-#    box.addWidget(zoom_in_btn)
-#    box.addWidget(zoom_out_btn)
-#    box.addWidget(aratio_checkBox)
-#
-#    groupBox.setLayout(box)
-#
-#    return groupBox
-
-
-def get_icon(fig, icon_filepath):
-    pm = QtGui.QPixmap(str(icon_filepath))
+def get_icon(fig, icon_filepath, icon_size=48):
+    pm = QtGui.QPixmap(str(icon_filepath)).scaled(icon_size, icon_size)
+    # pm = QtGui.QPixmap(str(icon_filepath))
     if hasattr(pm, 'setDevicePixelRatio'):
         pm.setDevicePixelRatio(fig.canvas._dpi_ratio)
     return QtGui.QIcon(pm)
@@ -242,8 +193,11 @@ def create_2d_figure_toolbar(app, pc):
     Zoom In, Out
     1:1
     """
-    fig = pc.figure
+    icon_size=24
     tb = QToolBar()
+    tb.setIconSize(QSize(icon_size, icon_size))
+    tb.setStyleSheet("QToolBar{spacing:0px;}");
+
     toolitems = (
         ('Pan', 'Pan axes with mouse', 'pan', 'register_pan'),
         ('Zoom', 'Zoom to rectangle', 'zoom', 'register_zoom_box'),
@@ -255,6 +209,7 @@ def create_2d_figure_toolbar(app, pc):
     pth = Path(__file__).resolve().parent
     image_dir = Path(pth / 'images')
 
+    fig = pc.figure
     actions = {}
     for text, tooltip_text, image_file, callback in toolitems:
         if text is None:
@@ -268,7 +223,8 @@ def create_2d_figure_toolbar(app, pc):
                     getattr(fig, callback)(on_finished)
                 return make_cb_fct
 
-            icon = get_icon(fig, image_dir / (image_file + '.png'))
+            image_path = image_dir / (image_file + '.png')
+            icon = get_icon(fig, image_path, icon_size=icon_size)
 
             if callback in ['register_zoom_box', 'register_pan']:
                 # action requires mouse input handling, unpress when finished
