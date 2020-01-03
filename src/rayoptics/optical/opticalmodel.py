@@ -8,12 +8,7 @@
 .. codeauthor: Michael J. Hayford
 """
 
-import os.path
-import json_tricks
-
 import rayoptics
-
-import rayoptics.codev.cmdproc as cvp
 
 from rayoptics.optical import elements
 import rayoptics.optical.model_constants as mc
@@ -24,33 +19,6 @@ from rayoptics.optical.sequential import SequentialModel
 from rayoptics.optical.opticalspec import OpticalSpecs
 from rayoptics.optical.specsheet import create_specsheet_from_model
 from rayoptics.optical.model_enums import DimensionType as dt
-
-
-def open_model(file_name):
-    """ open a file and populate an optical model with the data
-
-    Args:
-        file_name (str): a filename of a supported file type
-
-            - .roa - a rayoptics JSON encoded file
-            - .seq - a CODE V (TM) sequence file
-
-    Returns:
-        if successful, an OpticalModel instance, otherwise, None
-    """
-    file_extension = os.path.splitext(file_name)[1]
-    opm = None
-    if file_extension == '.seq':
-        opm = OpticalModel()
-        cvp.read_lens(opm, file_name)
-        create_specsheet_from_model(opm)
-    elif file_extension == '.roa':
-        with open(file_name, 'r') as f:
-            obj_dict = json_tricks.load(f)
-            if 'optical_model' in obj_dict:
-                opm = obj_dict['optical_model']
-                opm.sync_to_restore()
-    return opm
 
 
 class SystemSpec:
@@ -187,6 +155,22 @@ class OpticalModel:
             double: value converted to system units
         """
         return self.system_spec.nm_to_sys_units(nm)
+
+    def add_lens(self, **kwargs):
+        seq, ele = elements.create_lens(**kwargs)
+        self.insert_ifc_gp_ele(seq, ele, **kwargs)
+
+    def add_mirror(self, **kwargs):
+        seq, ele = elements.create_mirror(**kwargs)
+        self.insert_ifc_gp_ele(seq, ele, **kwargs)
+
+    def add_thinlens(self, **kwargs):
+        seq, ele = elements.create_thinlens(**kwargs)
+        self.insert_ifc_gp_ele(seq, ele, **kwargs)
+
+    def add_dummy_plane(self, **kwargs):
+        seq, ele = elements.create_dummy_plane(**kwargs)
+        self.insert_ifc_gp_ele(seq, ele, **kwargs)
 
     def insert_ifc_gp_ele(self, *args, **kwargs):
         """ insert interfaces and gaps into seq_model and eles into ele_model

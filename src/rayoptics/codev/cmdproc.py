@@ -13,6 +13,7 @@ import math
 from . import tla
 from . import reader as cvr
 
+from rayoptics.optical.opticalmodel import OpticalModel
 from rayoptics.optical import model_enums
 from rayoptics.optical.model_enums import PupilType, FieldType
 from rayoptics.optical.model_enums import DimensionType as dt
@@ -46,22 +47,26 @@ def fictitious_glass_decode(gc):
     return n, v
 
 
-def read_lens(optm, filename):
+def read_lens(filename):
+    ''' given a CODE V .seq filename, return an OpticalModel  '''
     global _reading_private_catalog
     logging.basicConfig(filename='cv_cmd_proc.log',
                         filemode='w',
                         level=logging.DEBUG)
     _reading_private_catalog = False
+    opt_model = OpticalModel()
     cmds = cvr.read_seq_file(filename)
     for i, c in enumerate(cmds):
         cmd_fct, tla, qlist, dlist = process_command(c)
         if cmd_fct:
-            eval_str = cmd_fct + '(optm, tla, qlist, dlist)'
+            eval_str = cmd_fct + '(opt_model, tla, qlist, dlist)'
             eval(eval_str)
         else:
             logging.info('Line %d: Command %s not supported', i+1, c[0])
 
-    optm.update_model()
+    opt_model.update_model()
+
+    return opt_model
 
 
 def process_command(cmd):

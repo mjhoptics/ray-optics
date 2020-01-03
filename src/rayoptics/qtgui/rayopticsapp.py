@@ -23,7 +23,6 @@ from PyQt5.QtWidgets import (QApplication, QAction, QMainWindow, QMdiArea,
 from PyQt5.QtCore import pyqtSlot
 from traitlets.config.configurable import MultipleInstanceError
 
-from rayoptics.optical.opticalmodel import open_model
 from rayoptics.optical.trace import RaySeg
 import rayoptics.gui.appcmds as cmds
 from rayoptics.gui.appmanager import ModelInfo, AppManager
@@ -215,7 +214,7 @@ class MainWindow(QMainWindow):
 
     def open_file(self, file_name):
         self.cur_filename = file_name
-        self.app_manager.set_model(open_model(file_name))
+        self.app_manager.set_model(cmds.open_model(file_name))
         self.is_changed = True
         self.create_lens_table()
         cmds.create_live_layout_view(self.app_manager.model, gui_parent=self)

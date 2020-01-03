@@ -23,10 +23,10 @@ from IPython.display import display
 # ray-optics
 import rayoptics
 from rayoptics.gui.appmanager import AppManager, ModelInfo
-from rayoptics.gui.appcmds import create_new_model
+from rayoptics.gui.appcmds import create_new_model, open_model
 
 # optical model
-from rayoptics.optical.opticalmodel import OpticalModel, open_model
+from rayoptics.optical.opticalmodel import OpticalModel
 
 import rayoptics.optical.surface as srf
 from rayoptics.optical.gap import Gap

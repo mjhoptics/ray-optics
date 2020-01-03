@@ -8,7 +8,11 @@
 .. codeauthor: Michael J. Hayford
 """
 
-from rayoptics.optical.opticalmodel import (OpticalModel, open_model)
+import os.path
+import json_tricks
+import rayoptics.codev.cmdproc as cvp
+
+from rayoptics.optical.opticalmodel import OpticalModel
 from rayoptics.optical.profiles import Spherical, Conic
 from rayoptics.optical.elements import create_thinlens
 from rayoptics.optical.firstorder import specsheet_from_parax_data
@@ -36,6 +40,32 @@ from rayoptics.qtgui.plotview import (create_plot_scale_panel,
                                       create_draw_rays_groupbox,
                                       create_diagram_controls_groupbox,
                                       create_2d_figure_toolbar)
+
+
+def open_model(file_name):
+    """ open a file and populate an optical model with the data
+
+    Args:
+        file_name (str): a filename of a supported file type
+
+            - .roa - a rayoptics JSON encoded file
+            - .seq - a CODE V (TM) sequence file
+
+    Returns:
+        if successful, an OpticalModel instance, otherwise, None
+    """
+    file_extension = os.path.splitext(file_name)[1]
+    opm = None
+    if file_extension == '.seq':
+        opm = cvp.read_lens(file_name)
+        create_specsheet_from_model(opm)
+    elif file_extension == '.roa':
+        with open(file_name, 'r') as f:
+            obj_dict = json_tricks.load(f)
+            if 'optical_model' in obj_dict:
+                opm = obj_dict['optical_model']
+                opm.sync_to_restore()
+    return opm
 
 
 def create_new_model():
