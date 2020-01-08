@@ -457,6 +457,11 @@ class MainWindow(QMainWindow):
         dock.update_dock_windows(self)
 
     def handle_ideal_imager_command(self, iid, command, specsheet):
+        ''' link Ideal Imager Dialog buttons to model actions
+        iid: ideal imager dialog
+        command: text field with the action - same as button label
+        specsheet: the input specsheet used to drive the actions
+        '''
         if command == 'Apply':
             opt_model = self.app_manager.model
             opt_model.set_from_specsheet(specsheet)

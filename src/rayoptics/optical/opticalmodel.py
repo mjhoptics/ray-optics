@@ -7,6 +7,8 @@
 
 .. codeauthor: Michael J. Hayford
 """
+import os.path
+import json_tricks
 
 import rayoptics
 
@@ -95,7 +97,6 @@ class OpticalModel:
 
     def __json_encode__(self):
         attrs = dict(vars(self))
-        del attrs['parax_model']
         if hasattr(self, 'app_manager'):
             del attrs['app_manager']
         return attrs

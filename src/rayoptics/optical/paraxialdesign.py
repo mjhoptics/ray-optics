@@ -64,6 +64,7 @@ class ParaxialModel():
 
     def sync_to_restore(self, opt_model):
         self.opt_model = opt_model
+        self.seq_model = opt_model.seq_model
 
     def update_model(self):
         self.parax_data = self.opt_model.optical_spec.parax_data

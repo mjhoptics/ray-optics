@@ -56,6 +56,7 @@ class FirstOrderData:
     """
     def __init__(self):
         self.opt_inv = None
+        self.power = None
         self.efl = None
         self.pp1 = None
         self.ppk = None
@@ -270,10 +271,12 @@ def compute_first_order(opt_model, stop, wvl):
     fod.obj_dist = obj_dist = seq_model.gaps[0].thi
     fod.img_dist = img_dist = seq_model.gaps[-1].thi
     if ck1 == 0.0:
+        fod.power = 0.0
         fod.efl = 0.0
         fod.pp1 = 0.0
         fod.ppk = 0.0
     else:
+        fod.power = -ck1
         fod.efl = -1.0/ck1
         fod.pp1 = (dk1 - 1.0)*(n_0/ck1)
         fod.ppk = (p_ray[-2][ht] - 1.0)*(n_k/ck1)

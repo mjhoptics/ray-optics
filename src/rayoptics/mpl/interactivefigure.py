@@ -10,7 +10,6 @@
 
 import logging
 from collections import namedtuple
-from copy import deepcopy
 
 import numpy as np
 from matplotlib.figure import Figure
