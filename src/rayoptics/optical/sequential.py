@@ -212,7 +212,10 @@ class SequentialModel:
         self.cur_surface += 1
         surf = self.cur_surface
         self.ifcs.insert(surf, ifc)
-        self.gaps.insert(surf, gap)
+        if gap is not None:
+            self.gaps.insert(surf, gap)
+        else:
+            gap = self.gaps[surf]
 
         tfrm = np.identity(3), np.array([0., 0., 0.])
         self.gbl_tfrms.insert(surf, tfrm)

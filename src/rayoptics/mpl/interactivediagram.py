@@ -16,7 +16,7 @@ from rayoptics.gui.util import bbox_from_poly
 from rayoptics.mpl.interactivefigure import InteractiveFigure
 
 from rayoptics.optical.elements import (create_thinlens, create_mirror,
-                                        create_lens)
+                                        create_lens, create_from_file)
 
 
 def create_parax_design_commands(fig):
@@ -28,21 +28,32 @@ def create_parax_design_commands(fig):
     cmds.append(('Select', (dgm.register_commands, (), {})))
     # Add thin lens
     cmds.append(('Add Thin Lens',
-                 (dgm.register_commands, (),
+                 (dgm.register_add_replace_element, (),
                   {'node_init': create_thinlens,
                    'factory': create_thinlens,
                    'interact_mode': 'transmit'})))
     # Add lens
-    cmds.append(('Add Lens', (dgm.register_commands, (),
+    cmds.append(('Add Lens', (dgm.register_add_replace_element, (),
                               {'node_init': create_thinlens,
                                'factory': create_lens,
                                'interact_mode': 'transmit'})))
     # Add mirror
     cmds.append(('Add Mirror',
-                 (dgm.register_commands, (),
+                 (dgm.register_add_replace_element, (),
                   {'node_init': create_mirror,
                    'factory': create_mirror,
                    'interact_mode': 'reflect'})))
+    # replace with file
+    filename = '/Users/Mike/Developer/PyProjects/ray-optics/models/Sasian Triplet.roa'
+    def cff(**kwargs):
+        return create_from_file(filename, **kwargs)
+
+    cmds.append(('Sasian Triplet',
+                 (dgm.register_add_replace_element, (),
+                  {'filename': filename,
+                   'node_init': create_thinlens,
+                   'factory': cff,
+                   'interact_mode': 'transmit'})))
 
     return cmds
 

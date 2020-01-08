@@ -94,9 +94,9 @@ class Diagram():
         self._apply_data(node, vertex)
         self.opt_model.parax_model.paraxial_lens_to_seq_model()
 
-    def assign_object_to_node(self, node, factory):
+    def assign_object_to_node(self, node, factory, **kwargs):
         parax_model = self.opt_model.parax_model
-        inputs = parax_model.assign_object_to_node(node, factory)
+        inputs = parax_model.assign_object_to_node(node, factory, **kwargs)
         parax_model.paraxial_lens_to_seq_model()
         return inputs
 
@@ -115,6 +115,22 @@ class Diagram():
                         handle_action_obj[event_key](fig, event)
                     else:
                         handle_action_obj.actions[event_key](fig, event)
+                except KeyError:
+                    pass
+        fig.do_action = do_command_action
+
+    def register_add_replace_element(self, *args, **inputs):
+        fig = inputs.pop('figure')
+        self.command_inputs = dict(inputs)
+        action_obj = AddReplaceElementAction(self, **inputs)
+
+        def do_command_action(event, target, event_key):
+            nonlocal fig
+            shape, handle = target.artist.shape
+            if isinstance(shape, DiagramNode) or \
+               isinstance(shape, DiagramEdge):
+                try:
+                    action_obj.actions[event_key](fig, event, shape)
                 except KeyError:
                     pass
         fig.do_action = do_command_action
@@ -585,6 +601,66 @@ class EditNodeAction():
         self.actions['drag'] = on_edit
         self.actions['press'] = on_select
         self.actions['release'] = on_release
+
+
+class AddReplaceElementAction():
+    def __init__(self, diagram, **kwargs):
+        seq_model = diagram.opt_model.seq_model
+        parax_model = diagram.opt_model.parax_model
+        self.cur_node = None
+
+        def on_press_add_point(fig, event, shape):
+            # if we don't have factory functions, skip the command
+            if isinstance(shape, DiagramEdge):
+                if 'node_init' in diagram.command_inputs and \
+                   'factory' in diagram.command_inputs:
+    
+                    self.cur_node = shape.node
+                    event_data = np.array([event.xdata, event.ydata])
+                    interact = diagram.command_inputs['interact_mode']
+                    parax_model.add_node(self.cur_node, event_data,
+                                         diagram.type_sel, interact)
+                    self.cur_node += 1
+                    node_init = diagram.command_inputs['node_init']
+                    self.init_inputs = diagram.assign_object_to_node(self.cur_node,
+                                                                     node_init,
+                                                                     insert=True)
+                    fig.build = 'rebuild'
+                    fig.refresh_gui()
+            elif isinstance(shape, DiagramNode):
+                if 'factory' in diagram.command_inputs:
+                    self.cur_node = node = shape.node
+                    self.init_inputs = parax_model.get_object_for_node(node)
+
+        def on_drag_add_point(fig, event, shape):
+            if self.cur_node is not None and isinstance(shape, DiagramEdge):
+                event_data = np.array([event.xdata, event.ydata])
+                diagram.apply_data(self.cur_node, event_data)
+                fig.build = 'update'
+                fig.refresh_gui()
+
+        def on_release_add_point(fig, event, shape):
+            if self.cur_node is not None:
+                factory = diagram.command_inputs['factory']
+                if factory != diagram.command_inputs['node_init'] or \
+                              isinstance(shape, DiagramNode):
+                    prev_ifc = seq_model.ifcs[self.cur_node]
+                    inputs = diagram.assign_object_to_node(self.cur_node,
+                                                           factory)
+                    idx = seq_model.ifcs.index(prev_ifc)
+                    n_after = parax_model.sys[idx-1][indx]
+                    thi = n_after*parax_model.sys[idx-1][tau]
+                    seq_model.gaps[idx-1].thi = thi
+                    args, kwargs = self.init_inputs
+                    diagram.opt_model.remove_ifc_gp_ele(*args, **kwargs)
+                fig.build = 'rebuild'
+                fig.refresh_gui()
+            self.cur_node = None
+
+        self.actions = {}
+        self.actions['press'] = on_press_add_point
+        self.actions['drag'] = on_drag_add_point
+        self.actions['release'] = on_release_add_point
 
 
 class AddElementAction():

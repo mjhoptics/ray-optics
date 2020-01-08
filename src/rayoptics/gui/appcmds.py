@@ -82,7 +82,7 @@ def create_new_optical_system(efl=10.0, fov=1.0):
     opt_model.optical_spec.field_of_view.set_from_list([0., fov])
 
     opt_model.insert_ifc_gp_ele(*create_thinlens(power=1/efl, indx=1.5),
-                                idx=0, t=efl)
+                                idx=0, t=efl, insert=True)
 
     opt_model.ele_model.add_dummy_interface_at_image(seq_model,
                                                      seq_model.gbl_tfrms)
@@ -106,7 +106,7 @@ def create_new_optical_model_from_specsheet(specsheet):
         opt_model.seq_model.gaps[0].thi = 1.0e10
 
     opt_model.insert_ifc_gp_ele(*create_thinlens(power=1/imager.f, indx=1.5),
-                                idx=0, t=imager.sp)
+                                idx=0, t=imager.sp, insert=True)
 
     opt_model.ele_model.add_dummy_interface_at_image(seq_model,
                                                      seq_model.gbl_tfrms)

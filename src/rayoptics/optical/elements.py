@@ -19,6 +19,7 @@ import rayoptics.optical.thinlens as thinlens
 from rayoptics.optical.profiles import Spherical, Conic
 from rayoptics.optical.surface import Surface
 from rayoptics.optical.gap import Gap
+import rayoptics.gui.appcmds as cmds
 from rayoptics.gui.actions import Action, AttrAction, SagAction, BendAction
 from rayoptics.optical.medium import Glass, glass_decode
 import rayoptics.optical.model_constants as mc
@@ -96,6 +97,21 @@ def create_air_gap(t=0., ref_ifc=None):
     g = Gap(t=t)
     ag = AirGap(g, ref_ifc)
     return g, ag
+
+
+def create_from_file(filename, **kwargs):
+    opm = cmds.open_model(filename)
+    sm = opm.seq_model
+    osp = opm.optical_spec
+    fod = osp.parax_data.fod
+    if 'power' in kwargs:
+        desired_power = kwargs['power']
+        cur_power = fod.power
+        scale_factor = desired_power/cur_power
+        sm.apply_scale_factor(scale_factor)
+    seq = [list(node) for node in sm.path(start=1, stop=-1)]
+    ele = opm.ele_model.elements[:-2]
+    return seq, ele
 
 
 class Element():

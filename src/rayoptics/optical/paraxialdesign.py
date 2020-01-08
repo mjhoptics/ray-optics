@@ -113,7 +113,7 @@ class ParaxialModel():
 
         return new_node
 
-    def assign_object_to_node(self, node, factory):
+    def assign_object_to_node(self, node, factory, **inputs):
         """ create a new element from `factory` and replace `node` with it """
 
         # extract optical properties of node
@@ -132,7 +132,7 @@ class ParaxialModel():
         # insert the path sequence and elements into the
         #  sequential and element models
         args = seq, ele
-        kwargs = dict(idx=node-1, t=thi)
+        kwargs = {'idx': node-1, 't': thi, **inputs}
         self.opt_model.insert_ifc_gp_ele(*args, **kwargs)
 
         path_stop = node + len(seq)
@@ -169,6 +169,14 @@ class ParaxialModel():
             node += 1
         self.paraxial_trace()
 
+    def get_object_for_node(self, node):
+        ''' basic 1:1 relationship between seq and parax model sequences '''
+        ifc = self.seq_model.ifcs[node]
+        ele = self.opt_model.ele_model.ifcs_dict[ifc]
+        args = [[ifc, None, None, 1, 1]], [ele]
+        kwargs = {'idx': node}
+        return args, kwargs
+        
     def add_object(self, surf, new_vertex, type_sel, factory, interact_mode):
         new_surf = self.add_node(surf, new_vertex, type_sel, interact_mode)
         self.assign_object_to_node(new_surf, factory)

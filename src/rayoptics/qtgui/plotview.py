@@ -288,9 +288,9 @@ def create_diagram_controls_groupbox(app, pc):
 
     def attr_check(fig, attr, state):
         checked = state == qt.Checked
-#        cur_value = getattr(fig, attr, None)
+        # cur_value = getattr(fig, attr, None)
         setattr(fig, attr, checked)
-        print('attr_check: {}={}'.format(attr, checked))
+        # print('attr_check: {}={}'.format(attr, checked))
         fig.refresh()
 
     barrel_value_wdgt = QLineEdit()

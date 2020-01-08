@@ -179,12 +179,20 @@ class OpticalModel:
         seq, ele = args
         if 'idx' in kwargs:
             self.seq_model.cur_surface = kwargs['idx']
-        t = kwargs['t'] if 't' in kwargs else 0.
 
-        g, ag = elements.create_air_gap(t=t, ref_ifc=seq[-1][mc.Intfc])
-        seq[-1][mc.Gap] = g
-        ele.append(ag)
-
+        # distinguish between adding a new chunk, which requires splitting a
+        #  gap in two, and replacing a node, which uses the existing gaps.
+        if 'insert' in kwargs:
+            t = kwargs['t'] if 't' in kwargs else 0.
+            g, ag = elements.create_air_gap(t=t, ref_ifc=seq[-1][mc.Intfc])
+            seq[-1][mc.Gap] = g
+            ele.append(ag)
+        else:  # replacing an existing node
+            g = self.seq_model.gaps[self.seq_model.cur_surface+1]
+            seq[-1][mc.Gap] = g
+            ag = self.ele_model.gap_dict[g]
+            ag.ref_ifc = seq[-1][mc.Intfc]
+            
         for sg in seq:
             self.seq_model.insert(sg[mc.Intfc], sg[mc.Gap])
 
