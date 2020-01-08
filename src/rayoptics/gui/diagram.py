@@ -604,6 +604,17 @@ class EditNodeAction():
 
 
 class AddReplaceElementAction():
+    ''' insert or replace a node with a chunk from a factory fct 
+    The do_command_action fct registered for this operation passes the shape
+    being operated upon; these can be:
+        DiagramEdge -> insert/add the chunk returned by the factory fct
+        DiagramNode -> replace the selected node with the factory fct return
+    Inserting is done by splitting the corresponding gap in two. A new gap
+    and an AirGap element are tacked on to the chunk returned from the factory
+    fct.
+    Replacing is done when a DiagramNode is selected. The gaps surrounding the
+    node are retained, and modified as needed to accomodate the chunk.
+    '''
     def __init__(self, diagram, **kwargs):
         seq_model = diagram.opt_model.seq_model
         parax_model = diagram.opt_model.parax_model
@@ -621,6 +632,8 @@ class AddReplaceElementAction():
                     parax_model.add_node(self.cur_node, event_data,
                                          diagram.type_sel, interact)
                     self.cur_node += 1
+                    # create a node for editing during the drag action
+                    #  'node_init' will currently be a thinlens or a mirror
                     node_init = diagram.command_inputs['node_init']
                     self.init_inputs = diagram.assign_object_to_node(self.cur_node,
                                                                      node_init,
@@ -629,6 +642,9 @@ class AddReplaceElementAction():
                     fig.refresh_gui()
             elif isinstance(shape, DiagramNode):
                 if 'factory' in diagram.command_inputs:
+                    # replacing a node with a chunk only requires recording
+                    # what chunk corresponds to the current node. There is 
+                    # no drag action
                     self.cur_node = node = shape.node
                     self.init_inputs = parax_model.get_object_for_node(node)
 
@@ -642,6 +658,8 @@ class AddReplaceElementAction():
         def on_release_add_point(fig, event, shape):
             if self.cur_node is not None:
                 factory = diagram.command_inputs['factory']
+                # if factory and node_init fcts are the same, we're done;
+                # always call factory fct for a node
                 if factory != diagram.command_inputs['node_init'] or \
                               isinstance(shape, DiagramNode):
                     prev_ifc = seq_model.ifcs[self.cur_node]
@@ -651,6 +669,7 @@ class AddReplaceElementAction():
                     n_after = parax_model.sys[idx-1][indx]
                     thi = n_after*parax_model.sys[idx-1][tau]
                     seq_model.gaps[idx-1].thi = thi
+                    # remove the edit scaffolding or previous node from model
                     args, kwargs = self.init_inputs
                     diagram.opt_model.remove_ifc_gp_ele(*args, **kwargs)
                 fig.build = 'rebuild'
@@ -664,6 +683,7 @@ class AddReplaceElementAction():
 
 
 class AddElementAction():
+    ''' Deprecated '''
     def __init__(self, dgm_edge, **kwargs):
         diagram = dgm_edge.diagram
         seq_model = diagram.opt_model.seq_model

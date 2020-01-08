@@ -187,12 +187,14 @@ class OpticalModel:
             g, ag = elements.create_air_gap(t=t, ref_ifc=seq[-1][mc.Intfc])
             seq[-1][mc.Gap] = g
             ele.append(ag)
-        else:  # replacing an existing node
+        else:
+            # replacing an existing node. need to hook new chunk final
+            # interface to the existing gap and following (air gap) element
             g = self.seq_model.gaps[self.seq_model.cur_surface+1]
             seq[-1][mc.Gap] = g
             ag = self.ele_model.gap_dict[g]
-            ag.ref_ifc = seq[-1][mc.Intfc]
-            
+            ag.ref_ifc = seq[-1][mc.Intfc]  # tacit assumption is ag == AirGap
+
         for sg in seq:
             self.seq_model.insert(sg[mc.Intfc], sg[mc.Gap])
 
