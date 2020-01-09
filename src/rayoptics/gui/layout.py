@@ -495,13 +495,15 @@ def split_gap(opt_model, idx, lcl_pt):
 def add_elements(opt_model, idx, lcl_pt, create, **kwargs):
     g, t_0, t_k = split_gap(opt_model, idx, lcl_pt)
     g.thi = t_0
-    opt_model.insert_ifc_gp_ele(*create(**kwargs), idx=idx, t=t_k)
+    opt_model.insert_ifc_gp_ele(*create(**kwargs), idx=idx, t=t_k,
+                                insert=True)
 
 
 def add_reflector(opt_model, idx, lcl_pt, create, **kwargs):
     g, t_0, t_k = split_gap(opt_model, idx, lcl_pt)
     g.thi = t_0
-    opt_model.insert_ifc_gp_ele(*create(**kwargs), idx=idx, t=-t_k)
+    opt_model.insert_ifc_gp_ele(*create(**kwargs), idx=idx, t=-t_k,
+                                insert=True)
 
 
 def add_thinlens(opt_model, idx, lcl_pt, **kwargs):
@@ -520,7 +522,7 @@ def add_lens(opt_model, idx, lcl_pt, **kwargs):
     g.thi = t0_new
 
     seq, ele = create_lens(th=t_ct)
-    opt_model.insert_ifc_gp_ele(seq, ele, idx=idx, t=tk_new)
+    opt_model.insert_ifc_gp_ele(seq, ele, idx=idx, t=tk_new, insert=True)
 
 
 def add_mirror(opt_model, idx, lcl_pt, **kwargs):
