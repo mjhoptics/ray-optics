@@ -16,7 +16,8 @@ from rayoptics.gui.util import GUIHandle, bbox_from_poly, fit_data_range
 from rayoptics.optical.model_constants import ht, slp
 from rayoptics.optical.model_constants import pwr, tau, indx, rmd
 from rayoptics.util.rgb2mpl import rgb2mpl
-from rayoptics.util.misc_math import projected_point_on_radial_line
+from rayoptics.util.misc_math import normalize, projected_point_on_radial_line
+from rayoptics.util.line_intersection import get_intersect
 from rayoptics.util import misc_math
 
 
@@ -326,7 +327,7 @@ class DiagramEdge():
 
     def handle_actions(self):
         actions = {}
-        actions['shape'] = AddElementAction(self)
+        actions['shape'] = EditThicknessAction(self)
         return actions
 
 
@@ -596,6 +597,87 @@ class EditNodeAction():
                 fig.build = 'update'
                 fig.refresh_gui()
                 self.cur_node = None
+
+        self.actions = {}
+        self.actions['drag'] = on_edit
+        self.actions['press'] = on_select
+        self.actions['release'] = on_release
+
+
+class EditThicknessAction():
+    """ Action to move a diagram edge, using an input pt 
+    The movement is constrained to be parallel to the original edge. By doing
+    this the power and bending of the element remains constant, while the
+    element thickness changes. Movement of the edge is limited to keep
+    the thickness greater than zero and not to interfere with adjacent spaces.
+    """
+    def __init__(self, dgm_edge):
+        diagram = dgm_edge.diagram
+        self.node = None
+        self.bundle = None
+
+        def on_select(fig, event):
+            nonlocal diagram
+            shape = diagram.shape
+            self.node = node = dgm_edge.node
+            if node > 0 and node < (len(shape)-2):
+                # get the virtual vertex of the combined element surfaces
+                vertex = np.array(get_intersect(shape[node-1], shape[node],
+                                                shape[node+1], shape[node+2]))
+                # get direction cosines for the edge
+                edge = normalize(shape[node+1] - shape[node])
+                # construct perpendicular to the edge. use this to define a 
+                # range for allowed inputs
+                perp_edge = np.array([edge[1], -edge[0]])
+                self.bundle = vertex, edge, perp_edge
+                # measure distances along the perpendicular thru the vertex
+                #  and project the 2 outer nodes and the first vertex of the
+                #  edge
+                pp0 = np.dot(shape[node-1]-vertex, perp_edge)
+                pp1 = np.dot(shape[node]-vertex, perp_edge)
+                pp3 = np.dot(shape[node+2]-vertex, perp_edge)
+                # use the first edge vertex to calculate an allowed input range
+                if pp1 > 0:
+                    self.pp_lim = 0, min(i for i in (pp0, pp3) if i > 0)
+                else:
+                    self.pp_lim = max(i for i in (pp0, pp3) if i < 0), 0
+
+        def on_edit(fig, event):
+            buffer = 0.0025
+            nonlocal diagram
+            shape = diagram.shape
+            node = self.node
+            if node > 0 and node < (len(shape)-2):
+                if event.xdata is not None and event.ydata is not None:
+                    inpt = np.array([event.xdata, event.ydata])
+                    vertex, edge, perp_edge = self.bundle
+                    # project input pt onto perp_edge
+                    ppi = np.dot(inpt - vertex, perp_edge)
+                    # constrain the input point within the range, if needed
+                    if ppi < self.pp_lim[0]:
+                        inpt = vertex + (1+buffer)*self.pp_lim[0]*perp_edge
+                    elif ppi > self.pp_lim[1]:
+                        inpt = vertex + (1-buffer)*self.pp_lim[1]*perp_edge
+                    
+                    # compute new edge vertices from intersection of adjacent
+                    #  edges and line shifted parallel to the initial edge
+                    edge_pt = inpt + edge
+                    pt1 = np.array(get_intersect(shape[node-1], vertex,
+                                                 inpt, edge_pt))
+                    diagram.apply_data(self.node, pt1)
+                    pt2 = np.array(get_intersect(vertex, shape[node+2],
+                                                 inpt, edge_pt))
+                    diagram.apply_data(self.node+1, pt2)
+                    fig.build = 'update'
+                    fig.refresh_gui()
+
+        def on_release(fig, event):
+            if event.xdata is not None and event.ydata is not None:
+                event_data = np.array([event.xdata, event.ydata])
+                fig.build = 'update'
+                fig.refresh_gui()
+                self.node = None
+                self.bundle = None
 
         self.actions = {}
         self.actions['drag'] = on_edit
