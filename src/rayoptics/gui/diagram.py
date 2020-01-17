@@ -16,7 +16,8 @@ from rayoptics.gui.util import GUIHandle, bbox_from_poly, fit_data_range
 from rayoptics.optical.model_constants import ht, slp
 from rayoptics.optical.model_constants import pwr, tau, indx, rmd
 from rayoptics.util.rgb2mpl import rgb2mpl
-from rayoptics.util.misc_math import normalize, projected_point_on_radial_line
+from rayoptics.util.misc_math import (normalize, distance_sqr_2d,
+                                      projected_point_on_radial_line)
 from rayoptics.util.line_intersection import get_intersect
 from rayoptics.util import misc_math
 
@@ -195,6 +196,16 @@ def compute_slide_line(shape, node, imode):
     return None
 
 
+def constrain_to_line_action(pt0, pt2):
+
+    def constrain_to_line(input_pt):
+        """ constrain the input point to the line pt0 to pt2 """
+        output_pt = misc_math.projected_point_on_line(input_pt, pt0, pt2)
+        return output_pt
+
+    return constrain_to_line
+
+
 class DiagramNode():
     def __init__(self, diagram, idx):
         self.diagram = diagram
@@ -257,15 +268,6 @@ class DiagramNode():
     def get_label(self):
         return 'node' + str(self.node)
 
-    def constrain_to_line_action(pt0, pt2):
-
-        def constrain_to_line(input_pt):
-            """ constrain the input point to the line pt0 to pt2 """
-            output_pt = misc_math.projected_point_on_line(input_pt, pt0, pt2)
-            return output_pt
-
-        return constrain_to_line
-
     def handle_actions(self):
         actions = {}
         actions['shape'] = EditNodeAction(self)
@@ -274,7 +276,7 @@ class DiagramNode():
         slide_pts = compute_slide_line(self.diagram.shape, self.node,
                                        sys[self.node][rmd])
         if slide_pts is not None:
-            slide_filter = DiagramNode.constrain_to_line_action(*slide_pts)
+            slide_filter = constrain_to_line_action(*slide_pts)
         actions['slide'] = EditNodeAction(self, filter=slide_filter)
         return actions
 
@@ -327,7 +329,8 @@ class DiagramEdge():
 
     def handle_actions(self):
         actions = {}
-        actions['shape'] = EditThicknessAction(self)
+        # actions['shape'] = EditThicknessAction(self)
+        actions['shape'] = EditBendingAction(self)
         return actions
 
 
@@ -684,6 +687,97 @@ class EditThicknessAction():
         self.actions['press'] = on_select
         self.actions['release'] = on_release
 
+
+class EditBendingAction():
+    """ Action to move a diagram edge, using an input pt 
+    The movement is constrained to be parallel to the original edge. By doing
+    this the power and bending of the element remains constant, while the
+    element thickness changes. Movement of the edge is limited to keep
+    the thickness greater than zero and not to interfere with adjacent spaces.
+    """
+    def __init__(self, dgm_edge):
+        diagram = dgm_edge.diagram
+        pm = diagram.opt_model.parax_model
+
+        self.node = None
+        self.bundle = None
+        self.filter = None
+        def cross_prod(pt1, pt2):
+            return pt1[1]*pt2[0] - pt2[1]*pt1[0]
+        def calc_coef_fct(vertex, iNode, dir_inpt, oNode, dir_out):
+            nonlocal pm
+            tau_factor = pm.sys[self.node][tau]*pm.opt_inv
+            constrain_to_line = constrain_to_line_action(vertex,
+                                                         vertex+dir_inpt)
+            def calc_t(inpt):
+                pt = constrain_to_line(inpt)
+                if iNode < oNode:
+                    arg1 = pt, vertex
+                    arg2 = pt, dir_out
+                else:
+                    arg1 = vertex, pt
+                    arg2 = dir_out, pt
+                t = (tau_factor - cross_prod(*arg1))/(cross_prod(*arg2))
+                return (iNode, pt), (oNode, vertex + t*dir_out)
+            return calc_t
+
+        def on_select(fig, event):
+            nonlocal diagram
+            if event.xdata is None or event.ydata is None:
+                return
+            shape = diagram.shape
+            self.node = node = dgm_edge.node
+            if node > 0 and node < (len(shape)-2):
+                inpt = np.array([event.xdata, event.ydata])
+                # get the virtual vertex of the combined element surfaces
+                vertex = np.array(get_intersect(shape[node-1], shape[node],
+                                                shape[node+1], shape[node+2]))
+                edge_dir_01 = normalize(shape[node] - shape[node-1])
+                edge_dir_23 = normalize(shape[node+2] - shape[node+1])
+                # which node is closer to the input point?
+                pt1_dist = distance_sqr_2d(shape[node], inpt)
+                pt2_dist = distance_sqr_2d(shape[node+1], inpt)
+                if pt1_dist < pt2_dist:
+                    self.filter = calc_coef_fct(vertex, node, edge_dir_01,
+                                                node+1, edge_dir_23)
+                else:
+                    self.filter = calc_coef_fct(vertex, node+1, edge_dir_23,
+                                                node, edge_dir_01)
+                # get direction cosines for the edge
+                edge = normalize(shape[node+1] - shape[node])
+                # construct perpendicular to the edge. use this to define a 
+                # range for allowed inputs
+                perp_edge = np.array([edge[1], -edge[0]])
+                self.bundle = (vertex, edge, perp_edge, edge_dir_01,
+                               edge_dir_23)
+
+        def on_edit(fig, event):
+            buffer = 0.0025
+            nonlocal diagram
+            shape = diagram.shape
+            node = self.node
+            if node > 0 and node < (len(shape)-2):
+                if event.xdata is not None and event.ydata is not None:
+                    inpt = np.array([event.xdata, event.ydata])
+                    inp, out = self.filter(inpt)
+
+                    diagram.apply_data(inp[0], inp[1])
+                    diagram.apply_data(out[0], out[1])
+                    fig.refresh_gui()
+
+        def on_release(fig, event):
+            if event.xdata is not None and event.ydata is not None:
+                event_data = np.array([event.xdata, event.ydata])
+                fig.build = 'update'
+                fig.refresh_gui()
+                self.node = None
+                self.bundle = None
+                self.filter = None
+
+        self.actions = {}
+        self.actions['drag'] = on_edit
+        self.actions['press'] = on_select
+        self.actions['release'] = on_release
 
 class AddReplaceElementAction():
     ''' insert or replace a node with a chunk from a factory fct 

@@ -105,7 +105,8 @@ class SpecSheet():
 
     def __json_encode__(self):
         attrs = dict(vars(self))
-        del attrs['partitions']
+        if hasattr(self, 'partitions'):
+            del attrs['partitions']
         return attrs
 
     def sync_to_restore(self, opt_model):

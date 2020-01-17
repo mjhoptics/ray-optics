@@ -153,3 +153,31 @@ def circle_intersection_area(ra, rb, d):
     p3 = sqrt((-d + r + R)*(d + r - R)*(d - r + R)*(d + r + R))/2
     area = p1 + p2 - p3
     return area
+
+
+def compute_tangent_point_to_circle(CofC, r, pt):
+    """ return the area of the intersection of 2 circles
+
+    Args:
+        CofC: center of curvature of circle (2d numpy array)
+        r: radius of circle
+        pt: 2d numpy array of point outside of circle
+
+    Returns:
+        the 2 tangent points for lines from pt to circle
+
+    `gboffi <https://math.stackexchange.com/users/467357/gboffi>, How to find
+    the equation of a line, tangent to a circle, that passes through a given
+    external point, URL (version: 2019-05-30):
+     <https://math.stackexchange.com/a/3190374>`_
+    """
+    dxdy = pt - CofC
+    dxdyr = np.array([-dxdy[1], dxdy[0]])
+    d = sqrt(dxdy[0]**2 + dxdy[1]**2)
+    if d > r:
+        rho = r/d
+        ad = rho**2
+        bd = rho * sqrt(1 - rho**2)
+        T1 = CofC + ad*dxdy + bd*dxdyr
+        T2 = CofC + ad*dxdy - bd*dxdyr
+        return T1, T2
