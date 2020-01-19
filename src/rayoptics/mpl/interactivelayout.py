@@ -15,7 +15,6 @@ from rayoptics.gui.util import bbox_from_poly
 from rayoptics.mpl.interactivefigure import InteractiveFigure
 
 from rayoptics.gui.layout import LensLayout
-from rayoptics.util.rgb2mpl import rgb2mpl, backgrnd_color
 
 
 class InteractiveLayout(InteractiveFigure):
@@ -28,6 +27,7 @@ class InteractiveLayout(InteractiveFigure):
         do_draw_rays: if True, draw edge rays
         do_paraxial_layout: if True, draw editable paraxial axial and chief ray
     """
+
     def __init__(self, opt_model, refresh_gui,
                  offset_factor=0.05,
                  do_draw_rays=False,

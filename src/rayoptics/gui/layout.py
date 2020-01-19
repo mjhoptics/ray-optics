@@ -180,7 +180,7 @@ class OpticalElement():
             fig.refresh_gui()
 
         def on_release_shape(fig, handle, event, info):
-#            print('release pt:', event.x, event.y)
+            # print('release pt:', event.x, event.y)
             handle_actions = self.handle_actions[handle]
             add_event_data(self, event, handle)
             for key, action_obj in handle_actions.items():
@@ -198,6 +198,7 @@ class OpticalElement():
 
 class RayBundle():
     """ class for ray bundle from a single field point """
+
     def __init__(self, opt_model, fld, fld_label, wvl, start_offset,
                  ray_table_callback=None):
         self.opt_model = opt_model
@@ -298,6 +299,7 @@ class RayBundle():
 
 class ParaxialRay():
     """ class for paraxial ray rendering/editing """
+
     def __init__(self, opt_model, ray, color, seq_start=1, label='paraxial'):
         self.label = label
         self.opt_model = opt_model

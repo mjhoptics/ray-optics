@@ -182,7 +182,8 @@ class MainWindow(QMainWindow):
         if q.text() == "Open...":
             options = QFileDialog.Options()
             # options |= QFileDialog.DontUseNativeDialog
-            fileName, _ = QFileDialog.getOpenFileName(self,
+            fileName, _ = QFileDialog.getOpenFileName(
+                          self,
                           "QFileDialog.getOpenFileName()",
                           "",
                           "CODE V Files (*.seq);;Ray-Optics Files (*.roa)",
@@ -194,7 +195,8 @@ class MainWindow(QMainWindow):
         if q.text() == "Save As...":
             options = QFileDialog.Options()
             # options |= QFileDialog.DontUseNativeDialog
-            fileName, _ = QFileDialog.getSaveFileName(self,
+            fileName, _ = QFileDialog.getSaveFileName(
+                         self,
                           "QFileDialog.getSaveFileName()",
                           "",
                           "Ray-Optics Files (*.roa);;All Files (*)",

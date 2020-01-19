@@ -143,6 +143,7 @@ class WvlSpec:
     spectral region.
 
     """
+
     def __init__(self, wlwts=[(550., 1.)], ref_wl=0):
         self.set_from_list(wlwts)
         self.reference_wvl = ref_wl
@@ -275,6 +276,7 @@ class FieldSpec:
         field_type: :class:`~.FieldType` enum
         fields: list of Field instances
     """
+
     def __init__(self, parent, key=('object', 'angle'), flds=[0.]):
         self.optical_spec = parent
         self.key = 'field', key[0], key[1]
@@ -396,6 +398,7 @@ class Field:
                     ref_dir, ref_sphere_radius)
 
     """
+
     def __init__(self, x=0., y=0., wt=1.):
         self.x = x
         self.y = y
@@ -450,6 +453,7 @@ class FocusRange:
         defocus_range: +/- half the total focal range, from the focus_shift
                        position
     """
+
     def __init__(self, focus_shift=0.0, defocus_range=0.0):
         self.focus_shift = focus_shift
         self.defocus_range = defocus_range

@@ -131,6 +131,7 @@ class InteractiveFigure(Figure):
 
     def register_zoom_box(self, on_finished):
         self.zoom_box_action = ZoomBoxAction(self)
+
         def do_command_action(event, target, event_key):
             pass
 
@@ -242,7 +243,7 @@ class InteractiveFigure(Figure):
     def set_view_bbox(self, bbox):
         self.view_bbox = bbox
         self.update_axis_limits(bbox=self.view_bbox)
-        
+
     def fit(self):
         self.set_view_bbox(self.fit_axis_limits())
         self.plot()
@@ -331,8 +332,8 @@ class InteractiveFigure(Figure):
                     shape, handle = artist.shape
                     artists.append(SelectInfo(artist, info))
                     if 'ind' in info:
-                        logging.debug("on motion, artist {}: {}.{}, z={}, \
-                                      hits={}".format(len(artists),
+                        logging.debug("on motion, artist {}: {}.{}, z={}, "
+                                      "hits={}".format(len(artists),
                                       shape.get_label(), handle,
                                       artist.get_zorder(), info['ind']))
                     else:
@@ -398,6 +399,7 @@ class InteractiveFigure(Figure):
 
 class PanAction():
     ''' wrapper class to handle pan action, handing off to Axes '''
+
     def __init__(self, **kwargs):
 
         def on_press(fig, event):

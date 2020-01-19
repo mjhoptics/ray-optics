@@ -8,54 +8,8 @@
 .. codeauthor: Michael J. Hayford
 """
 
-import numpy as np
-
-from rayoptics.gui.diagram import Diagram, DiagramNode, DiagramEdge
-from rayoptics.gui.util import bbox_from_poly
-
+from rayoptics.gui.diagram import Diagram
 from rayoptics.mpl.interactivefigure import InteractiveFigure
-
-from rayoptics.optical.elements import (create_thinlens, create_mirror,
-                                        create_lens, create_from_file)
-
-
-def create_parax_design_commands(fig):
-    cmds = []
-    dgm = fig.diagram
-    # initialize dgm with a Select command
-    dgm.register_commands((), figure=fig)
-    # Select an existing point
-    cmds.append(('Select', (dgm.register_commands, (), {})))
-    # Add thin lens
-    cmds.append(('Add Thin Lens',
-                 (dgm.register_add_replace_element, (),
-                  {'node_init': create_thinlens,
-                   'factory': create_thinlens,
-                   'interact_mode': 'transmit'})))
-    # Add lens
-    cmds.append(('Add Lens', (dgm.register_add_replace_element, (),
-                              {'node_init': create_thinlens,
-                               'factory': create_lens,
-                               'interact_mode': 'transmit'})))
-    # Add mirror
-    cmds.append(('Add Mirror',
-                 (dgm.register_add_replace_element, (),
-                  {'node_init': create_mirror,
-                   'factory': create_mirror,
-                   'interact_mode': 'reflect'})))
-    # replace with file
-    filename = '/Users/Mike/Developer/PyProjects/ray-optics/models/Sasian Triplet.roa'
-    def cff(**kwargs):
-        return create_from_file(filename, **kwargs)
-
-    cmds.append(('Sasian Triplet',
-                 (dgm.register_add_replace_element, (),
-                  {'filename': filename,
-                   'node_init': create_thinlens,
-                   'factory': cff,
-                   'interact_mode': 'transmit'})))
-
-    return cmds
 
 
 class InteractiveDiagram(InteractiveFigure):
@@ -66,6 +20,7 @@ class InteractiveDiagram(InteractiveFigure):
         refresh_gui: function to be called on refresh_gui event
         dgm_type: diagram type, 'ht' or 'slp'
     """
+
     def __init__(self, opt_model, refresh_gui, dgm_type,
                  do_barrel_constraint=False, barrel_constraint=1.0,
                  enable_slide=False, **kwargs):

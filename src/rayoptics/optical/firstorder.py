@@ -9,12 +9,9 @@
 """
 import math
 from collections import namedtuple
-from rayoptics.optical.etendue import obj_img_set, fld_ape_set
 from rayoptics.optical.model_constants import Intfc, Gap, Tfrm, Indx, Zdir
 from rayoptics.optical.model_constants import ht, slp, aoi
 from rayoptics.optical.idealimager import ideal_imager_setup
-from rayoptics.optical.specsheet import SpecSheet
-from rayoptics.util.dict2d import dict2D
 
 ParaxData = namedtuple('ParaxData', ['ax_ray', 'pr_ray', 'fod'])
 """ tuple grouping together paraxial rays and first order properties
@@ -54,6 +51,7 @@ class FirstOrderData:
         obj_na: numerical aperture in object space
         img_na: numerical aperture in image space
     """
+
     def __init__(self):
         self.opt_inv = None
         self.power = None
@@ -196,8 +194,8 @@ def compute_first_order(opt_model, stop, wvl):
     ck1 = n_k*p_ray[img][slp]
     dk1 = n_k*q_ray[img][slp]
 
-#    print(p_ray[-2][ht], q_ray[-2][ht], n_k*p_ray[-2][slp], n_k*q_ray[-2][slp])
-#    print(ak1, bk1, ck1, dk1)
+    # print(p_ray[-2][ht], q_ray[-2][ht], n_k*p_ray[-2][slp], n_k*q_ray[-2][slp])
+    # print(ak1, bk1, ck1, dk1)
 
     if stop is not None:
         n_s = seq_model.z_dir[stop]*seq_model.central_rndx(stop)
@@ -323,8 +321,8 @@ def compute_principle_points(path, n_0=1.0, n_k=1.0):
     ck1 = n_k*p_ray[img][slp]
     dk1 = n_k*q_ray[img][slp]
 
-#    print(p_ray[-2][ht], q_ray[-2][ht], n_k*p_ray[-2][slp], n_k*q_ray[-2][slp])
-#    print(ak1, bk1, ck1, dk1)
+    # print(p_ray[-2][ht], q_ray[-2][ht], n_k*p_ray[-2][slp], n_k*q_ray[-2][slp])
+    # print(ak1, bk1, ck1, dk1)
 
     if ck1 == 0.0:
         efl = 0.0

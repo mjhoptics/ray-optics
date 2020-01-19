@@ -17,7 +17,6 @@ import rayoptics.optical.model_constants as mc
 import rayoptics.optical.firstorder as fo
 from rayoptics.optical.gap import Gap
 from rayoptics.optical.surface import Surface
-from rayoptics.util.rgb2mpl import rgb2mpl, backgrnd_color
 
 
 def bbox_from_poly(poly):
@@ -176,7 +175,7 @@ class ParaxialModel():
         args = [[ifc, None, None, 1, 1]], [ele]
         kwargs = {'idx': node}
         return args, kwargs
-        
+
     def add_object(self, surf, new_vertex, type_sel, factory, interact_mode):
         new_surf = self.add_node(surf, new_vertex, type_sel, interact_mode)
         self.assign_object_to_node(new_surf, factory)
@@ -321,17 +320,17 @@ class ParaxialModel():
         print("       ax_ray_ht    ax_ray_slp")
         for i in range(0, len(ax_ray)):
             print("{:2}: {:12.5g}  {:12.6g}".format(i, ax_ray[i][ht],
-                  ax_ray[i][slp]))
+                                                    ax_ray[i][slp]))
 
         print("\n       pr_ray_ht    pr_ray_slp")
         for i in range(0, len(pr_ray)):
             print("{:2}: {:12.5g}  {:12.6g}".format(i, pr_ray[i][ht],
-                  pr_ray[i][slp]))
+                                                    pr_ray[i][slp]))
 
         print("\n            power           tau        index    type")
         for i in range(0, len(sys)):
-            print("{:2}: {:13.7g}  {:12.5g} {:12.5f}    {}".format(i,
-                  sys[i][pwr], sys[i][tau], sys[i][indx], sys[i][rmd]))
+            print("{:2}: {:13.7g}  {:12.5g} {:12.5f}    {}".format(
+                i, sys[i][pwr], sys[i][tau], sys[i][indx], sys[i][rmd]))
 
     def seq_path_to_paraxial_lens(self, path):
         """ returns lists of power, reduced thickness, signed index and refract

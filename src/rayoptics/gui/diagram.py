@@ -21,9 +21,53 @@ from rayoptics.util.misc_math import (normalize, distance_sqr_2d,
 from rayoptics.util.line_intersection import get_intersect
 from rayoptics.util import misc_math
 
+from rayoptics.optical.elements import (create_thinlens, create_mirror,
+                                        create_lens, create_from_file)
+
+
+def create_parax_design_commands(fig):
+    cmds = []
+    dgm = fig.diagram
+    # initialize dgm with a Select command
+    dgm.register_commands((), figure=fig)
+    # Select an existing point
+    cmds.append(('Select', (dgm.register_commands, (), {})))
+    # Add thin lens
+    cmds.append(('Add Thin Lens',
+                 (dgm.register_add_replace_element, (),
+                  {'node_init': create_thinlens,
+                   'factory': create_thinlens,
+                   'interact_mode': 'transmit'})))
+    # Add lens
+    cmds.append(('Add Lens', (dgm.register_add_replace_element, (),
+                              {'node_init': create_thinlens,
+                               'factory': create_lens,
+                               'interact_mode': 'transmit'})))
+    # Add mirror
+    cmds.append(('Add Mirror',
+                 (dgm.register_add_replace_element, (),
+                  {'node_init': create_mirror,
+                   'factory': create_mirror,
+                   'interact_mode': 'reflect'})))
+    # replace with file
+    filename = '/Users/Mike/Developer/PyProjects/ray-optics/models/Sasian Triplet.roa'
+
+    def cff(**kwargs):
+        return create_from_file(filename, **kwargs)
+
+    cmds.append(('Sasian Triplet',
+                 (dgm.register_add_replace_element, (),
+                  {'filename': filename,
+                   'node_init': create_thinlens,
+                   'factory': cff,
+                   'interact_mode': 'transmit'})))
+
+    return cmds
+
 
 class Diagram():
     """ class for paraxial ray rendering/editing """
+
     def __init__(self, opt_model, dgm_type, seq_start=1,
                  do_barrel_constraint=False, barrel_constraint=1.0,
                  label='paraxial'):
@@ -111,7 +155,7 @@ class Diagram():
             if target is not None:
                 shape, handle = target.artist.shape
                 try:
-#                    print(type(shape).__name__, shape.node, handle, event_key)
+                    # print(type(shape).__name__, shape.node, handle, event_key)
                     handle_action_obj = shape.actions[handle]
                     if isinstance(handle_action_obj, dict):
                         handle_action_obj[event_key](fig, event)
@@ -421,11 +465,11 @@ class ConjugateLine():
                 conj_line.append([-wid, self.k*wid])
                 conj_line.append([wid, -self.k*wid])
             self.handles['conj_line'] = conj_line, 'polyline', \
-                                                  {'color': 'orange',
-                                                   'zorder': 1.}
+                                                   {'color': 'orange',
+                                                    'zorder': 1.}
             self.handles['shift'] = self.shape_orig, 'polyline', \
-                                                    {'color': 'blue',
-                                                     'zorder': 1.}
+                                                     {'color': 'blue',
+                                                      'zorder': 1.}
 
         gui_handles = {}
         for key, graphics_handle in self.handles.items():
@@ -527,6 +571,7 @@ class ConjugateLine():
 
 class EditNodeAction():
     """ Action to move a diagram node, using an input pt """
+
     def __init__(self, dgm_node, filter=None):
         diagram = dgm_node.diagram
         self.cur_node = None
@@ -608,12 +653,13 @@ class EditNodeAction():
 
 
 class EditThicknessAction():
-    """ Action to move a diagram edge, using an input pt 
+    """ Action to move a diagram edge, using an input pt
     The movement is constrained to be parallel to the original edge. By doing
     this the power and bending of the element remains constant, while the
     element thickness changes. Movement of the edge is limited to keep
     the thickness greater than zero and not to interfere with adjacent spaces.
     """
+
     def __init__(self, dgm_edge):
         diagram = dgm_edge.diagram
         self.node = None
@@ -629,7 +675,7 @@ class EditThicknessAction():
                                                 shape[node+1], shape[node+2]))
                 # get direction cosines for the edge
                 edge = normalize(shape[node+1] - shape[node])
-                # construct perpendicular to the edge. use this to define a 
+                # construct perpendicular to the edge. use this to define a
                 # range for allowed inputs
                 perp_edge = np.array([edge[1], -edge[0]])
                 self.bundle = vertex, edge, perp_edge
@@ -661,7 +707,7 @@ class EditThicknessAction():
                         inpt = vertex + (1+buffer)*self.pp_lim[0]*perp_edge
                     elif ppi > self.pp_lim[1]:
                         inpt = vertex + (1-buffer)*self.pp_lim[1]*perp_edge
-                    
+
                     # compute new edge vertices from intersection of adjacent
                     #  edges and line shifted parallel to the initial edge
                     edge_pt = inpt + edge
@@ -689,12 +735,13 @@ class EditThicknessAction():
 
 
 class EditBendingAction():
-    """ Action to move a diagram edge, using an input pt 
+    """ Action to move a diagram edge, using an input pt
     The movement is constrained to be parallel to the original edge. By doing
     this the power and bending of the element remains constant, while the
     element thickness changes. Movement of the edge is limited to keep
     the thickness greater than zero and not to interfere with adjacent spaces.
     """
+
     def __init__(self, dgm_edge):
         diagram = dgm_edge.diagram
         pm = diagram.opt_model.parax_model
@@ -702,13 +749,16 @@ class EditBendingAction():
         self.node = None
         self.bundle = None
         self.filter = None
+
         def cross_prod(pt1, pt2):
             return pt1[1]*pt2[0] - pt2[1]*pt1[0]
+
         def calc_coef_fct(vertex, iNode, dir_inpt, oNode, dir_out):
             nonlocal pm
             tau_factor = pm.sys[self.node][tau]*pm.opt_inv
             constrain_to_line = constrain_to_line_action(vertex,
                                                          vertex+dir_inpt)
+
             def calc_t(inpt):
                 pt = constrain_to_line(inpt)
                 if iNode < oNode:
@@ -745,14 +795,13 @@ class EditBendingAction():
                                                 node, edge_dir_01)
                 # get direction cosines for the edge
                 edge = normalize(shape[node+1] - shape[node])
-                # construct perpendicular to the edge. use this to define a 
+                # construct perpendicular to the edge. use this to define a
                 # range for allowed inputs
                 perp_edge = np.array([edge[1], -edge[0]])
                 self.bundle = (vertex, edge, perp_edge, edge_dir_01,
                                edge_dir_23)
 
         def on_edit(fig, event):
-            buffer = 0.0025
             nonlocal diagram
             shape = diagram.shape
             node = self.node
@@ -779,8 +828,9 @@ class EditBendingAction():
         self.actions['press'] = on_select
         self.actions['release'] = on_release
 
+
 class AddReplaceElementAction():
-    ''' insert or replace a node with a chunk from a factory fct 
+    ''' insert or replace a node with a chunk from a factory fct
     The do_command_action fct registered for this operation passes the shape
     being operated upon; these can be:
         DiagramEdge -> insert/add the chunk returned by the factory fct
@@ -791,6 +841,7 @@ class AddReplaceElementAction():
     Replacing is done when a DiagramNode is selected. The gaps surrounding the
     node are retained, and modified as needed to accomodate the chunk.
     '''
+
     def __init__(self, diagram, **kwargs):
         seq_model = diagram.opt_model.seq_model
         parax_model = diagram.opt_model.parax_model
@@ -801,7 +852,7 @@ class AddReplaceElementAction():
             if isinstance(shape, DiagramEdge):
                 if 'node_init' in diagram.command_inputs and \
                    'factory' in diagram.command_inputs:
-    
+
                     self.cur_node = shape.node
                     event_data = np.array([event.xdata, event.ydata])
                     interact = diagram.command_inputs['interact_mode']
@@ -811,15 +862,16 @@ class AddReplaceElementAction():
                     # create a node for editing during the drag action
                     #  'node_init' will currently be a thinlens or a mirror
                     node_init = diagram.command_inputs['node_init']
-                    self.init_inputs = diagram.assign_object_to_node(self.cur_node,
-                                                                     node_init,
-                                                                     insert=True)
+                    self.init_inputs = diagram.assign_object_to_node(
+                                            self.cur_node,
+                                            node_init,
+                                            insert=True)
                     fig.build = 'rebuild'
                     fig.refresh_gui()
             elif isinstance(shape, DiagramNode):
                 if 'factory' in diagram.command_inputs:
                     # replacing a node with a chunk only requires recording
-                    # what chunk corresponds to the current node. There is 
+                    # what chunk corresponds to the current node. There is
                     # no drag action
                     self.cur_node = node = shape.node
                     self.init_inputs = parax_model.get_object_for_node(node)
@@ -860,6 +912,7 @@ class AddReplaceElementAction():
 
 class AddElementAction():
     ''' Deprecated '''
+
     def __init__(self, dgm_edge, **kwargs):
         diagram = dgm_edge.diagram
         seq_model = diagram.opt_model.seq_model

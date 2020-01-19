@@ -14,8 +14,7 @@ from PyQt5.QtCore import QSize
 from PyQt5 import QtGui
 from PyQt5.QtWidgets import (QHBoxLayout, QVBoxLayout, QWidget, QLineEdit,
                              QRadioButton, QGroupBox, QSizePolicy, QCheckBox,
-                             QListWidget, QListWidgetItem, QPushButton,
-                             QToolBar)
+                             QListWidget, QListWidgetItem, QToolBar)
 
 from matplotlib.backends.backend_qt5agg \
      import (NavigationToolbar2QT as NavigationToolbar)
@@ -193,10 +192,10 @@ def create_2d_figure_toolbar(app, pc):
     Zoom In, Out
     1:1
     """
-    icon_size=24
+    icon_size = 24
     tb = QToolBar()
     tb.setIconSize(QSize(icon_size, icon_size))
-    tb.setStyleSheet("QToolBar{spacing:0px;}");
+    tb.setStyleSheet("QToolBar{spacing:0px;}")
 
     toolitems = (
         ('Pan', 'Pan axes with mouse', 'pan', 'register_pan'),
@@ -248,8 +247,8 @@ def create_2d_figure_toolbar(app, pc):
     # add checkbox for unit aspect ration display
     aratio_checkBox = QCheckBox("1:1")
     aratio_checkBox.setChecked(fig.is_unit_aspect_ratio)
-    aratio_checkBox.stateChanged.connect(lambda checked: attr_check(fig,
-                                         'is_unit_aspect_ratio', checked))
+    aratio_checkBox.stateChanged.connect(
+        lambda checked: attr_check(fig, 'is_unit_aspect_ratio', checked))
     tb.addWidget(aratio_checkBox)
 
     return tb
@@ -267,12 +266,12 @@ def create_draw_rays_groupbox(app, pc):
 
     parax_checkBox = QCheckBox("&paraxial rays")
     parax_checkBox.setChecked(fig.do_paraxial_layout)
-    parax_checkBox.stateChanged.connect(lambda checked: attr_check(fig,
-                                        'do_paraxial_layout', checked))
+    parax_checkBox.stateChanged.connect(
+        lambda checked: attr_check(fig, 'do_paraxial_layout', checked))
     edge_checkBox = QCheckBox("&edge rays")
     edge_checkBox.setChecked(fig.do_draw_rays)
-    edge_checkBox.stateChanged.connect(lambda checked: attr_check(fig,
-                                       'do_draw_rays', checked))
+    edge_checkBox.stateChanged.connect(
+        lambda checked: attr_check(fig, 'do_draw_rays', checked))
 
     hbox = QHBoxLayout()
     hbox.addWidget(parax_checkBox)
@@ -303,13 +302,12 @@ def create_diagram_controls_groupbox(app, pc):
 
     slide_checkBox = QCheckBox("&slide")
     slide_checkBox.setChecked(fig.enable_slide)
-    slide_checkBox.stateChanged.connect(lambda checked: attr_check(fig,
-                                        'enable_slide', checked))
+    slide_checkBox.stateChanged.connect(
+        lambda checked: attr_check(fig, 'enable_slide', checked))
     barrel_checkBox = QCheckBox("&barrel constraint")
     barrel_checkBox.setChecked(fig.diagram.do_barrel_constraint)
-    barrel_checkBox.stateChanged.connect(lambda checked:
-                                         on_barrel_constraint_toggled(
-                                                 cntxt, checked))
+    barrel_checkBox.stateChanged.connect(
+        lambda checked: on_barrel_constraint_toggled(cntxt, checked))
 
     hbox = QHBoxLayout()
     hbox.addWidget(slide_checkBox)

@@ -21,6 +21,7 @@ from rayoptics.optical.specsheet import (create_specsheets,
 
 from rayoptics.gui import layout
 from rayoptics.gui.appmanager import ModelInfo
+import rayoptics.gui.diagram as diagram
 
 from rayoptics.mpl.lenslayoutfigure import LensLayoutFigure
 from rayoptics.mpl.interactivelayout import InteractiveLayout
@@ -29,8 +30,7 @@ from rayoptics.mpl.axisarrayfigure import (RayFanFigure, SpotDiagramFigure,
                                            WavefrontFigure)
 
 from rayoptics.mpl.analysisplots import FieldCurveFigure, ThirdOrderBarChart
-from rayoptics.mpl.paraxdgnfigure import (ParaxialDesignFigure,
-                                          create_parax_design_commands)
+from rayoptics.mpl.paraxdgnfigure import ParaxialDesignFigure
 import rayoptics.mpl.interactivediagram as dgm
 
 import rayoptics.qtgui.plotview as plotview
@@ -220,7 +220,7 @@ def create_live_layout_commands(fig):
 def create_paraxial_design_view(opt_model, dgm_type, gui_parent=None):
     fig = ParaxialDesignFigure(opt_model, gui_parent.refresh_gui, dgm_type,
                                figsize=(5, 4))
-    cmds = create_parax_design_commands(fig)
+    cmds = diagram.create_parax_design_commands(fig)
     view_width = 650
     view_ht = 500
     title = "Paraxial Design View"
@@ -232,13 +232,19 @@ def create_paraxial_design_view_v2(opt_model, dgm_type, gui_parent=None):
     fig = dgm.InteractiveDiagram(opt_model, gui_parent.refresh_gui, dgm_type,
                                  do_draw_frame=True, do_draw_axes=True,
                                  aspect='auto')
-    cmds = dgm.create_parax_design_commands(fig)
+    panel_fcts = [create_2d_figure_toolbar,
+                  ]
+    if dgm_type == 'ht':
+        cmds = diagram.create_parax_design_commands(fig)
+        panel_fcts.append(create_diagram_controls_groupbox)
+    else:
+        cmds = None
     view_width = 880
     view_ht = 660
     title = "Paraxial Design View"
-    panel_fcts = [create_2d_figure_toolbar,
-                  create_diagram_controls_groupbox,
-                  ]
+    # panel_fcts = [create_2d_figure_toolbar,
+    #               create_diagram_controls_groupbox,
+    #               ]
     plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht,
                               add_panel_fcts=panel_fcts,
                               commands=cmds)
