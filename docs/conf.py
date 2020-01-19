@@ -115,7 +115,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'ray-optics'
-copyright = u'2017-2019, Michael J. Hayford'
+copyright = u'2017-2020, Michael J. Hayford'
 author = u'Michael J. Hayford'
 
 # The version info for the project you're documenting, acts as replacement for
