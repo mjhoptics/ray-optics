@@ -69,22 +69,24 @@ class MainWindow(QMainWindow):
         view_menu.addAction("Lens Table")
         view_menu.addAction("Element Table")
         view_menu.addAction("Lens View")
-        view_menu.addSeparator()
-        view_menu.addAction("Paraxial Model")
-        view_menu.addAction("Paraxial Height View")
-        view_menu.addAction("Paraxial Slope View")
-        view_menu.addAction("Paraxial Slope View V2")
-        view_menu.addAction("Paraxial Ray Table")
-        view_menu.addAction("Ray Table")
-        view_menu.addSeparator()
-        view_menu.addAction("Ray Fans")
-        view_menu.addAction("OPD Fans")
-        view_menu.addAction("Spot Diagram")
-        view_menu.addAction("Wavefront Map")
-        view_menu.addAction("Astigmatism Curves")
-        view_menu.addAction("3rd Order Aberrations")
-        view_menu.addSeparator()
         view_menu.triggered[QAction].connect(self.view_action)
+
+        parax_menu = bar.addMenu("Paraxial Model")
+        parax_menu.addAction("Paraxial Model")
+        parax_menu.addAction("y-ybar View")
+        parax_menu.addAction("nu-nubar View")
+        parax_menu.addAction("yui Ray Table")
+        parax_menu.addAction("3rd Order Aberrations")
+        parax_menu.triggered[QAction].connect(self.view_action)
+
+        analysis_menu = bar.addMenu("Analysis")
+        view_menu.addAction("Ray Table")
+        analysis_menu.addAction("Ray Fans")
+        analysis_menu.addAction("OPD Fans")
+        analysis_menu.addAction("Spot Diagram")
+        analysis_menu.addAction("Wavefront Map")
+        analysis_menu.addAction("Astigmatism Curves")
+        analysis_menu.triggered[QAction].connect(self.view_action)
 
         wnd_menu = bar.addMenu("Window")
         wnd_menu.addAction("Cascade")
@@ -271,19 +273,15 @@ class MainWindow(QMainWindow):
         if q.text() == "3rd Order Aberrations":
             cmds.create_3rd_order_bar_chart(opt_model, gui_parent=self)
 
-        if q.text() == "Paraxial Height View":
+        if q.text() == "y-ybar View":
             cmds.create_paraxial_design_view_v2(opt_model, 'ht',
                                                 gui_parent=self)
 
-        if q.text() == "Paraxial Slope View":
-            cmds.create_paraxial_design_view(opt_model, 'slp',
-                                             gui_parent=self)
-
-        if q.text() == "Paraxial Slope View V2":
+        if q.text() == "nu-nubar View":
             cmds.create_paraxial_design_view_v2(opt_model, 'slp',
                                                 gui_parent=self)
 
-        if q.text() == "Paraxial Ray Table":
+        if q.text() == "yui Ray Table":
             model = cmds.create_parax_table_model(opt_model)
             self.create_table_view(model, "Paraxial Ray Table")
 
