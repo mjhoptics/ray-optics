@@ -234,7 +234,7 @@ def calc_path_length(eic, offset=0):
         offset (int): beginning index of eic array wrt the object interface
 
     Returns:
-        double: path length
+        float: path length
     """
     P1k = -eic[1-offset][2]*eic[1-offset][3] + eic[-2][0]*eic[-2][1]
     Ps = 0.
@@ -255,7 +255,7 @@ def eic_distance(r, r0):
             cosine of r0
 
     Returns:
-        double: distance along r from equally inclined chord point to p
+        float: distance along r from equally inclined chord point to p
     """
     # eq 3.9
     e = (np.dot(r[1] + r0[1], r[0] - r0[0]) / (1. + np.dot(r[1], r0[1])))

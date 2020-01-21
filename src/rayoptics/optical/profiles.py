@@ -25,7 +25,7 @@ def intersect_parabola(cv, p, d, z_dir=1.0):
         cv: vertex curvature
         p:  start point of the ray in the profile's coordinate system
         d:  direction cosine of the ray in the profile's coordinate system
-        z_dir: 
+        z_dir: +1 if propagation positive direction, -1 if otherwise
     '''
     # Intersection with a conic, starting from an arbitrary point.
     #
@@ -74,8 +74,7 @@ class SurfaceProfile:
             eps: numeric tolerance for convergence of any iterative procedure
 
         Returns:
-            s1: distance to intersection point
-            p: intersection point
+            tuple: distance to intersection point **s1**, intersection point **p**
 
         Raises:
             TraceMissedSurfaceError
@@ -95,6 +94,7 @@ class SurfaceProfile:
 
 class Spherical(SurfaceProfile):
     """ Spherical surface profile parameterized by curvature. """
+
     def __init__(self, c=0.0, r=None):
         """ initialize a Spherical profile.
 

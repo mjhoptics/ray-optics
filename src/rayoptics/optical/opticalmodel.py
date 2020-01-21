@@ -30,8 +30,8 @@ class SystemSpec:
         title (str): a short description of the model
         initials (str): user initials or other id
         dimensions: a DimensionType enum of the model linear units
-        temperature (double): model temperature in degrees Celsius
-        pressure (double): model pressure in mm/Hg
+        temperature (float): model temperature in degrees Celsius
+        pressure (float): model pressure in mm/Hg
     """
     def __init__(self):
         self.title = ''
@@ -44,10 +44,10 @@ class SystemSpec:
         """ convert nm to system units
 
         Args:
-            nm (double): value in nm
+            nm (float): value in nm
 
         Returns:
-            double: value converted to system units
+            float: value converted to system units
         """
         if self.dimensions == dt.M:
             return 1e-9 * nm
@@ -150,10 +150,10 @@ class OpticalModel:
         """ convert nm to system units
 
         Args:
-            nm (double): value in nm
+            nm (float): value in nm
 
         Returns:
-            double: value converted to system units
+            float: value converted to system units
         """
         return self.system_spec.nm_to_sys_units(nm)
 

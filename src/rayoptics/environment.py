@@ -16,9 +16,9 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import pandas as pd
 
-import ipywidgets as widgets
-from ipywidgets import interact, interactive, fixed, interact_manual
-from IPython.display import display
+# import ipywidgets as widgets
+# from ipywidgets import interact, interactive, fixed, interact_manual
+# from IPython.display import display
 
 # ray-optics
 import rayoptics

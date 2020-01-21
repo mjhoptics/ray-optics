@@ -12,14 +12,13 @@ import logging
 from collections import namedtuple
 
 import numpy as np
-from matplotlib.figure import Figure
-from matplotlib.lines import Line2D
-from matplotlib.patches import Patch, Polygon
-from matplotlib.widgets import RectangleSelector
+from matplotlib import figure
+from matplotlib import lines
+from matplotlib import patches
+from matplotlib import widgets
 
-from rayoptics.gui.util import bbox_from_poly, scale_bounds
-
-from rayoptics.util.rgb2mpl import rgb2mpl, backgrnd_color
+from rayoptics.gui import util
+from rayoptics.util import rgb2mpl
 
 
 SelectInfo = namedtuple('SelectInfo', ['artist', 'info'])
@@ -31,7 +30,7 @@ SelectInfo = namedtuple('SelectInfo', ['artist', 'info'])
 """
 
 
-class InteractiveFigure(Figure):
+class InteractiveFigure(figure.Figure):
     """ Editable version of optical system layout, aka Live Layout
 
     Attributes:
@@ -67,7 +66,7 @@ class InteractiveFigure(Figure):
 
         super().__init__(**kwargs)
 
-        self.set_facecolor(backgrnd_color)
+        self.set_facecolor(rgb2mpl.backgrnd_color)
 
         self.update_data()
         self.view_bbox = view_bbox if view_bbox else self.fit_axis_limits()
@@ -154,7 +153,7 @@ class InteractiveFigure(Figure):
                     bbox_list = bbox
                 else:
                     bbox_list = np.vstack((bbox_list, bbox))
-        bbox = bbox_from_poly(bbox_list)
+        bbox = util.bbox_from_poly(bbox_list)
         return bbox
 
     def create_polygon(self, poly, rgb_color, **kwargs):
@@ -177,9 +176,9 @@ class InteractiveFigure(Figure):
 
         if 'linewidth' not in kwargs:
             kwargs['linewidth'] = self.linewidth
-        fill_color = rgb2mpl(kwargs.pop('fill_color', rgb_color))
-        p = Polygon(poly, closed=True, fc=fill_color,
-                    ec='black', **kwargs)
+        fill_color = rgb2mpl.rgb2mpl(kwargs.pop('fill_color', rgb_color))
+        p = patches.Polygon(poly, closed=True, fc=fill_color,
+                            ec='black', **kwargs)
         p.highlight = highlight
         p.unhighlight = unhighlight
         return p
@@ -203,7 +202,7 @@ class InteractiveFigure(Figure):
         hilite_color = kwargs.pop('hilite', 'red')
         if 'linewidth' not in kwargs:
             kwargs['linewidth'] = self.linewidth
-        p = Line2D(x, y, **kwargs)
+        p = lines.Line2D(x, y, **kwargs)
         p.highlight = highlight
         p.unhighlight = unhighlight
         return p
@@ -227,7 +226,7 @@ class InteractiveFigure(Figure):
         hilite_color = kwargs.pop('hilite', 'red')
         if 'linewidth' not in kwargs:
             kwargs['linewidth'] = self.linewidth
-        p = Line2D(x, y, **kwargs)
+        p = lines.Line2D(x, y, **kwargs)
         p.highlight = highlight
         p.unhighlight = unhighlight
         return p
@@ -299,27 +298,27 @@ class InteractiveFigure(Figure):
 
         for a in self.artists:
             a.set_picker(5)
-            if isinstance(a, Line2D):
+            if isinstance(a, lines.Line2D):
                 self.ax.add_line(a)
-            elif isinstance(a, Patch):
+            elif isinstance(a, patches.Patch):
                 self.ax.add_patch(a)
             else:
                 self.ax.add_artist(a)
 
         if self.do_scale_bounds:
-            self.view_bbox = scale_bounds(self.sys_bbox,
-                                          self.oversize_factor)
+            self.view_bbox = util.scale_bounds(self.sys_bbox,
+                                               self.oversize_factor)
 
         self.ax.set_aspect(self.aspect, adjustable='datalim')
         self.update_axis_limits(bbox=self.view_bbox)
 
         self.draw_frame(self.do_draw_frame)
-        self.ax.set_facecolor(backgrnd_color)
+        self.ax.set_facecolor(rgb2mpl.backgrnd_color)
 
         self.draw_axes(self.do_draw_axes)
 
         self.connect_events()
-        self.canvas.draw()
+        self.canvas.draw_idle()
 
         return self
 
@@ -424,6 +423,8 @@ class PanAction():
 
 
 class ZoomBoxAction():
+    """ handle zoom box action by using a RectangleSelector widget """
+
     def __init__(self, fig, **kwargs):
         def on_release(press_event, release_event):
             bbox = np.array([[press_event.xdata, press_event.ydata],
@@ -436,10 +437,8 @@ class ZoomBoxAction():
 
         self.saved_events = fig.disconnect_events()
         rectprops = dict(edgecolor='black', fill=False)
-        self.rubber_box = RectangleSelector(fig.ax, on_release,
-                                            drawtype='box', useblit=False,
-                                            button=[1, 3],  # don't use middle button
-                                            minspanx=5, minspany=5,
-                                            spancoords='pixels',
-                                            rectprops=rectprops,
-                                            interactive=False)
+        self.rubber_box = widgets.RectangleSelector(
+            fig.ax, on_release, drawtype='box', useblit=False,
+            button=[1, 3],  # don't use middle button
+            minspanx=5, minspany=5, spancoords='pixels', rectprops=rectprops,
+            interactive=False)

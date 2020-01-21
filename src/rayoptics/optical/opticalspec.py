@@ -94,7 +94,7 @@ class OpticalSpecs:
         Args:
             fi (int): index into the field_of_view list of Fields
             wl (int): index into the spectral_region list of wavelengths
-            fr (double): focus range parameter, -1.0 to 1.0
+            fr (float): focus range parameter, -1.0 to 1.0
 
         Returns:
             (**fld**, **wvl**, **foc**)
@@ -472,7 +472,7 @@ class FocusRange:
         """ return focus position for input focus range parameter
 
         Args:
-            fr (double): focus range parameter, -1.0 to 1.0
+            fr (float): focus range parameter, -1.0 to 1.0
 
         Returns:
             focus position for input focus range parameter

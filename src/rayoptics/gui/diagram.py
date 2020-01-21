@@ -654,6 +654,7 @@ class EditNodeAction():
 
 class EditThicknessAction():
     """ Action to move a diagram edge, using an input pt
+
     The movement is constrained to be parallel to the original edge. By doing
     this the power and bending of the element remains constant, while the
     element thickness changes. Movement of the edge is limited to keep
@@ -735,11 +736,13 @@ class EditThicknessAction():
 
 
 class EditBendingAction():
-    """ Action to move a diagram edge, using an input pt
-    The movement is constrained to be parallel to the original edge. By doing
-    this the power and bending of the element remains constant, while the
-    element thickness changes. Movement of the edge is limited to keep
-    the thickness greater than zero and not to interfere with adjacent spaces.
+    """ Action to bend the lens element for diagram edge, using an input pt.
+
+    The movement is constrained to be along the object ray for the lens if the
+    input point is closer to the leading node of the edge. Otherwise the
+    movement is constrained to be along the image ray. The unconstrained point
+    is solved to keep the element thickness constant and maintain the
+    object-image properties of the lens.
     """
 
     def __init__(self, dgm_edge):
@@ -831,10 +834,13 @@ class EditBendingAction():
 
 class AddReplaceElementAction():
     ''' insert or replace a node with a chunk from a factory fct
+
     The do_command_action fct registered for this operation passes the shape
     being operated upon; these can be:
-        DiagramEdge -> insert/add the chunk returned by the factory fct
-        DiagramNode -> replace the selected node with the factory fct return
+
+        - DiagramEdge: insert/add the chunk returned by the factory fct
+        - DiagramNode: replace the selected node with the factory fct output
+
     Inserting is done by splitting the corresponding gap in two. A new gap
     and an AirGap element are tacked on to the chunk returned from the factory
     fct.

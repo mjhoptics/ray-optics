@@ -556,8 +556,7 @@ def trace_astigmatism(opt_model, fld, wvl, foc, dx=0.001, dy=0.001):
         dy: delta in pupil coordinates for y/tangential direction
 
     Returns:
-        s focus shift, t focus shift: sagittal and tangential focus shifts
-                                      at **fld**
+        tuple: sagittal and tangential focus shifts at **fld**
     """
     rlist = []
     rlist.append(RayPkg(*trace_base(opt_model, [0., 0.], fld, wvl)))

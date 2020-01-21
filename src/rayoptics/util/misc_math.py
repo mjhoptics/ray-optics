@@ -166,10 +166,10 @@ def compute_tangent_point_to_circle(CofC, r, pt):
     Returns:
         the 2 tangent points for lines from pt to circle
 
-    `gboffi <https://math.stackexchange.com/users/467357/gboffi>, How to find
-    the equation of a line, tangent to a circle, that passes through a given
-    external point, URL (version: 2019-05-30):
-     <https://math.stackexchange.com/a/3190374>`_
+    `gboffi. <https://math.stackexchange.com/users/467357/gboffi>`_ 
+    `"How to find the equation of a line, tangent to a circle, that passes 
+    through a given external point." StackExchange (version: 2019-05-30) 
+    <https://math.stackexchange.com/a/3190374>`_
     """
     dxdy = pt - CofC
     dxdyr = np.array([-dxdy[1], dxdy[0]])

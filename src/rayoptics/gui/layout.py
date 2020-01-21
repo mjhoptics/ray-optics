@@ -84,6 +84,8 @@ def create_optical_element(opt_model, e):
 
 
 class OpticalElement():
+    """ mediator class for rendering and editing optical elements """
+
     def __init__(self, opt_model, e):
         self.opt_model = opt_model
         self.e = e
@@ -376,6 +378,8 @@ class ParaxialRay():
 
 
 class LensLayout():
+    """ manager for live layout graphics entities """
+
     def __init__(self, opt_model, **kwargs):
         self.opt_model = opt_model
         self.ray_table = None
