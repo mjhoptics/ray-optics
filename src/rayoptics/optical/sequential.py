@@ -495,10 +495,8 @@ class SequentialModel:
         fld.ref_sphere = rs_pkg
 
         grids = []
-        origin = -.05
-        delta = 0.1
-        grid_start = np.array([origin, origin])
-        grid_stop = np.array([origin+delta, origin+delta])
+        grid_start = np.array([-1., -1.])
+        grid_stop = np.array([1., 1.])
         grid_def = [grid_start, grid_stop, num_rays]
         for wi, wvl in enumerate(wv_list):
             grid = trace.trace_grid(self.opt_model, grid_def, fld, wvl, foc,

@@ -271,7 +271,7 @@ def create_ray_grid_view(opt_model, gui_parent=None):
     num_flds = len(opt_model.optical_spec.field_of_view.fields)
 
     fig = SpotDiagramFigure(opt_model, scale_type=Fit.All_Same,
-                            num_rays=11, dpi=100)
+                            dpi=100)
     view_box = 300
     view_width = view_box
     view_ht = num_flds * view_box
