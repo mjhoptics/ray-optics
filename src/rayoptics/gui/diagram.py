@@ -70,7 +70,7 @@ class Diagram():
 
     def __init__(self, opt_model, dgm_type, seq_start=1,
                  do_barrel_constraint=False, barrel_constraint=1.0,
-                 label='paraxial'):
+                 label='paraxial', bend_or_gap='bend'):
         self.label = label
         self.opt_model = opt_model
 
@@ -79,6 +79,8 @@ class Diagram():
 
         self.do_barrel_constraint = do_barrel_constraint
         self.barrel_constraint_radius = barrel_constraint
+
+        self.bend_or_gap = bend_or_gap
 
     def setup_dgm_type(self, dgm_type):
         parax_model = self.opt_model.parax_model
@@ -373,8 +375,7 @@ class DiagramEdge():
 
     def handle_actions(self):
         actions = {}
-        # actions['shape'] = EditThicknessAction(self)
-        actions['shape'] = EditBendingAction(self)
+        actions['shape'] = EditLensAction(self)
         return actions
 
 
@@ -650,6 +651,30 @@ class EditNodeAction():
         self.actions['drag'] = on_edit
         self.actions['press'] = on_select
         self.actions['release'] = on_release
+
+
+class EditLensAction():
+    """ Action for diagram edge, using an input pt
+
+    This is a simple wrapper class to choose the correct action, i.e. bending
+    or thickness change, depending on the UI setting.
+    """
+
+    def __init__(self, dgm_edge):
+        diagram = dgm_edge.diagram
+        actions = {}
+        actions['gap'] = EditThicknessAction(dgm_edge)
+        actions['bend'] = EditBendingAction(dgm_edge)
+
+        def create_dispatch_action(event_key):
+            def dispatch_action(fig, event):
+                actions[diagram.bend_or_gap].actions[event_key](fig, event)
+            return dispatch_action
+
+        self.actions = {}
+        self.actions['press'] = create_dispatch_action('press')
+        self.actions['drag'] = create_dispatch_action('drag')
+        self.actions['release'] = create_dispatch_action('release')
 
 
 class EditThicknessAction():

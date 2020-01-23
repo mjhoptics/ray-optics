@@ -23,12 +23,13 @@ class InteractiveDiagram(InteractiveFigure):
 
     def __init__(self, opt_model, refresh_gui, dgm_type,
                  do_barrel_constraint=False, barrel_constraint=1.0,
-                 enable_slide=False, **kwargs):
+                 enable_slide=False, bend_or_gap='bend', **kwargs):
         self.refresh_gui = refresh_gui
         self.parax_model = opt_model.parax_model
         self.diagram = Diagram(opt_model, dgm_type,
                                do_barrel_constraint=do_barrel_constraint,
-                               barrel_constraint=barrel_constraint)
+                               barrel_constraint=barrel_constraint,
+                               bend_or_gap=bend_or_gap)
         self.setup_dgm_type(dgm_type)
         self.enable_slide = enable_slide
 

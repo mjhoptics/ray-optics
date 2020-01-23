@@ -255,7 +255,7 @@ def create_2d_figure_toolbar(app, pc):
 
 
 def create_draw_rays_groupbox(app, pc):
-    groupBox = QGroupBox("", app)
+    tb = QToolBar()
     fig = pc.figure
 
     def attr_check(fig, attr, state):
@@ -273,17 +273,14 @@ def create_draw_rays_groupbox(app, pc):
     edge_checkBox.stateChanged.connect(
         lambda checked: attr_check(fig, 'do_draw_rays', checked))
 
-    hbox = QHBoxLayout()
-    hbox.addWidget(parax_checkBox)
-    hbox.addWidget(edge_checkBox)
+    tb.addWidget(parax_checkBox)
+    tb.addWidget(edge_checkBox)
 
-    groupBox.setLayout(hbox)
-
-    return groupBox
+    return tb
 
 
 def create_diagram_controls_groupbox(app, pc):
-    groupBox = QGroupBox("", app)
+    tb = QToolBar()
 
     def attr_check(fig, attr, state):
         checked = state == qt.Checked
@@ -309,14 +306,22 @@ def create_diagram_controls_groupbox(app, pc):
     barrel_checkBox.stateChanged.connect(
         lambda checked: on_barrel_constraint_toggled(cntxt, checked))
 
-    hbox = QHBoxLayout()
-    hbox.addWidget(slide_checkBox)
-    hbox.addWidget(barrel_checkBox)
-    hbox.addWidget(barrel_value_wdgt)
+    diagram = fig.diagram
+    bending_btn = QRadioButton("Bend")
+    bending_btn.setChecked(diagram.bend_or_gap == 'bend')
+    bending_btn.toggled.connect(lambda:
+                                on_bend_or_gap_toggled(diagram, 'bend'))
+    gap_btn = QRadioButton("Gap")
+    gap_btn.setChecked(diagram.bend_or_gap == 'gap')
+    gap_btn.toggled.connect(lambda: on_bend_or_gap_toggled(diagram, 'gap'))
 
-    groupBox.setLayout(hbox)
+    tb.addWidget(slide_checkBox)
+    tb.addWidget(barrel_checkBox)
+    tb.addWidget(barrel_value_wdgt)
+    tb.addWidget(bending_btn)
+    tb.addWidget(gap_btn)
 
-    return groupBox
+    return tb
 
 
 def on_barrel_constraint_toggled(cntxt, state):
@@ -345,3 +350,7 @@ def on_barrel_constraint_changed(cntxt):
         return ''
 
     fig.refresh()
+
+
+def on_bend_or_gap_toggled(diagram, radio_btn_id):
+    diagram.bend_or_gap = radio_btn_id
