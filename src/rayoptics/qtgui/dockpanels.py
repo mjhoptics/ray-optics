@@ -37,8 +37,8 @@ def create_dock_windows(gui_app):
                                             'aperture', 'Aperture',
                                             AperturePanel, False)
     panels['field'] = create_dock_widget(gui_app,
-                                            'field', 'Field of View',
-                                            FieldOfViewPanel, False)
+                                         'field', 'Field of View',
+                                         FieldOfViewPanel, False)
     panels['system'] = create_dock_widget(gui_app,
                                           'system', 'System Info',
                                           SystemSpecPanel, False)
@@ -181,20 +181,23 @@ class SpectrumWavelengthsPanel(QWidget):
     def __init__(self, gui_app, parent=None):
         super().__init__(parent)
 
-        self.ctrl_wvl_edit = TextFieldWidget(gui_app, 'central', QLineEdit,
-                                        SpectrumWavelengthsPanel.rootEvalStr,
-                                        SpectrumWavelengthsPanel.evalStr[0],
-                                        '{:7.1f}')
+        self.ctrl_wvl_edit = TextFieldWidget(
+            gui_app, 'central', QLineEdit,
+            SpectrumWavelengthsPanel.rootEvalStr,
+            SpectrumWavelengthsPanel.evalStr[0],
+            '{:7.1f}')
 
-        self.red_wvl_edit = TextFieldWidget(gui_app, 'red', QLineEdit,
-                                        SpectrumWavelengthsPanel.rootEvalStr,
-                                        SpectrumWavelengthsPanel.evalStr[1],
-                                        '{:7.1f}')
+        self.red_wvl_edit = TextFieldWidget(
+            gui_app, 'red', QLineEdit,
+            SpectrumWavelengthsPanel.rootEvalStr,
+            SpectrumWavelengthsPanel.evalStr[1],
+            '{:7.1f}')
 
-        self.blue_wvl_edit = TextFieldWidget(gui_app, 'blue', QLineEdit,
-                                        SpectrumWavelengthsPanel.rootEvalStr,
-                                        SpectrumWavelengthsPanel.evalStr[2],
-                                        '{:7.1f}')
+        self.blue_wvl_edit = TextFieldWidget(
+            gui_app, 'blue', QLineEdit,
+            SpectrumWavelengthsPanel.rootEvalStr,
+            SpectrumWavelengthsPanel.evalStr[2],
+            '{:7.1f}')
 
         wavlnsLayout = QFormLayout()
         wavlnsLayout.addRow('central', self.ctrl_wvl_edit.widget)
