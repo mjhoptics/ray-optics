@@ -18,10 +18,31 @@ from PyQt5.QtWidgets import (QHBoxLayout, QVBoxLayout, QWidget, QLineEdit,
 
 from matplotlib.backends.backend_qt5agg \
      import (NavigationToolbar2QT as NavigationToolbar)
+from matplotlib.backends.backend_qt5agg \
+     import FigureCanvasQTAgg as FigureCanvas
 
 from rayoptics.gui.appmanager import ModelInfo
-from rayoptics.qtgui.plotcanvas import PlotCanvas
 from rayoptics.mpl.axisarrayfigure import Fit
+
+
+class PlotCanvas(FigureCanvas):
+
+    def __init__(self, parent, figure):
+        FigureCanvas.__init__(self, figure)
+        self.setParent(parent)
+
+        # Next 2 lines are needed so that key press events are correctly
+        #  passed with mouse events
+        # https://github.com/matplotlib/matplotlib/issues/707/
+        self.setFocusPolicy(qt.ClickFocus)
+        self.setFocus()
+
+        FigureCanvas.setSizePolicy(self,
+                                   QSizePolicy.Expanding,
+                                   QSizePolicy.Expanding)
+        FigureCanvas.updateGeometry(self)
+
+        self.figure.plot()
 
 
 def update_figure_view(plotFigure):
