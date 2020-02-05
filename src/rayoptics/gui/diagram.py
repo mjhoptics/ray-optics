@@ -10,6 +10,7 @@
 import math
 import numpy as np
 from copy import deepcopy
+from pathlib import Path
 
 from rayoptics.gui.util import GUIHandle, bbox_from_poly, fit_data_range
 
@@ -20,9 +21,29 @@ from rayoptics.util.misc_math import (normalize, distance_sqr_2d,
                                       projected_point_on_radial_line)
 from rayoptics.util.line_intersection import get_intersect
 from rayoptics.util import misc_math
+from rayoptics.util import colors
 
 from rayoptics.optical.elements import (create_thinlens, create_mirror,
-                                        create_lens, create_from_file)
+                                        create_lens, create_from_file,
+                                        AirGap)
+
+
+def light_or_dark(is_dark=True):
+    accent = colors.accent_colors(is_dark)
+    fb = colors.foreground_background(is_dark)
+    rgb = {
+        'node': fb['foreground'],
+        'edge': fb['foreground'],
+        # 'node': accent['cyan'],
+        # 'edge': accent['cyan'],
+        'slide': accent['blue'],
+        'object_image': accent['magenta'],
+        'stop': accent['magenta'],
+        'conj_line': accent['orange'],
+        'shift': accent['orange'],
+        'barrel': accent['green'],
+        }
+    return {**rgb, **fb}
 
 
 def create_parax_design_commands(fig):
@@ -50,14 +71,17 @@ def create_parax_design_commands(fig):
                    'factory': create_mirror,
                    'interact_mode': 'reflect'})))
     # replace with file
-    filename = '/Users/Mike/Developer/PyProjects/ray-optics/models/Sasian Triplet.roa'
+    pth = Path(__file__).resolve()
+    root_pos = pth.parts.index('ray-optics')
+    models_dir = Path(*pth.parts[:root_pos+1]) / 'models'
+    filepath = models_dir / 'Sasian Triplet.roa'
 
     def cff(**kwargs):
-        return create_from_file(filename, **kwargs)
+        return create_from_file(filepath, **kwargs)
 
     cmds.append(('Sasian Triplet',
                  (dgm.register_add_replace_element, (),
-                  {'filename': filename,
+                  {'filename': filepath,
                    'node_init': create_thinlens,
                    'factory': cff,
                    'interact_mode': 'transmit'})))
@@ -70,9 +94,11 @@ class Diagram():
 
     def __init__(self, opt_model, dgm_type, seq_start=1,
                  do_barrel_constraint=False, barrel_constraint=1.0,
-                 label='paraxial', bend_or_gap='bend'):
+                 label='paraxial', bend_or_gap='bend', is_dark=True):
         self.label = label
         self.opt_model = opt_model
+
+        self.dgm_rgb = light_or_dark(is_dark=is_dark)
 
         self.dgm_type = dgm_type
         self.setup_dgm_type(dgm_type)
@@ -93,6 +119,9 @@ class Diagram():
 
     def get_label(self):
         return self.label
+
+    def sync_light_or_dark(self, is_dark):
+        self.dgm_rgb = light_or_dark(is_dark)
 
     def update_data(self, fig):
         parax_model = self.opt_model.parax_model
@@ -262,15 +291,18 @@ class DiagramNode():
         self.actions = self.handle_actions()
 
     def update_shape(self, view):
-        n_color = rgb2mpl([138, 43, 226])  # blueviolet
+        node_color = rgb2mpl([138, 43, 226])  # blueviolet
         sys = self.diagram.opt_model.parax_model.sys
         shape = self.diagram.shape
-        self.handles['shape'] = shape[self.node], 'vertex', {'linestyle': '',
-                                                             'marker': 's',
-                                                             'picker': 6,
-                                                             'color': n_color,
-                                                             'hilite': 'red',
-                                                             'zorder': 3.}
+        dgm_rgb = self.diagram.dgm_rgb
+        self.handles['shape'] = (shape[self.node], 'vertex',
+                                 {'linestyle': '',
+                                  'linewidth': 3,
+                                  'marker': 's',
+                                  'picker': 6,
+                                  'color': dgm_rgb['node'],
+                                  # 'hilite': 'red',
+                                  'zorder': 3.})
         # define the "constant spacing" or "slide" constraint
         if view.enable_slide:
             slide_pts = compute_slide_line(shape, self.node,
@@ -280,11 +312,13 @@ class DiagramNode():
                 f_color = rgb2mpl([138, 43, 226, 127])  # blueviolet
                 h_color = rgb2mpl([138, 43, 226, 255])  # blueviolet
 
-                self.handles['slide'] = seg, 'polyline', {'linestyle': ':',
-                                                          'picker': 6,
-                                                          'color': f_color,
-                                                          'hilite': h_color,
-                                                          'zorder': 2.5}
+                self.handles['slide'] = (seg, 'polyline',
+                                         {'linestyle': ':',
+                                          'linewidth': 3,
+                                          'picker': 6,
+                                          'color': dgm_rgb['slide'],
+                                          # 'hilite': h_color,
+                                          'zorder': 2.5})
         gui_handles = {}
         for key, graphics_handle in self.handles.items():
             poly_data, poly_type, kwargs = graphics_handle
@@ -338,15 +372,20 @@ class DiagramEdge():
 
     def update_shape(self, view):
         shape = self.diagram.shape
+        dgm_rgb = self.diagram.dgm_rgb
         edge_poly = shape[self.node:self.node+2]
-        self.handles['shape'] = edge_poly, 'polyline', {'picker': 6,
-                                                        'hilite': 'red',
-                                                        'zorder': 2.}
+        self.handles['shape'] = (edge_poly, 'polyline',
+                                 {'picker': 6,
+                                  'linewidth': 3,
+                                  'color': dgm_rgb['edge'],
+                                  # 'hilite': 'red',
+                                  'zorder': 2.})
         area_poly = [[0, 0]]
         area_poly.extend(edge_poly)
         fill_color = self.render_color()
-        self.handles['area'] = area_poly, 'polygon', {'fill_color': fill_color,
-                                                      'zorder': 1.}
+        self.handles['area'] = (area_poly, 'polygon',
+                                {'fill_color': fill_color,
+                                 'zorder': 1.})
 
         gui_handles = {}
         for key, graphics_handle in self.handles.items():
@@ -365,10 +404,17 @@ class DiagramEdge():
         gap = self.diagram.opt_model.seq_model.gaps[self.node]
         e = self.diagram.opt_model.ele_model.gap_dict.get(gap)
         if hasattr(e, 'gap'):
-            return e.render_color
+            if isinstance(e, AirGap):
+                # set alpha to 25% -> #40
+                bkgrnd_rbga = self.diagram.dgm_rgb['background1'] + '40'
+                return bkgrnd_rbga
+            else:
+                return e.render_color
         else:
             # single surface element, like mirror or thinlens, use airgap
-            return (237, 243, 254, 64)  # light blue
+            # set alpha to 25% -> #40
+            bkgrnd_rbga = self.diagram.dgm_rgb['background1'] + '40'
+            return bkgrnd_rbga
 
     def get_label(self):
         return 'edge' + str(self.node)
@@ -386,6 +432,7 @@ class BarrelConstraint():
         self.actions = self.handle_actions()
 
     def update_shape(self, view):
+        dgm_rgb = self.diagram.dgm_rgb
         barrel_radius = self.diagram.barrel_constraint_radius
         diamond = []
         diamond.append([0., barrel_radius])
@@ -394,8 +441,10 @@ class BarrelConstraint():
         diamond.append([-barrel_radius, 0.])
         diamond.append([0., barrel_radius])
         diamond = np.array(diamond)
-        self.handles['shape'] = diamond, 'polyline', {'color': 'black',
-                                                      'zorder': 1.}
+        self.handles['shape'] = (diamond, 'polyline',
+                                 {'color': dgm_rgb['barrel'],
+                                  'linewidth': 3,
+                                  'zorder': 1.})
         square = []
         square.append([ barrel_radius,  barrel_radius])
         square.append([-barrel_radius,  barrel_radius])
@@ -403,8 +452,10 @@ class BarrelConstraint():
         square.append([ barrel_radius, -barrel_radius])
         square.append([ barrel_radius,  barrel_radius])
         square = np.array(square)
-        self.handles['square'] = square, 'polyline', {'color': 'black',
-                                                      'zorder': 1.}
+        self.handles['square'] = (square, 'polyline',
+                                  {'color': dgm_rgb['barrel'],
+                                   'linewidth': 3,
+                                   'zorder': 1.})
 
         gui_handles = {}
         for key, graphics_handle in self.handles.items():
@@ -440,18 +491,23 @@ class ConjugateLine():
         self.actions = self.handle_actions()
 
     def update_shape(self, view):
+        dgm_rgb = self.diagram.dgm_rgb
         shape_bbox = self.diagram.shape_bbox
         line = []
         if self.line_type == 'stop':
             ht = shape_bbox[1][1] - shape_bbox[0][1]
             line.append([0., -2*ht])
             line.append([0., 2*ht])
+            color = dgm_rgb['stop']
         elif self.line_type == 'object_image':
             wid = shape_bbox[1][0] - shape_bbox[0][0]
             line.append([-2*wid, 0.])
             line.append([2*wid, 0.])
-        self.handles['shape'] = line, 'polyline', {'color': 'black',
-                                                   'zorder': 1.}
+            color = dgm_rgb['object_image']
+        self.handles['shape'] = (line, 'polyline',
+                                 {'color': dgm_rgb['foreground'],
+                                  'hilite': color,
+                                  'zorder': 1.})
 
         if len(self.shape_orig) > 0:
             conj_line = []
@@ -465,12 +521,12 @@ class ConjugateLine():
                 wid = upr - lwr
                 conj_line.append([-wid, self.k*wid])
                 conj_line.append([wid, -self.k*wid])
-            self.handles['conj_line'] = conj_line, 'polyline', \
-                                                   {'color': 'orange',
-                                                    'zorder': 1.}
-            self.handles['shift'] = self.shape_orig, 'polyline', \
-                                                     {'color': 'blue',
-                                                      'zorder': 1.}
+            self.handles['conj_line'] = (conj_line, 'polyline',
+                                         {'color': dgm_rgb['conj_line'],
+                                          'zorder': 1.})
+            self.handles['shift'] = (self.shape_orig, 'polyline',
+                                     {'color': dgm_rgb['shift'],
+                                      'zorder': 1.})
 
         gui_handles = {}
         for key, graphics_handle in self.handles.items():

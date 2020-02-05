@@ -159,3 +159,11 @@ class AppManager:
                     self.model = model
                     self.refresh_views()
                     logging.debug("switch model to", model.name())
+
+    def sync_light_or_dark(self, is_dark):
+        """ Tells views to update to a light or dark color scheme """
+        for view, _ in dict(self.view_dict).items():
+            try:
+                view.sync_light_or_dark(is_dark)
+            except AttributeError:
+                pass

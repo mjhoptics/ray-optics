@@ -9,23 +9,26 @@
 import abc
 
 import numpy as np
-from matplotlib.figure import Figure
 
 from rayoptics.mpl.axisarrayfigure import Fit
+from rayoptics.mpl.styledfigure import StyledFigure
 
 from rayoptics.optical.opticalspec import Field
 from rayoptics.optical.trace import trace_astigmatism
 from rayoptics.optical.thirdorder import compute_third_order
 
 
-class FieldCurveFigure(Figure):
+class FieldCurveFigure(StyledFigure):
     """ Plot of astigmatism curves """
-    def __init__(self, opt_model, eval_fct=trace_astigmatism, **kwargs):
+
+    def __init__(self, opt_model,
+                 eval_fct=trace_astigmatism,
+                 **kwargs):
         self.opt_model = opt_model
         self.scale_type = Fit.All
         self.eval_fct = eval_fct
 
-        Figure.__init__(self, **kwargs)
+        super().__init__(**kwargs)
 
         self.update_data()
 
@@ -56,8 +59,12 @@ class FieldCurveFigure(Figure):
 
         self.ax.set_title("Astigmatic Field Plot", pad=10.0, fontsize=18)
 
-        self.ax.plot(self.s_data, self.field_data, label='sagittal')
-        self.ax.plot(self.t_data, self.field_data, label='tangential')
+        self.ax.plot(self.s_data, self.field_data,
+                     label='sagittal',
+                     c=self._rgb['violet'])
+        self.ax.plot(self.t_data, self.field_data,
+                     label='tangential',
+                     c=self._rgb['magenta'])
         self.ax.set_xlabel('focus')
         self.ax.set_ylabel('field height')
 
@@ -68,8 +75,9 @@ class FieldCurveFigure(Figure):
         return self
 
 
-class ThirdOrderBarChart(Figure):
-    def __init__(self, opt_model, **kwargs):
+class ThirdOrderBarChart(StyledFigure):
+    def __init__(self, opt_model,
+                 **kwargs):
         super().__init__(**kwargs)
         self.opt_model = opt_model
         self.scale_type = Fit.All
@@ -102,6 +110,7 @@ class ThirdOrderBarChart(Figure):
 # experimental - something usable from qt and jupyter
 class AnalysisPlot(abc.ABC):
     """ abstract api for matplotlib axes customized for specific analyses """
+
     def __init__(self, opt_model):
         self.opt_model = opt_model
 

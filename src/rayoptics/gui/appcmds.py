@@ -164,6 +164,15 @@ def create_yybar_model():
 
     return opt_model
 
+def get_defaults_from_gui_parent(gui_parent):
+    if gui_parent:
+        refresh_gui = gui_parent.refresh_gui
+        is_dark = gui_parent.is_dark
+    else:
+        refresh_gui = None
+        is_dark = True
+    return refresh_gui, is_dark
+
 
 def create_lens_layout_view(opt_model, gui_parent=None):
     fig = LensLayoutFigure(opt_model)
@@ -174,10 +183,10 @@ def create_lens_layout_view(opt_model, gui_parent=None):
 
 
 def create_live_layout_view(opt_model, gui_parent=None):
-    refresh_gui = None
-    if gui_parent:
-        refresh_gui = gui_parent.refresh_gui
-    fig = InteractiveLayout(opt_model, refresh_gui)
+    refresh_gui, is_dark = get_defaults_from_gui_parent(gui_parent)
+    fig = InteractiveLayout(opt_model, refresh_gui,
+                            do_draw_frame=True, do_draw_axes=True,
+                            is_dark=is_dark)
     cmds = create_live_layout_commands(fig)
     view_width = 880
     view_ht = 660
@@ -229,9 +238,10 @@ def create_paraxial_design_view(opt_model, dgm_type, gui_parent=None):
 
 
 def create_paraxial_design_view_v2(opt_model, dgm_type, gui_parent=None):
-    fig = dgm.InteractiveDiagram(opt_model, gui_parent.refresh_gui, dgm_type,
+    refresh_gui, is_dark = get_defaults_from_gui_parent(gui_parent)
+    fig = dgm.InteractiveDiagram(opt_model, refresh_gui, dgm_type,
                                  do_draw_frame=True, do_draw_axes=True,
-                                 aspect='auto')
+                                 aspect='auto', is_dark=is_dark)
     panel_fcts = [create_2d_figure_toolbar,
                   ]
     if dgm_type == 'ht':
@@ -251,9 +261,10 @@ def create_paraxial_design_view_v2(opt_model, dgm_type, gui_parent=None):
 
 
 def create_ray_fan_view(opt_model, data_type, gui_parent=None):
+    refresh_gui, is_dark = get_defaults_from_gui_parent(gui_parent)
     fig = RayFanFigure(opt_model, data_type,
                        scale_type=Fit.All_Same,
-                       figsize=(5, 4), dpi=100)
+                       figsize=(5, 4), dpi=100, is_dark=is_dark)
     view_width = 600
     view_ht = 600
     if data_type == "Ray":
@@ -268,10 +279,11 @@ def create_ray_fan_view(opt_model, data_type, gui_parent=None):
 
 
 def create_ray_grid_view(opt_model, gui_parent=None):
+    refresh_gui, is_dark = get_defaults_from_gui_parent(gui_parent)
     num_flds = len(opt_model.optical_spec.field_of_view.fields)
 
     fig = SpotDiagramFigure(opt_model, scale_type=Fit.All_Same,
-                            dpi=100)
+                            dpi=100, is_dark=is_dark)
     view_box = 300
     view_width = view_box
     view_ht = num_flds * view_box
@@ -282,11 +294,12 @@ def create_ray_grid_view(opt_model, gui_parent=None):
 
 
 def create_wavefront_view(opt_model, gui_parent=None):
+    refresh_gui, is_dark = get_defaults_from_gui_parent(gui_parent)
     num_flds = len(opt_model.optical_spec.field_of_view.fields)
     num_wvls = len(opt_model.optical_spec.spectral_region.wavelengths)
 
     fig = WavefrontFigure(opt_model, scale_type=Fit.All_Same,
-                          num_rays=32, dpi=100)
+                          num_rays=32, dpi=100, is_dark=is_dark)
 #                                 figsize=(2*num_wvls, 2*num_flds))
     view_box = 300
     view_width = num_wvls * view_box
@@ -298,7 +311,8 @@ def create_wavefront_view(opt_model, gui_parent=None):
 
 
 def create_field_curves(opt_model, gui_parent=None):
-    fig = FieldCurveFigure(opt_model, dpi=100)
+    refresh_gui, is_dark = get_defaults_from_gui_parent(gui_parent)
+    fig = FieldCurveFigure(opt_model, dpi=100, is_dark=is_dark)
     view_width = 600
     view_ht = 600
     title = "Field Curves"
@@ -308,7 +322,8 @@ def create_field_curves(opt_model, gui_parent=None):
 
 
 def create_3rd_order_bar_chart(opt_model, gui_parent=None):
-    fig = ThirdOrderBarChart(opt_model, dpi=100)
+    refresh_gui, is_dark = get_defaults_from_gui_parent(gui_parent)
+    fig = ThirdOrderBarChart(opt_model, dpi=100, is_dark=is_dark)
     view_width = 600
     view_ht = 600
     title = "3rd Order Aberrations"

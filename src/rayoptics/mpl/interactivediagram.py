@@ -26,10 +26,11 @@ class InteractiveDiagram(InteractiveFigure):
                  enable_slide=False, bend_or_gap='bend', **kwargs):
         self.refresh_gui = refresh_gui
         self.parax_model = opt_model.parax_model
+        is_dark = kwargs['is_dark'] if 'is_dark' in kwargs else False
         self.diagram = Diagram(opt_model, dgm_type,
                                do_barrel_constraint=do_barrel_constraint,
                                barrel_constraint=barrel_constraint,
-                               bend_or_gap=bend_or_gap)
+                               bend_or_gap=bend_or_gap, is_dark=is_dark)
         self.setup_dgm_type(dgm_type)
         self.enable_slide = enable_slide
 
@@ -46,6 +47,10 @@ class InteractiveDiagram(InteractiveFigure):
             self.x_label = r'$\overline{\omega}$'
             self.y_label = r'$\omega$'
             self.header = r'$\omega-\overline{\omega}$ Diagram'
+
+    def sync_light_or_dark(self, is_dark, **kwargs):
+        self.diagram.sync_light_or_dark(is_dark)
+        super().sync_light_or_dark(is_dark, **kwargs)
 
     def update_data(self):
         self.artists = []

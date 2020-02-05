@@ -10,10 +10,11 @@
 
 from enum import Enum, auto
 
-from matplotlib.figure import Figure
 from scipy.interpolate import interp1d
 
 import numpy as np
+
+from rayoptics.mpl.styledfigure import StyledFigure
 
 from rayoptics.optical.raytrace import wave_abr
 import rayoptics.optical.model_constants as mc
@@ -39,7 +40,7 @@ def clip_to_range(rgb_list, lower, upper):
     return rgbc
 
 
-class AxisArrayFigure(Figure):
+class AxisArrayFigure(StyledFigure):
 
     def __init__(self, opt_model,
                  num_rays=21,
@@ -62,8 +63,8 @@ class AxisArrayFigure(Figure):
     def init_axis(self, ax):
         ax.grid(True)
         ax.set_xlim(-1., 1.)
-        ax.axvline(0, c='black', lw=1)
-        ax.axhline(0, c='black', lw=1)
+        ax.axvline(0, c=self._rgb['foreground'], lw=1)
+        ax.axhline(0, c=self._rgb['foreground'], lw=1)
 
     def construct_plot_array(self, m, n):
         arr = []

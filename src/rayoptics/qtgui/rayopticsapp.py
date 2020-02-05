@@ -21,6 +21,9 @@ from PyQt5.QtWidgets import (QApplication, QAction, QMainWindow, QMdiArea,
                              QFileDialog, QTableView, QWidget, QMenu,
                              QVBoxLayout, QGraphicsView, QGraphicsScene)
 from PyQt5.QtCore import pyqtSlot
+import qdarkstyle
+from qdarkstyle.palette import DarkPalette
+
 from traitlets.config.configurable import MultipleInstanceError
 
 from rayoptics.optical.trace import RaySeg
@@ -37,14 +40,17 @@ from rayoptics.optical import trace
 class MainWindow(QMainWindow):
     count = 0
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, qtapp=None):
         super().__init__(parent)
+        self.qtapp = qtapp
         self.mdi = QMdiArea()
         self.setCentralWidget(self.mdi)
 
         self.app_manager = AppManager(None, gui_parent=self)
         self.mdi.subWindowActivated.connect(self.app_manager.
                                             on_view_activated)
+
+        self.is_dark = self.light_or_dark(False)
 
         self.left = 100
         self.top = 50
@@ -91,6 +97,9 @@ class MainWindow(QMainWindow):
         wnd_menu = bar.addMenu("Window")
         wnd_menu.addAction("Cascade")
         wnd_menu.addAction("Tiled")
+        wnd_menu.addSeparator()
+        wnd_menu.addAction("Light UI")
+        wnd_menu.addAction("Dark UI")
         wnd_menu.addSeparator()
 
         dock.create_dock_windows(self)
@@ -299,6 +308,33 @@ class MainWindow(QMainWindow):
         if q.text() == "Tiled":
             self.mdi.tileSubWindows()
 
+        if q.text() == "Light UI":
+            self.is_dark = self.light_or_dark(False)
+            self.app_manager.sync_light_or_dark(self.is_dark)
+
+        if q.text() == "Dark UI":
+            self.is_dark = self.light_or_dark(True)
+            self.app_manager.sync_light_or_dark(self.is_dark)
+
+    def light_or_dark(self, is_dark):
+        """ set the UI to a light or dark scheme.
+        
+        Qt doesn't seem to support controlling the MdiArea's background from a
+        style sheet. Set the widget directly and save the original color
+        to reset defaults.
+        """
+        if not hasattr(self, 'mdi_background'):
+            self.mdi_background = self.mdi.background()
+
+        if is_dark:
+            self.qtapp.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+            rgb = DarkPalette.color_palette()
+            self.mdi.setBackground(QColor(rgb['COLOR_BACKGROUND_NORMAL']))
+        else:
+            self.qtapp.setStyleSheet('')
+            self.mdi.setBackground(self.mdi_background)
+        return is_dark
+
     def create_lens_table(self):
         seq_model = self.app_manager.model.seq_model
 
@@ -500,12 +536,15 @@ class MainWindow(QMainWindow):
 
 
 def main():
-    qtapp = QApplication(sys.argv)
     logging.basicConfig(filename='rayoptics.log',
                         filemode='w',
                         level=logging.INFO)
-    qtwnd = MainWindow()
-    return qtapp.exec()
+
+    qtapp = QApplication(sys.argv)
+    qtwnd = MainWindow(qtapp=qtapp)
+
+    qtwnd.show()
+    return qtapp.exec_()
 
 
 if __name__ == '__main__':

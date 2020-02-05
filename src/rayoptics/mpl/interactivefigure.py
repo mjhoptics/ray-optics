@@ -12,10 +12,11 @@ import logging
 from collections import namedtuple
 
 import numpy as np
-from matplotlib import figure
 from matplotlib import lines
 from matplotlib import patches
 from matplotlib import widgets
+
+from rayoptics.mpl.styledfigure import StyledFigure
 
 from rayoptics.gui import util
 from rayoptics.util import rgb2mpl
@@ -30,16 +31,24 @@ SelectInfo = namedtuple('SelectInfo', ['artist', 'info'])
 """
 
 
-class InteractiveFigure(figure.Figure):
+def display_artist_and_event(callback_str, event, artist):
+    if artist and hasattr(artist, 'shape'):
+        shape, handle = artist.shape
+        print('{} {}: shape: {}.{}'.format(callback_str, event.name,
+                                           shape.get_label(), handle))
+    else:
+        print('{} {}: shape: None'.format(callback_str, event.name))
+
+
+class InteractiveFigure(StyledFigure):
     """ Editable version of optical system layout, aka Live Layout
 
     Attributes:
         opt_model: parent optical model
-        refresh_gui: function to be called on refresh_gui event
-        do_draw_frame: if True, draw frame around system layout
-        oversize_factor: what fraction to oversize the system bounding box
-        do_draw_rays: if True, draw edge rays
-        do_paraxial_layout: if True, draw editable paraxial axial and chief ray
+        do_draw_frame: if True, draw frame around the figure
+        do_draw_axes: if True, draw coordinate axes for the figure
+        oversize_factor: what fraction to oversize the view bounding box
+        aspect: 'equal' for 1:1 aspect ratio, 'auto' for best ratio
     """
 
     def __init__(self,
@@ -66,17 +75,19 @@ class InteractiveFigure(figure.Figure):
 
         super().__init__(**kwargs)
 
-        self.set_facecolor(rgb2mpl.backgrnd_color)
-
         self.update_data()
         self.view_bbox = view_bbox if view_bbox else self.fit_axis_limits()
 
     def connect_events(self, action_dict=None):
         'connect to all the events we need'
         if action_dict is None:
-            action_dict = {'button_press_event': self.on_press,
+            action_dict = {'motion_notify_event': self.on_motion,
+                           'button_press_event': self.on_press,
                            'button_release_event': self.on_release,
-                           'motion_notify_event': self.on_motion}
+                           # 'button_press_event': self.display_event,
+                           # 'button_release_event': self.display_event,
+                           # 'pick_event': self.on_select,
+                           }
         self.callback_ids = []
         for event, action in action_dict.items():
             self.event_dict[event] = action
@@ -176,7 +187,9 @@ class InteractiveFigure(figure.Figure):
 
         if 'linewidth' not in kwargs:
             kwargs['linewidth'] = self.linewidth
-        fill_color = rgb2mpl.rgb2mpl(kwargs.pop('fill_color', rgb_color))
+        fill_color = kwargs.pop('fill_color', rgb_color)
+        if not isinstance(fill_color, str):
+            fill_color = rgb2mpl.rgb2mpl(fill_color)
         p = patches.Polygon(poly, closed=True, fc=fill_color,
                             ec='black', **kwargs)
         p.highlight = highlight
@@ -186,20 +199,25 @@ class InteractiveFigure(figure.Figure):
     def create_polyline(self, poly, **kwargs):
         def highlight(p):
             lw = p.get_linewidth()
+            ls = p.get_linestyle()
             c = p.get_color()
-            p.unhilite = (c, lw)
-            p.set_linewidth(2)
-            p.set_color(hilite_color)
+            p.unhilite = (c, lw, ls)
+            # hilite_lw = 2
+            hilite_lw = 5
+            p.set_linewidth(hilite_lw)
+            if hilite_color:
+                p.set_color(hilite_color)
 
         def unhighlight(p):
-            c, lw = p.unhilite
+            c, lw, ls = p.unhilite
             p.set_linewidth(lw)
+            p.set_linestyle(ls)
             p.set_color(c)
             p.unhilite = None
 
         x = poly.T[0]
         y = poly.T[1]
-        hilite_color = kwargs.pop('hilite', 'red')
+        hilite_color = kwargs.pop('hilite', None)
         if 'linewidth' not in kwargs:
             kwargs['linewidth'] = self.linewidth
         p = lines.Line2D(x, y, **kwargs)
@@ -213,7 +231,8 @@ class InteractiveFigure(figure.Figure):
             c = p.get_color()
             p.unhilite = (c, lw)
             p.set_linewidth(2)
-            p.set_color(hilite_color)
+            if hilite_color:
+                p.set_color(hilite_color)
 
         def unhighlight(p):
             c, lw = p.unhilite
@@ -223,7 +242,7 @@ class InteractiveFigure(figure.Figure):
 
         x = [vertex[0]]
         y = [vertex[1]]
-        hilite_color = kwargs.pop('hilite', 'red')
+        hilite_color = kwargs.pop('hilite', None)
         if 'linewidth' not in kwargs:
             kwargs['linewidth'] = self.linewidth
         p = lines.Line2D(x, y, **kwargs)
@@ -279,8 +298,8 @@ class InteractiveFigure(figure.Figure):
     def draw_axes(self, do_draw_axes):
         if do_draw_axes:
             self.ax.grid(True)
-            self.ax.axvline(0, c='black', lw=1)
-            self.ax.axhline(0, c='black', lw=1)
+            self.ax.axvline(0, c=self._rgb['foreground'], lw=1)
+            self.ax.axhline(0, c=self._rgb['foreground'], lw=1)
             if hasattr(self, 'header'):
                 self.ax.set_title(self.header, pad=10.0, fontsize=18)
             if hasattr(self, 'x_label'):
@@ -313,7 +332,7 @@ class InteractiveFigure(figure.Figure):
         self.update_axis_limits(bbox=self.view_bbox)
 
         self.draw_frame(self.do_draw_frame)
-        self.ax.set_facecolor(rgb2mpl.backgrnd_color)
+        self.ax.set_facecolor(self._rgb['background1'])
 
         self.draw_axes(self.do_draw_axes)
 
@@ -352,16 +371,29 @@ class InteractiveFigure(figure.Figure):
             except KeyError:
                 pass
 
+    def on_select(self, event):
+        artist = event.artist
+        display_artist_and_event('on_select', event, artist)
+
+    def display_event(self, event):
+        artist = self.hilited.artist if self.hilited else None
+        display_artist_and_event('display_event', event, artist)
+
     def on_press(self, event):
         self.save_do_scale_bounds = self.do_scale_bounds
         self.do_scale_bounds = False
         target_artist = self.selected = self.hilited
+        # if target_artist is not None:
+        #     display_artist_and_event('on_press', event, self.selected.artist)
         self.do_action(event, target_artist, 'press')
 
     def on_motion(self, event):
         if self.selected is None:
             artists = self.find_artists_at_location(event)
             next_hilited = artists[0] if len(artists) > 0 else None
+            # if next_hilited is not None:
+            #     display_artist_and_event('on_motion ({})'.format(len(artists)),
+            #                              event, next_hilited.artist)
 
             cur_art = self.hilited.artist if self.hilited is not None else None
             nxt_art = next_hilited.artist if next_hilited is not None else None
@@ -381,6 +413,7 @@ class InteractiveFigure(figure.Figure):
                                   shape.get_label(), handle,
                                   self.hilited.artist.get_zorder())
         else:
+            # display_artist_and_event('on_drag', event, self.selected.artist)
             self.do_action(event, self.selected, 'drag')
             shape, handle = self.selected.artist.shape
             logging.debug("on_drag: %s %s %d", shape.get_label(), handle,
@@ -389,6 +422,7 @@ class InteractiveFigure(figure.Figure):
     def on_release(self, event):
         'on release we reset the press data'
         logging.debug("on_release")
+        # display_artist_and_event('on_release', event, self.selected.artist)
 
         self.do_action(event, self.selected, 'release')
         self.do_scale_bounds = self.save_do_scale_bounds
@@ -436,7 +470,7 @@ class ZoomBoxAction():
             fig.action_complete()
 
         self.saved_events = fig.disconnect_events()
-        rectprops = dict(edgecolor='black', fill=False)
+        rectprops = dict(edgecolor=fig._rgb['foreground'], fill=False)
         self.rubber_box = widgets.RectangleSelector(
             fig.ax, on_release, drawtype='box', useblit=False,
             button=[1, 3],  # don't use middle button

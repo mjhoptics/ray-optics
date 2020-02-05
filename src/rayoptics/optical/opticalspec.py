@@ -16,6 +16,7 @@ from rayoptics.optical.trace import aim_chief_ray
 from rayoptics.optical import model_enums
 import rayoptics.optical.model_constants as mc
 import rayoptics.util.colour_system as cs
+from rayoptics.util import colors
 srgb = cs.cs_srgb
 
 
@@ -73,6 +74,7 @@ class OpticalSpecs:
         if not hasattr(self, 'do_aiming'):
             self.do_aiming = OpticalSpecs.do_aiming_default
 
+        self.spectral_region.sync_to_restore(self)
         self.pupil.sync_to_restore(self)
         self.field_of_view.sync_to_restore(self)
 
@@ -165,6 +167,9 @@ class WvlSpec:
             self.spectral_wts.append(wlwt[1])
         self.calc_colors()
 
+    def sync_to_restore(self, optical_spec):
+        self.calc_colors()
+
     def set_from_specsheet(self, ss):
         pass
 
@@ -174,17 +179,18 @@ class WvlSpec:
         self.spectrum.sort(key=lambda w: w[0], reverse=True)
 
     def calc_colors(self):
+        accent = colors.accent_colors()
         self.render_colors = []
         num_wvls = len(self.wavelengths)
         if num_wvls == 1:
-            self.render_colors.append('black')
+            self.render_colors.append(accent['green'])
         elif num_wvls == 2:
-            self.render_colors.append('red')
-            self.render_colors.append('blue')
+            self.render_colors.append(accent['red'])
+            self.render_colors.append(accent['blue'])
         elif num_wvls == 3:
-            self.render_colors.append('red')
-            self.render_colors.append('green')
-            self.render_colors.append('blue')
+            self.render_colors.append(accent['red'])
+            self.render_colors.append(accent['green'])
+            self.render_colors.append(accent['blue'])
         else:
             for w in self.wavelengths:
                 print("calc_colors", w)
