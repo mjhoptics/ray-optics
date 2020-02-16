@@ -1,7 +1,10 @@
 .. currentmodule:: rayoptics.qtgui
 
+Qt application
+==============
+
 Qt5 app version of rayoptics
-============================
+----------------------------
 
     The :mod:`rayoptics.qtgui` subpackage provides a desktop app, :obj:`rayopticsapp`. It provides an integration of rayoptics with the Qt GUI toolkit. Capabilities include:
 
@@ -11,7 +14,7 @@ Qt5 app version of rayoptics
         - iPython console window (desktop app only)
 
 Running the app
-===============
+---------------
 
 A desktop application is installed as part of ``rayoptics``. It is invoked by running ``rayoptics`` at the command line.
 

@@ -65,3 +65,11 @@ rayoptics.mpl.paraxdgnfigure module
    :undoc-members:
    :show-inheritance:
 
+rayoptics.mpl.styledfigure module
+---------------------------------
+
+.. automodule:: rayoptics.mpl.styledfigure
+   :members:
+   :undoc-members:
+   :show-inheritance:
+

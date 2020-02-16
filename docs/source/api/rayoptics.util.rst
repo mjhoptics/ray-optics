@@ -9,6 +9,14 @@ rayoptics.util package
 Submodules
 ----------
 
+rayoptics.util.colors module
+----------------------------
+
+.. automodule:: rayoptics.util.colors
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 rayoptics.util.colour\_system module
 ------------------------------------
 

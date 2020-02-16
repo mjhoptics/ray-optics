@@ -16,37 +16,40 @@ from rayoptics.util.misc_math import isanumber
 
 
 class PyTableModel(QAbstractTableModel):
+    """Table model supporting data content via python eval() fct.
+
+    Model interface for table view of list structures.
+
+    Attributes:
+        root: object or list at the root of the eval() string
+        rootEvalStr: string that is concatentated to the root name and
+                    passed to the eval() function. This will accomodate
+                    dynamic name changes.
+        colEvalStr: string that is concatentated to the root name and
+                    passed to the eval() function. There should be a
+                    replacement field, i.e. {} where the row value will
+                    be substituted using the str.format() function.
+        rowHeaders: list of strings, length defines number of rows in the
+                    table
+        colHeaders: list of strings, length defines number of columns in
+                    the table
+        colFormats: format strings to be used to format data in each column
+        is_editable: if true, items are editable
+        get_num_rows: if not None, a function that returns the number of
+                      rows in the table
+        get_row_headers: if not None, a function that returns the row
+                         headers for the table
+    """
 
     update = pyqtSignal(object, int)
 
-    """ Model interface for table view of list structures """
-    def __init__(self, rootObj, rootEvalStr, colEvalStr, rowHeaders,
+    def __init__(self, root, rootEvalStr, colEvalStr, rowHeaders,
                  colHeaders, colFormats, is_editable=False, get_num_rows=None,
                  get_row_headers=None):
-        """ Table model supporting data content via python eval() fct
-
-        Initialization arguments:
-            rootObj: object or list at the root of the eval() string
-            rootEvalStr: string that is concatentated to the root name and
-                        passed to the eval() function. This will accomodate
-                        dynamic name changes.
-            colEvalStr: string that is concatentated to the root name and
-                        passed to the eval() function. There should be a
-                        replacement field, i.e. {} where the row value will
-                        be substituted using the str.format() function.
-            rowHeaders: list of strings, length defines number of rows in the
-                        table
-            colHeaders: list of strings, length defines number of columns in
-                        the table
-            colFormats: format strings to be used to format data in each column
-            is_editable: if true, items are editable
-            get_num_rows: if not None, a function that returns the number of
-                          rows in the table
-            get_row_headers: if not None, a function that returns the row
-                             headers for the table
         """
+    """
         super().__init__()
-        self.root = rootObj
+        self.root = root
         self.rootEvalStr = rootEvalStr
         self.colEvalStr = colEvalStr
         self.rowHeaders = rowHeaders

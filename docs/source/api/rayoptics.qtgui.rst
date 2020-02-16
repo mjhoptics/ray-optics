@@ -41,14 +41,6 @@ rayoptics.qtgui.ipyconsole module
    :undoc-members:
    :show-inheritance:
 
-rayoptics.qtgui.plotcanvas module
----------------------------------
-
-.. automodule:: rayoptics.qtgui.plotcanvas
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 rayoptics.qtgui.plotview module
 -------------------------------
 

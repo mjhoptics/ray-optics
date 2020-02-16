@@ -1,6 +1,6 @@
-*****************
-Interactive Usage
-*****************
+***************
+Scripting Usage
+***************
 
 The ``environment.py`` module imports many useful classes and functions. All the symbols defined in the module are intended to be imported into a rayoptics interactive session.
 
@@ -44,8 +44,9 @@ One can use the flow above in the iPython environment. If you want to import few
 
    import numpy as np
    import matplotlib.pyplot as plt
-   from rayoptics.optical.opticalmodel import OpticalModel, open_model
-
+   from rayoptics.optical.opticalmodel import OpticalModel
+   from rayoptics.gui.appcmds import open_model
+   
    # open an OpticalModel from a file
    opm = open_model("codev/test/landscape_lens.seq")
 
