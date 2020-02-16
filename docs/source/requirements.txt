@@ -11,4 +11,4 @@ traitlets >= 4.3.2
 ipywidgets >= 7.5.1
 qtconsole >= 4.5.5
 qdarkstyle >= 2.8
-pyqt5 == 5.9.2
+# pyqt5 == 5.9.2
