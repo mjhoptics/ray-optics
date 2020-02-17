@@ -73,24 +73,26 @@ def create_parax_design_commands(fig):
                    'interact_mode': 'reflect'})))
     # replace with file
     pth = Path(__file__).resolve()
-    logging.info('diagram filepath %s', pth)
-    # root_pos = pth.parts.index('ray-optics')
-    # models_dir = Path(*pth.parts[:root_pos+1]) / 'models'
-    # root/src/rayoptics/gui/diagram.py -> root/models
-    models_dir = Path(*pth.parts[:-4]) / 'models'
-    filepath = models_dir / 'Sasian Triplet.roa'
+    try:
+        rayoptics_pos = pth.parts.index('rayoptics')
+    except ValueError:
+        logging.debug("Can't find rayoptics: path is %s", pth)
+    else:
+        # models_dir = rayoptics/models
+        models_dir = Path(*pth.parts[:rayoptics_pos+1]) / 'models'
+        filepath = models_dir / 'Sasian Triplet.roa'
 
-    def cff(**kwargs):
-        return create_from_file(filepath, **kwargs)
+        def cff(**kwargs):
+            return create_from_file(filepath, **kwargs)
 
-    cmds.append(('Sasian Triplet',
-                 (dgm.register_add_replace_element, (),
-                  {'filename': filepath,
-                   'node_init': create_thinlens,
-                   'factory': cff,
-                   'interact_mode': 'transmit'})))
-
-    return cmds
+        cmds.append(('Sasian Triplet',
+                     (dgm.register_add_replace_element, (),
+                      {'filename': filepath,
+                       'node_init': create_thinlens,
+                       'factory': cff,
+                       'interact_mode': 'transmit'})))
+    finally:
+        return cmds
 
 
 class Diagram():
