@@ -69,3 +69,6 @@ from rayoptics.mpl import analysisplots
 import rayoptics.mpl.lenslayoutfigure as lay
 from rayoptics.mpl.lenslayoutfigure import LensLayoutFigure
 from rayoptics.mpl.interactivelayout import InteractiveLayout
+
+# opticalglass
+from opticalglass.glassfactory import create_glass

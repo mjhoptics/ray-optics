@@ -6,6 +6,7 @@
 
 .. codeauthor: Michael J. Hayford
 """
+import logging
 
 import math
 import numpy as np
@@ -72,6 +73,7 @@ def create_parax_design_commands(fig):
                    'interact_mode': 'reflect'})))
     # replace with file
     pth = Path(__file__).resolve()
+    logging.info('diagram filepath %s', pth)
     # root_pos = pth.parts.index('ray-optics')
     # models_dir = Path(*pth.parts[:root_pos+1]) / 'models'
     # root/src/rayoptics/gui/diagram.py -> root/models
