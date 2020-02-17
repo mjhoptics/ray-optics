@@ -2,7 +2,15 @@
 Changelog
 =========
 
-Version 0.4.5
+Version 0.4.7
+=============
+
+UI improvements. For Qt app, add light and dark mode, add zoom, and pan
+capabilities to InteractiveFigures, rework main menu bar. For Diagram, add
+object and stop shifts, lens thickness and bending, replace node with system
+option. Reorganize doc structure.
+
+Version 0.4.6
 =============
 
 Add SpecSheet capability. V2 of y-ybar diagram with more editing capability

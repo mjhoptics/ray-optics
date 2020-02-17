@@ -505,7 +505,9 @@ class MainWindow(QMainWindow):
         elif command == 'Close':
             for view, info in self.app_manager.view_dict.items():
                 if iid == info[0]:
+                    self.delete_subwindow(view)
                     view.close()
+                    break
         elif command == 'Update':
             opt_model = self.app_manager.model
             specsheet = opt_model.specsheet

@@ -72,8 +72,10 @@ def create_parax_design_commands(fig):
                    'interact_mode': 'reflect'})))
     # replace with file
     pth = Path(__file__).resolve()
-    root_pos = pth.parts.index('ray-optics')
-    models_dir = Path(*pth.parts[:root_pos+1]) / 'models'
+    # root_pos = pth.parts.index('ray-optics')
+    # models_dir = Path(*pth.parts[:root_pos+1]) / 'models'
+    # root/src/rayoptics/gui/diagram.py -> root/models
+    models_dir = Path(*pth.parts[:-4]) / 'models'
     filepath = models_dir / 'Sasian Triplet.roa'
 
     def cff(**kwargs):
