@@ -8,15 +8,27 @@
 .. codeauthor: Michael J. Hayford
 """
 from pathlib import Path
+from shutil import copy2
 
+import matplotlib
 from matplotlib import style
 from matplotlib.figure import Figure
 
 from rayoptics.util import colors
 
 
+def copy_styles():
+    """Copy rayoptics mpl styles to user's mpl_config dir."""
+    pth = Path(__file__).resolve().parent
+    styles_dir = Path(pth / 'styles')
+    mpl_configdir = Path(matplotlib.get_configdir()) / 'stylelib'
+    mpl_configdir.mkdir(exist_ok=True)
+    for mpl_style in styles_dir.glob('*.mplstyle'):
+        copy2(mpl_style, mpl_configdir)
+
+
 def apply_style(is_dark):
-    """ Assign a light or dark style to mpl plots. """
+    """Assign a light or dark style to mpl plots."""
     pth = Path(__file__).resolve().parent
     styles_dir = Path(pth / 'styles')
     if is_dark:
@@ -28,7 +40,7 @@ def apply_style(is_dark):
 
 
 class StyledFigure(Figure):
-    """ Provide a standard implementation for mpl styles. """
+    """Provide a standard implementation for mpl styles."""
 
     def __init__(self, **kwargs):
         is_dark = kwargs.pop('is_dark', False)
