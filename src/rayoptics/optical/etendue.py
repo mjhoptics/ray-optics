@@ -10,12 +10,18 @@
 import math
 
 from rayoptics.util import dict2d
+from rayoptics.util.dict2d import dict2D
 
 
 obj_img_set = ['object', 'image']
 fld_ape_set = ['field', 'aperture']
 fld_labels = ['height', 'angle']
 ap_labels = ['pupil', 'NA', 'f/#']
+
+
+def create_etendue_dict():
+    """Returns an empty dict2D(fld_ape_set, obj_img_set)."""
+    return dict2D(fld_ape_set, obj_img_set)
 
 
 def na2slp(na, n=1.0):

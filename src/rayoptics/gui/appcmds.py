@@ -10,13 +10,17 @@
 
 import os.path
 import json_tricks
+import math
+
 import rayoptics.codev.cmdproc as cvp
 
 from rayoptics.optical.opticalmodel import OpticalModel
 from rayoptics.optical.profiles import Spherical, Conic
 from rayoptics.optical.elements import create_thinlens
 from rayoptics.optical.firstorder import specsheet_from_parax_data
-from rayoptics.optical.specsheet import (create_specsheets,
+from rayoptics.optical.idealimager import ideal_imager_setup
+from rayoptics.optical.etendue import create_etendue_dict
+from rayoptics.optical.specsheet import (create_specsheets, SpecSheet,
                                          create_specsheet_from_model)
 
 from rayoptics.gui import layout
@@ -73,21 +77,17 @@ def create_new_model():
 
 
 def create_new_optical_system(efl=10.0, fov=1.0):
-    opt_model = OpticalModel()
-    seq_model = opt_model.seq_model
+    imager_inputs = {'s': -math.inf, 'f': efl}
+    inf_conj_imgr = ideal_imager_setup(**imager_inputs)
 
-    # put in minimum calculation defaults
-    opt_model.seq_model.gaps[0].thi = 1.0e10
-    opt_model.optical_spec.field_of_view.type = 'OBJ_ANG'
-    opt_model.optical_spec.field_of_view.set_from_list([0., fov])
+    ei = create_etendue_dict()
+    ei['field']['object']['angle'] = fov
+    ssi = SpecSheet('infinite',
+                    imager=inf_conj_imgr,
+                    imager_inputs=imager_inputs,
+                    etendue_inputs=ei)
 
-    opt_model.insert_ifc_gp_ele(*create_thinlens(power=1/efl, indx=1.5),
-                                idx=0, t=efl, insert=True)
-
-    opt_model.ele_model.add_dummy_interface_at_image(seq_model,
-                                                     seq_model.gbl_tfrms)
-
-    opt_model.update_model()
+    opt_model = create_new_optical_model_from_specsheet(ssi)
 
     return opt_model
 

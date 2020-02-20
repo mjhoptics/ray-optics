@@ -13,43 +13,58 @@ from rayoptics.optical import firstorder
 from rayoptics.optical.idealimager import IdealImager, ideal_imager_setup
 
 from rayoptics.util import dict2d
-from rayoptics.util.dict2d import dict2D
 
 from rayoptics.optical import etendue
 from rayoptics.optical.etendue import (obj_img_set, fld_ape_set,
-                                       fld_labels, ap_labels)
+                                       fld_labels, ap_labels,
+                                       create_etendue_dict)
+
+
+def create_specsheet(conjugate_type, **inputs):
+    if conjugate_type == 'finite':
+        # setup finite conjugate defaults
+        fev = create_etendue_dict()
+        fev['field']['object'] = dict([(fld_labels[0], None)])
+        fev['aperture']['object'] = dict([(ap_labels[2], None),
+                                          (ap_labels[1], None)])
+        fev['field']['image'] = dict([(fld_labels[0], None)])
+        fev['aperture']['image'] = dict([(ap_labels[2], None),
+                                         (ap_labels[1], None)])
+        fss = SpecSheet('finite', etendue_values=fev, **inputs)
+        return fss
+
+    elif conjugate_type == 'infinite':
+        # setup infinite conjugate defaults
+        imager_inputs = {'s': -math.inf}
+        imager = IdealImager(None, -math.inf, None, None, None)
+
+        iev = create_etendue_dict()
+        iev['field']['object'] = dict([(fld_labels[1], None)])
+        iev['aperture']['object'] = dict([(ap_labels[0], None)])
+        iev['field']['image'] = dict([(fld_labels[0], None)])
+        iev['aperture']['image'] = dict([(ap_labels[2], None),
+                                         (ap_labels[1], None)])
+
+        ifss = SpecSheet('infinite', imager=imager,
+                         imager_inputs=imager_inputs,
+                         frozen_imager_inputs=[True, True, True, True, False],
+                         etendue_values=iev, **inputs)
+        return ifss
+
+    else:
+        print('create_specsheet: conjugate_type not recognized',
+              conjugate_type)
+        return None
 
 
 def create_specsheets():
     specsheets = {}
 
     # setup finite conjugate defaults
-    fev = dict2D(fld_ape_set, obj_img_set)
-    fev['field']['object'] = dict([(fld_labels[0], None)])
-    fev['aperture']['object'] = dict([(ap_labels[2], None),
-                                      (ap_labels[1], None)])
-    fev['field']['image'] = dict([(fld_labels[0], None)])
-    fev['aperture']['image'] = dict([(ap_labels[2], None),
-                                     (ap_labels[1], None)])
-    fss = SpecSheet('finite', etendue_values=fev)
-    specsheets['finite'] = fss
+    specsheets['finite'] = create_specsheet('finite')
 
     # setup infinite conjugate defaults
-    imager_inputs = {'s': -math.inf}
-    imager = IdealImager(None, -math.inf, None, None, None)
-
-    iev = dict2D(fld_ape_set, obj_img_set)
-    iev['field']['object'] = dict([(fld_labels[1], None)])
-    iev['aperture']['object'] = dict([(ap_labels[0], None)])
-    iev['field']['image'] = dict([(fld_labels[0], None)])
-    iev['aperture']['image'] = dict([(ap_labels[2], None),
-                                     (ap_labels[1], None)])
-
-    ifss = SpecSheet('infinite', imager=imager,
-                     imager_inputs=imager_inputs,
-                     frozen_imager_inputs=[True, True, True, True, False],
-                     etendue_values=iev)
-    specsheets['infinite'] = ifss
+    specsheets['infinite'] = create_specsheet('infinite')
 
     return specsheets
 
@@ -81,6 +96,7 @@ class SpecSheet():
         etendue_values: dict2D of aperture/field vs object/image
         partitions: 'imager', 'field', and 'aperture'; number of items in each
     """
+
     def __init__(self, conjugate_type,
                  imager=None, imager_inputs=None, frozen_imager_inputs=None,
                  etendue_inputs=None, etendue_values=None):
@@ -97,9 +113,9 @@ class SpecSheet():
                                      else [False]*5)
 
         self.etendue_inputs = (etendue_inputs if etendue_inputs
-                               else dict2D(fld_ape_set, obj_img_set))
+                               else create_etendue_dict())
         self.etendue_values = (etendue_values if etendue_values
-                               else dict2D(fld_ape_set, obj_img_set))
+                               else create_etendue_dict())
 
         self.partition_defined()
 
