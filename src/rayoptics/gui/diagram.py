@@ -41,7 +41,7 @@ def light_or_dark(is_dark=True):
         'object_image': accent['magenta'],
         'stop': accent['magenta'],
         'conj_line': accent['orange'],
-        'shift': accent['orange'],
+        'shift': fb['foreground'],
         'barrel': accent['green'],
         }
     return {**rgb, **fb}
@@ -307,7 +307,7 @@ class DiagramNode():
                                   'marker': 's',
                                   'picker': 6,
                                   'color': dgm_rgb['node'],
-                                  # 'hilite': 'red',
+                                  'hilite': dgm_rgb['hilite'],
                                   'zorder': 3.})
         # define the "constant spacing" or "slide" constraint
         if view.enable_slide:
@@ -318,38 +318,19 @@ class DiagramNode():
                 f_color = rgb2mpl([138, 43, 226, 127])  # blueviolet
                 h_color = rgb2mpl([138, 43, 226, 255])  # blueviolet
 
+                hilite_kwargs = {
+                    'color': dgm_rgb['slide'],
+                    'linewidth': 3,
+                    'linestyle': '-'
+                    }
                 self.handles['slide'] = (seg, 'polyline',
-                                         {'linestyle': ':',
+                                         {'linestyle': '--',
                                           'linewidth': 3,
                                           'picker': 6,
                                           'color': dgm_rgb['slide'],
-                                          # 'hilite': h_color,
+                                          'hilite': hilite_kwargs,
                                           'zorder': 2.5})
-        gui_handles = {}
-        for key, graphics_handle in self.handles.items():
-            poly_data, poly_type, kwargs = graphics_handle
-            poly = np.array(poly_data)
-            if poly_type == 'vertex':
-                p = view.create_vertex(poly, **kwargs)
-            elif poly_type == 'polyline':
-                p = view.create_polyline(poly, **kwargs)
-            elif poly_type == 'polygon':
-                p = view.create_polygon(poly, self.render_color(),
-                                        **kwargs)
-            else:
-                break
-            if len(poly.shape) > 1:
-                bbox = bbox_from_poly(poly)
-            else:
-                x = poly[0]
-                y = poly[1]
-                bbox = np.array([[x, y], [x, y]])
-            gui_handles[key] = GUIHandle(p, bbox)
-        return gui_handles
-
-    def render_color(self):
-        e = self.diagram.opt_model.ele_model.elements[self.node]
-        return e.render_color
+        return view.create_patches(self.handles)
 
     def get_label(self):
         return 'node' + str(self.node)
@@ -384,7 +365,7 @@ class DiagramEdge():
                                  {'picker': 6,
                                   'linewidth': 3,
                                   'color': dgm_rgb['edge'],
-                                  # 'hilite': 'red',
+                                  'hilite': dgm_rgb['hilite'],
                                   'zorder': 2.})
         area_poly = [[0, 0]]
         area_poly.extend(edge_poly)
@@ -393,18 +374,7 @@ class DiagramEdge():
                                 {'fill_color': fill_color,
                                  'zorder': 1.})
 
-        gui_handles = {}
-        for key, graphics_handle in self.handles.items():
-            poly_data, poly_type, kwargs = graphics_handle
-            poly = np.array(poly_data)
-            if poly_type == 'polygon':
-                p = view.create_polygon(poly, self.render_color(), **kwargs)
-            elif poly_type == 'polyline':
-                p = view.create_polyline(poly, **kwargs)
-            else:
-                break
-            gui_handles[key] = GUIHandle(p, bbox_from_poly(poly))
-        return gui_handles
+        return view.create_patches(self.handles)
 
     def render_color(self):
         gap = self.diagram.opt_model.seq_model.gaps[self.node]
@@ -449,7 +419,7 @@ class BarrelConstraint():
         diamond = np.array(diamond)
         self.handles['shape'] = (diamond, 'polyline',
                                  {'color': dgm_rgb['barrel'],
-                                  'linewidth': 3,
+                                  'linewidth': 2,
                                   'zorder': 1.})
         square = []
         square.append([ barrel_radius,  barrel_radius])
@@ -460,24 +430,10 @@ class BarrelConstraint():
         square = np.array(square)
         self.handles['square'] = (square, 'polyline',
                                   {'color': dgm_rgb['barrel'],
-                                   'linewidth': 3,
+                                   'linewidth': 2,
                                    'zorder': 1.})
 
-        gui_handles = {}
-        for key, graphics_handle in self.handles.items():
-            poly_data, poly_type, kwargs = graphics_handle
-            poly = np.array(poly_data)
-            if poly_type == 'polygon':
-                p = view.create_polygon(poly, self.render_color(), **kwargs)
-            elif poly_type == 'polyline':
-                p = view.create_polyline(poly, **kwargs)
-            else:
-                break
-            gui_handles[key] = GUIHandle(p, bbox_from_poly(poly))
-        return gui_handles
-
-    def render_color(self):
-        return 'black'
+        return view.create_patches(self.handles)
 
     def get_label(self):
         return 'barrel constraint'
@@ -529,26 +485,14 @@ class ConjugateLine():
                 conj_line.append([wid, -self.k*wid])
             self.handles['conj_line'] = (conj_line, 'polyline',
                                          {'color': dgm_rgb['conj_line'],
+                                          'linewidth': 2,
                                           'zorder': 1.})
             self.handles['shift'] = (self.shape_orig, 'polyline',
                                      {'color': dgm_rgb['shift'],
+                                      'linewidth': 1.5,
                                       'zorder': 1.})
 
-        gui_handles = {}
-        for key, graphics_handle in self.handles.items():
-            poly_data, poly_type, kwargs = graphics_handle
-            poly = np.array(poly_data)
-            if poly_type == 'polygon':
-                p = view.create_polygon(poly, self.render_color(), **kwargs)
-            elif poly_type == 'polyline':
-                p = view.create_polyline(poly, **kwargs)
-            else:
-                break
-            gui_handles[key] = GUIHandle(p, bbox_from_poly(poly))
-        return gui_handles
-
-    def render_color(self):
-        return 'black'
+        return view.create_patches(self.handles)
 
     def get_label(self):
         if self.line_type == 'stop':

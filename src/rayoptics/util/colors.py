@@ -51,7 +51,8 @@ def foreground_background(is_dark=True):
             'background2': solarize['base01'],
             'foreground': solarize['base0'],
             'foreground1': solarize['base1'],
-            'foreground2': solarize['base01']
+            'foreground2': solarize['base01'],
+            'hilite': solarize['base1']
             }
     else:
         rgb = {
@@ -60,6 +61,7 @@ def foreground_background(is_dark=True):
             'background2': solarize['base1'],
             'foreground': solarize['base00'],
             'foreground1': solarize['base01'],
-            'foreground2': solarize['base1']
+            'foreground2': solarize['base1'],
+            'hilite': solarize['base01']
             }
     return rgb

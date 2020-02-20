@@ -167,7 +167,29 @@ class InteractiveFigure(StyledFigure):
         bbox = util.bbox_from_poly(bbox_list)
         return bbox
 
-    def create_polygon(self, poly, rgb_color, **kwargs):
+    def create_patches(self, handles):
+        gui_handles = {}
+        for key, graphics_handle in handles.items():
+            poly_data, poly_type, kwargs = graphics_handle
+            poly = np.array(poly_data)
+            if poly_type == 'vertex':
+                p = self.create_vertex(poly, **kwargs)
+            elif poly_type == 'polyline':
+                p = self.create_polyline(poly, **kwargs)
+            elif poly_type == 'polygon':
+                p = self.create_polygon(poly, **kwargs)
+            else:
+                break
+            if len(poly.shape) > 1:
+                bbox = util.bbox_from_poly(poly)
+            else:
+                x = poly[0]
+                y = poly[1]
+                bbox = np.array([[x, y], [x, y]])
+            gui_handles[key] = util.GUIHandle(p, bbox)
+        return gui_handles
+
+    def create_polygon(self, poly, **kwargs):
         def highlight(p):
             fc = p.get_facecolor()
             ec = p.get_edgecolor()
@@ -187,11 +209,14 @@ class InteractiveFigure(StyledFigure):
 
         if 'linewidth' not in kwargs:
             kwargs['linewidth'] = self.linewidth
-        fill_color = kwargs.pop('fill_color', rgb_color)
+        fill_color = kwargs.pop('fill_color',
+                                self._rgb['background1'] + '40')  # 25%
         if not isinstance(fill_color, str):
             fill_color = rgb2mpl.rgb2mpl(fill_color)
-        p = patches.Polygon(poly, closed=True, fc=fill_color,
-                            ec='black', **kwargs)
+        p = patches.Polygon(poly, closed=True,
+                            facecolor=fill_color,
+                            edgecolor=self._rgb['foreground'],
+                            **kwargs)
         p.highlight = highlight
         p.unhighlight = unhighlight
         return p
@@ -202,11 +227,8 @@ class InteractiveFigure(StyledFigure):
             ls = p.get_linestyle()
             c = p.get_color()
             p.unhilite = (c, lw, ls)
-            # hilite_lw = 2
-            hilite_lw = 5
-            p.set_linewidth(hilite_lw)
-            if hilite_color:
-                p.set_color(hilite_color)
+
+            p.update(hilite_kwargs)
 
         def unhighlight(p):
             c, lw, ls = p.unhilite
@@ -215,37 +237,72 @@ class InteractiveFigure(StyledFigure):
             p.set_color(c)
             p.unhilite = None
 
+        hilite_kwargs = {}
+        if 'hilite' in kwargs:
+            if isinstance(kwargs['hilite'], dict):
+                hilite_kwargs = kwargs.pop('hilite')
+                if 'linewidth' not in hilite_kwargs:
+                    hilite_kwargs['linewidth'] = 5
+            else:
+                hilite_kwargs['color'] = kwargs.pop('hilite')
+                hilite_kwargs['linewidth'] = hilite_kwargs.get('linewidth', 5)
+        else:
+            hilite_kwargs['color'] = self._rgb['hilite']
+
+        kwargs['linewidth'] = kwargs.get('linewidth', self.linewidth)
         x = poly.T[0]
         y = poly.T[1]
-        hilite_color = kwargs.pop('hilite', None)
-        if 'linewidth' not in kwargs:
-            kwargs['linewidth'] = self.linewidth
         p = lines.Line2D(x, y, **kwargs)
+
         p.highlight = highlight
         p.unhighlight = unhighlight
         return p
 
     def create_vertex(self, vertex, **kwargs):
         def highlight(p):
-            lw = p.get_linewidth()
-            c = p.get_color()
-            p.unhilite = (c, lw)
-            p.set_linewidth(2)
-            if hilite_color:
-                p.set_color(hilite_color)
+            mkr = p.get_marker()
+            ms = p.get_markersize()
+            mfc = p.get_markerfacecolor()
+            mec = p.get_markeredgecolor()
+            mew = p.get_markeredgewidth()
+            p.unhilite = (mkr, ms, mfc, mec, mew)
+
+            p.update(hilite_kwargs)
 
         def unhighlight(p):
-            c, lw = p.unhilite
-            p.set_linewidth(lw)
-            p.set_color(c)
+            mkr, ms, mfc, mec, mew = p.unhilite
+            p.set_marker(mkr)
+            p.set_markersize(ms)
+            p.set_markerfacecolor(mfc)
+            p.set_markeredgecolor(mec)
+            p.set_markeredgewidth(mew)
             p.unhilite = None
 
+        hilite_kwargs = {}
+        hilite_kwargs['linewidth'] = hilite_kwargs.get('linewidth', 5)
+        if 'hilite' in kwargs:
+            if isinstance(kwargs['hilite'], dict):
+                hilite_kwargs = kwargs.pop('hilite')
+                if 'color' in hilite_kwargs:
+                    hc = hilite_kwargs['color']
+                    hilite_kwargs['markerfacecolor'] = hc
+                    hilite_kwargs['markeredgecolor'] = hc
+
+            else:
+                hc = kwargs.pop('hilite')
+                hilite_kwargs['markerfacecolor'] = hc
+                hilite_kwargs['markeredgecolor'] = hc
+                hilite_kwargs['markersize'] = 10
+        else:
+            hilite_kwargs['markerfacecolor'] = self._rgb['hilite']
+            hilite_kwargs['markeredgecolor'] = self._rgb['hilite']
+            hilite_kwargs['markersize'] = 10
+
+        kwargs['linewidth'] = kwargs.get('linewidth', self.linewidth)
         x = [vertex[0]]
         y = [vertex[1]]
-        hilite_color = kwargs.pop('hilite', None)
-        if 'linewidth' not in kwargs:
-            kwargs['linewidth'] = self.linewidth
         p = lines.Line2D(x, y, **kwargs)
+
         p.highlight = highlight
         p.unhighlight = unhighlight
         return p

@@ -118,7 +118,8 @@ class LensLayoutFigure(Figure):
             ray_bundles.append((self.update_ray_fan_shape, rb))
         return ray_bundles
 
-    def create_polygon(self, poly, rgb_color, **kwargs):
+    def create_polygon(self, poly, **kwargs):
+        rgb_color = kwargs.pop('fill_color')
         p = Polygon(poly, closed=True, fc=rgb2mpl(rgb_color),
                     ec='black', **kwargs)
         p.set_linewidth(self.linewidth)

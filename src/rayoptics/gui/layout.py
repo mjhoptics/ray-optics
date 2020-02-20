@@ -101,7 +101,8 @@ class OpticalElement():
             poly = np.array(graphics_handle.polydata)
             poly_gbl, bbox = transform_poly(graphics_handle.tfrm, poly)
             if graphics_handle.polytype == 'polygon':
-                p = view.create_polygon(poly_gbl, self.render_color(),
+                p = view.create_polygon(poly_gbl,
+                                        fill_color=self.render_color(),
                                         zorder=2.5)
             elif graphics_handle.polytype == 'polyline':
                 priority = 2.
@@ -273,7 +274,7 @@ class RayBundle():
         finally:
             tfrms[0] = tfrtm0
 
-        p = view.create_polygon(poly, rndr_clr)
+        p = view.create_polygon(poly, fill_color=rndr_clr)
         self.handles['shape'] = GUIHandle(p, bbox)
 
         cr_poly = view.create_polyline(cr)

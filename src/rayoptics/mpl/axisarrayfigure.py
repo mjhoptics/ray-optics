@@ -227,8 +227,8 @@ class SpotDiagramFigure(AxisArrayFigure):
 
     def init_axis(self, ax):
         ax.grid(True)
-        ax.axvline(0, c='black', lw=1)
-        ax.axhline(0, c='black', lw=1)
+        ax.axvline(0, c=self._rgb['foreground'], lw=1)
+        ax.axhline(0, c=self._rgb['foreground'], lw=1)
 
     def update_data(self):
         self.axis_data_array = []
