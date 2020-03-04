@@ -292,7 +292,7 @@ def wave_abr_real_coord(fld, wvl, foc, ray_pkg):
     image_pt, cr_exp_pt, cr_exp_dist, ref_dir, ref_sphere_radius = ref_sphere
     chief_ray, chief_ray_op, wvl = fld.chief_ray[0]
     ray, ray_op, wvl = ray_pkg
-    fod = parax_data[2]
+
     k = -2  # last interface in sequence
 
     # eq 3.12
@@ -305,7 +305,6 @@ def wave_abr_real_coord(fld, wvl, foc, ray_pkg):
     dst = ekp - cr_exp_dist
 
     eic_exp_pt = ray[k][mc.p] - dst*ray[k][mc.d]
-#    eic_exp_pt[2] -= cr_exp_dist
     p_coord = eic_exp_pt - cr_exp_pt
     F = ref_dir.dot(ray[k][mc.d]) - ray[k][mc.d].dot(p_coord)/ref_sphere_radius
     J = p_coord.dot(p_coord)/ref_sphere_radius - 2.0*ref_dir.dot(p_coord)
@@ -427,24 +426,42 @@ def wave_abr_HHH(fld, wvl, foc, ray_pkg):
 
 
 def transfer_to_exit_pupil(interface, ray_seg, exp_dst_parax):
+    """Given the exiting interface and chief ray data, return exit pupil ray coords.
+
+    Args:
+        interface: the exiting :class:'~.Interface' for the path sequence
+        ray_seg: ray segment exiting from **interface**
+        exp_dst_parax: z distance to the paraxial exit pupil
+
+    Returns:
+        (**exp_pt**, **exp_dir**, **exp_dst**)
+
+        - **exp_pt** - ray intersection with exit pupil plane
+        - **exp_dir** - direction cosine of the ray in exit pupil space
+        - **exp_dst** - distance from interface to exit pupil pt
+    """
     if interface.decenter:
         # get transformation info after surf
         r, t = interface.decenter.tform_after_surf()
-        rt = r.transpose()
-        b4_pt, b4_dir = rt.dot(ray_seg[0] - t), rt.dot(ray_seg[1])
+        if r is None:
+            b4_pt, b4_dir = (ray_seg[0] - t), ray_seg[1]
+        else:
+            rt = r.transpose()
+            b4_pt, b4_dir = rt.dot(ray_seg[0] - t), rt.dot(ray_seg[1])
     else:
         b4_pt, b4_dir = ray_seg[0], ray_seg[1]
 
     h = b4_pt[0]**2 + b4_pt[1]**2
     u = b4_dir[0]**2 + b4_dir[1]**2
     if u == 0.0:
-        dst = exp_dst_parax
+        exp_dst = exp_dst_parax
     else:
-        dst = -sqrt(h/u)
+        exp_dst = -sqrt(h/u)
 
-    exp_pt = b4_pt + dst*b4_dir
+    exp_pt = b4_pt + exp_dst*b4_dir
+    exp_dir = b4_dir
 
-    return exp_pt, b4_dir, dst
+    return exp_pt, exp_dir, exp_dst
 
 
 def eic_path_accumulation(ray, rndx, lcl_tfrms, z_dir):

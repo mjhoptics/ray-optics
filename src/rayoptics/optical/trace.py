@@ -78,12 +78,11 @@ def list_ray(ray_obj, tfrms=None):
                                     r[mc.dst]))
 
 
-def trace(sequence, pt0, dir0, wvl, **kwargs):
+def trace(seq_model, pt0, dir0, wvl, **kwargs):
     """ returns (ray, ray_opl, wvl)
 
     Args:
-        sequence: a Sequence or generator that returns a list containing:
-            Intfc, Gap, Trfm, Index, Z_Dir
+        seq_model: the :class:`~.SequentialModel` to be traced
         pt0: starting coordinate at object interface
         dir0: starting direction cosines following object interface
         wvl: ray trace wavelength in nm
@@ -105,11 +104,35 @@ def trace(sequence, pt0, dir0, wvl, **kwargs):
           optical axis
         - **wvl** - wavelength (in nm) that the ray was traced in
     """
-    return rt.trace(sequence, pt0, dir0, wvl, **kwargs)
+    return rt.trace(seq_model, pt0, dir0, wvl, **kwargs)
 
 
 def trace_base(opt_model, pupil, fld, wvl, **kwargs):
-    """ returns (ray, ray_opl, wvl) """
+    """Trace ray specified by relative aperture and field point.
+
+    Args:
+        opt_model: instance of :class:`~.OpticalModel` to trace
+        pupil: relative pupil coordinates of ray
+        fld: instance of :class:`~.Field`
+        wvl: ray trace wavelength in nm
+        **kwargs: keyword arguments
+
+    Returns:
+        (**ray**, **op_delta**, **wvl**)
+
+        - **ray** is a list for each interface in **path_pkg** of these
+          elements: [pt, after_dir, after_dst, normal]
+
+            - pt: the intersection point of the ray
+            - after_dir: the ray direction cosine following the interface
+            - after_dst: after_dst: the geometric distance to the next
+              interface
+            - normal: the surface normal at the intersection point
+
+        - **op_delta** - optical path wrt equally inclined chords to the
+          optical axis
+        - **wvl** - wavelength (in nm) that the ray was traced in
+    """
     vig_pupil = fld.apply_vignetting(pupil)
     osp = opt_model.optical_spec
     fod = osp.parax_data.fod
@@ -289,6 +312,7 @@ def trace_all_fields(opt_model):
 
 
 def trace_chief_ray(opt_model, fld, wvl, foc):
+    """Trace a chief ray for fld and wvl, returning the ray_pkg and exit pupil segment."""
     osp = opt_model.optical_spec
     fod = osp.parax_data.fod
 

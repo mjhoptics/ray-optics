@@ -44,7 +44,7 @@ class InteractionMode(Enum):
 
 class Interface:
     def __init__(self, interact_mode='transmit', delta_n=0.0,
-                 max_ap=1.0, decenter=None, phase_element=None):
+                 max_ap=1.0, decenter=None, phase_element=None, **kwargs):
         self.interact_mode = interact_mode
         self.delta_n = delta_n
         self.decenter = decenter
@@ -108,15 +108,17 @@ class Interface:
 class Surface(Interface):
     """ Container of profile, extent, position and orientation. """
 
-    def __init__(self, lbl='', profile=None, **kwargs):
+    def __init__(self, lbl='', profile=None,
+                 clear_apertures=None, edge_apertures=None,
+                 **kwargs):
         super().__init__(**kwargs)
         self.label = lbl
         if profile:
             self.profile = profile
         else:
             self.profile = profiles.Spherical()
-        self.clear_apertures = []
-        self.edge_apertures = []
+        self.clear_apertures = clear_apertures if clear_apertures else []
+        self.edge_apertures = edge_apertures if edge_apertures else []
 
     def __repr__(self):
         if len(self.label) > 0:
@@ -299,7 +301,10 @@ class DecenterData():
 
     def tform_after_surf(self):
         if self.dtype is dec.REV or self.dtype is dec.DAR:
-            return self.rot_mat.transpose(), -self.dec
+            rt = self.rot_mat
+            if self.rot_mat is not None:
+                rt = self.rot_mat.transpose()
+            return rt, -self.dec
         elif self.dtype is dec.BEND:
             return self.rot_mat, np.array([0., 0., 0.])
         else:

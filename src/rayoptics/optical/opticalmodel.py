@@ -159,18 +159,22 @@ class OpticalModel:
 
     def add_lens(self, **kwargs):
         seq, ele = elements.create_lens(**kwargs)
+        kwargs['insert'] = True
         self.insert_ifc_gp_ele(seq, ele, **kwargs)
 
     def add_mirror(self, **kwargs):
         seq, ele = elements.create_mirror(**kwargs)
+        kwargs['insert'] = True
         self.insert_ifc_gp_ele(seq, ele, **kwargs)
 
     def add_thinlens(self, **kwargs):
         seq, ele = elements.create_thinlens(**kwargs)
+        kwargs['insert'] = True
         self.insert_ifc_gp_ele(seq, ele, **kwargs)
 
     def add_dummy_plane(self, **kwargs):
         seq, ele = elements.create_dummy_plane(**kwargs)
+        kwargs['insert'] = True
         self.insert_ifc_gp_ele(seq, ele, **kwargs)
 
     def insert_ifc_gp_ele(self, *args, **kwargs):
