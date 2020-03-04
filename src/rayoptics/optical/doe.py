@@ -3,6 +3,9 @@
 # Copyright © 2019 Michael J. Hayford
 """ Module for diffractive/holographic optical elements
 
+    Classes that implement diffractive optics capabilities must implement
+    the function phase() for use by the ray trace engine.
+
     The :class:`~.DiffractiveElement` and :class:`~.HolographicElement`
     implementations are patterned after Wang, et al, `Ray tracing and wave
     aberration calculation for diffractive optical elements
@@ -58,6 +61,8 @@ class DiffractiveElement:
 
     def __json_encode__(self):
         attrs = dict(vars(self))
+        # Save model name and function name of phase_fct, so that fct can
+        #  restored later (hopefully)
         del attrs['phase_fct']
         attrs['phase_fct_module'] = self.phase_fct.__module__
         attrs['phase_fct_name'] = self.phase_fct.__name__
@@ -66,6 +71,7 @@ class DiffractiveElement:
     def __json_decode__(self, **attrs):
         module_name = attrs.pop('phase_fct_module')
         fct_name = attrs.pop('phase_fct_name')
+        # try to import module and look up function - then assign to phase_fct
         mod = importlib.import_module(module_name)
         phase_fct = getattr(mod, fct_name)
         self.__init__(phase_fct=phase_fct, **attrs)
@@ -76,6 +82,19 @@ class DiffractiveElement:
                       self.ref_virtual))
 
     def phase(self, pt, in_dir, srf_nrml, wl=None):
+        """ returns a diffracted ray and phase increment
+
+        Args:
+            pt: point of incidence in Interface coordinates
+            in_dir: incoming direction cosine of incident ray
+            srf_nrml: Interface surface normal at pt
+            wl: wavelength in nm for ray, defaults to ref_wl
+
+        Returns:
+            (**out_dir, dW**)
+            out_dir: direction consine of the out going ray
+            dW: phase added by diffractive interaction
+        """
         order = self.order
         normal = normalize(srf_nrml)
         in_cosI = np.dot(in_dir, normal)
