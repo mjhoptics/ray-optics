@@ -25,7 +25,20 @@ from rayoptics.util.misc_math import normalize
 
 
 def radial_phase_fct(pt, coefficients):
-    """ evaluate the phase and slopes at **pt** """
+    """Evaluate the phase and slopes at **pt**
+
+    Args:
+        pt: 3d point of incidence in :class:`~.Interface` coordinates
+        coefficients: list of even power radial phase coefficients,
+                      e.g. r**2, r**4, ...
+
+    Returns:
+        (**dW, dWdX, dWdY**)
+
+        - dW: phase added by diffractive interaction
+        - dWdX: slope in x direction
+        - dWdY: slope in y direction
+    """
     x, y, z = pt
     r_sqr = x*x + y*y
     dW = 0
@@ -41,6 +54,16 @@ def radial_phase_fct(pt, coefficients):
 
 
 class DiffractiveElement:
+    """Container class for a phase fct driven diffrative optical elelment
+
+    Attributes:
+        phase_fct: fct the takes an input pt and returns phase and slope
+        coefficients: list of coeficients for phase function
+        ref_wl: wavelength in nm for phase measurement
+        order: which diffracted order to calculate the phase for
+        label: optical labeling for listing
+    """
+
     def __init__(self, label='', coefficients=None, ref_wl=550., order=1,
                  phase_fct=None):
         self.label = label
@@ -82,18 +105,19 @@ class DiffractiveElement:
                       self.ref_virtual))
 
     def phase(self, pt, in_dir, srf_nrml, wl=None):
-        """ returns a diffracted ray and phase increment
+        """Returns a diffracted ray and phase increment.
 
         Args:
-            pt: point of incidence in Interface coordinates
+            pt: point of incidence in :class:`~.Interface` coordinates
             in_dir: incoming direction cosine of incident ray
-            srf_nrml: Interface surface normal at pt
+            srf_nrml: :class:`~.Interface` surface normal at pt
             wl: wavelength in nm for ray, defaults to ref_wl
 
         Returns:
             (**out_dir, dW**)
-            out_dir: direction consine of the out going ray
-            dW: phase added by diffractive interaction
+
+            - out_dir: direction cosine of the out going ray
+            - dW: phase added by diffractive interaction
         """
         order = self.order
         normal = normalize(srf_nrml)
