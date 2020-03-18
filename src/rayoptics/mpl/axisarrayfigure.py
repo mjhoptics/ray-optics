@@ -355,18 +355,18 @@ class WavefrontFigure(AxisArrayFigure):
                       self.user_scale_value is not None):
                     max_value = self.user_scale_value
                 ax = self.ax_arr[m-i][n-j]
-#                hmap = ax.contourf(grid[0],
-#                                   grid[1],
-#                                   grid[2],
-#                                   cmap="RdBu_r",
-#                                   vmin=-max_value,
-#                                   vmax=max_value)
-                hmap = ax.imshow(grid[2],
-                                 cmap="RdBu_r",
-                                 vmin=-max_value,
-                                 vmax=max_value,
-                                 extent=[-1., 1., -1., 1.],
-                                 origin='lower')
+                hmap = ax.contourf(grid[0],
+                                   grid[1],
+                                   grid[2],
+                                   cmap="RdBu_r",
+                                   vmin=-max_value,
+                                   vmax=max_value)
+                # hmap = ax.imshow(np.transpose(grid[2]),
+                #                  cmap="RdBu_r",
+                #                  vmin=-max_value,
+                #                  vmax=max_value,
+                #                  extent=[-1., 1., -1., 1.],
+                #                  origin='lower')
                 self.colorbar(hmap, ax=ax)
 
                 ax.set_aspect('equal')
