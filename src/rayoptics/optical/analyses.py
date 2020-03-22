@@ -151,7 +151,8 @@ class RayFan():
         self.wvl = osp.spectral_region.central_wvl if wl is None else wl
 
         self.foc = osp.defocus.focus_shift if foc is None else foc
-        self.image_pt_2d = image_pt_2d
+        self.image_pt_2d = image_pt_2d if image_pt_2d is not None  \
+            else np.array([0., 0.])
 
         self.num_rays = num_rays
 
@@ -312,7 +313,174 @@ def focus_fan(opt_model, fan_pkg, fld, wvl, foc, image_pt_2d=None):
     return fan_data
 
 
-def trace_ray_grid(opt_model, grid_rng, fld, wvl, foc, **kwargs):
+class RayList():
+
+    def __init__(self, opt_model, f=0, wl=None, foc=None, image_pt_2d=None,
+                 num_rays=21, **kwargs):
+        self.opt_model = opt_model
+        osp = opt_model.optical_spec
+        self.fld = osp.field_of_view.fields[f] if isinstance(f, int) else f
+        self.wvl = osp.spectral_region.central_wvl if wl is None else wl
+
+        self.foc = osp.defocus.focus_shift if foc is None else foc
+        self.image_pt_2d = image_pt_2d if image_pt_2d is not None  \
+            else np.array([0., 0.])
+
+        self.num_rays = num_rays
+
+        self.update_data()
+
+    def update_data(self, build='rebuild'):
+        if build == 'rebuild':
+            self.ray_list = trace_pupil_coords(
+                self.opt_model, self.fld, self.wvl, self.foc,
+                image_pt_2d=self.image_pt_2d, num_rays=self.num_rays)
+
+        ray_list_data = focus_pupil_coords(
+            self.opt_model, self.ray_list,
+            self.fld, self.wvl, self.foc,
+            image_pt_2d=self.image_pt_2d)
+
+        self.ray_abr = np.rollaxis(ray_list_data, 1)
+
+        return self
+
+
+def grid_ray_generator(grid_rng):
+    start = np.array(grid_rng[0])
+    stop = grid_rng[1]
+    num = grid_rng[2]
+    step = np.array((stop - start)/(num - 1))
+    for i in range(num):
+        for j in range(num):
+            yield np.array(start)
+            start[1] += step[1]
+
+        start[0] += step[0]
+        start[1] = grid_rng[0][1]
+
+
+def trace_ray_list(opt_model, pupil_coords, fld, wvl, foc,
+                   append_if_none=False, **kwargs):
+    """Trace a list of rays at fld and wvl and return ray_pkgs in a list."""
+
+    ray_list = []
+    for pupil in pupil_coords:
+        if (pupil[0]**2 + pupil[1]**2) < 1.0:
+            ray_pkg = trace_base(opt_model, pupil, fld, wvl, **kwargs)
+            ray_list.append([pupil[0], pupil[1], ray_pkg])
+        else:  # ray outside pupil
+            if append_if_none:
+                ray_list.append([pupil[0], pupil[1], None])
+
+    return ray_list
+
+
+def eval_pupil_coords(opt_model, fld, wvl, foc,
+                      image_pt_2d=None, num_rays=21):
+    """Trace a grid of rays and pre-calculate data needed for rapid refocus."""
+    cr_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
+    ref_sphere = setup_exit_pupil_coords(opt_model, fld, wvl, foc, cr_pkg,
+                                         image_pt_2d=image_pt_2d)
+    fld.chief_ray = cr_pkg
+    fld.ref_sphere = ref_sphere
+
+    grid_start = np.array([-1., -1.])
+    grid_stop = np.array([1., 1.])
+    grid_def = [grid_start, grid_stop, num_rays]
+
+    ray_list = trace_ray_list(opt_model, grid_ray_generator(grid_def),
+                              fld, wvl, foc)
+
+    def rfc(ri):
+        pupil_x, pupil_y, ray_pkg = ri
+        if ray_pkg is not None:
+            image_pt = ref_sphere[0]
+            ray = ray_pkg[mc.ray]
+            dist = foc / ray[-1][mc.d][2]
+            defocused_pt = ray[-1][mc.p] - dist*ray[-1][mc.d]
+            t_abr = defocused_pt - image_pt
+            return t_abr[0], t_abr[1]
+        else:
+            return np.NaN
+    ray_list_data = [rfc(ri) for ri in ray_list]
+    return np.array(ray_list_data)
+
+
+def trace_pupil_coords(opt_model, fld, wvl, foc,
+                       image_pt_2d=None, num_rays=21):
+    """Trace a list of rays and pre-calculate data needed for rapid refocus."""
+    cr_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
+    ref_sphere = setup_exit_pupil_coords(opt_model, fld, wvl, foc, cr_pkg,
+                                         image_pt_2d=image_pt_2d)
+    fld.chief_ray = cr_pkg
+    fld.ref_sphere = ref_sphere
+
+    grid_start = np.array([-1., -1.])
+    grid_stop = np.array([1., 1.])
+    grid_def = [grid_start, grid_stop, num_rays]
+
+    ray_list = trace_ray_list(opt_model, grid_ray_generator(grid_def),
+                              fld, wvl, foc)
+
+    return ray_list
+
+
+def focus_pupil_coords(opt_model, ray_list, fld, wvl, foc, image_pt_2d=None):
+    """Given pre-calculated info and a ref. sphere, return the ray's OPD."""
+    cr_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
+    ref_sphere = setup_exit_pupil_coords(opt_model, fld, wvl, foc, cr_pkg,
+                                         image_pt_2d=image_pt_2d)
+
+    def rfc(ri):
+        pupil_x, pupil_y, ray_pkg = ri
+        if ray_pkg is not None:
+            image_pt = ref_sphere[0]
+            ray = ray_pkg[mc.ray]
+            dist = foc / ray[-1][mc.d][2]
+            defocused_pt = ray[-1][mc.p] - dist*ray[-1][mc.d]
+            t_abr = defocused_pt - image_pt
+            return t_abr[0], t_abr[1]
+        else:
+            return np.NaN
+    ray_list_data = [rfc(ri) for ri in ray_list]
+    return np.array(ray_list_data)
+
+
+class RayGrid():
+
+    def __init__(self, opt_model, f=0, wl=None, foc=None, image_pt_2d=None,
+                 num_rays=21, **kwargs):
+        self.opt_model = opt_model
+        osp = opt_model.optical_spec
+        self.fld = osp.field_of_view.fields[f] if isinstance(f, int) else f
+        self.wvl = osp.spectral_region.central_wvl if wl is None else wl
+
+        self.foc = osp.defocus.focus_shift if foc is None else foc
+        self.image_pt_2d = image_pt_2d if image_pt_2d is not None  \
+            else np.array([0., 0.])
+
+        self.num_rays = num_rays
+
+        self.update_data()
+
+    def update_data(self, build='rebuild'):
+        if build == 'rebuild':
+            self.grid_pkg = trace_wavefront(
+                self.opt_model, self.fld, self.wvl, self.foc,
+                image_pt_2d=self.image_pt_2d, num_rays=self.num_rays)
+
+        opd = focus_wavefront(self.opt_model, self.grid_pkg,
+                              self.fld, self.wvl, self.foc,
+                              image_pt_2d=self.image_pt_2d)
+
+        self.grid = np.rollaxis(opd, 2)
+
+        return self
+
+
+def trace_ray_grid(opt_model, grid_rng, fld, wvl, foc, append_if_none=True,
+                   **kwargs):
     """Trace a grid of rays at fld and wvl and return ray_pkgs in 2d list."""
     start = np.array(grid_rng[0])
     stop = grid_rng[1]
@@ -328,7 +496,8 @@ def trace_ray_grid(opt_model, grid_rng, fld, wvl, foc, **kwargs):
                 ray_pkg = trace_base(opt_model, pupil, fld, wvl, **kwargs)
                 grid_row.append([pupil[0], pupil[1], ray_pkg])
             else:  # ray outside pupil
-                grid_row.append([pupil[0], pupil[1], None])
+                if append_if_none:
+                    grid_row.append([pupil[0], pupil[1], None])
 
             start[1] += step[1]
 
@@ -422,34 +591,3 @@ def focus_wavefront(opt_model, grid_pkg, fld, wvl, foc, image_pt_2d=None):
                       for ig, iu in zip(grid, upd_grid)]
 
     return np.array(refocused_grid)
-
-
-class RayGrid():
-
-    def __init__(self, opt_model, f=0, wl=None, foc=None, image_pt_2d=None,
-                 num_rays=21, **kwargs):
-        self.opt_model = opt_model
-        osp = opt_model.optical_spec
-        self.fld = osp.field_of_view.fields[f] if isinstance(f, int) else f
-        self.wvl = osp.spectral_region.central_wvl if wl is None else wl
-
-        self.foc = osp.defocus.focus_shift if foc is None else foc
-        self.image_pt_2d = image_pt_2d
-
-        self.num_rays = num_rays
-
-        self.update_data()
-
-    def update_data(self, build='rebuild'):
-        if build == 'rebuild':
-            self.grid_pkg = trace_wavefront(
-                self.opt_model, self.fld, self.wvl, self.foc,
-                image_pt_2d=self.image_pt_2d, num_rays=self.num_rays)
-
-        opd = focus_wavefront(self.opt_model, self.grid_pkg,
-                              self.fld, self.wvl, self.foc,
-                              image_pt_2d=self.image_pt_2d)
-
-        self.grid = np.rollaxis(opd, 2)
-
-        return self

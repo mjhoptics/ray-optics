@@ -110,6 +110,69 @@ class RayFanPlot():
         return self
 
 
+class RayGeoPSF():
+
+    def __init__(self, fig, gs, ray_list,
+                 user_scale_value=0.1, scale_type='fit',
+                 yaxis_ticks_position='left',
+                 **kwargs):
+        self.fig = fig
+        self.fig.subplots.append(self)
+
+        self.gs = gs
+        self.ray_list = ray_list
+
+        if 'title' in kwargs:
+            self.title = kwargs.pop('title', None)
+        self.plot_kwargs = kwargs
+
+        self.user_scale_value = user_scale_value
+        self.scale_type = scale_type
+        self.yaxis_ticks_position = yaxis_ticks_position
+
+        self.update_data()
+
+    def init_axis(self, ax):
+        ax.grid(True)
+        ax.axvline(0, c=self.fig._rgb['foreground'], lw=1)
+        ax.axhline(0, c=self.fig._rgb['foreground'], lw=1)
+        # ax.tick_params(labelbottom=False)
+        ax.yaxis.set_ticks_position(self.yaxis_ticks_position)
+        if self.title is not None:
+            ax.set_title(self.title, fontsize='small')
+        return ax
+
+    def refresh(self, build='rebuild'):
+        self.update_data(build=build)
+        self.plot()
+
+    def update_data(self, build='rebuild'):
+        self.ray_list.update_data(build=build)
+        return self
+
+    def plot(self):
+        ax = self.fig.add_subplot(self.gs)
+        self.init_axis(ax)
+
+        ax.scatter(*self.ray_list.ray_abr, **self.plot_kwargs)
+
+        ax.set_aspect('equal')
+
+        if self.scale_type == 'fit':
+            x_data = self.ray_list.ray_abr[0]
+            y_data = self.ray_list.ray_abr[1]
+            max_value = max(max(np.nanmax(x_data), -np.nanmin(x_data)),
+                            max(np.nanmax(y_data), -np.nanmin(y_data)))
+            ax.set_xlim(-max_value, max_value)
+            ax.set_ylim(-max_value, max_value)
+        elif self.user_scale_value is not None:
+            us = self.user_scale_value
+            ax.set_xlim(-us, us)
+            ax.set_ylim(-us, us)
+
+        return self
+
+
 class Wavefront():
 
     def __init__(self, fig, gs, ray_grid,
