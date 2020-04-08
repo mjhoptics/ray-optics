@@ -2,6 +2,17 @@
 Changelog
 =========
 
+Version 0.4.9
+=============
+
+Add single panel refactoring of ray fan, spot diagram and wavefront map plots
+that are designed for use in a scripting environment.
+
+Version 0.4.8
+=============
+
+Bug fixes and doc improvements
+
 Version 0.4.7
 =============
 

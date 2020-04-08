@@ -12,7 +12,14 @@ RayOptics Documentation
 .. image:: DBGauss.png
    :align: center
 
-RayOptics is a Python geometrical optics and image forming optics library. It provides a geometric ray traing foundation for the analysis of image forming and coherent optical systems. A number of standard geometrical analysis options such as transverse ray and wavefront aberration analysis are provided on this base. Paraxial layout of optical systems is also supported by |ybar| diagrams and graphical editing of paraxial rays in lens layout views. RayOptics can be used in Python scripts, the Python and IPython shells, the Jupyter notebook, and a Qt-based graphical user interface application.
+RayOptics is a Python geometrical optics and image forming optics library. It
+provides a geometric ray tracing foundation for the analysis of image forming
+and coherent optical systems. A number of standard geometrical analysis options
+such as transverse ray and wavefront aberration analysis are provided on this
+base. Paraxial layout of optical systems is also supported by |ybar| diagrams
+and graphical editing of paraxial rays in lens layout views. RayOptics can be
+used in Python scripts, the Python and IPython shells, the Jupyter notebook,
+and a Qt-based graphical user interface application.
 
 .. toctree::
    :maxdepth: 1

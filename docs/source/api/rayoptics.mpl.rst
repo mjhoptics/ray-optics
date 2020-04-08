@@ -9,6 +9,14 @@ rayoptics.mpl package
 Submodules
 ----------
 
+rayoptics.mpl.analysisfigure module
+-----------------------------------
+
+.. automodule:: rayoptics.mpl.analysisfigure
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 rayoptics.mpl.analysisplots module
 ----------------------------------
 

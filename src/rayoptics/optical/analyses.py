@@ -19,6 +19,7 @@ from rayoptics.util.misc_math import normalize
 
 import rayoptics.optical.model_constants as mc
 
+from rayoptics.optical import sampler
 from rayoptics.optical.raytrace import eic_distance
 from rayoptics.optical.trace import trace_base, aim_chief_ray, trace_chief_ray
 
@@ -142,9 +143,20 @@ def wave_abr_calc(fod, fld, wvl, foc, ray_pkg, pre_opd_pkg, ref_sphere):
 
 
 class RayFan():
+    """A fan of rays across the pupil at the given field and wavelength.
+
+    Attributes:
+        opt_model: :class:`~.OpticalModel` instance
+        f: index into :class:`~.FieldSpec` or a :class:`~.Field` instance
+        wl: wavelength (nm) to trace the fan, or central wavelength if None
+        foc: focus shift to apply to the results
+        image_pt_2d: image offset to apply to the results
+        num_rays: number of samples along the fan
+        xyfan: 'x' or 'y', specifies the axis the fan is sampled on
+    """
 
     def __init__(self, opt_model, f=0, wl=None, foc=None, image_pt_2d=None,
-                 num_rays=21, xyfan='y', **kwargs):
+                 num_rays=21, xyfan='y'):
         self.opt_model = opt_model
         osp = opt_model.optical_spec
         self.fld = osp.field_of_view.fields[f] if isinstance(f, int) else f
@@ -314,11 +326,46 @@ def focus_fan(opt_model, fan_pkg, fld, wvl, foc, image_pt_2d=None):
 
 
 class RayList():
+    """Container class for a list of rays produced by a list or generator
 
-    def __init__(self, opt_model, f=0, wl=None, foc=None, image_pt_2d=None,
-                 num_rays=21, **kwargs):
+    Attributes:
+        opt_model: :class:`~.OpticalModel` instance
+        pupil_gen: (fct, args, kwargs), where:
+
+            - fct: a function returning a generator returning a 2d coordinate
+            - args: passed to fct
+            - kwargs: passed to fct
+
+        pupil_coords: list of 2d coordinates. If None, filled in by calling
+                      pupil_gen.
+        num_rays: number of samples side of grid. Used only if pupil_coords and
+                  pupil_gen are None.
+        f: index into :class:`~.FieldSpec` or a :class:`~.Field` instance
+        wl: wavelength (nm) to trace the fan, or central wavelength if None
+        foc: focus shift to apply to the results
+        image_pt_2d: image offset to apply to the results
+    """
+
+    def __init__(self, opt_model,
+                 pupil_gen=None, pupil_coords=None, num_rays=21,
+                 f=0, wl=None, foc=None, image_pt_2d=None):
         self.opt_model = opt_model
         osp = opt_model.optical_spec
+        if pupil_coords is not None and pupil_gen is None:
+            self.pupil_coords = pupil_coords
+            self.pupil_gen = None
+        else:
+            if pupil_gen is not None:
+                self.pupil_gen = pupil_gen
+            else:
+                grid_start = np.array([-1., -1.])
+                grid_stop = np.array([1., 1.])
+                grid_def = [grid_start, grid_stop, num_rays]
+                self.pupil_gen = (sampler.csd_grid_ray_generator,
+                                  (grid_def,), {})
+            fct, args, kwargs = self.pupil_gen
+            self.pupil_coords = fct(*args, **kwargs)
+
         self.fld = osp.field_of_view.fields[f] if isinstance(f, int) else f
         self.wvl = osp.spectral_region.central_wvl if wl is None else wl
 
@@ -326,15 +373,18 @@ class RayList():
         self.image_pt_2d = image_pt_2d if image_pt_2d is not None  \
             else np.array([0., 0.])
 
-        self.num_rays = num_rays
-
         self.update_data()
 
     def update_data(self, build='rebuild'):
         if build == 'rebuild':
+            if self.pupil_gen:
+                fct, args, kwargs = self.pupil_gen
+                self.pupil_coords = fct(*args, **kwargs)
+
             self.ray_list = trace_pupil_coords(
-                self.opt_model, self.fld, self.wvl, self.foc,
-                image_pt_2d=self.image_pt_2d, num_rays=self.num_rays)
+                self.opt_model, self.pupil_coords,
+                self.fld, self.wvl, self.foc,
+                image_pt_2d=self.image_pt_2d)
 
         ray_list_data = focus_pupil_coords(
             self.opt_model, self.ray_list,
@@ -344,20 +394,6 @@ class RayList():
         self.ray_abr = np.rollaxis(ray_list_data, 1)
 
         return self
-
-
-def grid_ray_generator(grid_rng):
-    start = np.array(grid_rng[0])
-    stop = grid_rng[1]
-    num = grid_rng[2]
-    step = np.array((stop - start)/(num - 1))
-    for i in range(num):
-        for j in range(num):
-            yield np.array(start)
-            start[1] += step[1]
-
-        start[0] += step[0]
-        start[1] = grid_rng[0][1]
 
 
 def trace_ray_list(opt_model, pupil_coords, fld, wvl, foc,
@@ -389,7 +425,7 @@ def eval_pupil_coords(opt_model, fld, wvl, foc,
     grid_stop = np.array([1., 1.])
     grid_def = [grid_start, grid_stop, num_rays]
 
-    ray_list = trace_ray_list(opt_model, grid_ray_generator(grid_def),
+    ray_list = trace_ray_list(opt_model, sampler.grid_ray_generator(grid_def),
                               fld, wvl, foc)
 
     def rfc(ri):
@@ -407,8 +443,8 @@ def eval_pupil_coords(opt_model, fld, wvl, foc,
     return np.array(ray_list_data)
 
 
-def trace_pupil_coords(opt_model, fld, wvl, foc,
-                       image_pt_2d=None, num_rays=21):
+def trace_pupil_coords(opt_model, pupil_coords, fld, wvl, foc,
+                       image_pt_2d=None):
     """Trace a list of rays and pre-calculate data needed for rapid refocus."""
     cr_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
     ref_sphere = setup_exit_pupil_coords(opt_model, fld, wvl, foc, cr_pkg,
@@ -416,11 +452,7 @@ def trace_pupil_coords(opt_model, fld, wvl, foc,
     fld.chief_ray = cr_pkg
     fld.ref_sphere = ref_sphere
 
-    grid_start = np.array([-1., -1.])
-    grid_stop = np.array([1., 1.])
-    grid_def = [grid_start, grid_stop, num_rays]
-
-    ray_list = trace_ray_list(opt_model, grid_ray_generator(grid_def),
+    ray_list = trace_ray_list(opt_model, pupil_coords,
                               fld, wvl, foc)
 
     return ray_list
@@ -448,9 +480,19 @@ def focus_pupil_coords(opt_model, ray_list, fld, wvl, foc, image_pt_2d=None):
 
 
 class RayGrid():
+    """Container for a square grid of rays.
+
+    Attributes:
+        opt_model: :class:`~.OpticalModel` instance
+        f: index into :class:`~.FieldSpec` or a :class:`~.Field` instance
+        wl: wavelength (nm) to trace the fan, or central wavelength if None
+        foc: focus shift to apply to the results
+        image_pt_2d: image offset to apply to the results
+        num_rays: number of samples along the side of the grid
+    """
 
     def __init__(self, opt_model, f=0, wl=None, foc=None, image_pt_2d=None,
-                 num_rays=21, **kwargs):
+                 num_rays=21):
         self.opt_model = opt_model
         osp = opt_model.optical_spec
         self.fld = osp.field_of_view.fields[f] if isinstance(f, int) else f

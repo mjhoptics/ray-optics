@@ -9,6 +9,14 @@ rayoptics.optical package
 Submodules
 ----------
 
+rayoptics.optical.analyses module
+---------------------------------
+
+.. automodule:: rayoptics.optical.analyses
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 rayoptics.optical.doe module
 ----------------------------
 
@@ -117,6 +125,14 @@ rayoptics.optical.raytrace module
 ---------------------------------
 
 .. automodule:: rayoptics.optical.raytrace
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+rayoptics.optical.sampler module
+--------------------------------
+
+.. automodule:: rayoptics.optical.sampler
    :members:
    :undoc-members:
    :show-inheritance:
