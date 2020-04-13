@@ -393,13 +393,16 @@ class LensLayout():
         """ returns system length and ray start offset """
         specsheet = self.opt_model.specsheet
         osp = self.opt_model.optical_spec
-        if specsheet.conjugate_type == 'finite':
-            return specsheet.imager.tt, (2/3)*specsheet.imager.sp
-        elif specsheet.conjugate_type == 'infinite':
-            return specsheet.imager.sp, offset_factor*specsheet.imager.sp
+        ele_length = ele_bbox[1][0] - ele_bbox[0][0]
+        if specsheet.imager_defined():
+            if specsheet.conjugate_type == 'finite':
+                return specsheet.imager.tt, (2/3)*specsheet.imager.sp
+            elif specsheet.conjugate_type == 'infinite':
+                img_dist = abs(osp.parax_data[2].img_dist)
+                return ele_length+img_dist, offset_factor*img_dist
+                # return specsheet.imager.sp, offset_factor*specsheet.imager.sp
         else:
             img_dist = abs(osp.parax_data[2].img_dist)
-            ele_length = ele_bbox[1][0] - ele_bbox[0][0]
             return ele_length+img_dist, offset_factor*img_dist
 
     def create_element_model(self, view):
