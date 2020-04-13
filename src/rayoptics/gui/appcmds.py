@@ -184,8 +184,8 @@ def create_lens_layout_view(opt_model, gui_parent=None):
 
 def create_live_layout_view(opt_model, gui_parent=None):
     refresh_gui, is_dark = get_defaults_from_gui_parent(gui_parent)
-    fig = InteractiveLayout(opt_model, refresh_gui,
-                            do_draw_frame=True, do_draw_axes=True,
+    fig = InteractiveLayout(opt_model, refresh_gui=refresh_gui,
+                            do_draw_frame=True, do_draw_axes=False,
                             is_dark=is_dark)
     cmds = create_live_layout_commands(fig)
     view_width = 880
@@ -239,7 +239,7 @@ def create_paraxial_design_view(opt_model, dgm_type, gui_parent=None):
 
 def create_paraxial_design_view_v2(opt_model, dgm_type, gui_parent=None):
     refresh_gui, is_dark = get_defaults_from_gui_parent(gui_parent)
-    fig = dgm.InteractiveDiagram(opt_model, refresh_gui, dgm_type,
+    fig = dgm.InteractiveDiagram(opt_model, dgm_type, refresh_gui=refresh_gui,
                                  do_draw_frame=True, do_draw_axes=True,
                                  aspect='auto', is_dark=is_dark)
     panel_fcts = [create_2d_figure_toolbar,

@@ -21,7 +21,7 @@ class InteractiveDiagram(InteractiveFigure):
         dgm_type: diagram type, 'ht' or 'slp'
     """
 
-    def __init__(self, opt_model, refresh_gui, dgm_type,
+    def __init__(self, opt_model, dgm_type, refresh_gui=None,
                  do_barrel_constraint=False, barrel_constraint=1.0,
                  enable_slide=False, bend_or_gap='bend', **kwargs):
         self.refresh_gui = refresh_gui

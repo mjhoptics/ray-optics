@@ -28,7 +28,7 @@ class InteractiveLayout(InteractiveFigure):
         do_paraxial_layout: if True, draw editable paraxial axial and chief ray
     """
 
-    def __init__(self, opt_model, refresh_gui,
+    def __init__(self, opt_model, refresh_gui=None,
                  offset_factor=0.05,
                  do_draw_rays=False,
                  do_paraxial_layout=True,
