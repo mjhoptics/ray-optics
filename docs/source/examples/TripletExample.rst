@@ -1,4 +1,3 @@
-
 .. currentmodule:: rayoptics.optical
 
 ###############
@@ -71,7 +70,9 @@ Draw a lens picture
 
 .. code:: ipython3
 
-    layout_plt = plt.figure(FigureClass=LensLayoutFigure, opt_model=opm).plot()
+    is_dark = False
+    layout_plt = plt.figure(FigureClass=InteractiveLayout, opt_model=opm, do_draw_rays=True, do_paraxial_layout=False,
+                            is_dark=is_dark).plot()
 
 
 
@@ -83,7 +84,8 @@ Draw a |ybar| diagram
 
 .. code:: ipython3
 
-    yybar_plt = plt.figure(FigureClass=InteractiveDiagram, opt_model=opm, dgm_type='ht', refresh_gui=None).plot()
+    yybar_plt = plt.figure(FigureClass=InteractiveDiagram, opt_model=opm, dgm_type='ht',
+                           do_draw_axes=True, do_draw_frame=True).plot()
 
 
 
@@ -119,7 +121,7 @@ List the optical specifications
 
 .. code:: ipython3
 
-    osp.parax_data.fod.list_first_order_data()
+    pm.first_order_data()
 
 
 .. parsed-literal::
@@ -231,7 +233,7 @@ Computation and tabular display
       </thead>
       <tbody>
         <tr>
-          <td>1</td>
+          <th>1</th>
           <td>0.027654</td>
           <td>0.019379</td>
           <td>0.013581</td>
@@ -239,7 +241,7 @@ Computation and tabular display
           <td>0.072010</td>
         </tr>
         <tr>
-          <td>2</td>
+          <th>2</th>
           <td>0.022082</td>
           <td>-0.059501</td>
           <td>0.160327</td>
@@ -247,7 +249,7 @@ Computation and tabular display
           <td>-0.431229</td>
         </tr>
         <tr>
-          <td>3</td>
+          <th>3</th>
           <td>-0.105156</td>
           <td>0.137692</td>
           <td>-0.180295</td>
@@ -255,7 +257,7 @@ Computation and tabular display
           <td>0.347506</td>
         </tr>
         <tr>
-          <td>4</td>
+          <th>4</th>
           <td>-0.045358</td>
           <td>-0.076796</td>
           <td>-0.130024</td>
@@ -263,7 +265,7 @@ Computation and tabular display
           <td>-0.381069</td>
         </tr>
         <tr>
-          <td>5</td>
+          <th>5</th>
           <td>0.007942</td>
           <td>0.028382</td>
           <td>0.101431</td>
@@ -271,7 +273,7 @@ Computation and tabular display
           <td>0.449596</td>
         </tr>
         <tr>
-          <td>6</td>
+          <th>6</th>
           <td>0.103810</td>
           <td>-0.050068</td>
           <td>0.024148</td>
@@ -279,7 +281,7 @@ Computation and tabular display
           <td>-0.061411</td>
         </tr>
         <tr>
-          <td>sum</td>
+          <th>sum</th>
           <td>0.010973</td>
           <td>-0.000912</td>
           <td>-0.010832</td>

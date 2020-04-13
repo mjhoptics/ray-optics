@@ -203,7 +203,7 @@ class PupilSpec:
     """ Aperture specification
 
     Attributes:
-        pupil_type: :class:`~.PupilType` enum
+        key: 'aperture', 'object'|'image', 'pupil'|'NA'|'f/#'
         value: size of the pupil
         pupil_rays: list of relative pupil coordinates for pupil limiting rays
         ray_labels: list of string labels for pupil_rays
@@ -279,8 +279,9 @@ class FieldSpec:
     """ Field of view specification
 
     Attributes:
-        field_type: :class:`~.FieldType` enum
+        key: 'field', 'object'|'image', 'height'|'angle'
         fields: list of Field instances
+
     """
 
     def __init__(self, parent, key=('object', 'angle'), flds=[0.]):
@@ -400,8 +401,7 @@ class Field:
         chief_ray: ray package for the ray from the field point throught the
                    center of the aperture stop, traced in the central
                    wavelength
-        ref_sphere: a tuple containing (image_pt, cr_exp_pt, cr_exp_dist,
-                    ref_dir, ref_sphere_radius)
+        ref_sphere: a tuple containing (image_pt, ref_dir, ref_sphere_radius)
 
     """
 

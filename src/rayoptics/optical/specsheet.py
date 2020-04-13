@@ -125,12 +125,47 @@ class SpecSheet():
             del attrs['partitions']
         return attrs
 
+    def __str__(self):
+        return ("{!s} conjugates:\nimager: {}\n"
+                "imager inputs: {}\n"
+                "frozen imager inputs: {}\n"
+                "etendue inputs:\n"
+                "  field:    {}\n"
+                "  aperture: {}\n"
+                "etendue values:\n"
+                "  field:    {}\n"
+                "  aperture:\n"
+                "    object: {}\n"
+                "    image:  {}"
+                .format(self.conjugate_type,
+                        self.imager,
+                        self.imager_inputs,
+                        self.frozen_imager_inputs,
+                        self.etendue_inputs['field'],
+                        self.etendue_inputs['aperture'],
+                        self.etendue_values['field'],
+                        self.etendue_values['aperture']['object'],
+                        self.etendue_values['aperture']['image']))
+
+    def __repr__(self):
+        return ("{!s}({!s}, imager={},"
+                "imager_inputs={},"
+                "frozen_imager_inputs={},"
+                "etendue_inputs={},"
+                "etendue_values={})".format(type(self).__name__,
+                                            repr(self.conjugate_type),
+                                            repr(self.imager),
+                                            repr(self.imager_inputs),
+                                            repr(self.frozen_imager_inputs),
+                                            repr(self.etendue_inputs),
+                                            repr(self.etendue_values)))
+
     def sync_to_restore(self, opt_model):
         # imager is exported as a list. convert back to an IdealImager
         self.imager = IdealImager(*self.imager)
 
     def imager_defined(self):
-        """ compute imager and etendue values given input dicts """
+        """True if the imager is completely specified. """
         if self.conjugate_type == 'finite':
             imager_defined = 'm' if self.imager.m is not None else False
         else:

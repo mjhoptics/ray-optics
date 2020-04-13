@@ -1,4 +1,3 @@
-
 .. currentmodule:: rayoptics
 
 ###########################
@@ -28,13 +27,16 @@ Read CODE V seq file for Edmund part 32-327, Achromatic Lens
 
 Use the :func:`~.opticalmodel.open_model` function to read CODE V **.seq** files and the native rayoptics JSON files, **.roa**
 
-It returns an instance of :class:`~.opticalmodel.OpticalModel`, that contains all of the model data
+It returns an instance of :class:`~.opticalmodel.OpticalModel` that contains all of the model data.
+
+.. code:: ipython3
+
+    opm = open_model(root_pth/"codev/tests/CODV_32327.seq")
 
 Setup convenient aliases for using rayoptics functions
 
 .. code:: ipython3
 
-    opm = open_model(root_pth/"codev/tests/CODV_32327.seq")
     sm = opm.seq_model
     osp = opm.optical_spec
     pm = opm.parax_model
@@ -59,6 +61,7 @@ Display first order properties of the model
 
 The calculated first order data is in the :class:`~.firstorder.FirstOrderData` class.
 An instance of :class:`~.FirstOrderData`, :attr:`.opticalspec.OpticalSpecs.parax_data`, is managed by the :class:`.opticalspec.OpticalSpecs` class.
+
 Other essential optical specification data is also managed by the :class:`~.opticalspec.OpticalSpecs` class:
 
     - spectral_region (:class:`~.opticalspec.WvlSpec`)
@@ -66,10 +69,11 @@ Other essential optical specification data is also managed by the :class:`~.opti
     - field_of_view (:class:`~.opticalspec.FieldSpec`)
     - defocus (:class:`~.opticalspec.FocusRange`)
 
+A convenience method in :class:`~.ParaxialModel`, :meth:`~.paraxialdesign.ParaxialModel.first_order_data`, can be used to display the first order properties of the model.
 
 .. code:: ipython3
 
-    osp.parax_data.fod.list_first_order_data()
+    pm.first_order_data()
 
 
 .. parsed-literal::
@@ -100,16 +104,17 @@ Other essential optical specification data is also managed by the :class:`~.opti
 Generate a lens picture
 -----------------------
 
-This is done using the :mod:`.lenslayoutfigure` module.
+This is done using the :mod:`.interactivelayout` module.
 All graphics in rayoptics are based on matplotlib.
 
 .. code:: ipython3
 
-    layout_plt = plt.figure(FigureClass=LensLayoutFigure, opt_model=opm).plot()
+    layout_plt = plt.figure(FigureClass=InteractiveLayout, opt_model=opm,
+                            do_draw_rays=True, do_paraxial_layout=False).plot()
 
 
 
-.. image:: output_11_0.png
+.. image:: output_13_0.png
 
 
 Draw a transverse ray aberration plot
@@ -119,11 +124,12 @@ This is done using the :mod:`.axisarrayfigure` module.
 
 .. code:: ipython3
 
-    abr_plt = plt.figure(FigureClass=RayFanFigure, opt_model=opm, data_type='Ray', scale_type=Fit.All_Same).plot()
+    abr_plt = plt.figure(FigureClass=RayFanFigure, opt_model=opm, data_type='Ray',
+                         scale_type=Fit.All_Same).plot()
 
 
 
-.. image:: output_13_0.png
+.. image:: output_15_0.png
 
 
 The model in the CODE V seq file only had 1 wavelength defined. Use the :class:`~.opticalspec.OpticalSpecs` instance, ``osp``, to modify the :attr:`~.opticalspec.OpticalSpecs.spectral_region` in the optical subpackage to add wavelengths in the red and blue
@@ -150,7 +156,7 @@ The aberration plot can be updated by calling :meth:`~.axisarrayfigure.AxisArray
 
 
 
-.. image:: output_19_0.png
+.. image:: output_21_0.png
 
 
 
