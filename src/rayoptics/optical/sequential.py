@@ -15,6 +15,7 @@ from . import medium as m
 from . import raytrace as rt
 from . import trace as trace
 from . import transform as trns
+from . import analyses
 from rayoptics.optical.model_constants import Intfc, Gap, Indx, Tfrm, Zdir
 from opticalglass import glassfactory as gfact
 from opticalglass import glasserror as ge
@@ -439,7 +440,7 @@ class SequentialModel:
         osp = self.opt_model.optical_spec
         fld = osp.field_of_view.fields[fi]
         wvl = self.central_wavelength()
-        foc = osp.defocus
+        foc = osp.defocus.get_focus()
 #        trace.setup_canonical_coords(self, fld, wvl)
         rs_pkg, cr_pkg = trace.setup_pupil_coords(self.opt_model,
                                                   fld, wvl, foc)
@@ -489,7 +490,7 @@ class SequentialModel:
         wvl = self.central_wavelength()
         wv_list = wvls.wavelengths if wl is None else [wvl]
         fld = osp.field_of_view.fields[fi]
-        foc = osp.defocus
+        foc = osp.defocus.get_focus()
 
         rs_pkg, cr_pkg = trace.setup_pupil_coords(self.opt_model,
                                                   fld, wvl, foc)
@@ -515,8 +516,11 @@ class SequentialModel:
             x = p[0]
             y = p[1]
             if ray_pkg is not None:
-                opd_pkg = rt.wave_abr(fld, wvl, foc, ray_pkg)
-                opd = opd_pkg[0]/self.opt_model.nm_to_sys_units(wvl)
+                fod = self.opt_model.optical_spec.parax_data.fod
+                opd = analyses.wave_abr_full_calc(fod, fld, wvl, foc, ray_pkg,
+                                                  fld.chief_ray,
+                                                  fld.ref_sphere)
+                opd = opd/self.opt_model.nm_to_sys_units(wvl)
             else:
                 opd = 0.0
             return np.array([x, y, opd])

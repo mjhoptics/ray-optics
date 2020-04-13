@@ -265,6 +265,8 @@ def eic_distance(r, r0):
 def wave_abr(fld, wvl, foc, ray_pkg):
     """ computes optical path difference (OPD) for ray_pkg at fld and wvl
 
+.. deprecated:: 0.4.9
+
     The main references for the calculations are in the H. H. Hopkins paper
     `Calculation of the Aberrations and Image Assessment for a General Optical
     System <https://doi.org/10.1080/713820605>`_

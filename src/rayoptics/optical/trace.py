@@ -19,6 +19,7 @@ import pandas as pd
 import attr
 
 from . import raytrace as rt
+from rayoptics.optical.analyses import wave_abr_full_calc
 from . import model_constants as mc
 from .traceerror import TraceError, TraceMissedSurfaceError, TraceTIRError
 from rayoptics.util.misc_math import normalize
@@ -236,7 +237,8 @@ def trace_with_opd(opt_model, pupil, fld, wvl, foc, **kwargs):
     fld.chief_ray = cr_pkg
     fld.ref_sphere = rs_pkg
 
-    opd, e1, ekp, ep = rt.wave_abr(fld, wvl, foc, ray_pkg)
+    fod = opt_model.optical_spec.parax_data.fod
+    opd = wave_abr_full_calc(fod, fld, wvl, foc, ray_pkg, cr_pkg, rs_pkg)
     ray, ray_op, wvl = ray_pkg
     return ray, ray_op, wvl, opd
 
@@ -414,7 +416,6 @@ def setup_pupil_coords(opt_model, fld, wvl, foc,
     # cr_exp_pt: E upper bar prime: pupil center for pencils from Q
     # cr_exp_pt, cr_b4_dir, cr_dst
     cr_exp_pt = cr_exp_seg[mc.p]
-    cr_exp_dist = cr_exp_seg[mc.dst]
 
     seq_model = opt_model.seq_model
     img_dist = seq_model.gaps[-1].thi
@@ -426,17 +427,9 @@ def setup_pupil_coords(opt_model, fld, wvl, foc,
     ref_sphere_radius = np.linalg.norm(ref_sphere_vec)
     ref_dir = normalize(ref_sphere_vec)
 
-    ref_sphere = (image_pt, cr_exp_pt, cr_exp_dist,
-                  ref_dir, ref_sphere_radius)
+    ref_sphere = image_pt, ref_dir, ref_sphere_radius
 
-    z_dir = seq_model.z_dir[-1]
-    wl = seq_model.index_for_wavelength(wvl)
-    n_obj = seq_model.rndx[0][wl]
-    n_img = seq_model.rndx[-1][wl]
-    ref_sphere_pkg = (ref_sphere, opt_model.optical_spec.parax_data,
-                      n_obj, n_img, z_dir)
-
-    return ref_sphere_pkg, chief_ray_pkg
+    return ref_sphere, chief_ray_pkg
 
 
 def setup_canonical_coords(opt_model, fld, wvl, image_pt=None):

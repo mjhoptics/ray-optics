@@ -21,16 +21,35 @@ import rayoptics.optical.model_constants as mc
 
 from rayoptics.optical import sampler
 from rayoptics.optical.raytrace import eic_distance
-from rayoptics.optical.trace import trace_base, aim_chief_ray, trace_chief_ray
+from rayoptics.optical import trace
 
 
 def get_chief_ray_pkg(opt_model, fld, wvl, foc):
+    """Get the chief ray package at **fld**, computing it if necessary.
+
+    Args:
+        opt_model: :class:`~.OpticalModel` instance
+        fld: :class:`~.Field` point for wave aberration calculation
+        wvl: wavelength of ray (nm)
+        foc: defocus amount
+
+    Returns:
+        chief_ray_pkg: tuple of chief_ray, cr_exp_seg
+
+            - chief_ray: chief_ray, chief_ray_op, wvl
+            - cr_exp_seg: chief ray exit pupil segment (pt, dir, dist)
+
+                - pt: chief ray intersection with exit pupil plane
+                - dir: direction cosine of the chief ray in exit pupil space
+                - dist: distance from interface to the exit pupil point
+
+    """
     if fld.chief_ray is None:
-        aim_chief_ray(opt_model, fld, wvl=wvl)
-        chief_ray_pkg = trace_chief_ray(opt_model, fld, wvl, foc)
+        trace.aim_chief_ray(opt_model, fld, wvl=wvl)
+        chief_ray_pkg = trace.trace_chief_ray(opt_model, fld, wvl, foc)
         fld.chief_ray = chief_ray_pkg
     elif fld.chief_ray[0][2] != wvl:
-        chief_ray_pkg = trace_chief_ray(opt_model, fld, wvl, foc)
+        chief_ray_pkg = trace.trace_chief_ray(opt_model, fld, wvl, foc)
         fld.chief_ray = chief_ray_pkg
     else:
         chief_ray_pkg = fld.chief_ray
@@ -39,7 +58,20 @@ def get_chief_ray_pkg(opt_model, fld, wvl, foc):
 
 def setup_exit_pupil_coords(opt_model, fld, wvl, foc,
                             chief_ray_pkg, image_pt_2d=None):
+    """Compute the reference sphere for a defocussed image point at **fld**.
 
+    Args:
+        opt_model: :class:`~.OpticalModel` instance
+        fld: :class:`~.Field` point for wave aberration calculation
+        wvl: wavelength of ray (nm)
+        foc: defocus amount
+        chief_ray_pkg: input tuple of chief_ray, cr_exp_seg
+        image_pt_2d: x, y image point in (defocussed) image plane, if None, use
+                     the chief ray coordinate.
+
+    Returns:
+        ref_sphere: tuple of image_pt, ref_dir, ref_sphere_radius
+    """
     osp = opt_model.optical_spec
     fod = osp.parax_data.fod
 
@@ -69,7 +101,25 @@ def setup_exit_pupil_coords(opt_model, fld, wvl, foc,
 
 
 def wave_abr_full_calc(fod, fld, wvl, foc, ray_pkg, chief_ray_pkg, ref_sphere):
-    """Given a ray, a chief ray and an image pt, evaluate the OPD."""
+    """Given a ray, a chief ray and an image pt, evaluate the OPD.
+
+    The main references for the calculations are in the H. H. Hopkins paper
+    `Calculation of the Aberrations and Image Assessment for a General Optical
+    System <https://doi.org/10.1080/713820605>`_
+
+    Args:
+        fod: :class:`~.FirstOrderData` for object and image space refractive
+             indices
+        fld: :class:`~.Field` point for wave aberration calculation
+        wvl: wavelength of ray (nm)
+        foc: defocus amount
+        ray_pkg: input tuple of ray, ray_op, wvl
+        chief_ray_pkg: input tuple of chief_ray, cr_exp_seg
+        ref_sphere: input tuple of image_pt, ref_dir, ref_sphere_radius
+
+    Returns:
+        opd: OPD of ray wrt chief ray at **fld**
+    """
     image_pt, ref_dir, ref_sphere_radius = ref_sphere
     cr, cr_exp_seg = chief_ray_pkg
     chief_ray, chief_ray_op, wvl = cr
@@ -191,6 +241,7 @@ class RayFan():
 
 
 def select_plot_data(fan, xyfan, data_type):
+    """Given a fan of data, select the sample points and the resulting data."""
     f_x = []
     f_y = []
     for p, val in fan:
@@ -202,6 +253,7 @@ def select_plot_data(fan, xyfan, data_type):
 
 
 def smooth_plot_data(f_x, f_y, num_points=100):
+    """Interpolate fan data points and return a smoothed version."""
     interpolator = interp1d(f_x, f_y,
                             kind='cubic', assume_sorted=True)
     x_sample = np.linspace(f_x.min(), f_x.max(), num_points)
@@ -219,7 +271,7 @@ def trace_ray_fan(opt_model, fan_rng, fld, wvl, foc, **kwargs):
     fan = []
     for r in range(num):
         pupil = np.array(start)
-        ray_pkg = trace_base(opt_model, pupil, fld, wvl, **kwargs)
+        ray_pkg = trace.trace_base(opt_model, pupil, fld, wvl, **kwargs)
         fan.append([pupil[0], pupil[1], ray_pkg])
         start += step
     return fan
@@ -403,7 +455,7 @@ def trace_ray_list(opt_model, pupil_coords, fld, wvl, foc,
     ray_list = []
     for pupil in pupil_coords:
         if (pupil[0]**2 + pupil[1]**2) < 1.0:
-            ray_pkg = trace_base(opt_model, pupil, fld, wvl, **kwargs)
+            ray_pkg = trace.trace_base(opt_model, pupil, fld, wvl, **kwargs)
             ray_list.append([pupil[0], pupil[1], ray_pkg])
         else:  # ray outside pupil
             if append_if_none:
@@ -535,7 +587,8 @@ def trace_ray_grid(opt_model, grid_rng, fld, wvl, foc, append_if_none=True,
         for j in range(num):
             pupil = np.array(start)
             if (pupil[0]**2 + pupil[1]**2) < 1.0:
-                ray_pkg = trace_base(opt_model, pupil, fld, wvl, **kwargs)
+                ray_pkg = trace.trace_base(opt_model, pupil, fld, wvl,
+                                           **kwargs)
                 grid_row.append([pupil[0], pupil[1], ray_pkg])
             else:  # ray outside pupil
                 if append_if_none:

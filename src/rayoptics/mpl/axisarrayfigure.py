@@ -16,7 +16,7 @@ import numpy as np
 
 from rayoptics.mpl.styledfigure import StyledFigure
 
-from rayoptics.optical.raytrace import wave_abr
+from rayoptics.optical.analyses import wave_abr_full_calc
 import rayoptics.optical.model_constants as mc
 
 
@@ -85,11 +85,11 @@ class AxisArrayFigure(StyledFigure):
     def wvl_to_sys_units(self, wvl):
         return self.opt_model.nm_to_sys_units(wvl)
 
-    def refresh(self):
-        self.update_data()
+    def refresh(self, build='rebuild'):
+        self.update_data(build)
         self.plot()
 
-    def update_data(self):
+    def update_data(self, build='rebuild'):
         pass
 
     def plot(self):
@@ -106,18 +106,22 @@ class RayFanFigure(AxisArrayFigure):
         osp = opt_model.optical_spec
 
         def ray_abr(p, xy, ray_pkg, fld, wvl, foc):
-            image_pt = fld.ref_sphere[0][0]
             if ray_pkg[mc.ray] is not None:
+                image_pt = fld.ref_sphere[0]
                 ray = ray_pkg[mc.ray]
-                y_val = ray[-1][mc.p][xy] - image_pt[xy]
-                return y_val
+                dist = foc / ray[-1][mc.d][2]
+                defocused_pt = ray[-1][mc.p] - dist*ray[-1][mc.d]
+                t_abr = defocused_pt - image_pt
+                return t_abr[xy]
             else:
                 return None
 
         def opd(p, xy, ray_pkg, fld, wvl, foc):
             if ray_pkg[mc.ray] is not None:
-                opd = wave_abr(fld, wvl, foc, ray_pkg)
-                return opd[0]/self.wvl_to_sys_units(wvl)
+                fod = opt_model.optical_spec.parax_data.fod
+                opd = wave_abr_full_calc(fod, fld, wvl, foc, ray_pkg,
+                                         fld.chief_ray, fld.ref_sphere)
+                return opd/self.wvl_to_sys_units(wvl)
             else:
                 return None
 
@@ -137,7 +141,7 @@ class RayFanFigure(AxisArrayFigure):
         super().__init__(opt_model, eval_fct=eval_fan,
                          num_rows=num_flds, num_cols=2, **kwargs)
 
-    def update_data(self):
+    def update_data(self, build='rebuild'):
         self.axis_data_array = []
         for i in reversed(range(self.num_rows)):
             row = []
@@ -206,13 +210,13 @@ class SpotDiagramFigure(AxisArrayFigure):
         osp = opt_model.optical_spec
 
         def spot(p, wi, ray_pkg, fld, wvl, foc):
-            image_pt = fld.ref_sphere[0][0]
-#            image_pt = fld.chief_ray.ray[-1][0]
             if ray_pkg is not None:
+                image_pt = fld.ref_sphere[0]
                 ray = ray_pkg[mc.ray]
-                x = ray[-1][mc.p][0] - image_pt[0]
-                y = ray[-1][mc.p][1] - image_pt[1]
-                return np.array([x, y])
+                dist = foc / ray[-1][mc.d][2]
+                defocused_pt = ray[-1][mc.p] - dist*ray[-1][mc.d]
+                t_abr = defocused_pt - image_pt
+                return np.array([t_abr[0], t_abr[1]])
             else:
                 return None
 
@@ -230,7 +234,7 @@ class SpotDiagramFigure(AxisArrayFigure):
         ax.axvline(0, c=self._rgb['foreground'], lw=1)
         ax.axhline(0, c=self._rgb['foreground'], lw=1)
 
-    def update_data(self):
+    def update_data(self, build='rebuild'):
         self.axis_data_array = []
         for i in reversed(range(self.num_rows)):
             row = []
@@ -297,8 +301,10 @@ class WavefrontFigure(AxisArrayFigure):
             x = p[0]
             y = p[1]
             if ray_pkg is not None:
-                opd_pkg = wave_abr(fld, wvl, foc, ray_pkg)
-                opd = opd_pkg[0]/self.wvl_to_sys_units(wvl)
+                fod = opt_model.optical_spec.parax_data.fod
+                opd = wave_abr_full_calc(fod, fld, wvl, foc, ray_pkg,
+                                         fld.chief_ray, fld.ref_sphere)
+                opd = opd/self.wvl_to_sys_units(wvl)
             else:
                 opd = 0.0
             return np.array([x, y, opd])
@@ -320,7 +326,7 @@ class WavefrontFigure(AxisArrayFigure):
 #        ax.axvline(0, c='black', lw=1)
 #        ax.axhline(0, c='black', lw=1)
 
-    def update_data(self):
+    def update_data(self, build='rebuild'):
         self.axis_data_array = []
         self.max_value_all = 0.0
         for i in reversed(range(self.num_rows)):
