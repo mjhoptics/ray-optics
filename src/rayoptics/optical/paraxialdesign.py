@@ -332,6 +332,10 @@ class ParaxialModel():
             print("{:2}: {:13.7g}  {:12.5g} {:12.5f}    {}".format(
                 i, sys[i][pwr], sys[i][tau], sys[i][indx], sys[i][rmd]))
 
+    def first_order_data(self):
+        """List out the first order imaging properties of the model."""
+        self.opt_model.optical_spec.parax_data.fod.list_first_order_data()
+
     def seq_path_to_paraxial_lens(self, path):
         """ returns lists of power, reduced thickness, signed index and refract
             mode
