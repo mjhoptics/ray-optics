@@ -162,7 +162,7 @@ class RayGeoPSF():
         if 'norm' in kwargs:
             self.norm = kwargs.pop('norm', None)
         else:
-            gamma = 0.3
+            gamma = kwargs.pop('gamma', 0.5)
             vmax = kwargs.get('vmax') if 'vmax' in kwargs else None
             self.norm = PowerNorm(gamma, vmin=0., vmax=vmax)
 
