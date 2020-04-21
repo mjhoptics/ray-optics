@@ -180,7 +180,6 @@ class Diagram():
     def assign_object_to_node(self, node, factory, **kwargs):
         parax_model = self.opt_model.parax_model
         inputs = parax_model.assign_object_to_node(node, factory, **kwargs)
-        parax_model.paraxial_lens_to_seq_model()
         return inputs
 
     def register_commands(self, *args, **inputs):
