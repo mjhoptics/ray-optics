@@ -103,14 +103,15 @@ def create_from_file(filename, **kwargs):
     opm = cmds.open_model(filename)
     sm = opm.seq_model
     osp = opm.optical_spec
-    fod = osp.parax_data.fod
+    em = opm.ele_model
     if 'power' in kwargs:
         desired_power = kwargs['power']
-        cur_power = fod.power
+        cur_power = osp.parax_data.fod.power
         scale_factor = desired_power/cur_power
         sm.apply_scale_factor(scale_factor)
+    em.elements_from_sequence(sm)
     seq = [list(node) for node in sm.path(start=1, stop=-1)]
-    ele = opm.ele_model.elements[:-2]
+    ele = [em.gap_dict[g] for g in sm.gaps[1:-1]]
     return seq, ele
 
 

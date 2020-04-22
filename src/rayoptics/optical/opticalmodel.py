@@ -177,6 +177,11 @@ class OpticalModel:
         kwargs['insert'] = True
         self.insert_ifc_gp_ele(seq, ele, **kwargs)
 
+    def add_from_file(self, filename, **kwargs):
+        seq, ele = elements.create_from_file(filename, **kwargs)
+        kwargs['insert'] = True
+        self.insert_ifc_gp_ele(seq, ele, **kwargs)
+
     def insert_ifc_gp_ele(self, *args, **kwargs):
         """ insert interfaces and gaps into seq_model and eles into ele_model
         """

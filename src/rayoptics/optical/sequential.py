@@ -210,7 +210,7 @@ class SequentialModel:
             num_ifcs = len(self.ifcs)
             if num_ifcs > 2:
                 if self.stop_surface > self.cur_surface and \
-                    self.stop_surface < num_ifcs - 2:
+                   self.stop_surface < num_ifcs - 2:
                     self.stop_surface += 1
         self.cur_surface += 1
         surf = self.cur_surface

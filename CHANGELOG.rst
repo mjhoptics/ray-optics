@@ -2,6 +2,12 @@
 Changelog
 =========
 
+Version 0.4.10
+==============
+
+Add add_from_file() method to OpticalModel to enable importing pieces of optical
+models to a master model. Include a Jupyter notebook demonstration.
+
 Version 0.4.9
 =============
 
