@@ -53,7 +53,7 @@ class RSeg():
 
 def list_ray(ray_obj, tfrms=None):
     """ pretty print a ray either in local or global coordinates """
-    if type(ray_obj) is tuple:
+    if isinstance(ray_obj, tuple):
         ray = ray_obj[0]
     else:
         ray = ray_obj
