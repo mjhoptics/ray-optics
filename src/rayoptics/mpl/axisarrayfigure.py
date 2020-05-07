@@ -85,11 +85,12 @@ class AxisArrayFigure(StyledFigure):
     def wvl_to_sys_units(self, wvl):
         return self.opt_model.nm_to_sys_units(wvl)
 
-    def refresh(self, build='rebuild'):
-        self.update_data(build)
+    def refresh(self, **kwargs):
+        self.update_data(**kwargs)
         self.plot()
+        return self
 
-    def update_data(self, build='rebuild'):
+    def update_data(self, **kwargs):
         pass
 
     def plot(self):
@@ -141,7 +142,7 @@ class RayFanFigure(AxisArrayFigure):
         super().__init__(opt_model, eval_fct=eval_fan,
                          num_rows=num_flds, num_cols=2, **kwargs)
 
-    def update_data(self, build='rebuild'):
+    def update_data(self, build='rebuild', **kwargs):
         self.axis_data_array = []
         for i in reversed(range(self.num_rows)):
             row = []
@@ -234,7 +235,7 @@ class SpotDiagramFigure(AxisArrayFigure):
         ax.axvline(0, c=self._rgb['foreground'], lw=1)
         ax.axhline(0, c=self._rgb['foreground'], lw=1)
 
-    def update_data(self, build='rebuild'):
+    def update_data(self, build='rebuild', **kwargs):
         self.axis_data_array = []
         for i in reversed(range(self.num_rows)):
             row = []
@@ -326,7 +327,7 @@ class WavefrontFigure(AxisArrayFigure):
 #        ax.axvline(0, c='black', lw=1)
 #        ax.axhline(0, c='black', lw=1)
 
-    def update_data(self, build='rebuild'):
+    def update_data(self, build='rebuild', **kwargs):
         self.axis_data_array = []
         self.max_value_all = 0.0
         for i in reversed(range(self.num_rows)):

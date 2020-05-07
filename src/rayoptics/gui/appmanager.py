@@ -62,6 +62,7 @@ class AppManager:
         self.model = self._tag_model(model)
         self.gui_parent = gui_parent
         self.view_dict = {}
+        self.figures = []
 
     def _tag_model(self, model):
         if model is not None:
@@ -86,6 +87,17 @@ class AppManager:
         self._tag_model(model_info.model)
         self.view_dict[view] = gui_hook, model_info
         return view
+
+    def add_figure(self, fig):
+        """ Add a new figure to be updated at refresh_gui.
+
+        Args:
+            fig: the ui figure
+
+        Returns:
+            returns the input figure
+        """
+        self.figures.append(fig)
 
     def delete_view(self, view):
         """ removes view from the view dictionary
@@ -116,12 +128,13 @@ class AppManager:
         delattr(cur_model, 'app_manager')
         self.model = None
 
-    def refresh_gui(self):
+    def refresh_gui(self, **kwargs):
         """ update the active model and refresh its dependent ui views """
         self.model.update_model()
-        self.refresh_views()
+        self.refresh_views(**kwargs)
+        self.refresh_figures(**kwargs)
 
-    def refresh_views(self):
+    def refresh_views(self, **kwargs):
         """ refresh the dependent ui views of the active model """
         if self.gui_parent is not None:
             self.gui_parent.refresh_app_ui()
@@ -136,6 +149,14 @@ class AppManager:
                         mi.fct(*mi.args, **mi.kwargs)
                     except RuntimeError:
                         del self.view_dict[view]
+
+    def refresh_figures(self, **kwargs):
+        """ refresh the dependent ui views of the active model """
+        # traverse a copy of the view dict. this way we can delete any errant
+        #  views we might find. we don't seem to be trapping closing a window
+        #  via a close box under pyqt5
+        for fig in self.figures:
+            fig.refresh(**kwargs)
 
     def on_view_activated(self, view):
         """ Makes the model associated with input view the active model

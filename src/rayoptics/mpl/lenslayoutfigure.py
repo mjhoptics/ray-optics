@@ -52,11 +52,11 @@ class LensLayoutFigure(Figure):
 
         self.update_data()
 
-    def refresh(self):
-        self.update_data()
+    def refresh(self, **kwargs):
+        self.update_data(**kwargs)
         self.plot()
 
-    def update_data(self):
+    def update_data(self, **kwargs):
         self.artists = []
 
         self.ele_shapes = self.create_element_model(self.opt_model.ele_model)

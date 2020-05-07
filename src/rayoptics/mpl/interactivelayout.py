@@ -44,7 +44,7 @@ class InteractiveLayout(InteractiveFigure):
 
         super().__init__(**kwargs)
 
-    def update_data(self):
+    def update_data(self, **kwargs):
         self.artists = []
         concat_bbox = []
         layout = self.layout

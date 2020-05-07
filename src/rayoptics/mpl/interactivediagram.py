@@ -52,9 +52,9 @@ class InteractiveDiagram(InteractiveFigure):
         self.diagram.sync_light_or_dark(is_dark)
         super().sync_light_or_dark(is_dark, **kwargs)
 
-    def update_data(self):
+    def update_data(self, **kwargs):
         self.artists = []
-        self.sys_bbox = self.diagram.update_data(self)
+        self.sys_bbox = self.diagram.update_data(self, **kwargs)
         self.build = 'rebuild'
         return self
 

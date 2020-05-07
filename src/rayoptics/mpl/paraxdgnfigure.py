@@ -202,11 +202,11 @@ class ParaxialDesignFigure(Figure):
             self.apply_data = self.parax_model.apply_slope_dgm_data
             self.header = r'$\omega-\overline{\omega}$ Diagram'
 
-    def refresh(self):
-        self.update_data()
+    def refresh(self, **kwargs):
+        self.update_data(**kwargs)
         self.plot()
 
-    def update_data(self):
+    def update_data(self, **kwargs):
         if not self.skip_build:
             self.parax_model.build_lens()
         self.skip_build = False

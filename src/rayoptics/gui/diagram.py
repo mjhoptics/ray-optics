@@ -129,7 +129,7 @@ class Diagram():
     def sync_light_or_dark(self, is_dark):
         self.dgm_rgb = light_or_dark(is_dark)
 
-    def update_data(self, fig):
+    def update_data(self, fig, **kwargs):
         parax_model = self.opt_model.parax_model
 
         self.shape = self.render_shape()

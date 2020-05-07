@@ -25,11 +25,20 @@ class AnalysisFigure(StyledFigure):
         self.subplots = []
         super().__init__(**kwargs)
 
-    def refresh(self, build='rebuild'):
-        self.update_data(build=build)
-        self.plot()
+    def refresh(self, **kwargs):
+        """Call update_data() followed by plot(), return self.
 
-    def update_data(self, build='rebuild'):
+        Args:
+            kwargs: keyword arguments are passed to update_data
+
+        Returns:
+            self (class Figure) so scripting envs will auto display results
+        """
+        self.update_data(**kwargs)
+        self.plot()
+        return self
+
+    def update_data(self, build='rebuild', **kwargs):
         for data_obj in self.data_objs:
             data_obj.update_data(build=build)
 

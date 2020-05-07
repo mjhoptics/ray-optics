@@ -227,8 +227,9 @@ class RayFan():
 
         self.update_data()
 
-    def update_data(self, build='rebuild'):
+    def update_data(self, **kwargs):
         """Set the fan attribute to a list of (pupil coords), dx, dy, opd."""
+        build = kwargs.get('build', 'rebuild')
         if build == 'rebuild':
             self.fan_pkg = trace_fan(
                 self.opt_model, self.fld, self.wvl, self.foc, self.xyfan,
@@ -427,7 +428,8 @@ class RayList():
 
         self.update_data()
 
-    def update_data(self, build='rebuild'):
+    def update_data(self, **kwargs):
+        build = kwargs.get('build', 'rebuild')
         if build == 'rebuild':
             if self.pupil_gen:
                 fct, args, kwargs = self.pupil_gen
@@ -558,7 +560,8 @@ class RayGrid():
 
         self.update_data()
 
-    def update_data(self, build='rebuild'):
+    def update_data(self, **kwargs):
+        build = kwargs.get('build', 'rebuild')
         if build == 'rebuild':
             self.grid_pkg = trace_wavefront(
                 self.opt_model, self.fld, self.wvl, self.foc,

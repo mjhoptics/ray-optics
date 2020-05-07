@@ -32,11 +32,12 @@ class FieldCurveFigure(StyledFigure):
 
         self.update_data()
 
-    def refresh(self):
-        self.update_data()
+    def refresh(self, **kwargs):
+        self.update_data(**kwargs)
         self.plot()
+        return self
 
-    def update_data(self):
+    def update_data(self, **kwargs):
         self.s_data = []
         self.t_data = []
         self.field_data = []
@@ -84,11 +85,12 @@ class ThirdOrderBarChart(StyledFigure):
 
         self.update_data()
 
-    def refresh(self):
-        self.update_data()
+    def refresh(self, **kwargs):
+        self.update_data(**kwargs)
         self.plot()
+        return self
 
-    def update_data(self):
+    def update_data(self, **kwargs):
         self.to_pkg = compute_third_order(self.opt_model)
 
     def plot(self):
@@ -114,10 +116,11 @@ class AnalysisPlot(abc.ABC):
     def __init__(self, opt_model):
         self.opt_model = opt_model
 
-    def refresh(self):
+    def refresh(self, **kwargs):
         """ called by the app manager to refresh the plot """
-        self.update_data()
+        self.update_data(**kwargs)
         self.plot()
+        return self
 
     @abc.abstractmethod
     def update_data(self):
@@ -136,7 +139,7 @@ class AstigmatismCurvePlot(AnalysisPlot):
 
         self.update_data()
 
-    def update_data(self):
+    def update_data(self, **kwargs):
         self.s_data = []
         self.t_data = []
         self.field_data = []

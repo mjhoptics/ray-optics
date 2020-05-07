@@ -110,11 +110,20 @@ class InteractiveFigure(StyledFigure):
     def is_unit_aspect_ratio(self, value):
         self.aspect = 'equal' if value else 'auto'
 
-    def refresh(self):
-        self.update_data()
-        self.plot()
+    def refresh(self, **kwargs):
+        """Call update_data() followed by plot(), return self.
 
-    def update_data(self):
+        Args:
+            kwargs: keyword arguments are passed to update_data
+
+        Returns:
+            self (class Figure) so scripting envs will auto display results
+        """
+        self.update_data(**kwargs)
+        self.plot()
+        return self
+
+    def update_data(self, **kwargs):
         pass
 
     def action_complete(self):
