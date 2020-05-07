@@ -418,15 +418,45 @@ class SequentialModel:
             med = ''
         return [cvr, thi, med, imode, sd]
 
-    def list_decenters(self):
+    def list_decenters(self, full=False):
+        """List decenter data and gap separations.
+
+        Arguments:
+            full: lists all values if True, else only y offset and alpha tilt
+        """
+        fmt0a = ("             thi    medium/mode    type        x          y"
+                 "       alpha      beta       gamma")
+        fmt0b = ("             thi    medium/mode    type        y"
+                 "       alpha")
+        fmt1a = ("{:4n}:                {:>10s}  {:>6s} {:#10.5g} {:#10.5g}"
+                 " {:#10.5g} {:#10.5g} {:#10.5g}")
+        fmt1b = ("{:4n}:                {:>10s}  {:>6s} {:#10.5g}"
+                 " {:#10.5g}")
+        fmt1c = "{:4n}:                {:>10s}"
+        fmt2 = "{:4n}: {:#12.6g}    {:>9s}"
+
+        # print header
+        if full:
+            print(fmt0a)
+        else:
+            print(fmt0b)
+
         for i, sg in enumerate(self.path()):
-            if sg[Gap]:
-                print(i, sg[Gap])
-                if sg[Intfc].decenter is not None:
-                    print(' ', repr(sg[Intfc].decenter))
-            else:
-                if sg[Intfc].decenter is not None:
-                    print(i, repr(sg[Intfc].decenter))
+            ifc, gap, lcl_tfrm, rndx, z_dir = sg
+            if ifc.decenter is not None:
+                d = ifc.decenter
+                if full:
+                    print(fmt1a.format(i, ifc.interact_mode, d.dtype.name,
+                                       d.dec[0], d.dec[1],
+                                       d.euler[0], d.euler[1], d.euler[2]))
+                else:
+                    print(fmt1b.format(i, ifc.interact_mode, d.dtype.name,
+                                       d.dec[1], d.euler[0]))
+            elif gap is None:  # final interface, just list interact_mode
+                print(fmt1c.format(i, ifc.interact_mode))
+
+            if gap:
+                print(fmt2.format(i, gap.thi, gap.medium.name()))
 
     def list_elements(self):
         for i, gp in enumerate(self.gaps):
