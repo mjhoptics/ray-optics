@@ -203,27 +203,56 @@ class RayGeoPSF():
         self.ray_list.update_data(build=build)
         return self
 
+    def ray_data_bounds(self):
+        x_data = self.ray_list.ray_abr[0]
+        y_data = self.ray_list.ray_abr[1]
+        min_x = np.nanmin(x_data)
+        min_y = np.nanmin(y_data)
+        max_x = np.nanmax(x_data)
+        max_y = np.nanmax(y_data)
+        delta_x = (max_x - min_x)/2
+        delta_y = (max_y - min_y)/2
+        center_x = (max_x + min_x)/2
+        center_y = (max_y + min_y)/2
+        return delta_x, delta_y, center_x, center_y
+
     def plot(self):
         ax = self.fig.add_subplot(self.gs)
         self.init_axis(ax)
 
+        delta_x, delta_y, center_x, center_y = self.ray_data_bounds()
         if self.scale_type == 'fit':
-            x_data = self.ray_list.ray_abr[0]
-            y_data = self.ray_list.ray_abr[1]
-            max_value = max(max(np.nanmax(x_data), -np.nanmin(x_data)),
-                            max(np.nanmax(y_data), -np.nanmin(y_data)))
-        elif self.user_scale_value is not None:
+            max_delta = delta_x if delta_x > delta_y else delta_y
+            max_value = max_delta
+            ax.set_xlim(-max_value, max_value)
+            ax.set_ylim(center_y-max_value, center_y+max_value)
+            x_edges = np.linspace(-max_value, max_value, num=100)
+            y_edges = np.linspace(center_y-max_value, center_y+max_value,
+                                  num=100)
+            bins = [x_edges, y_edges]
+        elif self.scale_type == 'user centered':
             max_value = self.user_scale_value
-
-        ax.set_xlim(-max_value, max_value)
-        ax.set_ylim(-max_value, max_value)
+            ax.set_xlim(-max_value, max_value)
+            ax.set_ylim(center_y-max_value, center_y+max_value)
+            x_edges = np.linspace(-max_value, max_value, num=100)
+            y_edges = np.linspace(center_y-max_value, center_y+max_value,
+                                  num=100)
+            bins = [x_edges, y_edges]
+        elif self.scale_type == 'user':
+            max_value = self.user_scale_value
+            ax.set_xlim(-max_value, max_value)
+            ax.set_ylim(-max_value, max_value)
+            edges = np.linspace(-max_value, max_value, num=100)
+            bins = edges
 
         if self.dsp_typ == 'spot':
             ax.scatter(*self.ray_list.ray_abr, **self.plot_kwargs)
         elif self.dsp_typ == 'hist2d':
-            edges = np.linspace(-max_value, max_value, num=100)
+            x_edges = np.linspace(-max_value, max_value, num=100)
+            y_edges = np.linspace(-max_value, max_value, num=100)
             h, xedges, yedges, qmesh = ax.hist2d(*self.ray_list.ray_abr,
-                                                 bins=edges,
+                                                 # bins=edges,
+                                                 bins=bins,
                                                  norm=self.norm,
                                                  **self.plot_kwargs)
             ax.set_facecolor(qmesh.cmap(0))

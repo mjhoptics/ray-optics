@@ -192,6 +192,60 @@ def wave_abr_calc(fod, fld, wvl, foc, ray_pkg, pre_opd_pkg, ref_sphere):
     return opd
 
 
+class Ray():
+    """A ray at the given field and wavelength.
+
+    Attributes:
+        opt_model: :class:`~.OpticalModel` instance
+        p: relative 2d pupil coordinates
+        f: index into :class:`~.FieldSpec` or a :class:`~.Field` instance
+        wl: wavelength (nm) to trace the fan, or central wavelength if None
+        foc: focus shift to apply to the results
+        image_pt_2d: image offset to apply to the results
+        srf_save:
+
+            'single': save the ray data for surface srf_indx
+            'all': save all of the surface  by surface ray data
+
+        srf_indx: for single surface retention, the surface index to save
+    """
+
+    def __init__(self, opt_model, p, f=0, wl=None, foc=None, image_pt_2d=None,
+                 srf_indx=-1, srf_save='single'):
+        self.opt_model = opt_model
+        osp = opt_model.optical_spec
+        self.pupil = p
+        self.fld = osp.field_of_view.fields[f] if isinstance(f, int) else f
+        self.wvl = osp.spectral_region.central_wvl if wl is None else wl
+
+        self.foc = osp.defocus.focus_shift if foc is None else foc
+        self.image_pt_2d = image_pt_2d if image_pt_2d is not None  \
+            else np.array([0., 0.])
+
+        self.srf_save = srf_save
+        self.srf_indx = srf_indx
+
+        self.update_data()
+
+    def update_data(self, **kwargs):
+        """Set the fan attribute to a list of (pupil coords), dx, dy, opd."""
+        build = kwargs.pop('build', 'rebuild')
+        if build == 'rebuild':
+            ray_pkg = trace.trace_base(self.opt_model, self.pupil,
+                                       self.fld, self.wvl, **kwargs)
+            self.ray_seg = ray_pkg[0][self.srf_indx]
+
+            if self.srf_save == 'all':
+                self.ray_pkg = ray_pkg
+
+        ray_seg = self.ray_seg
+        dist = self.foc / ray_seg[mc.d][2]
+        defocused_pt = ray_seg[mc.p] - dist*ray_seg[mc.d]
+        self.t_abr = defocused_pt[:-1] - self.image_pt_2d
+
+        return self
+
+
 class RayFan():
     """A fan of rays across the pupil at the given field and wavelength.
 

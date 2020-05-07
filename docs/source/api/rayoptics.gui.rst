@@ -33,6 +33,14 @@ rayoptics.gui.appmanager module
    :undoc-members:
    :show-inheritance:
 
+rayoptics.gui.dashboards module
+-------------------------------
+
+.. automodule:: rayoptics.gui.dashboards
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 rayoptics.gui.diagram module
 ----------------------------
 
