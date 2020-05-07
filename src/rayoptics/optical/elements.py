@@ -22,6 +22,7 @@ from rayoptics.optical.gap import Gap
 import rayoptics.gui.appcmds as cmds
 from rayoptics.gui.actions import Action, AttrAction, SagAction, BendAction
 from rayoptics.optical.medium import Glass, glass_decode
+from rayoptics.optical.model_enums import DecenterType
 import rayoptics.optical.model_constants as mc
 import opticalglass.glasspolygons as gp
 
@@ -43,6 +44,17 @@ def create_thinlens(power=0., indx=1.5, sd=None, **kwargs):
 
 def create_mirror(c=0.0, r=None, cc=0.0, ec=None,
                   power=None, profile=None, sd=None, **kwargs):
+    '''Create a sequence and element for a mirror.
+
+    Args:
+        c: vertex curvature
+        r: vertex radius of curvature
+        cc: conic constant
+        ec: 1 + cc
+        power:  optical power of the mirror
+        sd:  semi-diameter
+        profile: Spherical or Conic
+    '''
     delta_n = kwargs['delta_n'] if 'delta_n' in kwargs else -2
     if power:
         cv = power/delta_n
@@ -716,7 +728,19 @@ class AirGap():
         poly_ct = []
         poly_ct.append([0., 0.])
         poly_ct.append([self.gap.thi, 0.])
-        self.handles['ct'] = GraphicsHandle(poly_ct, self.tfrm, 'polyline')
+
+        # Modify the tfrm to account for any decenters following
+        #  the reference ifc.
+        tfrm = self.tfrm
+        if self.ref_ifc.decenter is not None:
+            d = self.ref_ifc.decenter
+            r_global, t_global = tfrm
+            r_after_ifc, t_after_ifc = d.tform_after_surf()
+            t = r_global.dot(t_after_ifc) + t_global
+            r = r_global if r_after_ifc is None else r_global.dot(r_after_ifc)
+            tfrm = r, t
+
+        self.handles['ct'] = GraphicsHandle(poly_ct, tfrm, 'polyline')
 
         return self.handles
 
