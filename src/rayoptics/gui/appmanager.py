@@ -98,6 +98,7 @@ class AppManager:
             returns the input figure
         """
         self.figures.append(fig)
+        return fig
 
     def delete_view(self, view):
         """ removes view from the view dictionary

@@ -554,14 +554,14 @@ class ConjugateLine():
                 event_data = np.array([event.xdata, event.ydata])
                 apply_data(event_data)
                 fig.build = 'update'
-                fig.refresh_gui()
+                fig.refresh_gui(build='update')
 
         def on_release(fig, event):
             event_data = np.array([event.xdata, event.ydata])
             apply_data(event_data)
             self.sys_orig = []
             self.shape_orig = []
-            fig.refresh_gui()
+            fig.refresh_gui(build='rebuild')
 
         actions = {}
         actions['press'] = on_select
@@ -639,7 +639,7 @@ class EditNodeAction():
                 event_data = constrain_to_wedge(event_data)
                 diagram.apply_data(self.cur_node, event_data)
                 fig.build = 'update'
-                fig.refresh_gui()
+                fig.refresh_gui(build='update')
 
         def on_release(fig, event):
             if event.xdata is not None and event.ydata is not None:
@@ -648,8 +648,8 @@ class EditNodeAction():
                     event_data = self.filter(event_data)
                 event_data = constrain_to_wedge(event_data)
                 diagram.apply_data(self.cur_node, event_data)
-                fig.build = 'update'
-                fig.refresh_gui()
+                fig.build = 'rebuild'
+                fig.refresh_gui(build='rebuild')
                 self.cur_node = None
 
         self.actions = {}
@@ -749,13 +749,13 @@ class EditThicknessAction():
                                                  inpt, edge_pt))
                     diagram.apply_data(self.node+1, pt2)
                     fig.build = 'update'
-                    fig.refresh_gui()
+                    fig.refresh_gui(build='update')
 
         def on_release(fig, event):
             if event.xdata is not None and event.ydata is not None:
                 event_data = np.array([event.xdata, event.ydata])
-                fig.build = 'update'
-                fig.refresh_gui()
+                fig.build = 'rebuild'
+                fig.refresh_gui(build='rebuild')
                 self.node = None
                 self.bundle = None
 
@@ -845,13 +845,13 @@ class EditBendingAction():
 
                     diagram.apply_data(inp[0], inp[1])
                     diagram.apply_data(out[0], out[1])
-                    fig.refresh_gui()
+                    fig.refresh_gui(build='update')
 
         def on_release(fig, event):
             if event.xdata is not None and event.ydata is not None:
                 event_data = np.array([event.xdata, event.ydata])
-                fig.build = 'update'
-                fig.refresh_gui()
+                fig.build = 'rebuild'
+                fig.refresh_gui(build='rebuild')
                 self.node = None
                 self.bundle = None
                 self.filter = None
@@ -903,7 +903,7 @@ class AddReplaceElementAction():
                                             node_init,
                                             insert=True)
                     fig.build = 'rebuild'
-                    fig.refresh_gui()
+                    fig.refresh_gui(build='rebuild')
             elif isinstance(shape, DiagramNode):
                 if 'factory' in diagram.command_inputs:
                     # replacing a node with a chunk only requires recording
@@ -917,7 +917,7 @@ class AddReplaceElementAction():
                 event_data = np.array([event.xdata, event.ydata])
                 diagram.apply_data(self.cur_node, event_data)
                 fig.build = 'update'
-                fig.refresh_gui()
+                fig.refresh_gui(build='update')
 
         def on_release_add_point(fig, event, shape):
             if self.cur_node is not None:
@@ -937,7 +937,7 @@ class AddReplaceElementAction():
                     args, kwargs = self.init_inputs
                     diagram.opt_model.remove_ifc_gp_ele(*args, **kwargs)
                 fig.build = 'rebuild'
-                fig.refresh_gui()
+                fig.refresh_gui(build='rebuild')
             self.cur_node = None
 
         self.actions = {}

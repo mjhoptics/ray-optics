@@ -180,7 +180,7 @@ class OpticalElement():
                         handle_actions['y'].actions['drag'](fig, event,
                                                             event.dxdy[1])
 
-            fig.refresh_gui()
+            fig.refresh_gui(build='update')
 
         def on_release_shape(fig, handle, event, info):
             # print('release pt:', event.x, event.y)
@@ -190,7 +190,7 @@ class OpticalElement():
                 action_obj.actions['release'](fig, event)
             self.select_pt = None
             self.move_direction = None
-            fig.refresh_gui()
+            fig.refresh_gui(build='rebuild')
 
         actions = {}
         actions['press'] = on_select_shape
@@ -293,7 +293,7 @@ class RayBundle():
             if handle != 'shape':
                 ray_table = self.ray_table_callback()
                 ray_table.root = self.rayset[handle].ray
-                fig.refresh_gui()
+                fig.refresh_gui(build='update')
 
         actions = {}
         actions['press'] = on_select_ray
@@ -362,12 +362,12 @@ class ParaxialRay():
         def on_edit_point(fig, handle, event, info):
             add_event_data(self, event, handle, info)
             self.apply_data(self.vertex, event.lcl_pt)
-            fig.refresh_gui()
+            fig.refresh_gui(build='update')
 
         def on_release_point(fig, handle, event, info):
             add_event_data(self, event, handle, info)
             self.apply_data(self.vertex, event.lcl_pt)
-            fig.refresh_gui()
+            fig.refresh_gui(build='rebuild')
             self.vertex = None
             self.tfrm = None
 
@@ -472,7 +472,7 @@ class LensLayout():
             tfrm = self.opt_model.seq_model.gbl_tfrms[idx]
             add_event_data(tfrm, event)
             self.apply_fct(self.opt_model, idx, event.lcl_pt, **kwargs)
-            fig.refresh_gui()
+            fig.refresh_gui(build='update')
 
 #        def on_edit_cmd(fig, shape, event, info):
 #            add_event_data(self, event)
@@ -484,7 +484,7 @@ class LensLayout():
             nonlocal idx
 #            add_event_data(self, event)
 #            self.apply_fct(idx, event.lcl_pt)
-#            fig.refresh_gui()
+#            fig.refresh_gui(build='rebuild')
             idx = None
 
         actions = {}
