@@ -192,6 +192,7 @@ def wave_abr_calc(fod, fld, wvl, foc, ray_pkg, pre_opd_pkg, ref_sphere):
     return opd
 
 
+
 class Ray():
     """A ray at the given field and wavelength.
 
@@ -600,7 +601,7 @@ class RayGrid():
     """
 
     def __init__(self, opt_model, f=0, wl=None, foc=None, image_pt_2d=None,
-                 num_rays=21):
+                 num_rays=21, value_if_none=np.NaN):
         self.opt_model = opt_model
         osp = opt_model.optical_spec
         self.fld = osp.field_of_view.fields[f] if isinstance(f, int) else f
@@ -611,6 +612,7 @@ class RayGrid():
             else np.array([0., 0.])
 
         self.num_rays = num_rays
+        self.value_if_none = value_if_none
 
         self.update_data()
 
@@ -623,7 +625,8 @@ class RayGrid():
 
         opd = focus_wavefront(self.opt_model, self.grid_pkg,
                               self.fld, self.wvl, self.foc,
-                              image_pt_2d=self.image_pt_2d)
+                              image_pt_2d=self.image_pt_2d,
+                              value_if_none=self.value_if_none)
 
         self.grid = np.rollaxis(opd, 2)
 
@@ -661,7 +664,7 @@ def trace_ray_grid(opt_model, grid_rng, fld, wvl, foc, append_if_none=True,
 
 
 def eval_wavefront(opt_model, fld, wvl, foc,
-                   image_pt_2d=None, num_rays=21):
+                   image_pt_2d=None, num_rays=21, value_if_none=np.NaN):
     """Trace a grid of rays and evaluate the OPD across the wavefront."""
     fod = opt_model.optical_spec.parax_data.fod
     cr_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
@@ -686,7 +689,7 @@ def eval_wavefront(opt_model, fld, wvl, foc,
             opd = convert_to_opd*opdelta
             return pupil_x, pupil_y, opd
         else:
-            return pupil_x, pupil_y, np.NaN
+            return pupil_x, pupil_y, value_if_none
     opd_grid = [[rfc(j) for j in i] for i in grid]
 
     return np.array(opd_grid)
@@ -721,7 +724,8 @@ def trace_wavefront(opt_model, fld, wvl, foc,
     return grid, upd_grid
 
 
-def focus_wavefront(opt_model, grid_pkg, fld, wvl, foc, image_pt_2d=None):
+def focus_wavefront(opt_model, grid_pkg, fld, wvl, foc, image_pt_2d=None,
+                    value_if_none=np.NaN):
     """Given pre-calculated info and a ref. sphere, return the ray's OPD."""
     fod = opt_model.optical_spec.parax_data.fod
     grid, upd_grid = grid_pkg
@@ -738,7 +742,7 @@ def focus_wavefront(opt_model, grid_pkg, fld, wvl, foc, image_pt_2d=None):
             opd = convert_to_opd*opdelta
             return pupil_x, pupil_y, opd
         else:
-            return pupil_x, pupil_y, np.NaN
+            return pupil_x, pupil_y, value_if_none
     refocused_grid = [[rfc(jg, ju) for jg, ju in zip(ig, iu)]
                       for ig, iu in zip(grid, upd_grid)]
 
