@@ -14,6 +14,8 @@
 """
 from math import sqrt
 import numpy as np
+from numpy.fft import fftshift, fft2
+
 from scipy.interpolate import interp1d
 from rayoptics.util.misc_math import normalize
 
@@ -747,3 +749,90 @@ def focus_wavefront(opt_model, grid_pkg, fld, wvl, foc, image_pt_2d=None,
                       for ig, iu in zip(grid, upd_grid)]
 
     return np.array(refocused_grid)
+
+
+def psf_sampling(n=None, n_pupil=None, n_airy=None):
+    """Given 2 of 3 parameters, calculate the third.
+
+    Args:
+        n: The total width of the sampling grid
+        n_pupil: The sampling across the pupil
+        n_airy: The sampling across the central peak of the Airy disk
+
+    Returns: (n, n_pupil, n_airy)
+    """
+    npa = n, n_pupil, n_airy
+    i = npa.index(None)
+    if i == 0:
+        n = round((n_pupil * n_airy)/2.44)
+    elif i == 1:
+        n_pupil = round(2.44*n/n_airy)
+    elif i == 2:
+        n_airy = round(2.44*n/n_pupil)
+    return n, n_pupil, n_airy
+
+
+def calc_psf_scaling(pupil_grid, ndim, maxdim):
+    """Calculate the input and output grid spacings.
+
+    Args:
+        pupil_grid: A RayGrid instance
+        ndim: The sampling across the wavefront
+        maxdim: The total width of the sampling grid
+
+    Returns:
+        delta_x: The linear grid spacing on the entrance pupil
+        delta_xp: The linear grid spacing on the image plane
+    """
+    opt_model = pupil_grid.opt_model
+    fod = opt_model.optical_spec.parax_data.fod
+    wl = opt_model.nm_to_sys_units(pupil_grid.wvl)
+
+    fill_factor = ndim/maxdim
+    max_D = 2 * fod.enp_radius / fill_factor
+    delta_x = max_D / maxdim
+    C = wl/fod.exp_radius
+
+    delta_theta = (fill_factor * C) / 2
+    ref_sphere_radius = pupil_grid.fld.ref_sphere[2]
+    delta_xp = delta_theta * ref_sphere_radius
+
+    return delta_x, delta_xp
+
+
+def calc_psf(wavefront, ndim, maxdim):
+    """Calculate the point spread function of wavefront W.
+
+    Args:
+        wavefront: ndim x ndim Numpy array of wavefront errors. No data
+                   condition is indicated by nan
+        ndim: The sampling across the wavefront
+        maxdim: The total width of the sampling grid
+
+    Returns: AP, the PSF of the input wavefront
+    """
+    maxdim_by_2 = maxdim//2
+    W = np.zeros([maxdim, maxdim])
+    nd2 = ndim//2
+    W[maxdim_by_2-(nd2-1):maxdim_by_2+(nd2+1),
+      maxdim_by_2-(nd2-1):maxdim_by_2+(nd2+1)] = np.nan_to_num(wavefront)
+
+    phase = np.exp(1j*2*np.pi*W)
+
+    for i in range(len(phase)):
+        for j in range(len(phase)):
+            if phase[i][j] == 1:
+                phase[i][j] = 0
+
+    AP = abs(fftshift(fft2(fftshift(phase))))**2
+    AP_max = np.nanmax(AP)
+    AP = AP/AP_max
+    return AP
+
+
+def update_psf_data(pupil_grid, build='rebuild'):
+    pupil_grid.update_data(build=build)
+    ndim = pupil_grid.num_rays
+    maxdim = pupil_grid.maxdim
+    AP = calc_psf(pupil_grid.grid[2], ndim, maxdim)
+    return AP

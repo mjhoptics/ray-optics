@@ -9,7 +9,7 @@
 """
 
 import numpy as np
-from matplotlib.colors import PowerNorm
+from matplotlib.colors import LogNorm, PowerNorm
 
 from rayoptics.mpl.styledfigure import StyledFigure
 
@@ -339,6 +339,88 @@ class Wavefront():
                              extent=[-1., 1., -1., 1.],
                              **self.plot_kwargs
                              )
+        self.fig.colorbar(hmap, ax=ax, use_gridspec=True)
+        ax.set_aspect('equal')
+
+        return self
+
+
+class DiffractionPSF():
+    """Point Spread Function (PSF) calculation and display.
+
+    Attributes:
+        fig: the parent figure for this panel
+        gs: gridspec for this panel
+        pupil_grid: a RayGrid instance
+        maxdim: the size of the sampling array
+        title: title, if desired, of this plot panel
+        yaxis_ticks_position: 'left' or 'right', default is 'left'
+        cmap: color map for plot, defaults to 'RdBu_r'
+        kwargs: passed to plot call
+    """
+
+    def __init__(self, fig, gs, pupil_grid, maxdim,
+                 yaxis_ticks_position='left', **kwargs):
+        self.fig = fig
+        self.fig.subplots.append(self)
+
+        self.gs = gs
+        self.pupil_grid = pupil_grid
+        self.maxdim = maxdim
+
+        if 'title' in kwargs:
+            self.title = kwargs.pop('title', None)
+        kwargs['cmap'] = kwargs.get('cmap', "RdBu_r")
+
+        if 'norm' in kwargs:
+            self.norm = kwargs.pop('norm', None)
+        else:
+            vmin = kwargs.get('vmin') if 'vmin' in kwargs else None
+            vmax = kwargs.get('vmax') if 'vmax' in kwargs else None
+            self.norm = LogNorm(vmin=vmin, vmax=vmax)
+
+        self.plot_kwargs = kwargs
+        self.yaxis_ticks_position = yaxis_ticks_position
+
+        self.update_data()
+
+    def init_axis(self, ax):
+        pupil_grid = self.pupil_grid
+        delta_x, delta_xp = analyses.calc_psf_scaling(pupil_grid,
+                                                      pupil_grid.num_rays,
+                                                      self.maxdim)
+        image_scale = self.image_scale = delta_xp * self.maxdim
+        ax.set_xlim(-image_scale, image_scale)
+        ax.set_ylim(-image_scale, image_scale)
+        ax.tick_params(labelbottom=False, labelleft=False)
+        ax.yaxis.set_ticks_position(self.yaxis_ticks_position)
+        if self.title is not None:
+            ax.set_title(self.title, fontsize='small')
+        return ax
+
+    def refresh(self, build='rebuild'):
+        self.update_data(build=build)
+        self.plot()
+
+    def update_data(self, build='rebuild'):
+        self.pupil_grid.update_data(build=build)
+        ndim = self.pupil_grid.num_rays
+        maxdim = self.maxdim
+        self.AP = analyses.calc_psf(self.pupil_grid.grid[2], ndim, maxdim)
+        return self
+
+    def plot(self):
+        ax = self.fig.add_subplot(self.gs)
+        self.init_axis(ax)
+
+        image_scale = self.image_scale
+        hmap = ax.imshow(self.AP,
+                         origin='lower',
+                         norm=self.norm,
+                         extent=[-image_scale, image_scale,
+                                 -image_scale, image_scale],
+                         **self.plot_kwargs
+                         )
         self.fig.colorbar(hmap, ax=ax, use_gridspec=True)
         ax.set_aspect('equal')
 
