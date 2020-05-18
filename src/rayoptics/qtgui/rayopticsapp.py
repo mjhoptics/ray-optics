@@ -485,8 +485,8 @@ class MainWindow(QMainWindow):
             print('close event received:', obj)
         return False
 
-    def refresh_gui(self):
-        self.app_manager.refresh_gui()
+    def refresh_gui(self, **kwargs):
+        self.app_manager.refresh_gui(**kwargs)
 
     def refresh_app_ui(self):
         dock.update_dock_windows(self)
