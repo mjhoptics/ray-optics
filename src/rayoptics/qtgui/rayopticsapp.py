@@ -111,11 +111,12 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Ray Optics")
         self.show()
 
-        if True:  # create new model
+        if True:
+            # create new model
             self.new_model()
-            self.add_ipython_subwindow()
 
-        else:  # restore a default model
+        else:
+            # restore a default model
             pth = Path(__file__).resolve()
             try:
                 root_pos = pth.parts.index('rayoptics')
@@ -145,15 +146,13 @@ class MainWindow(QMainWindow):
                 # self.open_file(path / "models/Dall-Kirkham.roa")
                 # self.open_file(path / "models/petzval.roa")
                 # self.open_file(path / "models/Ritchey_Chretien.roa")
-                # self.open_file(path / "models/Sasian Triplet.roa")
+                self.open_file(path / "models/Sasian Triplet.roa")
                 # self.open_file(path / "models/singlet_f5.roa")
                 # self.open_file(path / "models/thinlens.roa")
                 # self.open_file(path / "models/telephoto.roa")
-                self.open_file(path / "models/thin_triplet.roa")
+                # self.open_file(path / "models/thin_triplet.roa")
                 # self.open_file(path / "models/TwoMirror.roa")
                 # self.open_file(path / "models/TwoSphericalMirror.roa")
-            finally:
-                self.add_ipython_subwindow()
 
     def add_subwindow(self, widget, model_info):
         sub_wind = self.mdi.addSubWindow(widget)
@@ -168,7 +167,7 @@ class MainWindow(QMainWindow):
 
     def add_ipython_subwindow(self):
         try:
-            create_ipython_console(self, 'iPython console', 600, 400)
+            create_ipython_console(self, 'iPython console', 800, 600)
         except MultipleInstanceError:
             logging.debug("Unable to open iPython console. "
                           "MultipleInstanceError")
@@ -206,7 +205,7 @@ class MainWindow(QMainWindow):
             options = QFileDialog.Options()
             # options |= QFileDialog.DontUseNativeDialog
             fileName, _ = QFileDialog.getSaveFileName(
-                         self,
+                          self,
                           "QFileDialog.getSaveFileName()",
                           "",
                           "Ray-Optics Files (*.roa);;All Files (*)",
@@ -222,6 +221,7 @@ class MainWindow(QMainWindow):
         iid = cmds.create_new_ideal_imager(gui_parent=self,
                                            conjugate_type='infinite')
 
+        self.add_ipython_subwindow()
         self.refresh_app_ui()
 
     def open_file(self, file_name):
@@ -230,8 +230,7 @@ class MainWindow(QMainWindow):
         self.is_changed = True
         self.create_lens_table()
         cmds.create_live_layout_view(self.app_manager.model, gui_parent=self)
-#        cmds.create_lens_layout_view(self.app_manager.model, gui_parent=self)
-#        self.create_2D_lens_view()
+        self.add_ipython_subwindow()
         self.refresh_app_ui()
 
     def save_file(self, file_name):
@@ -317,7 +316,7 @@ class MainWindow(QMainWindow):
 
     def light_or_dark(self, is_dark):
         """ set the UI to a light or dark scheme.
-        
+
         Qt doesn't seem to support controlling the MdiArea's background from a
         style sheet. Set the widget directly and save the original color
         to reset defaults.
