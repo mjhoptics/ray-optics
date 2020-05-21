@@ -262,7 +262,7 @@ class SequentialModel:
         if len(surf_data) > 2:
             if not isanumber(surf_data[2]):
                 if surf_data[2].upper() == 'REFL':
-                    mat = self.gaps[self.cur_surface-1].medium
+                    mat = self.gaps[self.cur_surface].medium
         s, g, rn, tfrm = create_surface_and_gap(surf_data, prev_medium=mat,
                                                 radius_mode=radius_mode,
                                                 **kwargs)
