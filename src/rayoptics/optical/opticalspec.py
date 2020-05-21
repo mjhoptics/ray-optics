@@ -185,12 +185,22 @@ class WvlSpec:
         if num_wvls == 1:
             self.render_colors.append(accent['green'])
         elif num_wvls == 2:
-            self.render_colors.append(accent['red'])
-            self.render_colors.append(accent['blue'])
+            if self.wavelengths[0] < self.wavelengths[-1]:
+                self.render_colors.append(accent['blue'])
+                self.render_colors.append(accent['red'])
+            else:
+                self.render_colors.append(accent['red'])
+                self.render_colors.append(accent['blue'])
         elif num_wvls == 3:
-            self.render_colors.append(accent['red'])
-            self.render_colors.append(accent['green'])
-            self.render_colors.append(accent['blue'])
+            if self.wavelengths[0] < self.wavelengths[-1]:
+                self.render_colors.append(accent['blue'])
+                self.render_colors.append(accent['green'])
+                self.render_colors.append(accent['red'])
+            else:
+                self.render_colors.append(accent['red'])
+                self.render_colors.append(accent['green'])
+                self.render_colors.append(accent['blue'])
+
         else:
             for w in self.wavelengths:
                 print("calc_colors", w)
