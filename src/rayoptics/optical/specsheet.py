@@ -223,7 +223,13 @@ class SpecSheet():
 
         for fa_key, fa_value in etendue_inputs.items():
             for oi_key, oi_value in fa_value.items():
-                etendue.fill_in_etendue_data(imager, fa_key,
+                if conj_type == 'finite':
+                    conj = 'finite'
+                elif conj_type == 'afocal':
+                    conj = 'infinite'
+                elif conj_type == 'infinite':
+                    conj = 'finite' if oi_key == 'image' else conj_type
+                etendue.fill_in_etendue_data(conj, imager, fa_key,
                                              etendue_inputs[fa_key][oi_key],
                                              etendue_values[fa_key][oi_key])
 

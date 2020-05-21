@@ -49,7 +49,7 @@ def get_aperture_from_slope(imager, slope, n=1):
         return 0, 0, 0
     fno = -1/(2*slope)
     na = slp2na(slope, n=n)
-    pupil = imager.f/fno
+    pupil = imager.f/fno if imager.f is not None else None
     return na, fno, pupil
 
 
@@ -71,9 +71,13 @@ def get_slope_from_aperture(imager, input_cell, n=1):
     return slope
 
 
-def calc_aperture_from_input(imager, input_cell, n=1):
+def calc_aperture_from_input(conj_type, imager, input_cell, n=1):
+    """ conj_type is for the io_input space"""
     slope = get_slope_from_aperture(imager, input_cell, n=n)
-    na, fno, pupil = get_aperture_from_slope(imager, slope, n=n)
+    if conj_type == 'finite':
+        na, fno, pupil = get_aperture_from_slope(imager, slope, n=n)
+    else:
+        na, fno, pupil = 0, 0, input_cell['pupil']
     return na, fno, pupil
 
 
@@ -263,7 +267,8 @@ def do_etendue_to_imager(fld_ape_key, etendue_inputs, etendue_grid,
     return imager_inputs
 
 
-def fill_in_etendue_data(imager, fld_ape_key, inputs, values, n=1.0):
+def fill_in_etendue_data(conj_type, imager, fld_ape_key,
+                         inputs, values, n=1.0):
     if len(inputs) == 0:
         return
 
@@ -272,7 +277,8 @@ def fill_in_etendue_data(imager, fld_ape_key, inputs, values, n=1.0):
             values[key] = inputs[key]
 
     if fld_ape_key == 'aperture':
-        na, fno, pupil = calc_aperture_from_input(imager, inputs, n=n)
+        na, fno, pupil = calc_aperture_from_input(conj_type, imager,
+                                                  inputs, n=n)
         values['NA'] = na
         values['f/#'] = fno
         values['pupil'] = pupil
