@@ -47,3 +47,46 @@ spectra = {'Nd': 1060.0,
            'g': 435.8343,
            'h': 404.6561,
            'i': 365.014}
+
+
+spectra_uc = {key.upper(): val for key, val in spectra.items()}
+
+
+def get_wavelength(wvl):
+    """Return wvl in nm, where wvl can be a spectral line
+
+    Example::
+
+        In [1]: from rayoptics.util.spectral_lines import *
+
+        In [2]: wl_e = get_wavelength('e'); wl_e
+        Out[2]: 546.074
+
+        In [3]: wl_HeNe = get_wavelength('He-Ne'); wl_HeNe
+        Out[3]: 632.8
+
+        In [4]: wl_550 = get_wavelength(550); wl_550
+        Out[4]: 550.0
+
+        In [5]: wl_fl = get_wavelength(555.0); wl_fl
+        Out[5]: 555.0
+
+        In [6]: wl_f = get_wavelength('f'); wl_f
+        Out[6]: 486.1327
+
+    Args:
+        wvl: either the wavelength in nm or a string with a spectral line
+             identifier. Case insensitive.
+
+    Returns:
+        float: the wavelength in nm
+
+    Raises:
+        KeyError: if ``wvl`` is not in the spectra dictionary
+    """
+    if isinstance(wvl, float):
+        return wvl
+    elif isinstance(wvl, int):
+        return float(wvl)
+    else:
+        return spectra_uc[wvl.upper()]
