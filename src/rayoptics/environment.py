@@ -49,6 +49,7 @@ from rayoptics.optical.trace import (RayPkg, RaySeg, list_ray,
                                      trace, trace_base, trace_with_opd,
                                      trace_astigmatism)
 import rayoptics.optical.raytrace as rt
+from rayoptics.optical import analyses
 
 # paraxial design
 import rayoptics.optical.model_constants as mc
@@ -63,6 +64,10 @@ from rayoptics.mpl.axisarrayfigure import RayFanFigure
 from rayoptics.mpl.axisarrayfigure import SpotDiagramFigure
 from rayoptics.mpl.axisarrayfigure import WavefrontFigure
 
+from rayoptics.mpl.analysisfigure import (AnalysisFigure,
+                                          RayFanPlot, RayGeoPSF,
+                                          Wavefront, DiffractionPSF)
+
 from rayoptics.mpl import analysisplots
 
 # lens layout
@@ -72,3 +77,4 @@ from rayoptics.mpl.interactivelayout import InteractiveLayout
 
 # opticalglass
 from opticalglass.glassfactory import create_glass
+from rayoptics.util.spectral_lines import get_wavelength
