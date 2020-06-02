@@ -15,6 +15,7 @@ from rayoptics.optical.firstorder import compute_first_order, list_parax_trace
 from rayoptics.optical.trace import aim_chief_ray
 from rayoptics.optical import model_enums
 import rayoptics.optical.model_constants as mc
+from rayoptics.util.spectral_lines import get_wavelength
 import rayoptics.util.colour_system as cs
 from rayoptics.util import colors
 srgb = cs.cs_srgb
@@ -141,8 +142,8 @@ class WvlSpec:
     """ Class defining a spectral region
 
     A spectral region is a list of wavelengths (in nm) and corresponding
-    weights. A reference wavelength index defines the "center" of the
-    spectral region.
+    weights. The central wavelength of the spectral region is central_wvl.
+    The index into the wavelength list for central_wvl is reference_wvl.
 
     """
 
@@ -163,7 +164,7 @@ class WvlSpec:
         self.wavelengths = []
         self.spectral_wts = []
         for wlwt in wlwts:
-            self.wavelengths.append(wlwt[0])
+            self.wavelengths.append(get_wavelength(wlwt[0]))
             self.spectral_wts.append(wlwt[1])
         self.calc_colors()
 
@@ -174,7 +175,7 @@ class WvlSpec:
         pass
 
     def add(self, wl, wt):
-        self.wavelengths.append(wl)
+        self.wavelengths.append(get_wavelength(wl))
         self.spectral_wts.append(wt)
         self.spectrum.sort(key=lambda w: w[0], reverse=True)
 
