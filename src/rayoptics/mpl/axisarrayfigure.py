@@ -105,6 +105,8 @@ class RayFanFigure(AxisArrayFigure):
         self.override_style = override_style
         seq_model = opt_model.seq_model
         osp = opt_model.optical_spec
+        central_wvl = osp.spectral_region.central_wvl
+        convert_to_waves = 1/opt_model.nm_to_sys_units(central_wvl)
 
         def ray_abr(p, xy, ray_pkg, fld, wvl, foc):
             if ray_pkg[mc.ray] is not None:
@@ -122,7 +124,7 @@ class RayFanFigure(AxisArrayFigure):
                 fod = opt_model.optical_spec.parax_data.fod
                 opd = wave_abr_full_calc(fod, fld, wvl, foc, ray_pkg,
                                          fld.chief_ray, fld.ref_sphere)
-                return opd/self.wvl_to_sys_units(wvl)
+                return convert_to_waves*opd
             else:
                 return None
 
@@ -297,6 +299,8 @@ class WavefrontFigure(AxisArrayFigure):
         self.max_value_all = 0.0
         seq_model = opt_model.seq_model
         osp = opt_model.optical_spec
+        central_wvl = osp.spectral_region.central_wvl
+        convert_to_waves = 1/opt_model.nm_to_sys_units(central_wvl)
 
         def wave(p, wi, ray_pkg, fld, wvl, foc):
             x = p[0]
@@ -305,7 +309,7 @@ class WavefrontFigure(AxisArrayFigure):
                 fod = opt_model.optical_spec.parax_data.fod
                 opd = wave_abr_full_calc(fod, fld, wvl, foc, ray_pkg,
                                          fld.chief_ray, fld.ref_sphere)
-                opd = opd/self.wvl_to_sys_units(wvl)
+                opd = convert_to_waves*opd
             else:
                 opd = 0.0
             return np.array([x, y, opd])
