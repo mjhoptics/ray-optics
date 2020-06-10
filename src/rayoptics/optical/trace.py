@@ -19,7 +19,9 @@ import pandas as pd
 import attr
 
 from . import raytrace as rt
-from rayoptics.optical.analyses import wave_abr_full_calc
+from rayoptics.optical.analyses import (wave_abr_full_calc,
+                                        get_chief_ray_pkg,
+                                        setup_exit_pupil_coords)
 from . import model_constants as mc
 from .traceerror import TraceError, TraceMissedSurfaceError, TraceTIRError
 from rayoptics.util.misc_math import normalize
@@ -231,14 +233,22 @@ def iterate_ray(opt_model, ifcx, xy_target, fld, wvl, **kwargs):
 
 def trace_with_opd(opt_model, pupil, fld, wvl, foc, **kwargs):
     """ returns (ray, ray_opl, wvl, opd) """
-    ray_pkg = trace_base(opt_model, pupil, fld, wvl, **kwargs)
+    chief_ray_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
+    image_pt_2d = None if 'image_pt' not in kwargs else kwargs['image_pt'][:2]
+    ref_sphere = setup_exit_pupil_coords(opt_model, fld, wvl, foc,
+                                         chief_ray_pkg,
+                                         image_pt_2d=image_pt_2d)
 
-    rs_pkg, cr_pkg = setup_pupil_coords(opt_model, fld, wvl, foc)
-    fld.chief_ray = cr_pkg
-    fld.ref_sphere = rs_pkg
+    ray, op, wvl = trace_base(opt_model, pupil, fld, wvl, **kwargs)
+    # opl = rt.calc_optical_path(ray, opt_model.seq_model.path())
+    ray_pkg = ray, op, wvl
+
+    fld.chief_ray = chief_ray_pkg
+    fld.ref_sphere = ref_sphere
 
     fod = opt_model.optical_spec.parax_data.fod
-    opd = wave_abr_full_calc(fod, fld, wvl, foc, ray_pkg, cr_pkg, rs_pkg)
+    opd = wave_abr_full_calc(fod, fld, wvl, foc, ray_pkg,
+                             chief_ray_pkg, ref_sphere)
     ray, ray_op, wvl = ray_pkg
     return ray, ray_op, wvl, opd
 
@@ -319,6 +329,7 @@ def trace_chief_ray(opt_model, fld, wvl, foc):
     fod = osp.parax_data.fod
 
     ray, op, wvl = trace_base(opt_model, [0., 0.], fld, wvl)
+    # op = rt.calc_optical_path(ray, opt_model.seq_model.path())
     cr = RayPkg(ray, op, wvl)
 
     # cr_exp_pt: E upper bar prime: pupil center for pencils from Q
@@ -338,7 +349,9 @@ def trace_fan(opt_model, fan_rng, fld, wvl, foc, img_filter=None,
     fan = []
     for r in range(num):
         pupil = np.array(start)
-        ray_pkg = trace_base(opt_model, pupil, fld, wvl, **kwargs)
+        ray, op, wvl = trace_base(opt_model, pupil, fld, wvl, **kwargs)
+        # opl = rt.calc_optical_path(ray, opt_model.seq_model.path())
+        ray_pkg = ray, op, wvl
 
         if img_filter:
             result = img_filter(pupil, ray_pkg)
@@ -400,35 +413,12 @@ def aim_chief_ray(opt_model, fld, wvl=None):
     return aim_pt
 
 
-def setup_pupil_coords(opt_model, fld, wvl, foc,
-                       chief_ray_pkg=None, image_pt=None):
-    if chief_ray_pkg is None:
-        aim_chief_ray(opt_model, fld, wvl=wvl)
-        chief_ray_pkg = trace_chief_ray(opt_model, fld, wvl, foc)
-    elif chief_ray_pkg[2] != wvl:
-        chief_ray_pkg = trace_chief_ray(opt_model, fld, wvl, foc)
-
-    cr, cr_exp_seg = chief_ray_pkg
-
-    if image_pt is None:
-        image_pt = cr.ray[-1][mc.p]
-
-    # cr_exp_pt: E upper bar prime: pupil center for pencils from Q
-    # cr_exp_pt, cr_b4_dir, cr_dst
-    cr_exp_pt = cr_exp_seg[mc.p]
-
-    seq_model = opt_model.seq_model
-    img_dist = seq_model.gaps[-1].thi
-    img_pt = np.array(image_pt)
-    img_pt[2] += img_dist
-
-    # R' radius of reference sphere for O'
-    ref_sphere_vec = img_pt - cr_exp_pt
-    ref_sphere_radius = np.linalg.norm(ref_sphere_vec)
-    ref_dir = normalize(ref_sphere_vec)
-
-    ref_sphere = image_pt, ref_dir, ref_sphere_radius
-
+def setup_pupil_coords(opt_model, fld, wvl, foc, image_pt=None):
+    chief_ray_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
+    image_pt_2d = None if image_pt is None else image_pt[:2]
+    ref_sphere = setup_exit_pupil_coords(opt_model, fld, wvl, foc,
+                                         chief_ray_pkg,
+                                         image_pt_2d=image_pt_2d)
     return ref_sphere, chief_ray_pkg
 
 

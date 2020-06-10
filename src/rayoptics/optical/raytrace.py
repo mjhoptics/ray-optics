@@ -13,6 +13,8 @@ from numpy.linalg import norm
 from math import sqrt, copysign
 
 import rayoptics.optical.model_constants as mc
+from rayoptics.optical.transform import (transform_before_surface,
+                                         transform_after_surface)
 from rayoptics.optical.model_constants import Intfc, Gap, Indx, Tfrm, Zdir
 from .traceerror import (TraceMissedSurfaceError, TraceTIRError,
                          TraceEvanescentRayError)
@@ -76,10 +78,13 @@ def trace(seq_model, pt0, dir0, wvl, **kwargs):
         - **wvl** - wavelength (in nm) that the ray was traced in
     """
     path = seq_model.path(wvl)
+    kwargs['first_surf'] = kwargs.get('first_surf', 1)
+    kwargs['last_surf'] = kwargs.get('last_surf',
+                                     seq_model.get_num_surfaces()-2)
     return trace_raw(path, pt0, dir0, wvl, **kwargs)
 
 
-def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12):
+def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, **kwargs):
     """ fundamental raytrace function
 
     Args:
@@ -99,8 +104,7 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12):
 
             - pt: the intersection point of the ray
             - after_dir: the ray direction cosine following the interface
-            - after_dst: after_dst: the geometric distance to the next
-              interface
+            - after_dst: the geometric distance to the next interface
             - normal: the surface normal at the intersection point
 
         - **op_delta** - optical path wrt equally inclined chords to the
@@ -109,6 +113,21 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12):
     """
     ray = []
     eic = []
+
+    print_details = kwargs.get('print_details', False)
+
+    first_surf = kwargs.get('first_surf', 0)
+    last_surf = kwargs.get('last_surf', None)
+
+    def in_surface_range(s, include_last_surf=False):
+        if first_surf == last_surf:
+            return False
+        if s < first_surf:
+            return False
+        if last_surf is None:
+            return True
+        else:
+            return s <= last_surf if include_last_surf else s < last_surf
 
     # trace object surface
     obj = next(path)
@@ -123,6 +142,8 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12):
     z_dir_before = before[Zdir]
 
     op_delta = 0.0
+    opl = 0.0
+    opl_eic = 0.0
     surf = 0
     # loop of remaining surfaces in path
     while True:
@@ -144,10 +165,13 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12):
             dst_b4 = pp_dst + pp_dst_intrsct
             ray.append([before_pt, before_dir, dst_b4, before_normal])
 
+            if in_surface_range(surf):
+                opl += before[Indx] * dst_b4
+
             normal = ifc.normal(inc_pt)
 
-            eic_dst_before = ((inc_pt.dot(b4_dir) + z_dir_before*inc_pt[2]) /
-                              (1.0 + z_dir_before*b4_dir[2]))
+            eic_dst_before = eic_distance_from_axis((inc_pt, b4_dir),
+                                                    z_dir_before)
 
             # if the interface has a phase element, process that first
             if hasattr(ifc, 'phase_element'):
@@ -166,8 +190,8 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12):
             else:  # no action, input becomes output
                 after_dir = b4_dir
 
-            eic_dst_after = ((inc_pt.dot(after_dir) + z_dir_after*inc_pt[2]) /
-                             (1.0 + z_dir_after*after_dir[2]))
+            eic_dst_after = eic_distance_from_axis((inc_pt, after_dir),
+                                                   z_dir_after)
 
             surf += 1
 
@@ -179,12 +203,17 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12):
             dW = after[Indx]*eic_dst_after - before[Indx]*eic_dst_before
             eic.append([before[Indx], eic_dst_before,
                         after[Indx], eic_dst_after, dW])
+            if in_surface_range(surf, include_last_surf=True):
+                opl_eic += dW
 
-#            print("after:", surf, inc_pt, after_dir)
-#            print("e{}= {:12.5g} e{}'= {:12.5g} dW={:10.8g} n={:8.5g}"
-#                  " n'={:8.5g} zdirb4={:2.0f} zdiraftr={:2.0f}"
-#                  .format(surf, eic_dst_before, surf, eic_dst_after, dW,
-#                          before[Indx], after[Indx], z_dir_before, z_dir_after))
+            if print_details:
+                print("after:", surf, inc_pt, after_dir)
+                print("e{}= {:12.5g} e{}'= {:12.5g} dW={:10.8g} n={:8.5g}"
+                      " n'={:8.5g} zdb4={:2.0f} zdaft={:2.0f}"
+                      .format(surf, eic_dst_before, surf, eic_dst_after, dW,
+                              before[Indx], after[Indx],
+                              z_dir_before, z_dir_after))
+
             before_pt = inc_pt
             before_normal = normal
             before_dir = after_dir
@@ -218,9 +247,7 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12):
 
         except StopIteration:
             ray.append([inc_pt, after_dir, 0.0, normal])
-            if len(eic) > 1:
-                P, P1k, Ps = calc_path_length(eic, offset=1)
-                op_delta += P
+            op_delta += opl
             break
 
     return ray, op_delta, wvl
@@ -236,13 +263,19 @@ def calc_path_length(eic, offset=0):
     Returns:
         float: path length
     """
-    P1k = -eic[1-offset][2]*eic[1-offset][3] + eic[-2][0]*eic[-2][1]
-    Ps = 0.
-    for i in range(2-offset, len(eic)-2):
-        Ps -= eic[i][4]
-#        Ps -= eic[i][2]*eic[i][3] - eic[i][0]*eic[i][1]
-    P = P1k + Ps
-    return P, P1k, Ps
+    num_ifcs = len(eic)
+    # path calc needs at least 2 interfaces, plus object and image
+    if num_ifcs + offset > 3:
+        # eq 3.18/3.19
+        P1k = -eic[1-offset][2]*eic[1-offset][3] + eic[-2][0]*eic[-2][1]
+        Ps = 0.
+        for i in range(2-offset, num_ifcs-2):
+            Ps -= eic[i][4]
+            # Ps -= eic[i][2]*eic[i][3] - eic[i][0]*eic[i][1]
+        P = P1k + Ps
+        return P, P1k, Ps
+    else:
+        return 0., 0., 0.
 
 
 def eic_distance(r, r0):
@@ -258,8 +291,215 @@ def eic_distance(r, r0):
         float: distance along r from equally inclined chord point to p
     """
     # eq 3.9
-    e = (np.dot(r[1] + r0[1], r[0] - r0[0]) / (1. + np.dot(r[1], r0[1])))
+    e = (np.dot(r[mc.d] + r0[mc.d], r[mc.p] - r0[mc.p]) /
+         (1. + np.dot(r[mc.d], r0[mc.d])))
     return e
+
+
+def eic_distance_from_axis(r, z_dir):
+    """ calculate equally inclined chord distance between a ray and the axis
+
+    Args:
+        r: (p, d), where p is a point on the ray r and d is the direction
+           cosine of r
+        z_dir: direction of propagation of ray segment, +1 or -1
+
+    Returns:
+        float: distance along r from equally inclined chord point to p
+    """
+    # eq 3.20/3.21
+    e = ((np.dot(r[mc.p], r[mc.d]) + z_dir*r[mc.p][2]) /
+         (1.0 + z_dir*r[mc.d][2]))
+    return e
+
+
+def transfer_to_exit_pupil(interface, ray_seg, exp_dst_parax):
+    """Given the exiting interface and chief ray data, return exit pupil ray coords.
+
+    Args:
+        interface: the exiting :class:'~.Interface' for the path sequence
+        ray_seg: ray segment exiting from **interface**
+        exp_dst_parax: z distance to the paraxial exit pupil
+
+    Returns:
+        (**exp_pt**, **exp_dir**, **exp_dst**)
+
+        - **exp_pt** - ray intersection with exit pupil plane
+        - **exp_dir** - direction cosine of the ray in exit pupil space
+        - **exp_dst** - distance from interface to exit pupil pt
+    """
+    b4_pt, b4_dir = transform_after_surface(interface, ray_seg)
+
+    # h = b4_pt[0]**2 + b4_pt[1]**2
+    # u = b4_dir[0]**2 + b4_dir[1]**2
+    # handle field points in the YZ plane
+    h = b4_pt[1]
+    u = b4_dir[1]
+    if abs(u) < 1e-14:
+        exp_dst = exp_dst_parax
+    else:
+        # exp_dst = -np.sign(b4_dir[2])*sqrt(h/u)
+        exp_dst = -h/u
+
+    exp_pt = b4_pt + exp_dst*b4_dir
+    exp_dir = b4_dir
+
+    return exp_pt, exp_dir, exp_dst, interface, b4_pt, b4_dir
+
+
+def calc_optical_path(ray, path):
+    """ computes equally inclined chords and path info for ray
+
+    Args:
+        ray: ray data for traced ray
+        path: an iterator containing interfaces and gaps to be traced.
+              for each iteration, the sequence or generator should return a
+              list containing: **Intfc, Gap, Trfm, Index, Z_Dir**
+
+    Returns:
+        **ray_op**
+
+        - **ray_op** - the optical path between the first and last optical
+          surfaces
+    """
+    num_items = len(ray)
+    ray_seq_iter = zip(ray, path)
+    next(ray_seq_iter)
+    ray_op = 0
+    for i in range(1, num_items-2):
+        after_ray_seg, surf = next(ray_seq_iter)
+
+        n_after = surf[Indx]
+        dist = after_ray_seg[mc.dst]
+        ray_op += n_after*dist
+
+    return ray_op
+
+
+def calc_delta_op_via_eic(ray, path):
+    """ computes equally inclined chords and path info for ray
+
+    Args:
+        ray: ray data for traced ray
+        path: an iterator containing interfaces and gaps to be traced.
+              for each iteration, the sequence or generator should return a
+              list containing: **Intfc, Gap, Trfm, Index, Z_Dir**
+
+    Returns:
+        (**eic**, **op_delta**)
+
+        - **eic** - list of [n_before, eic_dst_before, n_after, eic_dst_after,
+          dW]
+        - **op_delta** - optical path wrt equally inclined chords to the
+          optical axis
+    """
+    eic = []
+
+    ray_seq_iter = zip(ray, path)
+    before = next(ray_seq_iter)
+    before_ray_seg, obj_surf = before
+
+    z_dir_before = obj_surf[Zdir]
+    n_before = obj_surf[Indx]
+
+    before_dir = before_ray_seg[mc.d]
+
+    for i, item in enumerate(ray_seq_iter):
+        after_ray_seg, surf = item
+
+        inc_pt = after_ray_seg[mc.p]
+        after_dir = after_ray_seg[mc.d]
+
+        b4_pt, b4_dir = transform_before_surface(surf[Intfc],
+                                                 (inc_pt, before_dir))
+        e = eic_distance_from_axis((b4_pt, before_dir), z_dir_before)
+
+        z_dir_after = surf[Zdir]
+        aft_pt, aft_dir = transform_after_surface(surf[Intfc],
+                                                  (inc_pt, after_dir))
+        ep = eic_distance_from_axis((aft_pt, aft_dir), z_dir_after)
+
+        # eic_dst_before = ((inc_pt.dot(b4_dir) + z_dir_before*inc_pt[2]) /
+        #                   (1.0 + z_dir_before*b4_dir[2]))
+
+        # Per `Hopkins, 1981 <https://dx.doi.org/10.1080/713820605>`_, the
+        #  propagation direction is given by the direction cosines of the ray
+        #  and therefore doesn't require the use of a negated refractive index
+        #  following a reflection. Thus we use the (positive) refractive indices
+        #  from the seq_model.rndx array.
+        n_after = surf[Indx]
+        dW = n_after*ep - n_before*e
+
+        eic.append([n_before, e, n_after, ep, dW])
+        print("e{}= {:12.5g} e{}'= {:12.5g} dW={:10.8g} n={:8.5g}"
+              " n'={:8.5g}".format(i, e, i, ep, dW, n_before, n_after))
+
+        n_before = n_after
+        before_dir = after_dir
+        z_dir_before = z_dir_after
+
+    P, P1k, Ps = calc_path_length(eic, offset=1)
+    return eic, P, P1k, Ps
+
+
+def eic_path_accumulation(ray, rndx, lcl_tfrms, z_dir):
+    """ computes equally inclined chords and path info for ray
+
+    Args:
+        ray: ray data for traced ray
+        rndx: refractive index array
+        lcl_tfrms: local surface interface transformation data
+        z_dir: z direction array
+
+    Returns:
+        (**eic**, **op_delta**)
+
+        - **eic** - list of [n_before, eic_dst_before, n_after, eic_dst_after,
+          dW]
+        - **op_delta** - optical path wrt equally inclined chords to the
+          optical axis
+    """
+    eic = []
+
+    z_dir_before = z_dir[0]
+    n_before = rndx[0]
+
+    before_dir = ray[0][1]
+
+    for i, r in enumerate(ray):
+        rotT, _ = lcl_tfrms[i]
+        b4_dir = rotT.dot(before_dir)
+
+        z_dir_after = z_dir[i]
+
+        inc_pt = ray[i][0]
+        eic_dst_before = ((inc_pt.dot(b4_dir) + z_dir_before*inc_pt[2]) /
+                          (1.0 + z_dir_before*b4_dir[2]))
+
+        after_dir = ray[i][1]
+        eic_dst_after = ((inc_pt.dot(after_dir) + z_dir_after*inc_pt[2]) /
+                         (1.0 + z_dir_after*after_dir[2]))
+
+        # Per `Hopkins, 1981 <https://dx.doi.org/10.1080/713820605>`_, the
+        #  propagation direction is given by the direction cosines of the ray
+        #  and therefore doesn't require the use of a negated refractive index
+        #  following a reflection. Thus we use the (positive) refractive indices
+        #  from the seq_model.rndx array.
+        n_after = rndx[i]
+        dW = n_after*eic_dst_after - n_before*eic_dst_before
+
+        eic.append([n_before, eic_dst_before, n_after, eic_dst_after, dW])
+        print("e{}= {:12.5g} e{}'= {:12.5g} dW={:10.8g} n={:8.5g}"
+              " n'={:8.5g}".format(i, eic_dst_before,
+                                   i, eic_dst_after,
+                                   dW, n_before, n_after))
+
+        n_before = n_after
+        before_dir = after_dir
+        z_dir_before = z_dir_after
+
+    P, P1k, Ps = calc_path_length(eic)
+    return eic, P
 
 
 def wave_abr(fld, wvl, foc, ray_pkg):
@@ -290,6 +530,10 @@ def wave_abr(fld, wvl, foc, ray_pkg):
 
 
 def wave_abr_real_coord(fld, wvl, foc, ray_pkg):
+    """ computes optical path difference (OPD) for ray_pkg at fld and wvl
+
+.. deprecated:: 0.4.9
+    """
     ref_sphere, parax_data, n_obj, n_img, z_dir = fld.ref_sphere
     image_pt, cr_exp_pt, cr_exp_dist, ref_dir, ref_sphere_radius = ref_sphere
     chief_ray, chief_ray_op, wvl = fld.chief_ray[0]
@@ -317,6 +561,10 @@ def wave_abr_real_coord(fld, wvl, foc, ray_pkg):
 
 
 def wave_abr_HHH(fld, wvl, foc, ray_pkg):
+    """ computes optical path difference (OPD) for ray_pkg at fld and wvl
+
+.. deprecated:: 0.4.9
+    """
     ref_sphere, parax_data, n_obj, n_img, z_dir = fld.ref_sphere
     image_pt, cr_exp_pt, ref_dir, ref_sphere_radius = ref_sphere
     chief_ray, chief_ray_op, wvl = fld.chief_ray
@@ -427,100 +675,40 @@ def wave_abr_HHH(fld, wvl, foc, ray_pkg):
     return opd, e1, ekp, ep
 
 
-def transfer_to_exit_pupil(interface, ray_seg, exp_dst_parax):
-    """Given the exiting interface and chief ray data, return exit pupil ray coords.
+# def transfer_to_exit_pupil(interface, ray_seg, exp_dst_parax):
+#     """Given the exiting interface and chief ray data, return exit pupil ray coords.
 
-    Args:
-        interface: the exiting :class:'~.Interface' for the path sequence
-        ray_seg: ray segment exiting from **interface**
-        exp_dst_parax: z distance to the paraxial exit pupil
+#     Args:
+#         interface: the exiting :class:'~.Interface' for the path sequence
+#         ray_seg: ray segment exiting from **interface**
+#         exp_dst_parax: z distance to the paraxial exit pupil
 
-    Returns:
-        (**exp_pt**, **exp_dir**, **exp_dst**)
+#     Returns:
+#         (**exp_pt**, **exp_dir**, **exp_dst**)
 
-        - **exp_pt** - ray intersection with exit pupil plane
-        - **exp_dir** - direction cosine of the ray in exit pupil space
-        - **exp_dst** - distance from interface to exit pupil pt
-    """
-    if interface.decenter:
-        # get transformation info after surf
-        r, t = interface.decenter.tform_after_surf()
-        if r is None:
-            b4_pt, b4_dir = (ray_seg[0] - t), ray_seg[1]
-        else:
-            rt = r.transpose()
-            b4_pt, b4_dir = rt.dot(ray_seg[0] - t), rt.dot(ray_seg[1])
-    else:
-        b4_pt, b4_dir = ray_seg[0], ray_seg[1]
+#         - **exp_pt** - ray intersection with exit pupil plane
+#         - **exp_dir** - direction cosine of the ray in exit pupil space
+#         - **exp_dst** - distance from interface to exit pupil pt
+#     """
+#     if interface.decenter:
+#         # get transformation info after surf
+#         r, t = interface.decenter.tform_after_surf()
+#         if r is None:
+#             b4_pt, b4_dir = (ray_seg[0] - t), ray_seg[1]
+#         else:
+#             rt = r.transpose()
+#             b4_pt, b4_dir = rt.dot(ray_seg[0] - t), rt.dot(ray_seg[1])
+#     else:
+#         b4_pt, b4_dir = ray_seg[0], ray_seg[1]
 
-    h = b4_pt[0]**2 + b4_pt[1]**2
-    u = b4_dir[0]**2 + b4_dir[1]**2
-    if u == 0.0:
-        exp_dst = exp_dst_parax
-    else:
-        exp_dst = -sqrt(h/u)
+#     h = b4_pt[0]**2 + b4_pt[1]**2
+#     u = b4_dir[0]**2 + b4_dir[1]**2
+#     if u == 0.0:
+#         exp_dst = exp_dst_parax
+#     else:
+#         exp_dst = -sqrt(h/u)
 
-    exp_pt = b4_pt + exp_dst*b4_dir
-    exp_dir = b4_dir
+#     exp_pt = b4_pt + exp_dst*b4_dir
+#     exp_dir = b4_dir
 
-    return exp_pt, exp_dir, exp_dst
-
-
-def eic_path_accumulation(ray, rndx, lcl_tfrms, z_dir):
-    """ computes equally inclined chords and path info for ray
-
-    Args:
-        ray: ray data for traced ray
-        rndx: refractive index array
-        lcl_tfrms: local surface interface transformation data
-        z_dir: z direction array
-
-    Returns:
-        (**eic**, **op_delta**)
-
-        - **eic** - list of [n_before, eic_dst_before, n_after, eic_dst_after,
-          dW]
-        - **op_delta** - optical path wrt equally inclined chords to the
-          optical axis
-    """
-    eic = []
-
-    z_dir_before = z_dir[0]
-    n_before = rndx[0]
-
-    before_dir = ray[0][1]
-
-    for i, r in enumerate(ray):
-        rotT, _ = lcl_tfrms[i]
-        b4_dir = rotT.dot(before_dir)
-
-        z_dir_after = z_dir[i]
-
-        inc_pt = ray[i][0]
-        eic_dst_before = ((inc_pt.dot(b4_dir) + z_dir_before*inc_pt[2]) /
-                          (1.0 + z_dir_before*b4_dir[2]))
-
-        after_dir = ray[i][1]
-        eic_dst_after = ((inc_pt.dot(after_dir) + z_dir_after*inc_pt[2]) /
-                         (1.0 + z_dir_after*after_dir[2]))
-
-        # Per `Hopkins, 1981 <https://dx.doi.org/10.1080/713820605>`_, the
-        #  propagation direction is given by the direction cosines of the ray
-        #  and therefore doesn't require the use of a negated refractive index
-        #  following a reflection. Thus we use the (positive) refractive indices
-        #  from the seq_model.rndx array.
-        n_after = rndx[i]
-        dW = n_after*eic_dst_after - n_before*eic_dst_before
-
-        eic.append([n_before, eic_dst_before, n_after, eic_dst_after, dW])
-        print("e{}= {:12.5g} e{}'= {:12.5g} dW={:10.8g} n={:8.5g}"
-              " n'={:8.5g}".format(i, eic_dst_before,
-                                   i, eic_dst_after,
-                                   dW, n_before, n_after))
-
-        n_before = n_after
-        before_dir = after_dir
-        z_dir_before = z_dir_after
-
-    P, P1k, Ps = calc_path_length(eic)
-    return eic, P
+#     return exp_pt, exp_dir, exp_dst

@@ -471,12 +471,15 @@ class SequentialModel:
         fld = osp.field_of_view.fields[fi]
         wvl = self.central_wavelength()
         foc = osp.defocus.get_focus()
-#        trace.setup_canonical_coords(self, fld, wvl)
+
         rs_pkg, cr_pkg = trace.setup_pupil_coords(self.opt_model,
                                                   fld, wvl, foc)
         fld.chief_ray = cr_pkg
         fld.ref_sphere = rs_pkg
-        img_pt = cr_pkg[0].ray[-1][0]
+
+        # Use the chief ray intersection point for the central wavelength
+        #  as the reference image point for wavefront error calculations
+        ref_img_pt = cr_pkg[0].ray[-1][0]
 
         wvls = osp.spectral_region
         fans_x = []
@@ -493,7 +496,7 @@ class SequentialModel:
 
             rs_pkg, cr_pkg = trace.setup_pupil_coords(self.opt_model,
                                                       fld, wvl, foc,
-                                                      image_pt=img_pt)
+                                                      image_pt=ref_img_pt)
             fld.chief_ray = cr_pkg
             fld.ref_sphere = rs_pkg
             fan = trace.trace_fan(self.opt_model, fan_def, fld, wvl, foc,

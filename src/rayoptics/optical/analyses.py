@@ -23,6 +23,7 @@ import rayoptics.optical.model_constants as mc
 
 from rayoptics.optical import sampler
 from rayoptics.optical.raytrace import eic_distance
+from rayoptics.optical.transform import transform_after_surface
 from rayoptics.optical import trace
 
 
@@ -125,7 +126,7 @@ def wave_abr_full_calc(fod, fld, wvl, foc, ray_pkg, chief_ray_pkg, ref_sphere):
     image_pt, ref_dir, ref_sphere_radius = ref_sphere
     cr, cr_exp_seg = chief_ray_pkg
     chief_ray, chief_ray_op, wvl = cr
-    cr_exp_pt, cr_exp_dir, cr_exp_dist = cr_exp_seg
+    cr_exp_pt, cr_exp_dir, cr_exp_dist, ifc, cr_b4_pt, cr_b4_dir = cr_exp_seg
 
     ray, ray_op, wvl = ray_pkg
 
@@ -138,17 +139,22 @@ def wave_abr_full_calc(fod, fld, wvl, foc, ray_pkg, chief_ray_pkg, ref_sphere):
     ekp = eic_distance((ray[k][mc.p], ray[k][mc.d]),
                        (chief_ray[k][mc.p], chief_ray[k][mc.d]))
 
+    b4_pt, b4_dir = transform_after_surface(ifc, (ray[k][mc.p], ray[k][mc.d]))
     dst = ekp - cr_exp_dist
-
-    eic_exp_pt = ray[k][mc.p] - dst*ray[k][mc.d]
+    eic_exp_pt = b4_pt - dst*b4_dir
     p_coord = eic_exp_pt - cr_exp_pt
-    F = ref_dir.dot(ray[k][mc.d]) - ray[k][mc.d].dot(p_coord)/ref_sphere_radius
+
+    F = ref_dir.dot(b4_dir) - b4_dir.dot(p_coord)/ref_sphere_radius
     J = p_coord.dot(p_coord)/ref_sphere_radius - 2.0*ref_dir.dot(p_coord)
-    ep = J/(F + sqrt(F**2 + J/ref_sphere_radius))
+
+    sign_soln = -1 if ref_dir[2]*cr.ray[-1][mc.d][2] < 0 else 1
+    denom = F + sign_soln*sqrt(F**2 + J/ref_sphere_radius)
+    ep = 0 if denom == 0 else J/denom
 
     n_obj = abs(fod.n_obj)
     n_img = abs(fod.n_img)
     opd = -n_obj*e1 - ray_op + n_img*ekp + chief_ray_op - n_img*ep
+
     return opd
 
 
@@ -156,7 +162,7 @@ def wave_abr_pre_calc(fod, fld, wvl, foc, ray_pkg, chief_ray_pkg):
     """Pre-calculate the part of the OPD calc independent of focus."""
     cr, cr_exp_seg = chief_ray_pkg
     chief_ray, chief_ray_op, wvl = cr
-    cr_exp_pt, cr_exp_dir, cr_exp_dist = cr_exp_seg
+    cr_exp_pt, cr_exp_dir, cr_exp_dist, ifc, cr_b4_pt, cr_b4_dir = cr_exp_seg
 
     ray, ray_op, wvl = ray_pkg
 
@@ -171,28 +177,31 @@ def wave_abr_pre_calc(fod, fld, wvl, foc, ray_pkg, chief_ray_pkg):
 
     pre_opd = -abs(fod.n_obj)*e1 - ray_op + abs(fod.n_img)*ekp + chief_ray_op
 
+    b4_pt, b4_dir = transform_after_surface(ifc, (ray[k][mc.p], ray[k][mc.d]))
     dst = ekp - cr_exp_dist
-    eic_exp_pt = ray[k][mc.p] - dst*ray[k][mc.d]
+    eic_exp_pt = b4_pt - dst*b4_dir
     p_coord = eic_exp_pt - cr_exp_pt
 
-    return pre_opd, p_coord
+    return pre_opd, p_coord, b4_pt, b4_dir
 
 
-def wave_abr_calc(fod, fld, wvl, foc, ray_pkg, pre_opd_pkg, ref_sphere):
+def wave_abr_calc(fod, fld, wvl, foc, ray_pkg, chief_ray_pkg,
+                  pre_opd_pkg, ref_sphere):
     """Given pre-calculated info and a ref. sphere, return the ray's OPD."""
+    cr, cr_exp_seg = chief_ray_pkg
     image_pt, ref_dir, ref_sphere_radius = ref_sphere
-    pre_opd, p_coord = pre_opd_pkg
+    pre_opd, p_coord, b4_pt, b4_dir = pre_opd_pkg
     ray, ray_op, wvl = ray_pkg
 
-    k = -2  # last interface in sequence
-
-    F = ref_dir.dot(ray[k][mc.d]) - ray[k][mc.d].dot(p_coord)/ref_sphere_radius
+    F = ref_dir.dot(b4_dir) - b4_dir.dot(p_coord)/ref_sphere_radius
     J = p_coord.dot(p_coord)/ref_sphere_radius - 2.0*ref_dir.dot(p_coord)
-    ep = J/(F + sqrt(F**2 + J/ref_sphere_radius))
+
+    sign_soln = -1 if ref_dir[2]*cr.ray[-1][mc.d][2] < 0 else 1
+    denom = F + sign_soln*sqrt(F**2 + J/ref_sphere_radius)
+    ep = 0 if denom == 0 else J/denom
 
     opd = pre_opd - abs(fod.n_img)*ep
     return opd
-
 
 
 class Ray():
@@ -271,7 +280,7 @@ class RayFan():
 
         self.foc = osp.defocus.focus_shift if foc is None else foc
         self.image_pt_2d = image_pt_2d if image_pt_2d is not None  \
-            else np.array([0., 0.])
+            else None
 
         self.num_rays = num_rays
 
@@ -428,7 +437,7 @@ def focus_fan(opt_model, fan_pkg, fld, wvl, foc, image_pt_2d=None):
             t_abr = defocused_pt - image_pt
 
             opdelta = wave_abr_calc(fod, fld, wvl, foc,
-                                    ray_pkg, fiu, ref_sphere)
+                                    ray_pkg, cr_pkg, fiu, ref_sphere)
             opd = convert_to_opd*opdelta
             return (pupil_x, pupil_y), (t_abr[0], t_abr[1], opd)
         else:
@@ -744,7 +753,7 @@ def focus_wavefront(opt_model, grid_pkg, fld, wvl, foc, image_pt_2d=None,
         pupil_x, pupil_y, ray_pkg = gij
         if ray_pkg is not None:
             opdelta = wave_abr_calc(fod, fld, wvl, foc,
-                                    ray_pkg, uij, ref_sphere)
+                                    ray_pkg, cr_pkg, uij, ref_sphere)
             opd = convert_to_opd*opdelta
             return pupil_x, pupil_y, opd
         else:

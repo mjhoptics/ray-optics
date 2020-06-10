@@ -83,3 +83,57 @@ def transfer_coords(r_seg, t_seg, pt_s1, dir_s1):
     """ take p and d in s1 coords of seg and transfer them to s2 coords """
     rt = r_seg.transpose()
     return rt.dot(pt_s1 - t_seg), rt.dot(dir_s1)
+
+
+def transform_before_surface(interface, ray_seg):
+    """Transform ray_seg from interface to previous seg.
+
+    Args:
+        interface: the :class:'~.Interface' for the path sequence
+        ray_seg: ray segment exiting from **interface**
+
+    Returns:
+        (**b4_pt**, **b4_dir**)
+
+        - **b4_pt** - ray intersection pt wrt following seg
+        - **b4_dir** - ray direction cosine wrt following seg
+    """
+    if interface.decenter:
+        # get transformation info after surf
+        r, t = interface.decenter.tform_before_surf()
+        if r is None:
+            b4_pt, b4_dir = (ray_seg[0] - t), ray_seg[1]
+        else:
+            rt = r.transpose()
+            b4_pt, b4_dir = rt.dot(ray_seg[0] - t), rt.dot(ray_seg[1])
+    else:
+        b4_pt, b4_dir = ray_seg[0], ray_seg[1]
+
+    return b4_pt, b4_dir
+
+
+def transform_after_surface(interface, ray_seg):
+    """Transform ray_seg from interface to following seg.
+
+    Args:
+        interface: the :class:'~.Interface' for the path sequence
+        ray_seg: ray segment exiting from **interface**
+
+    Returns:
+        (**b4_pt**, **b4_dir**)
+
+        - **b4_pt** - ray intersection pt wrt following seg
+        - **b4_dir** - ray direction cosine wrt following seg
+    """
+    if interface.decenter:
+        # get transformation info after surf
+        r, t = interface.decenter.tform_after_surf()
+        if r is None:
+            b4_pt, b4_dir = (ray_seg[0] - t), ray_seg[1]
+        else:
+            rt = r.transpose()
+            b4_pt, b4_dir = rt.dot(ray_seg[0] - t), rt.dot(ray_seg[1])
+    else:
+        b4_pt, b4_dir = ray_seg[0], ray_seg[1]
+
+    return b4_pt, b4_dir
