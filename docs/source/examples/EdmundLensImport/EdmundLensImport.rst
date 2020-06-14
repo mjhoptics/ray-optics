@@ -132,12 +132,25 @@ This is done using the :mod:`.axisarrayfigure` module.
 .. image:: output_15_0.png
 
 
-The model in the CODE V seq file only had 1 wavelength defined. Use the :class:`~.opticalspec.OpticalSpecs` instance, ``osp``, to modify the :attr:`~.opticalspec.OpticalSpecs.spectral_region` in the optical subpackage to add wavelengths in the red and blue
+The model in the CODE V seq file only had 1 wavelength defined. Use the :class:`~.opticalspec.OpticalSpecs` instance, ``osp``, to modify the :attr:`~.opticalspec.OpticalSpecs.spectral_region` in the optical subpackage to add wavelengths in the red and blue. The wavelenghts can be specified directly in nm or by using spectral line designations, as done here.
 
 .. code:: ipython3
 
-    osp.spectral_region.set_from_list([[656., 1], [587., 2], [488., 1]])
+    osp.spectral_region.set_from_list([['F', 1], ['d', 2], ['C', 1]])
     osp.spectral_region.reference_wvl = 1
+
+.. code:: ipython3
+
+    osp.spectral_region.wavelengths
+
+
+
+
+.. parsed-literal::
+
+    [486.1327, 587.5618, 656.2725]
+
+
 
 After changing the wavelengths, update the optical model using :meth:`~.OpticalModel.update_model` to ensure all of the data is consistent.
 The :class:`~.opticalmodel.OpticalModel` class is in the opticalmodel module in the optical subpackage
@@ -150,13 +163,12 @@ The aberration plot can be updated by calling :meth:`~.axisarrayfigure.AxisArray
 
 .. code:: ipython3
 
-    abr_plt.update_data()
-    abr_plt.plot()
+    abr_plt.refresh()
 
 
 
 
-.. image:: output_21_0.png
+.. image:: output_22_0.png
 
 
 

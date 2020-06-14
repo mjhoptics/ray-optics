@@ -70,13 +70,29 @@ Draw a lens picture
 
 .. code:: ipython3
 
-    is_dark = False
+    isdark = False
     layout_plt = plt.figure(FigureClass=InteractiveLayout, opt_model=opm, do_draw_rays=True, do_paraxial_layout=False,
-                            is_dark=is_dark).plot()
+                            is_dark=isdark).plot()
 
 
 
 .. image:: output_13_0.png
+
+
+.. code:: ipython3
+
+    opm.ele_model.list_elements()
+
+
+.. parsed-literal::
+
+    0: E1 (Element): Element: Spherical(c=0.042170961076202926), Spherical(c=0.00013640168003221264), t=4.8310, sd=10.0087, glass: N-LAK9
+    1: AirGap E1-E2 (AirGap): Gap(t=5.86, medium=Air)
+    2: E2 (Element): Element: Spherical(c=-0.04088976120379457), Spherical(c=0.04567044208987943), t=0.9750, sd=4.7919, glass: N-SF5
+    3: AirGap E2-E3 (AirGap): Gap(t=4.822, medium=Air)
+    4: E3 (Element): Element: Spherical(c=0.011526181721781025), Spherical(c=-0.04879429301948844), t=3.1270, sd=8.3321, glass: N-LAK9
+    5: AirGap E3-Image (AirGap): Gap(t=41.2365, medium=Air)
+    6: Image (DummyInterface): Surface(lbl='Img', profile=Spherical(c=0.0), interact_mode=transmit)
 
 
 Draw a |ybar| diagram
@@ -85,11 +101,11 @@ Draw a |ybar| diagram
 .. code:: ipython3
 
     yybar_plt = plt.figure(FigureClass=InteractiveDiagram, opt_model=opm, dgm_type='ht',
-                           do_draw_axes=True, do_draw_frame=True).plot()
+                           do_draw_axes=True, do_draw_frame=True, is_dark=isdark).plot()
 
 
 
-.. image:: output_15_0.png
+.. image:: output_16_0.png
 
 
 Plot the transverse ray aberrations
@@ -97,11 +113,11 @@ Plot the transverse ray aberrations
 
 .. code:: ipython3
 
-    abr_plt = plt.figure(FigureClass=RayFanFigure, opt_model=opm, data_type='Ray', scale_type=Fit.All_Same).plot()
+    abr_plt = plt.figure(FigureClass=RayFanFigure, opt_model=opm, data_type='Ray', scale_type=Fit.All_Same, is_dark=isdark).plot()
 
 
 
-.. image:: output_17_0.png
+.. image:: output_18_0.png
 
 
 Plot the wavefront aberration
@@ -109,11 +125,11 @@ Plot the wavefront aberration
 
 .. code:: ipython3
 
-    wav_plt = plt.figure(FigureClass=RayFanFigure, opt_model=opm, data_type='OPD', scale_type=Fit.All_Same).plot()
+    wav_plt = plt.figure(FigureClass=RayFanFigure, opt_model=opm, data_type='OPD', scale_type=Fit.All_Same, is_dark=isdark).plot()
 
 
 
-.. image:: output_19_0.png
+.. image:: output_20_0.png
 
 
 List the optical specifications
@@ -309,7 +325,7 @@ Bar chart for surface by surface third order aberrations
 
 
 
-.. image:: output_27_0.png
+.. image:: output_28_0.png
 
 
 convert aberration sums to transverse measure
