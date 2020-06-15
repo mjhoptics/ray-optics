@@ -10,7 +10,7 @@
 
 
 import numpy as np
-from rayoptics.optical.surface import Interface
+from rayoptics.optical.interface import Interface
 from rayoptics.optical.doe import HolographicElement
 
 

@@ -30,6 +30,7 @@ from enum import Enum, auto
 from math import sqrt
 import numpy as np
 
+from . import interface
 from . import profiles
 import transforms3d as t3d
 from .model_enums import DecenterType as dec
@@ -42,70 +43,7 @@ class InteractionMode(Enum):
     Reflect = auto()   #: propagate in reflection at this interface
 
 
-class Interface:
-    def __init__(self, interact_mode='transmit', delta_n=0.0,
-                 max_ap=1.0, decenter=None, phase_element=None, **kwargs):
-        self.interact_mode = interact_mode
-        self.delta_n = delta_n
-        self.decenter = decenter
-        self.max_aperture = max_ap
-        if phase_element is not None:
-            self.phase_element = phase_element
-
-    def update(self):
-        if self.decenter is not None:
-            self.decenter.update()
-
-    def interface_type(self):
-        return type(self).__name__
-
-    def sync_to_restore(self, opt_model):
-        if not hasattr(self, 'max_aperture'):
-            self.max_aperture = 1.0
-        if hasattr(self, 'interact_mode'):
-            if isinstance(self.interact_mode, InteractionMode):
-                if self.interact_mode == InteractionMode.Reflect:
-                    self.interact_mode = 'reflect'
-                elif self.interact_mode == InteractionMode.Transmit:
-                    self.interact_mode = 'transmit'
-        if hasattr(self, 'refract_mode'):  # really old models
-            if self.refract_mode == 'REFL':
-                self.interact_mode = 'reflect'
-            else:
-                self.interact_mode = 'transmit'
-            delattr(self, 'refract_mode')
-
-    @property
-    def profile_cv(self):
-        return 0.0
-
-    def set_optical_power(self, pwr, n_before, n_after):
-        pass
-
-    def surface_od(self):
-        pass
-
-    def set_max_aperture(self, max_ap):
-        """ max_ap is the max aperture radius """
-        self.max_aperture = max_ap
-
-    def intersect(self, p0, d, eps=1.0e-12):
-        pass
-
-    def normal(self, p):
-        pass
-
-    def phase(self, pt, d_in, normal, wl):
-        if hasattr(self, 'phase_element'):
-            return self.phase_element.phase(pt, d_in, normal, wl=wl)
-
-    def apply_scale_factor(self, scale_factor):
-        self.max_aperture *= scale_factor
-        if self.decenter:
-            self.decenter.apply_scale_factor(scale_factor)
-
-
-class Surface(Interface):
+class Surface(interface.Interface):
     """ Container of profile, extent, position and orientation. """
 
     def __init__(self, lbl='', profile=None,

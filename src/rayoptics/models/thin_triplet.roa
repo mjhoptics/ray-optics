@@ -103,15 +103,7 @@
         "Surface"
        ],
        "attributes":{
-        "interact_mode":{
-         "__enum__":{
-          "__enum_instance_type__":[
-           "rayoptics.optical.surface",
-           "InteractionMode"
-          ],
-          "name":"Transmit"
-         }
-        },
+        "interact_mode":"transmit",
         "delta_n":0.0,
         "decenter":null,
         "max_aperture":3.999999999999995,
@@ -135,15 +127,7 @@
         "ThinLens"
        ],
        "attributes":{
-        "interact_mode":{
-         "__enum__":{
-          "__enum_instance_type__":[
-           "rayoptics.optical.surface",
-           "InteractionMode"
-          ],
-          "name":"Transmit"
-         }
-        },
+        "interact_mode":"transmit",
         "delta_n":0.0,
         "decenter":null,
         "max_aperture":2.871798669933031,
@@ -193,15 +177,7 @@
         "ThinLens"
        ],
        "attributes":{
-        "interact_mode":{
-         "__enum__":{
-          "__enum_instance_type__":[
-           "rayoptics.optical.surface",
-           "InteractionMode"
-          ],
-          "name":"Transmit"
-         }
-        },
+        "interact_mode":"transmit",
         "delta_n":0.0,
         "decenter":null,
         "max_aperture":1.8750000000000047,
@@ -252,15 +228,7 @@
         "ThinLens"
        ],
        "attributes":{
-        "interact_mode":{
-         "__enum__":{
-          "__enum_instance_type__":[
-           "rayoptics.optical.surface",
-           "InteractionMode"
-          ],
-          "name":"Transmit"
-         }
-        },
+        "interact_mode":"transmit",
         "delta_n":0.0,
         "decenter":null,
         "max_aperture":2.6405067787214582,
@@ -310,15 +278,7 @@
         "Surface"
        ],
        "attributes":{
-        "interact_mode":{
-         "__enum__":{
-          "__enum_instance_type__":[
-           "rayoptics.optical.surface",
-           "InteractionMode"
-          ],
-          "name":"Transmit"
-         }
-        },
+        "interact_mode":"transmit",
         "delta_n":0.0,
         "decenter":null,
         "max_aperture":2.3083798887486635,
@@ -438,7 +398,7 @@
         1.0
        ],
        "render_colors":[
-        "black"
+        "#859900"
        ],
        "reference_wvl":0,
        "coating_wvl":550.0
@@ -627,7 +587,8 @@
          }
         ],
         "intrfc_indx":1,
-        "sd":2.871798669933031
+        "sd":2.871798669933031,
+        "medium_name":"Thin Element"
        }
       },
       {
@@ -674,8 +635,15 @@
           ]
          }
         ],
-        "label":"AirGap",
-        "idx":1
+        "label":"AirGap ThinLens-ThinLens",
+        "idx":1,
+        "render_color":[
+         237,
+         243,
+         254,
+         64
+        ],
+        "medium_name":"air"
        }
       },
       {
@@ -729,7 +697,8 @@
          }
         ],
         "intrfc_indx":2,
-        "sd":1.8750000000000047
+        "sd":1.8750000000000047,
+        "medium_name":"Thin Element"
        }
       },
       {
@@ -776,8 +745,15 @@
           ]
          }
         ],
-        "label":"AirGap ThinLens-Image",
-        "idx":2
+        "label":"AirGap ThinLens-ThinLens",
+        "idx":2,
+        "render_color":[
+         237,
+         243,
+         254,
+         64
+        ],
+        "medium_name":"air"
        }
       },
       {
@@ -831,7 +807,8 @@
          }
         ],
         "intrfc_indx":3,
-        "sd":2.6405067787214582
+        "sd":2.6405067787214582,
+        "medium_name":"Thin Element"
        }
       },
       {
@@ -878,8 +855,15 @@
           ]
          }
         ],
-        "label":"AirGap",
-        "idx":3
+        "label":"AirGap ThinLens-Image",
+        "idx":3,
+        "render_color":[
+         237,
+         243,
+         254,
+         64
+        ],
+        "medium_name":"air"
        }
       },
       {
@@ -895,10 +879,107 @@
          192
         ],
         "idx":4,
-        "sd":2.3083798887486635
+        "sd":2.3083798887486635,
+        "medium_name":"Interface"
        }
       }
      ]
+    }
+   },
+   "ro_version":"0.4.10+19.g297127b.dirty",
+   "parax_model":{
+    "__instance_type__":[
+     "rayoptics.optical.paraxialdesign",
+     "ParaxialModel"
+    ],
+    "attributes":{
+     "sys":[
+      [
+       0.0,
+       17.22446549861915,
+       1.0,
+       "transmit"
+      ],
+      [
+       0.10727388132580616,
+       2.6240096208262673,
+       1.0,
+       "transmit"
+      ],
+      [
+       -0.10762616513404909,
+       2.2316779852858017,
+       1.0,
+       "transmit"
+      ],
+      [
+       0.165559719024223,
+       8.355466008028896,
+       1.0,
+       "transmit"
+      ],
+      [
+       0.0,
+       0.0,
+       1.0,
+       "transmit"
+      ]
+     ],
+     "ax":[
+      [
+       0.0,
+       0.12500000000000017,
+       0.12500000000000017
+      ],
+      [
+       2.1530581873273964,
+       -0.10596690847491427,
+       0.12500000000000017
+      ],
+      [
+       1.8750000000000049,
+       0.09583215115142829,
+       -0.10596690847491427
+      ],
+      [
+       2.088866502007229,
+       -0.2500000000000001,
+       0.09583215115142829
+      ],
+      [
+       3.9968028886505635e-15,
+       -0.2500000000000001,
+       -0.2500000000000001
+      ]
+     ],
+     "pr":[
+      [
+       -3.999999999999995,
+       0.19160328089005535,
+       0.19160328089005535
+      ],
+      [
+       -0.699735898887003,
+       0.266666666666666,
+       0.19160328089005535
+      ],
+      [
+       -2.220446049250313e-16,
+       0.266666666666666,
+       0.266666666666666
+      ],
+      [
+       0.5951141294095454,
+       0.16813973861427656,
+       0.266666666666666
+      ],
+      [
+       1.999999999999997,
+       0.16813973861427656,
+       0.16813973861427656
+      ]
+     ],
+     "opt_inv":0.5
     }
    }
   }

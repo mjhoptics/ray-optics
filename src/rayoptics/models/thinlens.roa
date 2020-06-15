@@ -66,11 +66,6 @@
         "pupil":2.5
        }
       }
-     },
-     "partitions":{
-      "imager":2,
-      "field":1,
-      "aperture":1
      }
     }
    },
@@ -108,15 +103,7 @@
         "Surface"
        ],
        "attributes":{
-        "interact_mode":{
-         "__enum__":{
-          "__enum_instance_type__":[
-           "rayoptics.optical.surface",
-           "InteractionMode"
-          ],
-          "name":"Transmit"
-         }
-        },
+        "interact_mode":"transmit",
         "delta_n":0.0,
         "decenter":null,
         "max_aperture":4.0,
@@ -140,15 +127,7 @@
         "ThinLens"
        ],
        "attributes":{
-        "interact_mode":{
-         "__enum__":{
-          "__enum_instance_type__":[
-           "rayoptics.optical.surface",
-           "InteractionMode"
-          ],
-          "name":"Transmit"
-         }
-        },
+        "interact_mode":"transmit",
         "delta_n":0.0,
         "decenter":null,
         "max_aperture":1.8750000000000004,
@@ -199,15 +178,7 @@
         "Surface"
        ],
        "attributes":{
-        "interact_mode":{
-         "__enum__":{
-          "__enum_instance_type__":[
-           "rayoptics.optical.surface",
-           "InteractionMode"
-          ],
-          "name":"Transmit"
-         }
-        },
+        "interact_mode":"transmit",
         "delta_n":0.0,
         "decenter":null,
         "max_aperture":2.356545495066522,
@@ -289,7 +260,7 @@
         1.0
        ],
        "render_colors":[
-        "black"
+        "#859900"
        ],
        "reference_wvl":0,
        "coating_wvl":550.0
@@ -391,7 +362,7 @@
           "aim_pt":{
            "__ndarray__":[
             0.0,
-            5.921189464626202e-17
+            -5.921189464680147e-17
            ],
            "dtype":"float64",
            "shape":[
@@ -478,7 +449,8 @@
          }
         ],
         "intrfc_indx":1,
-        "sd":1.8750000000000004
+        "sd":1.8750000000000004,
+        "medium_name":"Thin Element"
        }
       },
       {
@@ -525,8 +497,15 @@
           ]
          }
         ],
-        "label":"AirGap",
-        "idx":1
+        "label":"AirGap ThinLens-Image",
+        "idx":1,
+        "render_color":[
+         237,
+         243,
+         254,
+         64
+        ],
+        "medium_name":"air"
        }
       },
       {
@@ -542,10 +521,75 @@
          192
         ],
         "idx":2,
-        "sd":2.356545495066522
+        "sd":2.356545495066522,
+        "medium_name":"Interface"
        }
       }
      ]
+    }
+   },
+   "ro_version":"0.4.10+19.g297127b.dirty",
+   "parax_model":{
+    "__instance_type__":[
+     "rayoptics.optical.paraxialdesign",
+     "ParaxialModel"
+    ],
+    "attributes":{
+     "sys":[
+      [
+       0.0,
+       15.0,
+       1.0,
+       "transmit"
+      ],
+      [
+       0.2,
+       7.5,
+       1.0,
+       "transmit"
+      ],
+      [
+       0.0,
+       0.0,
+       1.0,
+       "transmit"
+      ]
+     ],
+     "ax":[
+      [
+       0.0,
+       0.125,
+       0.125
+      ],
+      [
+       1.875,
+       -0.25,
+       0.125
+      ],
+      [
+       0.0,
+       -0.25,
+       -0.25
+      ]
+     ],
+     "pr":[
+      [
+       -4.0,
+       0.26666666666666666,
+       0.26666666666666666
+      ],
+      [
+       0.0,
+       0.26666666666666666,
+       0.26666666666666666
+      ],
+      [
+       2.0,
+       0.26666666666666666,
+       0.26666666666666666
+      ]
+     ],
+     "opt_inv":0.5
     }
    }
   }
