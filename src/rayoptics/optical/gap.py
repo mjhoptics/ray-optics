@@ -23,7 +23,12 @@ class Gap:
     common axis. The Gap structure implements this case in the simplest manner.
     More complicated transformations between surfaces are implemented using
     transformations associated with the surfaces themselves.
+
+    Attributes:
+        thi: the length (along z) of the gap
+        medium: a :class:`~optical.medium.Medium` or a catalog glass instance
     """
+
     def __init__(self, t=0.0, med=m.Air()):
         self.thi = t
         self.medium = med

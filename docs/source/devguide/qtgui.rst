@@ -6,7 +6,7 @@ Qt application
 Qt5 app version of rayoptics
 ----------------------------
 
-    The :mod:`rayoptics.qtgui` subpackage provides a desktop app, :obj:`rayopticsapp`. It provides an integration of rayoptics with the Qt GUI toolkit. Capabilities include:
+    The :mod:`~rayoptics.qtgui` subpackage provides a desktop app, :obj:`rayopticsapp`. It provides an integration of rayoptics with the Qt GUI toolkit. Capabilities include:
 
         - an interface that hosts matplotlib graphics
         - a table grid for numeric model displays (template-based)

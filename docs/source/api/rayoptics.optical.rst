@@ -65,6 +65,14 @@ rayoptics.optical.idealimager module
    :undoc-members:
    :show-inheritance:
 
+rayoptics.optical.interface module
+----------------------------------
+
+.. automodule:: rayoptics.optical.interface
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 rayoptics.optical.medium module
 -------------------------------
 

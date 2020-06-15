@@ -473,12 +473,11 @@ def eic_path_accumulation(ray, rndx, lcl_tfrms, z_dir):
         z_dir_after = z_dir[i]
 
         inc_pt = ray[i][0]
-        eic_dst_before = ((inc_pt.dot(b4_dir) + z_dir_before*inc_pt[2]) /
-                          (1.0 + z_dir_before*b4_dir[2]))
+        eic_dst_before = eic_distance_from_axis((inc_pt, b4_dir), z_dir_before)
 
         after_dir = ray[i][1]
-        eic_dst_after = ((inc_pt.dot(after_dir) + z_dir_after*inc_pt[2]) /
-                         (1.0 + z_dir_after*after_dir[2]))
+        eic_dst_after = eic_distance_from_axis((inc_pt, after_dir),
+                                               z_dir_after)
 
         # Per `Hopkins, 1981 <https://dx.doi.org/10.1080/713820605>`_, the
         #  propagation direction is given by the direction cosines of the ray
@@ -505,8 +504,6 @@ def eic_path_accumulation(ray, rndx, lcl_tfrms, z_dir):
 def wave_abr(fld, wvl, foc, ray_pkg):
     """ computes optical path difference (OPD) for ray_pkg at fld and wvl
 
-.. deprecated:: 0.4.9
-
     The main references for the calculations are in the H. H. Hopkins paper
     `Calculation of the Aberrations and Image Assessment for a General Optical
     System <https://doi.org/10.1080/713820605>`_
@@ -524,6 +521,8 @@ def wave_abr(fld, wvl, foc, ray_pkg):
         - **e1** - eic in object space, prior to first interface
         - **ekp** - eic in image space, following final interface
         - **ep** - eic to reference sphere intersection
+
+.. deprecated:: 0.4.9
     """
     return wave_abr_real_coord(fld, wvl, foc, ray_pkg)
 #    return wave_abr_HHH(fld.ref_sphere_pkg, fld.chief_ray_pkg, ray_pkg)
