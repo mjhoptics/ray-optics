@@ -35,7 +35,7 @@ def apply_style(is_dark):
         style_path = styles_dir / 'Solarize_Dark.mplstyle'
         style.use(str(style_path))
     else:
-        style_path = styles_dir / 'Solarize_Light.mplstyle'
+        style_path = styles_dir / 'Solarize_Light_Blue.mplstyle'
         style.use(str(style_path))
 
 
