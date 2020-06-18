@@ -6,6 +6,8 @@
 .. Created on Sat Jun 30 10:15:37 2018
 
 .. codeauthor: Michael J. Hayford
+
+.. deprecated:: 0.4.5
 """
 
 from matplotlib.figure import Figure

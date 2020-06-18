@@ -8,7 +8,6 @@
 .. codeauthor: Michael J. Hayford
 """
 
-from collections import namedtuple
 import numpy as np
 
 from rayoptics.optical.model_constants import ht, slp, aoi
@@ -23,26 +22,6 @@ def bbox_from_poly(poly):
     minx, miny = np.min(poly, axis=0)
     maxx, maxy = np.max(poly, axis=0)
     return np.array([[minx, miny], [maxx, maxy]])
-
-
-ParaxData = namedtuple('ParaxData', ['ht', 'slp', 'aoi'])
-""" paraxial ray data at an interface
-
-    Attributes:
-        ht: height at interface
-        slp: n*slope
-        aoi: n*angle of incidence
-"""
-
-ParaxSys = namedtuple('ParaxSys', ['pwr', 'tau', 'indx', 'rmd'])
-""" paraxial lens data at an interface
-
-    Attributes:
-        pwr: power
-        tau: reduced distance, t/n
-        indx: refractive index (n)
-        rmd: refract mode
-"""
 
 
 class ParaxialModel():

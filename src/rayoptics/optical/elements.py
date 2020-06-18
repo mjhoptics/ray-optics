@@ -22,8 +22,6 @@ from rayoptics.optical.gap import Gap
 import rayoptics.gui.appcmds as cmds
 from rayoptics.gui.actions import Action, AttrAction, SagAction, BendAction
 from rayoptics.optical.medium import Glass, glass_decode
-from rayoptics.optical.model_enums import DecenterType
-import rayoptics.optical.model_constants as mc
 import opticalglass.glasspolygons as gp
 
 GraphicsHandle = namedtuple('GraphicsHandle', ['polydata', 'tfrm', 'polytype'])

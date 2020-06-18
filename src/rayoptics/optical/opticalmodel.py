@@ -15,7 +15,6 @@ import rayoptics
 from rayoptics.optical import elements
 import rayoptics.optical.model_constants as mc
 
-from rayoptics.optical.elements import ElementModel
 from rayoptics.optical.paraxialdesign import ParaxialModel
 from rayoptics.optical.sequential import SequentialModel
 from rayoptics.optical.opticalspec import OpticalSpecs
@@ -82,7 +81,7 @@ class OpticalModel:
         self.seq_model = SequentialModel(self)
         self.optical_spec = OpticalSpecs(self)
         self.parax_model = ParaxialModel(self)
-        self.ele_model = ElementModel(self)
+        self.ele_model = elements.ElementModel(self)
 
         if self.specsheet:
             self.set_from_specsheet()

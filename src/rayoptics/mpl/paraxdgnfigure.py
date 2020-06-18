@@ -6,9 +6,9 @@
 .. Created on Mon Apr  2 19:20:27 2018
 
 .. codeauthor: Michael J. Hayford
-"""
 
-from collections import namedtuple
+.. deprecated:: 0.4.5
+"""
 
 import numpy as np
 from matplotlib.figure import Figure
@@ -18,15 +18,6 @@ from rayoptics.optical.elements import (create_thinlens, create_mirror,
                                         create_lens)
 
 from rayoptics.util.misc_math import distance_sqr_2d, perpendicular_distance_2d
-
-
-SelectInfo = namedtuple('SelectInfo', ['artist', 'info'])
-""" tuple grouping together an artist and info returned from contains(event)
-
-    Attributes:
-        artist: the artist
-        info: a dictionary of artist specific details of selection
-"""
 
 
 def create_parax_design_commands(fig):

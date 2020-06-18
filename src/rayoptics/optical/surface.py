@@ -38,7 +38,12 @@ from rayoptics.optical.traceerror import TraceError
 
 
 class InteractionMode(Enum):
-    """ enum for different interact_mode specifications """
+    """ enum for different interact_mode specifications
+
+    Retained to restore old files
+
+    .. deprecated:: 0.4.5
+    """
     Transmit = auto()  #: propagate in transmission at this interface
     Reflect = auto()   #: propagate in reflection at this interface
 

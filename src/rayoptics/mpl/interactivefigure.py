@@ -41,8 +41,15 @@ def display_artist_and_event(callback_str, event, artist):
 
 
 class InteractiveFigure(StyledFigure):
-    """ Editable version of optical system layout, aka Live Layout
+    """Base class for domain specific figures with support for input events
 
+    The **InteractiveFigure** class supplies common implementations for:
+        
+        - polyline and polygon 2D graphics
+        - selection support for mpl graphic objects
+        - mouse/touch event handling
+        - interface commands for zooming and panning the display area
+        
     Attributes:
         opt_model: parent optical model
         do_draw_frame: if True, draw frame around the figure
@@ -376,6 +383,7 @@ class InteractiveFigure(StyledFigure):
             self.ax.grid(False)
 
     def plot(self):
+        """Draw the actual figure."""
         try:
             self.ax.cla()
         except AttributeError:
@@ -408,6 +416,7 @@ class InteractiveFigure(StyledFigure):
         return self
 
     def find_artists_at_location(self, event):
+        """Returns a list of shapes in zorder at the event location."""
         artists = []
         for artist in self.ax.get_children():
             if hasattr(artist, 'shape'):
@@ -429,6 +438,11 @@ class InteractiveFigure(StyledFigure):
                       reverse=True)
 
     def do_shape_action(self, event, target, event_key):
+        """Execute the target shape's action for the event_key.
+        
+        This is the default function that the do_action callable attribute is
+        initialized to.
+        """
         if target is not None:
             shape, handle = target.artist.shape
             try:

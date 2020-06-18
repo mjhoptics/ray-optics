@@ -57,22 +57,6 @@ rayoptics.mpl.interactivelayout module
    :undoc-members:
    :show-inheritance:
 
-rayoptics.mpl.lenslayoutfigure module
--------------------------------------
-
-.. automodule:: rayoptics.mpl.lenslayoutfigure
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-rayoptics.mpl.paraxdgnfigure module
------------------------------------
-
-.. automodule:: rayoptics.mpl.paraxdgnfigure
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 rayoptics.mpl.styledfigure module
 ---------------------------------
 
