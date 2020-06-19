@@ -74,7 +74,7 @@ class MainWindow(QMainWindow):
         view_menu.addAction("Optical Layout")
         view_menu.addAction("Lens Table")
         view_menu.addAction("Element Table")
-        view_menu.addAction("Lens View")
+        # view_menu.addAction("Lens View")
         view_menu.triggered[QAction].connect(self.view_action)
 
         parax_menu = bar.addMenu("Paraxial Model")
@@ -251,9 +251,9 @@ class MainWindow(QMainWindow):
         if q.text() == "Optical Layout":
             cmds.create_live_layout_view(opt_model, gui_parent=self)
 
-        if q.text() == "Lens View":
-            cmds.create_lens_layout_view(opt_model, gui_parent=self)
-#            self.create_2D_lens_view()
+#         if q.text() == "Lens View":
+#             cmds.create_lens_layout_view(opt_model, gui_parent=self)
+# #            self.create_2D_lens_view()
 
         if q.text() == "Lens Table":
             self.create_lens_table()
