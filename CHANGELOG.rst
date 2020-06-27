@@ -2,6 +2,11 @@
 Changelog
 =========
 
+Version 0.4.11
+==============
+
+Add single field monochromatic PSF calc and display. Add dashboards for jupyter notebook usage for refocusing, etc. Revisions to app manager protocols for wider usage, esp. including matplotlib Figures. Use brute force OPD calc instead of equally inclined chords until eic behavior with decentered systems is fixed.
+
 Version 0.4.10
 ==============
 
