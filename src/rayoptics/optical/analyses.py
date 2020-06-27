@@ -293,6 +293,12 @@ class RayFan():
 
         self.update_data()
 
+    def __json_encode__(self):
+        attrs = dict(vars(self))
+        del attrs['opt_model']
+        del attrs['fan_pkg']
+        return attrs
+
     def update_data(self, **kwargs):
         """Set the fan attribute to a list of (pupil coords), dx, dy, opd."""
         build = kwargs.get('build', 'rebuild')
@@ -496,6 +502,14 @@ class RayList():
 
         self.update_data()
 
+    def __json_encode__(self):
+        attrs = dict(vars(self))
+        del attrs['opt_model']
+        del attrs['pupil_gen']
+        del attrs['pupil_coords']
+        del attrs['ray_list']
+        return attrs
+
     def update_data(self, **kwargs):
         build = kwargs.get('build', 'rebuild')
         if build == 'rebuild':
@@ -628,6 +642,12 @@ class RayGrid():
         self.value_if_none = value_if_none
 
         self.update_data()
+
+    def __json_encode__(self):
+        attrs = dict(vars(self))
+        del attrs['opt_model']
+        del attrs['grid_pkg']
+        return attrs
 
     def update_data(self, **kwargs):
         build = kwargs.get('build', 'rebuild')
