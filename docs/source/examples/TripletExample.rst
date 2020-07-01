@@ -10,6 +10,10 @@ This triplet design, used in Jose Sasian's `Lens Design OPTI 517 <https://wp.opt
 
     %matplotlib inline
 
+.. code:: ipython3
+
+    isdark = False
+
 Setup the rayoptics environment
 -------------------------------
 
@@ -34,11 +38,34 @@ Create a new :class:`~opticalmodel.OpticalModel` instance and set up some conven
 Define first order aperture and field for system
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+The pupil and field specifications can be specified in a variety of
+ways. The ``key`` keyword argument takes a list of 2 strings. The first
+string indicates whether the specification is in object or image space.
+The second one indicates which parameter is the defining specification.
+
+The PupilSpec can be defined in object or image space. The defining
+parameters can be ``pupil``, ``f/#`` or ``NA``, where ``pupil`` is the
+pupil diameter.
+
 .. code:: ipython3
 
     osp.pupil = PupilSpec(osp, key=['object', 'pupil'], value=12.5)
+
+The FieldSpec can be defined in object or image space. The defining
+parameters can be ``height`` or ``angle``, where ``angle`` is given in
+degrees.
+
+.. code:: ipython3
+
     osp.field_of_view = FieldSpec(osp, key=['object', 'angle'], flds=[0., 20.0])
-    osp.spectral_region = WvlSpec([(486.1327, 0.5), (587.5618, 1.0), (656.2725, 0.5)], ref_wl=1)
+
+The WvlSpec defines the wavelengths and weights to use when evaluating
+the model. The wavelength values can be given in either nanometers or a
+spectral line designation.
+
+.. code:: ipython3
+
+    osp.spectral_region = WvlSpec([('F', 0.5), (587.5618, 1.0), ('C', 0.5)], ref_wl=1)
 
 Define interface and gap data for the sequential model
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -70,13 +97,12 @@ Draw a lens picture
 
 .. code:: ipython3
 
-    isdark = False
     layout_plt = plt.figure(FigureClass=InteractiveLayout, opt_model=opm, do_draw_rays=True, do_paraxial_layout=False,
                             is_dark=isdark).plot()
 
 
 
-.. image:: output_13_0.png
+.. image:: output_19_0.png
 
 
 .. code:: ipython3
@@ -105,7 +131,7 @@ Draw a |ybar| diagram
 
 
 
-.. image:: output_16_0.png
+.. image:: output_22_0.png
 
 
 Plot the transverse ray aberrations
@@ -117,7 +143,7 @@ Plot the transverse ray aberrations
 
 
 
-.. image:: output_18_0.png
+.. image:: output_24_0.png
 
 
 Plot the wavefront aberration
@@ -129,7 +155,7 @@ Plot the wavefront aberration
 
 
 
-.. image:: output_20_0.png
+.. image:: output_26_0.png
 
 
 List the optical specifications
@@ -325,7 +351,7 @@ Bar chart for surface by surface third order aberrations
 
 
 
-.. image:: output_28_0.png
+.. image:: output_34_0.png
 
 
 convert aberration sums to transverse measure
@@ -400,3 +426,4 @@ Save the model
 .. code:: ipython3
 
     opm.save_model('Sasian Triplet')
+
