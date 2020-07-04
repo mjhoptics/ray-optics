@@ -28,6 +28,17 @@ from rayoptics.optical.elements import (create_thinlens, create_mirror,
                                         create_lens, create_from_file,
                                         AirGap)
 
+dgm_lw = {
+    'data': 2,
+    'data_hilite': 3,
+    'line': 0.5,
+    'hilite': 2,
+    'guide': 1,
+    'edge': 0.5,
+    'node': 6,
+    'node_hilite': 8,
+    }
+
 
 def light_or_dark(is_dark=True):
     accent = colors.accent_colors(is_dark)
@@ -296,14 +307,18 @@ class DiagramNode():
         self.actions = self.handle_actions()
 
     def update_shape(self, view):
-        node_color = rgb2mpl([138, 43, 226])  # blueviolet
         sys = self.diagram.opt_model.parax_model.sys
         shape = self.diagram.shape
         dgm_rgb = self.diagram.dgm_rgb
+        hilite_kwargs = {
+            'color': dgm_rgb['node'],
+            'markersize': dgm_lw['node_hilite'],
+            }
         self.handles['shape'] = (shape[self.node], 'vertex',
                                  {'linestyle': '',
-                                  'linewidth': 3,
-                                  'marker': 's',
+                                  'linewidth': dgm_lw['data'],
+                                  'marker': 'o',
+                                  'markersize': dgm_lw['node'],
                                   'picker': 6,
                                   'color': dgm_rgb['node'],
                                   'hilite': dgm_rgb['hilite'],
@@ -314,17 +329,15 @@ class DiagramNode():
                                            sys[self.node][rmd])
             if slide_pts is not None:
                 seg = [*slide_pts]
-                f_color = rgb2mpl([138, 43, 226, 127])  # blueviolet
-                h_color = rgb2mpl([138, 43, 226, 255])  # blueviolet
 
                 hilite_kwargs = {
                     'color': dgm_rgb['slide'],
-                    'linewidth': 3,
+                    'linewidth': dgm_lw['guide'],
                     'linestyle': '-'
                     }
                 self.handles['slide'] = (seg, 'polyline',
                                          {'linestyle': '--',
-                                          'linewidth': 3,
+                                          'linewidth': dgm_lw['guide'],
                                           'picker': 6,
                                           'color': dgm_rgb['slide'],
                                           'hilite': hilite_kwargs,
@@ -362,7 +375,8 @@ class DiagramEdge():
         edge_poly = shape[self.node:self.node+2]
         self.handles['shape'] = (edge_poly, 'polyline',
                                  {'picker': 6,
-                                  'linewidth': 3,
+                                  'linewidth': dgm_lw['data'],
+                                  'hilite_linewidth': dgm_lw['data_hilite'],
                                   'color': dgm_rgb['edge'],
                                   'hilite': dgm_rgb['hilite'],
                                   'zorder': 2.})
@@ -418,7 +432,7 @@ class BarrelConstraint():
         diamond = np.array(diamond)
         self.handles['shape'] = (diamond, 'polyline',
                                  {'color': dgm_rgb['barrel'],
-                                  'linewidth': 2,
+                                  'linewidth': dgm_lw['guide'],
                                   'zorder': 1.})
         square = []
         square.append([ barrel_radius,  barrel_radius])
@@ -429,7 +443,7 @@ class BarrelConstraint():
         square = np.array(square)
         self.handles['square'] = (square, 'polyline',
                                   {'color': dgm_rgb['barrel'],
-                                   'linewidth': 2,
+                                   'linewidth': dgm_lw['guide'],
                                    'zorder': 1.})
 
         return view.create_patches(self.handles)
@@ -484,7 +498,7 @@ class ConjugateLine():
                 conj_line.append([wid, -self.k*wid])
             self.handles['conj_line'] = (conj_line, 'polyline',
                                          {'color': dgm_rgb['conj_line'],
-                                          'linewidth': 2,
+                                          'linewidth': dgm_lw['guide'],
                                           'zorder': 1.})
             self.handles['shift'] = (self.shape_orig, 'polyline',
                                      {'color': dgm_rgb['shift'],

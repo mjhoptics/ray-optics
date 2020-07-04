@@ -111,7 +111,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Ray Optics")
         self.show()
 
-        if True:
+        if False:
             # create new model
             self.new_model()
 
@@ -341,16 +341,20 @@ class MainWindow(QMainWindow):
             self.refresh_gui()
 
         def handle_context_menu(point):
-            row = vheader.logicalIndexAt(point.y())
-            # show menu about the row
-            menu = QMenu(self)
-            if row != seq_model.stop_surface:
-                menu.addAction('Set Stop Surface',
-                               lambda: set_stop_surface(row))
-            if seq_model.stop_surface is not None:
-                menu.addAction('Float Stop Surface',
-                               lambda: set_stop_surface(None))
-            menu.popup(vheader.mapToGlobal(point))
+            try:
+                row = vheader.logicalIndexAt(point.y())
+            except NameError:
+                pass
+            else:
+                # show menu about the row
+                menu = QMenu(self)
+                if row != seq_model.stop_surface:
+                    menu.addAction('Set Stop Surface',
+                                   lambda: set_stop_surface(row))
+                if seq_model.stop_surface is not None:
+                    menu.addAction('Float Stop Surface',
+                                   lambda: set_stop_surface(None))
+                menu.popup(vheader.mapToGlobal(point))
 
         model = cmds.create_lens_table_model(seq_model)
         view = self.create_table_view(model, "Surface Data Table")

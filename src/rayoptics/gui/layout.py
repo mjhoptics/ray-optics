@@ -30,6 +30,32 @@ from rayoptics.optical.elements import (create_thinlens, create_mirror,
 import rayoptics.optical.model_constants as mc
 from rayoptics.util.rgb2mpl import rgb2mpl
 import rayoptics.gui.appcmds as cmds
+from rayoptics.util import colors
+
+
+def light_or_dark(is_dark=True):
+    accent = colors.accent_colors(is_dark)
+    fb = colors.foreground_background(is_dark)
+    rgb = {
+        'profile': fb['foreground'],
+        'edge': fb['foreground'],
+        'ct': accent['blue'],
+        'ray': fb['foreground'],
+        'rayfan_fill': [254, 197, 254, 64],  # magenta, 25%
+        'ax_ray': rgb2mpl([138,  43, 226]),  # blueviolet
+        'pr_ray': rgb2mpl([198, 113, 113]),  # sgi salmon
+        }
+    return {**rgb, **accent, **fb}
+
+
+lo_rgb = {}
+
+lo_lw = {
+    'line': 1,
+    'hilite': 2,
+    'guide': 1.0,
+    'edge': 0.5,
+    }
 
 
 def setup_shift_of_ray_bundle(seq_model, start_offset):
@@ -105,12 +131,19 @@ class OpticalElement():
                                         fill_color=self.render_color(),
                                         zorder=2.5)
             elif graphics_handle.polytype == 'polyline':
+                hilite_kwargs = {
+                    'color': lo_rgb['profile'],
+                    'linewidth': lo_lw['hilite'],
+                    'linestyle': '-'
+                    }
                 priority = 2.
-                hc = 'red'
+
                 if key == 'ct':
                     priority = 3.
-                    hc = 'blue'
-                p = view.create_polyline(poly_gbl, hilite=hc, zorder=priority)
+                    hilite_kwargs['color'] = lo_rgb['ct']
+                p = view.create_polyline(poly_gbl,
+                                         hilite=hilite_kwargs,
+                                         zorder=priority)
             else:
                 break
             self.handles[key] = GUIHandle(p, bbox)
@@ -240,7 +273,6 @@ class RayBundle():
         return poly1, bbox
 
     def update_shape(self, view):
-        rndr_clr = [254, 197, 254, 64]  # magenta, 25%
         wvl = self.opt_model.optical_spec.spectral_region.central_wvl
         self.wvl = wvl
         rayset = trace_boundary_rays_at_field(self.opt_model,
@@ -274,16 +306,22 @@ class RayBundle():
         finally:
             tfrms[0] = tfrtm0
 
-        p = view.create_polygon(poly, fill_color=rndr_clr)
+        p = view.create_polygon(poly, fill_color=lo_rgb['rayfan_fill'])
         self.handles['shape'] = GUIHandle(p, bbox)
 
-        cr_poly = view.create_polyline(cr)
+        kwargs = {
+            'linewidth': lo_lw['line'],
+            'color': lo_rgb['ray'],
+            'hilite_linewidth': lo_lw['hilite'],
+            'hilite': lo_rgb['ray'],
+            }
+        cr_poly = view.create_polyline(cr, **kwargs)
         self.handles['00'] = GUIHandle(cr_poly, bbox_from_poly(cr))
 
-        upr_poly = view.create_polyline(upr)
+        upr_poly = view.create_polyline(upr, **kwargs)
         self.handles['+Y'] = GUIHandle(upr_poly, bbox_from_poly(upr))
 
-        lwr_poly = view.create_polyline(lwr)
+        lwr_poly = view.create_polyline(lwr, **kwargs)
         self.handles['-Y'] = GUIHandle(lwr_poly, bbox_from_poly(lwr))
 
         return self.handles
@@ -331,9 +369,17 @@ class ParaxialRay():
 
         ray_poly = self.render_ray(self.ray, tfrms)
 
+        hilite_kwargs = {
+            'color': self.color,
+            'linewidth': lo_lw['hilite'],
+            'linestyle': '-'
+            }
         priority = 3
-        rp = view.create_polyline(ray_poly, color=self.color, linewidth=1,
-                                  hilite=self.color, zorder=priority)
+        rp = view.create_polyline(ray_poly,
+                                  color=self.color,
+                                  linewidth=lo_lw['line'],
+                                  hilite=hilite_kwargs,
+                                  zorder=priority)
         self.handles['shape'] = GUIHandle(rp, bbox_from_poly(ray_poly))
 
         return self.handles
@@ -381,13 +427,19 @@ class ParaxialRay():
 class LensLayout():
     """ manager for live layout graphics entities """
 
-    def __init__(self, opt_model, **kwargs):
+    def __init__(self, opt_model, is_dark=True, **kwargs):
         self.opt_model = opt_model
         self.ray_table = None
+
+        light_or_dark(is_dark=is_dark)
 
         ele_model = self.opt_model.ele_model
         if len(ele_model.elements) == 0:
             ele_model.elements_from_sequence(self.opt_model.seq_model)
+
+    def sync_light_or_dark(self, is_dark):
+        global lo_rgb
+        lo_rgb = light_or_dark(is_dark)
 
     def system_length(self, ele_bbox, offset_factor=0.05):
         """ returns system length and ray start offset """
@@ -425,11 +477,12 @@ class LensLayout():
     def create_paraxial_layout(self, view):
         parax_model = self.opt_model.parax_model
 
-        ax_color = rgb2mpl([138, 43, 226])  # blueviolet
-        ax_poly = ParaxialRay(self.opt_model, parax_model.ax, color=ax_color,
+        ax_poly = ParaxialRay(self.opt_model, parax_model.ax,
+                              color=lo_rgb['ax_ray'],
                               label='axial ray')
-        pr_color = rgb2mpl([198, 113, 113])  # sgi salmon
-        pr_poly = ParaxialRay(self.opt_model, parax_model.pr, color=pr_color,
+
+        pr_poly = ParaxialRay(self.opt_model, parax_model.pr,
+                              color=lo_rgb['pr_ray'],
                               label='chief ray')
         return [ax_poly, pr_poly]
 

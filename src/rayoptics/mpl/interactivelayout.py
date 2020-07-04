@@ -34,8 +34,8 @@ class InteractiveLayout(InteractiveFigure):
                  do_paraxial_layout=True,
                  **kwargs):
         self.refresh_gui = refresh_gui
-        self.layout = LensLayout(opt_model)
-        self.linewidth = 0.5
+        is_dark = kwargs['is_dark'] if 'is_dark' in kwargs else False
+        self.layout = LensLayout(opt_model, is_dark=is_dark)
         self.do_draw_rays = do_draw_rays
         self.do_paraxial_layout = do_paraxial_layout
         self.offset_factor = offset_factor
@@ -43,6 +43,10 @@ class InteractiveLayout(InteractiveFigure):
             kwargs['do_scale_bounds'] = True
 
         super().__init__(**kwargs)
+
+    def sync_light_or_dark(self, is_dark, **kwargs):
+        self.layout.sync_light_or_dark(is_dark)
+        super().sync_light_or_dark(is_dark, **kwargs)
 
     def update_data(self, **kwargs):
         self.artists = []
