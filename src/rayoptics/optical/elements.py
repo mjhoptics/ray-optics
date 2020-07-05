@@ -921,9 +921,10 @@ class ElementModel:
                            seq_model.ifcs.index(e.reference_interface()))
         # Make sure z_dir matches the sequential model. Used to get
         # the correct substrate offset.
-        for e in self.elements:
-            if hasattr(e, 'z_dir'):
-                e.z_dir = seq_model.z_dir[e.reference_idx()]
+        if hasattr(seq_model, 'z_dir'):
+            for e in self.elements:
+                if hasattr(e, 'z_dir'):
+                    e.z_dir = seq_model.z_dir[e.reference_idx()]
 
     def relabel_airgaps(self):
         for i, e in enumerate(self.elements):
