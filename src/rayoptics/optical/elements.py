@@ -423,12 +423,19 @@ class Mirror():
             self.edge_extent = self.s.get_y_aperture_extent()
             return self.edge_extent
 
+    def substrate_offset(self):
+        thi = self.get_thi()
+        # We want to extend the mirror substrate along the same direction
+        # of the incoming ray. The mirror's z_dir is following reflection so
+        # flip the sign to get the preceding direction.
+        offset = -self.z_dir*thi
+        return offset
+
     def render_shape(self):
         poly = self.s.full_profile(self.extent(), self.flat)
         poly2 = self.s.full_profile(self.extent(), self.flat, -1)
 
-        thi = self.get_thi()
-        offset = thi*self.z_dir
+        offset = self.substrate_offset()
 
         for p in poly2:
             p[0] += offset
@@ -448,8 +455,7 @@ class Mirror():
                                                    ifcs_gbl_tfrms[self.s_indx],
                                                    'polyline')
 
-        thi = self.get_thi()
-        offset = thi*self.z_dir
+        offset = self.substrate_offset()
 
         poly_sd_upr = []
         poly_sd_upr.append(poly[-1])
@@ -913,6 +919,11 @@ class ElementModel:
         seq_model = self.opt_model.seq_model
         self.elements.sort(key=lambda e:
                            seq_model.ifcs.index(e.reference_interface()))
+        # Make sure z_dir matches the sequential model. Used to get
+        # the correct substrate offset.
+        for e in self.elements:
+            if hasattr(e, 'z_dir'):
+                e.z_dir = seq_model.z_dir[e.reference_idx()]
 
     def relabel_airgaps(self):
         for i, e in enumerate(self.elements):
