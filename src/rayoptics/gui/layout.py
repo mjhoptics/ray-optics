@@ -451,7 +451,8 @@ class LensLayout():
                 return specsheet.imager.tt, (2/3)*specsheet.imager.sp
             elif specsheet.conjugate_type == 'infinite':
                 img_dist = abs(osp.parax_data[2].img_dist)
-                return ele_length+img_dist, offset_factor*img_dist
+                estimated_length = ele_length + img_dist
+                return estimated_length, offset_factor*estimated_length
                 # return specsheet.imager.sp, offset_factor*specsheet.imager.sp
         else:
             img_dist = abs(osp.parax_data[2].img_dist)

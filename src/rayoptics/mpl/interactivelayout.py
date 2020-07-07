@@ -30,8 +30,8 @@ class InteractiveLayout(InteractiveFigure):
 
     def __init__(self, opt_model, refresh_gui=None,
                  offset_factor=0.05,
-                 do_draw_rays=False,
-                 do_paraxial_layout=True,
+                 do_draw_rays=True,
+                 do_paraxial_layout=False,
                  **kwargs):
         self.refresh_gui = refresh_gui
         is_dark = kwargs['is_dark'] if 'is_dark' in kwargs else False
@@ -39,8 +39,6 @@ class InteractiveLayout(InteractiveFigure):
         self.do_draw_rays = do_draw_rays
         self.do_paraxial_layout = do_paraxial_layout
         self.offset_factor = offset_factor
-        if 'do_scale_bounds' not in kwargs:
-            kwargs['do_scale_bounds'] = True
 
         super().__init__(**kwargs)
 
