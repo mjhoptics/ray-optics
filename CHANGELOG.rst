@@ -2,6 +2,11 @@
 Changelog
 =========
 
+Version 0.4.12
+==============
+
+Misc bug fixes and improvements: draw mirror substrates consistently, old .roa files should be resaved. Consolidate InteractiveFigure color and lw control in dicts, and retrofit layout usage to match diagrams. 
+
 Version 0.4.11
 ==============
 
