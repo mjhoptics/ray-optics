@@ -5,7 +5,7 @@
    "OpticalModel"
   ],
   "attributes":{
-   "ro_version":"0.4.9",
+   "ro_version":"0.4.12a1",
    "radius_mode":false,
    "specsheet":{
     "__instance_type__":[
@@ -507,7 +507,7 @@
          64
         ],
         "s_indx":1,
-        "z_dir":1.0,
+        "z_dir":-1.0,
         "sd":3.7885288958259684,
         "flat":null,
         "thi":null,

@@ -5,7 +5,7 @@
    "OpticalModel"
   ],
   "attributes":{
-   "ro_version":"0.4.9",
+   "ro_version":"0.4.12a1",
    "radius_mode":true,
    "specsheet":{
     "__instance_type__":[
@@ -57,8 +57,8 @@
       "aperture":{
        "object":{
         "pupil":12.5,
-        "NA":-0.12403231826540931,
-        "f/#":4.000079143194913
+        "NA":0,
+        "f/#":0
        },
        "image":{
         "f/#":-4.000079143194913,
@@ -452,9 +452,9 @@
         0.5
        ],
        "render_colors":[
-        "#dc322f",
+        "#268bd2",
         "#859900",
-        "#268bd2"
+        "#dc322f"
        ],
        "reference_wvl":1,
        "coating_wvl":550.0

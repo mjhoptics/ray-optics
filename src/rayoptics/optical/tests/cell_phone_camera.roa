@@ -5,7 +5,7 @@
    "OpticalModel"
   ],
   "attributes":{
-   "ro_version":"0.4.9",
+   "ro_version":"0.4.12a1",
    "radius_mode":true,
    "specsheet":{
     "__instance_type__":[
@@ -862,9 +862,9 @@
         0.5
        ],
        "render_colors":[
-        "#dc322f",
+        "#268bd2",
         "#859900",
-        "#268bd2"
+        "#dc322f"
        ],
        "reference_wvl":1,
        "coating_wvl":550.0

@@ -5,7 +5,7 @@
    "OpticalModel"
   ],
   "attributes":{
-   "ro_version":"0.4.6+15.g4fe7429.dirty",
+   "ro_version":"0.4.12a1",
    "radius_mode":false,
    "specsheet":{
     "__instance_type__":[
@@ -365,7 +365,7 @@
         1.0
        ],
        "render_colors":[
-        "black"
+        "#859900"
        ],
        "reference_wvl":0,
        "coating_wvl":550.0
@@ -645,7 +645,7 @@
         "AirGap"
        ],
        "attributes":{
-        "label":"AirGap Lens-Image",
+        "label":"AirGap Lens-Lens",
         "render_color":[
          237,
          243,

@@ -40,7 +40,6 @@
         "Surface"
        ],
        "attributes":{
-        "refract_mode":"",
         "delta_n":0.0,
         "decenter":null,
         "max_aperture":6.647393186689435,
@@ -55,7 +54,8 @@
          }
         },
         "clear_apertures":[],
-        "edge_apertures":[]
+        "edge_apertures":[],
+        "interact_mode":"transmit"
        }
       },
       {
@@ -64,7 +64,6 @@
         "Surface"
        ],
        "attributes":{
-        "refract_mode":"",
         "delta_n":0.5145203085647796,
         "decenter":null,
         "max_aperture":1.5137427510080066,
@@ -79,7 +78,8 @@
          }
         },
         "clear_apertures":[],
-        "edge_apertures":[]
+        "edge_apertures":[],
+        "interact_mode":"transmit"
        }
       },
       {
@@ -88,7 +88,6 @@
         "Surface"
        ],
        "attributes":{
-        "refract_mode":"",
         "delta_n":-0.5145203085647796,
         "decenter":null,
         "max_aperture":1.5148072492171922,
@@ -103,7 +102,8 @@
          }
         },
         "clear_apertures":[],
-        "edge_apertures":[]
+        "edge_apertures":[],
+        "interact_mode":"transmit"
        }
       },
       {
@@ -112,7 +112,6 @@
         "Surface"
        ],
        "attributes":{
-        "refract_mode":"",
         "delta_n":0.0,
         "decenter":null,
         "max_aperture":1.1084073918299753,
@@ -127,7 +126,8 @@
          }
         },
         "clear_apertures":[],
-        "edge_apertures":[]
+        "edge_apertures":[],
+        "interact_mode":"transmit"
        }
       }
      ],
@@ -215,9 +215,9 @@
         1.0
        ],
        "render_colors":[
-        "red",
-        "green",
-        "blue"
+        "#dc322f",
+        "#859900",
+        "#268bd2"
        ],
        "reference_wvl":0,
        "coating_wvl":550.0
@@ -229,15 +229,6 @@
        "PupilSpec"
       ],
       "attributes":{
-       "pupil_type":{
-        "__enum__":{
-         "__enum_instance_type__":[
-          "rayoptics.optical.model_enums",
-          "PupilType"
-         ],
-         "name":"FNO"
-        }
-       },
        "value":5.0,
        "pupil_rays":[
         [
@@ -267,6 +258,11 @@
         "-X",
         "+Y",
         "-Y"
+       ],
+       "key":[
+        "aperture",
+        "image",
+        "f/#"
        ]
       }
      },
@@ -276,15 +272,6 @@
        "FieldSpec"
       ],
       "attributes":{
-       "field_type":{
-        "__enum__":{
-         "__enum_instance_type__":[
-          "rayoptics.optical.model_enums",
-          "FieldType"
-         ],
-         "name":"IMG_HT"
-        }
-       },
        "fields":[
         {
          "__instance_type__":[
@@ -327,7 +314,7 @@
           "aim_pt":{
            "__ndarray__":[
             0.0,
-            2.258791831475771e-16
+            -2.2589179855410674e-16
            ],
            "dtype":"float64",
            "shape":[
@@ -340,7 +327,13 @@
        "index_labels":[
         "axis",
         "edge"
-       ]
+       ],
+       "key":[
+        "field",
+        "image",
+        "height"
+       ],
+       "value":1.0
       }
      },
      "defocus":{
@@ -374,13 +367,195 @@
         "flat1":null,
         "flat2":null,
         "render_color":[
-         157,
-         235,
-         255
-        ]
+         184,
+         211,
+         230,
+         64
+        ],
+        "medium_name":"N-BK7",
+        "label":"E1",
+        "edge_extent":[
+         -1.5148072492171922,
+         1.5148072492171922
+        ],
+        "_sd":1.5148072492171922
+       }
+      },
+      {
+       "__instance_type__":[
+        "rayoptics.optical.elements",
+        "AirGap"
+       ],
+       "attributes":{
+        "label":"AirGap E1-Image",
+        "render_color":[
+         237,
+         243,
+         254,
+         64
+        ],
+        "medium_name":"air",
+        "idx":2
+       }
+      },
+      {
+       "__instance_type__":[
+        "rayoptics.optical.elements",
+        "DummyInterface"
+       ],
+       "attributes":{
+        "label":"Image",
+        "render_color":[
+         192,
+         192,
+         192
+        ],
+        "idx":3,
+        "medium_name":"Interface",
+        "sd":1.1084073918299753
        }
       }
      ]
+    }
+   },
+   "ro_version":"0.4.12a1+0.gfbe0a86.dirty",
+   "parax_model":{
+    "__instance_type__":[
+     "rayoptics.optical.paraxialdesign",
+     "ParaxialModel"
+    ],
+    "attributes":{
+     "sys":[
+      [
+       0.0,
+       100.0,
+       1.0,
+       "transmit"
+      ],
+      [
+       0.05145203085647796,
+       0.6602750681815817,
+       1.5145203085647796,
+       "transmit"
+      ],
+      [
+       0.02572601542823898,
+       15.0,
+       1.0,
+       "transmit"
+      ],
+      [
+       0.0,
+       0.0,
+       1.0,
+       "transmit"
+      ]
+     ],
+     "ax":[
+      [
+       0.0,
+       0.015043491063570209,
+       0.015043491063570209
+      ],
+      [
+       1.504349106357021,
+       -0.06235832557562628,
+       0.16547840169927233
+      ],
+      [
+       1.463175458685885,
+       -0.1,
+       -0.17315877293429427
+      ],
+      [
+       -0.036824541314115056,
+       -0.1,
+       -0.1
+      ]
+     ],
+     "pr":[
+      [
+       -6.647393186689435,
+       0.06647393186689435,
+       0.06647393186689435
+      ],
+      [
+       0.0,
+       0.06647393186689433,
+       0.06647393186689433
+      ],
+      [
+       0.04389107989571148,
+       0.06534478926833519,
+       0.06315023527354961
+      ],
+      [
+       1.0240629189207393,
+       0.06534478926833519,
+       0.06534478926833519
+      ]
+     ],
+     "opt_inv":0.1
+    }
+   },
+   "specsheet":{
+    "__instance_type__":[
+     "rayoptics.optical.specsheet",
+     "SpecSheet"
+    ],
+    "attributes":{
+     "conjugate_type":"finite",
+     "imager":[
+      -0.17853353419661888,
+      -86.51161951978456,
+      15.445225181940339,
+      101.95684470172488,
+      13.105460925614661
+     ],
+     "imager_inputs":{},
+     "frozen_imager_inputs":[
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     "etendue_inputs":{
+      "field":{
+       "object":{},
+       "image":{
+        "height":1.0
+       }
+      },
+      "aperture":{
+       "object":{},
+       "image":{
+        "f/#":5.0
+       }
+      }
+     },
+     "etendue_values":{
+      "field":{
+       "object":{
+        "height":-5.601188619829261
+       },
+       "image":{
+        "height":1.0
+       }
+      },
+      "aperture":{
+       "object":{
+        "f/#":-28.00594309914631,
+        "NA":0.017850508790845272,
+        "pupil":-0.46795285126513547
+       },
+       "image":{
+        "f/#":5.0,
+        "NA":-0.09950371902099893,
+        "pupil":2.621092185122932
+       }
+      }
+     }
     }
    }
   }
