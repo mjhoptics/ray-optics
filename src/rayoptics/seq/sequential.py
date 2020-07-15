@@ -38,7 +38,7 @@ class SequentialModel:
 
     where
 
-        - Ifc is a :class:`~rayoptics.seq.surface.Interface` instance
+        - Ifc is a :class:`~rayoptics.seq.interface.Interface` instance
         - G   is a :class:`~rayoptics.seq.gap.Gap` instance
 
     There are N interfaces and N-1 gaps. The initial configuration has an
@@ -55,7 +55,7 @@ class SequentialModel:
 
     Attributes:
         opt_model: parent optical model
-        ifcs: list of :class:`~rayoptics.seq.surface.Interface`
+        ifcs: list of :class:`~rayoptics.seq.interface.Interface`
         gaps: list of :class:`~rayoptics.seq.gap.Gap`
         lcl_tfrms: forward transform, interface to interface
         rndx: a list with refractive indices for all **wvls**

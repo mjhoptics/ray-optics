@@ -13,7 +13,7 @@
 
     where
 
-        - Ifc is a :class:`~rayoptics.seq.surface.Interface` instance
+        - Ifc is a :class:`~rayoptics.seq.interface.Interface` instance
         - G   is a :class:`~rayoptics.seq.gap.Gap` instance
 
     There are N interfaces and N-1 gaps. The initial configuration has an

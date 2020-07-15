@@ -89,7 +89,7 @@ def transform_before_surface(interface, ray_seg):
     """Transform ray_seg from interface to previous seg.
 
     Args:
-        interface: the :class:'~.Interface' for the path sequence
+        interface: the :class:'~seq.interface.Interface' for the path sequence
         ray_seg: ray segment exiting from **interface**
 
     Returns:
@@ -116,7 +116,7 @@ def transform_after_surface(interface, ray_seg):
     """Transform ray_seg from interface to following seg.
 
     Args:
-        interface: the :class:'~.Interface' for the path sequence
+        interface: the :class:'~seq.interface.Interface' for the path sequence
         ray_seg: ray segment exiting from **interface**
 
     Returns:

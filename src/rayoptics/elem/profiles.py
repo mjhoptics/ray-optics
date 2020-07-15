@@ -74,10 +74,10 @@ class SurfaceProfile:
             eps: numeric tolerance for convergence of any iterative procedure
 
         Returns:
-            tuple: distance to intersection point **s1**, intersection point **p**
+            tuple: distance to intersection point *s1*, intersection point *p*
 
         Raises:
-            TraceMissedSurfaceError
+            :exp:`~rayoptics.raytr.traceerror.TraceMissedSurfaceError`
         '''
         p = p1 = p0
         s1 = -self.f(p1)/np.dot(d, self.normal(p1))
