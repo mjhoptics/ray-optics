@@ -12,13 +12,14 @@ import json_tricks
 
 import rayoptics
 
-from rayoptics.optical import elements
+from rayoptics.elem import elements
 import rayoptics.optical.model_constants as mc
 
-from rayoptics.optical.paraxialdesign import ParaxialModel
-from rayoptics.optical.sequential import SequentialModel
-from rayoptics.optical.opticalspec import OpticalSpecs
-from rayoptics.optical.specsheet import create_specsheet_from_model
+from rayoptics.elem.elements import ElementModel
+from rayoptics.parax.paraxialdesign import ParaxialModel
+from rayoptics.seq.sequential import SequentialModel
+from rayoptics.raytr.opticalspec import OpticalSpecs
+from rayoptics.parax.specsheet import create_specsheet_from_model
 from rayoptics.optical.model_enums import DimensionType as dt
 
 
@@ -71,6 +72,16 @@ class OpticalModel:
     A sequential optical model is a sequence of surfaces and gaps.
     Additionally, it includes optical usage information to specify the
     aperture, field of view, spectrum and focus.
+
+    Attributes:
+        ro_version: current version of rayoptics
+        radius_mode: if True output radius, else output curvature
+        specsheet: :class:`~rayoptics.parax.specsheet.SpecSheet`
+        system_spec: :class:`.SystemSpec`
+        seq_model: :class:`~rayoptics.seq.sequential.SequentialModel`
+        optical_spec: :class:`~rayoptics.raytr.opticalspec.OpticalSpecs`
+        parax_model: :class:`~rayoptics.parax.paraxialdesign.ParaxialModel`
+        ele_model: :class:`~rayoptics.elem.elements.ElementModel`
     """
 
     def __init__(self, radius_mode=False, specsheet=None):
@@ -81,7 +92,7 @@ class OpticalModel:
         self.seq_model = SequentialModel(self)
         self.optical_spec = OpticalSpecs(self)
         self.parax_model = ParaxialModel(self)
-        self.ele_model = elements.ElementModel(self)
+        self.ele_model = ElementModel(self)
 
         if self.specsheet:
             self.set_from_specsheet()

@@ -11,7 +11,7 @@
 import numpy as np
 from math import sqrt, copysign, sin, atan2
 from rayoptics.util.misc_math import normalize
-from .traceerror import TraceError, TraceMissedSurfaceError
+from rayoptics.raytr.traceerror import TraceError, TraceMissedSurfaceError
 
 
 def resize_list(lst, new_length, null_item=None):

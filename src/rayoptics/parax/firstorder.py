@@ -11,7 +11,7 @@ import math
 from collections import namedtuple
 from rayoptics.optical.model_constants import Intfc, Gap, Tfrm, Indx, Zdir
 from rayoptics.optical.model_constants import ht, slp, aoi
-from rayoptics.optical.idealimager import ideal_imager_setup
+from rayoptics.parax.idealimager import ideal_imager_setup
 
 ParaxData = namedtuple('ParaxData', ['ax_ray', 'pr_ray', 'fod'])
 """ tuple grouping together paraxial rays and first order properties

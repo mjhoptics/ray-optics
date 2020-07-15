@@ -8,10 +8,10 @@
 .. codeauthor: Michael J. Hayford
 """
 
-from rayoptics.optical.specsheet import create_specsheets
-from rayoptics.optical import idealimager
-from rayoptics.optical.etendue import (obj_img_set, fld_ape_set,
-                                       fld_labels, ap_labels)
+from rayoptics.parax.specsheet import create_specsheets
+from rayoptics.parax import idealimager
+from rayoptics.parax.etendue import (obj_img_set, fld_ape_set,
+                                     fld_labels, ap_labels)
 
 from rayoptics.util.dict2d import dict2D
 

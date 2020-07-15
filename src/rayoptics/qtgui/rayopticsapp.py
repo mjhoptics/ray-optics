@@ -19,22 +19,21 @@ from PyQt5.QtCore import QEvent
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (QApplication, QAction, QMainWindow, QMdiArea,
                              QFileDialog, QTableView, QWidget, QMenu,
-                             QVBoxLayout, QGraphicsView, QGraphicsScene)
+                             QVBoxLayout)
 from PyQt5.QtCore import pyqtSlot
 import qdarkstyle
 from qdarkstyle.palette import DarkPalette
 
 from traitlets.config.configurable import MultipleInstanceError
 
-from rayoptics.optical.trace import RaySeg
+from rayoptics.raytr.trace import RaySeg
 import rayoptics.gui.appcmds as cmds
 from rayoptics.gui.appmanager import ModelInfo, AppManager
 import rayoptics.qtgui.dockpanels as dock
-from rayoptics.qtgui.graphicsitems import OpticalElement, RayBundle
 from rayoptics.qtgui.ipyconsole import create_ipython_console
 
-from rayoptics.optical import firstorder
-from rayoptics.optical import trace
+from rayoptics.parax import firstorder
+from rayoptics.raytr import trace
 
 
 class MainWindow(QMainWindow):
@@ -251,10 +250,6 @@ class MainWindow(QMainWindow):
         if q.text() == "Optical Layout":
             cmds.create_live_layout_view(opt_model, gui_parent=self)
 
-#         if q.text() == "Lens View":
-#             cmds.create_lens_layout_view(opt_model, gui_parent=self)
-# #            self.create_2D_lens_view()
-
         if q.text() == "Lens Table":
             self.create_lens_table()
 
@@ -379,69 +374,6 @@ class MainWindow(QMainWindow):
         model = cmds.create_ray_table_model(opt_model, ray)
         self.create_table_view(model, "Ray Table")
 
-    def create_2D_lens_view(self):
-        scene2d = QGraphicsScene()
-        self.create_element_model(scene2d)
-        self.create_ray_model(scene2d)
-        scene2d.setBackgroundBrush(QColor(237, 243, 254))  # light blue
-        sceneRect2d = scene2d.sceneRect()
-
-        # construct the top level widget
-        widget = QWidget()
-        # construct the top level layout
-        layout = QVBoxLayout(widget)
-
-        # set the layout on the widget
-        widget.setLayout(layout)
-
-        sub = self.add_subwindow(widget, ModelInfo(self.app_manager.model,
-                                         MainWindow.update_2D_lens_view,
-                                         (scene2d,)))
-        sub.setWindowTitle("2D Lens View")
-        view_width = 660
-        view_ht = 440
-        view_ratio = view_width/view_ht
-        orig_x, orig_y = self.initial_window_offset()
-        sub.setGeometry(orig_x, orig_y, view_width, view_ht)
-
-        self.gview2d = QGraphicsView(scene2d)
-        scene_ratio = sceneRect2d.width()/sceneRect2d.height()
-        oversize_fraction = 1.2
-        if scene_ratio > view_ratio:
-            view_scale = view_width/(oversize_fraction*sceneRect2d.width())
-        else:
-            view_scale = view_ht/(oversize_fraction*sceneRect2d.height())
-
-        self.gview2d.scale(view_scale, view_scale)
-        layout.addWidget(self.gview2d)
-
-        sub.show()
-
-        return sub
-
-    def update_2D_lens_view(scene2d):
-        for gi in scene2d.items():
-            gi.prepareGeometryChange()
-            gi.update_shape()
-
-    def create_element_model(self, gscene):
-        ele_model = self.app_manager.model.ele_model
-        ele_model.elements_from_sequence(self.app_manager.model.seq_model)
-        for e in ele_model.elements:
-            ge = OpticalElement(e)
-            gscene.addItem(ge)
-
-    def create_ray_model(self, gscene, start_surf=1):
-        opt_model = self.app_manager.model
-
-        img_dist = abs(opt_model.optical_spec.parax_data[2].img_dist)
-        start_offset = 0.05*(gscene.sceneRect().width() + img_dist)
-
-        fov = opt_model.optical_spec.field_of_view
-        for fi, f in enumerate(fov.fields):
-            rb = RayBundle(opt_model, fi, start_offset)
-            gscene.addItem(rb)
-
     def create_table_view(self, table_model, table_title, close_callback=None):
         # construct the top level widget
         widget = QWidget()
@@ -484,6 +416,7 @@ class MainWindow(QMainWindow):
         return tableView
 
     def eventFilter(self, obj, event):
+        """Used by table_view in response to installEventFilter."""
         if (event.type() == QEvent.Close):
             print('close event received:', obj)
         return False

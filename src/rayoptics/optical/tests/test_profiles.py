@@ -9,7 +9,7 @@ Created on Wed Oct 18 10:59:29 2017
 
 import unittest
 from pytest import approx
-from rayoptics.optical.profiles import Spherical, EvenPolynomial
+from rayoptics.elem.profiles import Spherical, EvenPolynomial
 from rayoptics.util.misc_math import normalize
 import numpy as np
 import numpy.testing as npt

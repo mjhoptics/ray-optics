@@ -30,11 +30,11 @@ from enum import Enum, auto
 from math import sqrt
 import numpy as np
 
-from . import interface
+from rayoptics.seq import interface
 from . import profiles
 import transforms3d as t3d
-from .model_enums import DecenterType as dec
-from rayoptics.optical.traceerror import TraceError
+from rayoptics.optical.model_enums import DecenterType as dec
+from rayoptics.raytr.traceerror import TraceError
 
 
 class InteractionMode(Enum):

@@ -9,7 +9,7 @@
 
 import math
 import pytest
-from rayoptics.optical.idealimager import ideal_imager_setup
+from rayoptics.parax.idealimager import ideal_imager_setup
 
 
 def test_ideal_imager_setup(**kwargs):

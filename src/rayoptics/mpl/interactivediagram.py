@@ -8,7 +8,7 @@
 .. codeauthor: Michael J. Hayford
 """
 
-from rayoptics.gui.diagram import Diagram
+from rayoptics.parax.diagram import Diagram
 from rayoptics.mpl.interactivefigure import InteractiveFigure
 
 

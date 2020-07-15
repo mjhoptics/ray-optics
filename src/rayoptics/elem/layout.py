@@ -22,11 +22,11 @@ import numpy as np
 from rayoptics.gui.util import (GUIHandle, transform_ray_seg, bbox_from_poly,
                                 transform_poly, inv_transform_poly)
 
-from rayoptics.optical import transform
-from rayoptics.optical.trace import (trace_boundary_rays_at_field,
-                                     boundary_ray_dict, RaySeg)
-from rayoptics.optical.elements import (create_thinlens, create_mirror,
-                                        create_lens, AirGap)
+from rayoptics.elem import transform
+from rayoptics.raytr.trace import (trace_boundary_rays_at_field,
+                                   boundary_ray_dict, RaySeg)
+from rayoptics.elem.elements import (create_thinlens, create_mirror,
+                                     create_lens, AirGap)
 import rayoptics.optical.model_constants as mc
 from rayoptics.util.rgb2mpl import rgb2mpl
 import rayoptics.gui.appcmds as cmds

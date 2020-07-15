@@ -14,7 +14,7 @@ import timeit
 # ray-optics
 import rayoptics as ro
 from rayoptics.optical.opticalmodel import open_model
-import rayoptics.optical.raytrace as rt
+import rayoptics.raytr.raytrace as rt
 from rayoptics.util.misc_math import normalize
 
 

@@ -13,7 +13,7 @@ from matplotlib.colors import LogNorm, PowerNorm
 
 from rayoptics.mpl.styledfigure import StyledFigure
 
-from rayoptics.optical import analyses
+from rayoptics.raytr import analyses
 
 
 class AnalysisFigure(StyledFigure):

@@ -18,12 +18,12 @@ from rayoptics.optical import model_enums
 from rayoptics.optical.model_enums import PupilType, FieldType
 from rayoptics.optical.model_enums import DimensionType as dt
 from rayoptics.optical.model_enums import DecenterType as dec
-from rayoptics.optical.surface import (DecenterData, Circular, Rectangular,
-                                       Elliptical)
-from rayoptics.optical import profiles
-from rayoptics.optical import doe
-from rayoptics.optical.medium import Air, Glass, InterpolatedGlass
-from rayoptics.optical.opticalspec import Field
+from rayoptics.elem.surface import (DecenterData, Circular, Rectangular,
+                                    Elliptical)
+from rayoptics.elem import profiles
+from rayoptics.oprops import doe
+from rayoptics.seq.medium import Air, Glass, InterpolatedGlass
+from rayoptics.raytr.opticalspec import Field
 from rayoptics.util.misc_math import isanumber
 
 from opticalglass import glassfactory as gfact

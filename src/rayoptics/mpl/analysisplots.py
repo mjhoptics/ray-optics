@@ -13,9 +13,9 @@ import numpy as np
 from rayoptics.mpl.axisarrayfigure import Fit
 from rayoptics.mpl.styledfigure import StyledFigure
 
-from rayoptics.optical.opticalspec import Field
-from rayoptics.optical.trace import trace_astigmatism
-from rayoptics.optical.thirdorder import compute_third_order
+from rayoptics.raytr.opticalspec import Field
+from rayoptics.raytr.trace import trace_astigmatism
+from rayoptics.parax.thirdorder import compute_third_order
 
 
 class FieldCurveFigure(StyledFigure):

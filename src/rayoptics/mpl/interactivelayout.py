@@ -14,7 +14,7 @@ from rayoptics.gui.util import bbox_from_poly
 
 from rayoptics.mpl.interactivefigure import InteractiveFigure
 
-from rayoptics.gui.layout import LensLayout
+from rayoptics.elem.layout import LensLayout
 
 
 class InteractiveLayout(InteractiveFigure):

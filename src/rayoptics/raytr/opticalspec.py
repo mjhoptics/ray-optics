@@ -11,8 +11,8 @@
 import math
 import numpy as np
 
-from rayoptics.optical.firstorder import compute_first_order, list_parax_trace
-from rayoptics.optical.trace import aim_chief_ray
+from rayoptics.parax.firstorder import compute_first_order, list_parax_trace
+from rayoptics.raytr.trace import aim_chief_ray
 from rayoptics.optical import model_enums
 import rayoptics.optical.model_constants as mc
 from rayoptics.util.spectral_lines import get_wavelength

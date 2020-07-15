@@ -54,7 +54,7 @@ def radial_phase_fct(pt, coefficients):
 
 
 class DiffractiveElement:
-    """Container class for a phase fct driven diffrative optical elelment
+    """Container class for a phase fct driven diffractive optical element
 
     Attributes:
         phase_fct: fct the takes an input pt and returns phase and slope

@@ -15,13 +15,13 @@ import math
 import numpy as np
 
 import rayoptics.util.rgbtable as rgbt
-import rayoptics.optical.thinlens as thinlens
-from rayoptics.optical.profiles import Spherical, Conic
-from rayoptics.optical.surface import Surface
-from rayoptics.optical.gap import Gap
+import rayoptics.oprops.thinlens as thinlens
+from rayoptics.elem.profiles import Spherical, Conic
+from rayoptics.elem.surface import Surface
+from rayoptics.seq.gap import Gap
 import rayoptics.gui.appcmds as cmds
 from rayoptics.gui.actions import Action, AttrAction, SagAction, BendAction
-from rayoptics.optical.medium import Glass, glass_decode
+from rayoptics.seq.medium import Glass, glass_decode
 import opticalglass.glasspolygons as gp
 
 GraphicsHandle = namedtuple('GraphicsHandle', ['polydata', 'tfrm', 'polytype'])

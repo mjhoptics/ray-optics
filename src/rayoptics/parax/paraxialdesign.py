@@ -13,9 +13,9 @@ import numpy as np
 from rayoptics.optical.model_constants import ht, slp, aoi
 from rayoptics.optical.model_constants import pwr, tau, indx, rmd
 import rayoptics.optical.model_constants as mc
-import rayoptics.optical.firstorder as fo
-from rayoptics.optical.gap import Gap
-from rayoptics.optical.surface import Surface
+import rayoptics.parax.firstorder as fo
+from rayoptics.seq.gap import Gap
+from rayoptics.elem.surface import Surface
 
 
 def bbox_from_poly(poly):

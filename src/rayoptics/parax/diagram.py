@@ -24,9 +24,9 @@ from rayoptics.util.line_intersection import get_intersect
 from rayoptics.util import misc_math
 from rayoptics.util import colors
 
-from rayoptics.optical.elements import (create_thinlens, create_mirror,
-                                        create_lens, create_from_file,
-                                        AirGap)
+from rayoptics.elem.elements import (create_thinlens, create_mirror,
+                                     create_lens, create_from_file,
+                                     AirGap)
 
 dgm_lw = {
     'data': 2,

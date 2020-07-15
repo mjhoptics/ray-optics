@@ -15,26 +15,25 @@ import math
 import rayoptics.codev.cmdproc as cvp
 
 from rayoptics.optical.opticalmodel import OpticalModel
-from rayoptics.optical.profiles import Spherical, Conic
-from rayoptics.optical.elements import create_thinlens
-from rayoptics.optical.firstorder import specsheet_from_parax_data
-from rayoptics.optical.idealimager import ideal_imager_setup
-from rayoptics.optical.etendue import create_etendue_dict
-from rayoptics.optical.specsheet import (create_specsheets, SpecSheet,
-                                         create_specsheet_from_model)
+from rayoptics.elem.profiles import Spherical, Conic
+from rayoptics.elem.elements import create_thinlens
+from rayoptics.parax.firstorder import specsheet_from_parax_data
+from rayoptics.parax.idealimager import ideal_imager_setup
+from rayoptics.parax.etendue import create_etendue_dict
+from rayoptics.parax.specsheet import (create_specsheets, SpecSheet,
+                                       create_specsheet_from_model)
 
-from rayoptics.gui import layout
+from rayoptics.elem import layout
 from rayoptics.gui.appmanager import ModelInfo
-import rayoptics.gui.diagram as diagram
+from rayoptics.gui.roafile import open_roa
+import rayoptics.parax.diagram as diagram
 
-from rayoptics.mpl.lenslayoutfigure import LensLayoutFigure
 from rayoptics.mpl.interactivelayout import InteractiveLayout
 from rayoptics.mpl.axisarrayfigure import Fit
 from rayoptics.mpl.axisarrayfigure import (RayFanFigure, SpotDiagramFigure,
                                            WavefrontFigure)
 
 from rayoptics.mpl.analysisplots import FieldCurveFigure, ThirdOrderBarChart
-from rayoptics.mpl.paraxdgnfigure import ParaxialDesignFigure
 import rayoptics.mpl.interactivediagram as dgm
 
 import rayoptics.qtgui.plotview as plotview
@@ -64,11 +63,8 @@ def open_model(file_name):
         opm = cvp.read_lens(file_name)
         create_specsheet_from_model(opm)
     elif file_extension == '.roa':
-        with open(file_name, 'r') as f:
-            obj_dict = json_tricks.load(f)
-            if 'optical_model' in obj_dict:
-                opm = obj_dict['optical_model']
-                opm.sync_to_restore()
+        opm = open_roa(file_name)
+
     return opm
 
 
@@ -174,14 +170,6 @@ def get_defaults_from_gui_parent(gui_parent):
     return refresh_gui, is_dark
 
 
-def create_lens_layout_view(opt_model, gui_parent=None):
-    fig = LensLayoutFigure(opt_model)
-    view_width = 660
-    view_ht = 440
-    title = "Lens Layout View"
-    plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht)
-
-
 def create_live_layout_view(opt_model, gui_parent=None):
     refresh_gui, is_dark = get_defaults_from_gui_parent(gui_parent)
     fig = InteractiveLayout(opt_model, refresh_gui=refresh_gui,
@@ -227,17 +215,6 @@ def create_live_layout_commands(fig):
                   'cc': -1.0})))
 
     return cmds
-
-
-def create_paraxial_design_view(opt_model, dgm_type, gui_parent=None):
-    fig = ParaxialDesignFigure(opt_model, gui_parent.refresh_gui, dgm_type,
-                               figsize=(5, 4))
-    cmds = diagram.create_parax_design_commands(fig)
-    view_width = 650
-    view_ht = 500
-    title = "Paraxial Design View"
-    plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht,
-                              commands=cmds)
 
 
 def create_paraxial_design_view_v2(opt_model, dgm_type, gui_parent=None):

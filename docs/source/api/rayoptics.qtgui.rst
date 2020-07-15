@@ -17,14 +17,6 @@ rayoptics.qtgui.dockpanels module
    :undoc-members:
    :show-inheritance:
 
-rayoptics.qtgui.graphicsitems module
-------------------------------------
-
-.. automodule:: rayoptics.qtgui.graphicsitems
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 rayoptics.qtgui.idealimagerdialog module
 ----------------------------------------
 

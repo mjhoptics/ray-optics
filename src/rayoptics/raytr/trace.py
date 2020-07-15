@@ -19,10 +19,10 @@ import pandas as pd
 import attr
 
 from . import raytrace as rt
-from rayoptics.optical.analyses import (wave_abr_full_calc,
-                                        get_chief_ray_pkg,
-                                        setup_exit_pupil_coords)
-from . import model_constants as mc
+from .analyses import (wave_abr_full_calc,
+                       get_chief_ray_pkg,
+                       setup_exit_pupil_coords)
+from rayoptics.optical import model_constants as mc
 from .traceerror import TraceError, TraceMissedSurfaceError, TraceTIRError
 from rayoptics.util.misc_math import normalize
 

@@ -41,18 +41,10 @@ rayoptics.gui.dashboards module
    :undoc-members:
    :show-inheritance:
 
-rayoptics.gui.diagram module
+rayoptics.gui.roafile module
 ----------------------------
 
-.. automodule:: rayoptics.gui.diagram
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-rayoptics.gui.layout module
----------------------------
-
-.. automodule:: rayoptics.gui.layout
+.. automodule:: rayoptics.gui.roafile
    :members:
    :undoc-members:
    :show-inheritance:

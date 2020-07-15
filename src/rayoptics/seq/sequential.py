@@ -9,13 +9,13 @@
 import itertools
 import logging
 
-from . import surface
+from rayoptics.elem import surface
 from . import gap
 from . import medium as m
-from . import raytrace as rt
-from . import trace as trace
-from . import transform as trns
-from . import analyses
+from rayoptics.raytr import raytrace as rt
+from rayoptics.raytr import trace as trace
+from rayoptics.raytr import analyses
+from rayoptics.elem import transform as trns
 from rayoptics.optical.model_constants import Intfc, Gap, Indx, Tfrm, Zdir
 from opticalglass import glassfactory as gfact
 from opticalglass import glasserror as ge
@@ -38,8 +38,8 @@ class SequentialModel:
 
     where
 
-        - Ifc is a :class:`~rayoptics.optical.surface.Interface` instance
-        - G   is a :class:`~rayoptics.optical.gap.Gap` instance
+        - Ifc is a :class:`~rayoptics.seq.surface.Interface` instance
+        - G   is a :class:`~rayoptics.seq.gap.Gap` instance
 
     There are N interfaces and N-1 gaps. The initial configuration has an
     object and image Surface and an object gap.
@@ -48,14 +48,15 @@ class SequentialModel:
     refraction, reflection, scatter, diffraction, etc. The Interface may be
     realized as a physical profile separating the adjacent gaps or an idealized
     object, such as a thin lens or 2 point HOE.
+
     The Gap class maintains a simple separation (z translation) and the medium
     filling the gap. More complex coordinate transformations are handled
     through the Interface API.
 
     Attributes:
         opt_model: parent optical model
-        ifcs: list of :class:`~rayoptics.optical.surface.Interface`
-        gaps: list of :class:`~rayoptics.optical.gap.Gap`
+        ifcs: list of :class:`~rayoptics.seq.surface.Interface`
+        gaps: list of :class:`~rayoptics.seq.gap.Gap`
         lcl_tfrms: forward transform, interface to interface
         rndx: a list with refractive indices for all **wvls**
         z_dir: -1 if gap follows an odd number of reflections, otherwise +1

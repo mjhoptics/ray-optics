@@ -11,9 +11,9 @@ import unittest
 import numpy as np
 import numpy.testing as npt
 from math import log10, pow
-from rayoptics.optical.sequential import gen_sequence
-from rayoptics.optical.raytrace import trace_raw
-from rayoptics.optical.traceerror import TraceError
+from rayoptics.seq.sequential import gen_sequence
+from rayoptics.raytr.raytrace import trace_raw
+from rayoptics.raytr.traceerror import TraceError
 from rayoptics.util.misc_math import normalize
 
 import ag_dblgauss_s as dblg

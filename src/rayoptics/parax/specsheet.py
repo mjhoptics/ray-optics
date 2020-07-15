@@ -9,15 +9,15 @@
 """
 import math
 
-from rayoptics.optical import firstorder
-from rayoptics.optical.idealimager import IdealImager, ideal_imager_setup
+from rayoptics.parax import firstorder
+from rayoptics.parax.idealimager import IdealImager, ideal_imager_setup
 
 from rayoptics.util import dict2d
 
-from rayoptics.optical import etendue
-from rayoptics.optical.etendue import (obj_img_set, fld_ape_set,
-                                       fld_labels, ap_labels,
-                                       create_etendue_dict)
+from rayoptics.parax import etendue
+from rayoptics.parax.etendue import (obj_img_set, fld_ape_set,
+                                     fld_labels, ap_labels,
+                                     create_etendue_dict)
 
 
 def create_specsheet(conjugate_type, **inputs):

@@ -10,8 +10,8 @@
 
 
 import numpy as np
-from rayoptics.optical.interface import Interface
-from rayoptics.optical.doe import HolographicElement
+from rayoptics.seq.interface import Interface
+from rayoptics.oprops.doe import HolographicElement
 
 
 class ThinLens(Interface):

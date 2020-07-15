@@ -21,10 +21,10 @@ from rayoptics.util.misc_math import normalize
 
 import rayoptics.optical.model_constants as mc
 
-from rayoptics.optical import sampler
-from rayoptics.optical.raytrace import eic_distance
-from rayoptics.optical.transform import transform_after_surface
-from rayoptics.optical import trace
+from rayoptics.raytr import sampler
+from rayoptics.raytr.raytrace import eic_distance
+from rayoptics.elem.transform import transform_after_surface
+from rayoptics.raytr import trace
 
 
 def get_chief_ray_pkg(opt_model, fld, wvl, foc):
