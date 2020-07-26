@@ -7,7 +7,6 @@
 .. codeauthor: Michael J. Hayford
 """
 
-
 from collections import namedtuple
 import numpy as np
 

@@ -1,6 +1,6 @@
 """ Package for paraxial optical design and analysis
 
-    The ``rayoptics.parax`` subpackage provides core classes and functions
+    The :mod:`~.parax` subpackage provides core classes and functions
     for paraxial/first order optical design. These include:
 
         - Definition of the first order quantities defining an optical system,
@@ -10,5 +10,5 @@
         - Support for |ybar| and |nubar| diagrams, :mod:`~.paraxialdesign` and
           :mod:`~.diagram`
 
-    The overall optical model is managed by the :class:`~.OpticalModel` class
+    The paraxial model is managed by the :class:`~.ParaxialModel` class
 """

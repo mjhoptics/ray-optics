@@ -453,7 +453,7 @@ def focus_fan(opt_model, fan_pkg, fld, wvl, foc, image_pt_2d=None):
 
 
 class RayList():
-    """Container class for a list of rays produced by a list or generator
+    """Container class for a list of rays produced from a list or generator
 
     Attributes:
         opt_model: :class:`~.OpticalModel` instance

@@ -6,8 +6,7 @@
     Modules in :mod:`~.oprops` include:
 
         - Modules implementing the phase_element property in
-            :class:`~.seq.interface.Interface`: :mod:`~.doe`
-        - Modules subclassing :class:`~.seq.interface.Interface`:
-            :mod:`~.thinlens`
+          :class:`~.seq.interface.Interface`: :mod:`~.doe`
+        - Modules subclassing :class:`~.seq.interface.Interface`: :mod:`~.thinlens`
 
 """

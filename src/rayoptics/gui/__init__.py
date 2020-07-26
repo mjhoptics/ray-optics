@@ -1,9 +1,12 @@
 """ Package encompassing platform agnostic gui commands and updating
 
-    The :mod:`~rayoptics.gui` subpackage provides a thin app manager framework
-    :mod:`~.appmanager` and functions implementing basic commands.
+    The :mod:`~.gui` subpackage provides a thin app manager framework:
 
-    The :mod:`~.layout` module provides support for interactive editing of
-    optical layouts. This includes support for selecting and drawing different
-    graphical parts of the optical model.
+        - lightweight app manager, :mod:`~.appmanager`
+        - functions implementing basic commands, :mod:`~.appcmds`
+        - interactive functions using ipywidgets, :mod:`~.dashboards`
+        - interactive GUI actions, :mod:`~.actions`
+        - ray-optics file (.roa) reader, :mod:`~.roafile`
+        - GUI utility functions, :mod:`~.util`
+
 """

@@ -24,6 +24,7 @@ rayoptics.seq.interface module
    :members:
    :undoc-members:
    :show-inheritance:
+   :exclude-members: InteractionMode
 
 rayoptics.seq.medium module
 ---------------------------

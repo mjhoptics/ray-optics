@@ -77,7 +77,7 @@ class SurfaceProfile:
             tuple: distance to intersection point *s1*, intersection point *p*
 
         Raises:
-            :exp:`~rayoptics.raytr.traceerror.TraceMissedSurfaceError`
+            :exc:`~rayoptics.raytr.traceerror.TraceMissedSurfaceError`
         '''
         p = p1 = p0
         s1 = -self.f(p1)/np.dot(d, self.normal(p1))

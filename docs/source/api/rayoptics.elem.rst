@@ -40,6 +40,7 @@ rayoptics.elem.surface module
    :members:
    :undoc-members:
    :show-inheritance:
+   :exclude-members: InteractionMode
 
 rayoptics.elem.transform module
 -------------------------------

@@ -9,5 +9,5 @@
         - Lens layout and rendering support :mod:`~.layout`
         - Coordinate transformation support :mod:`~.transform`
 
-    The overall optical model is managed by the :class:`~.OpticalModel` class
+    The element model is managed by the :class:`~elements.ElementModel` class
 """

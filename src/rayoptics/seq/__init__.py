@@ -36,7 +36,6 @@
           :mod:`~.gap`
           :mod:`~.medium`
         - Modules for specialized optical behavior:
-          :mod:`~.thinlens`
           :mod:`~.twoconicmirrors`
 
 """

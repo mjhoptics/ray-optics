@@ -32,6 +32,7 @@ rayoptics.raytr.raytrace module
    :members:
    :undoc-members:
    :show-inheritance:
+   :exclude-members: wave_abr, wave_abr_real_coord, wave_abr_HHH
 
 rayoptics.raytr.sampler module
 ------------------------------
