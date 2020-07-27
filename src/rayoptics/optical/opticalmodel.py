@@ -106,6 +106,8 @@ class OpticalModel:
         self.radius_mode = rdm
 
     def __json_encode__(self):
+        # update version number prior to writing file.
+        self.ro_version = rayoptics.__version__
         attrs = dict(vars(self))
         if hasattr(self, 'app_manager'):
             del attrs['app_manager']
