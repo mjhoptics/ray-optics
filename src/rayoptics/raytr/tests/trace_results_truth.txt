@@ -1,0 +1,10 @@
+singlet - 100000 trials: min time 12.57, max time 12.88, spread 2.48%
+landscape lens - 80000 trials: min time 12.91, max time 13.20, spread 2.27%
+Sasian triplet - 50000 trials: min time 13.37, max time 13.60, spread 1.70%
+double gauss - 30000 trials: min time 13.15, max time 13.42, spread 2.10%
+2 spherical mirrors (spheres) - 100000 trials: min time 11.98, max time 12.54, spread 4.63%
+2 spherical mirrors (conics) - 100000 trials: min time 12.51, max time 13.02, spread 4.07%
+paraboloid - 100000 trials: min time 12.57, max time 12.88, spread 2.46%
+Cassegrain - 100000 trials: min time 12.54, max time 12.86, spread 2.53%
+Ritchey-Chretien - 100000 trials: min time 12.61, max time 12.86, spread 1.99%
+cell phone camera - 10000 trials: min time 15.05, max time 15.66, spread 4.07%

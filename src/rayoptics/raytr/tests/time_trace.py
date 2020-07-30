@@ -13,7 +13,7 @@ import timeit
 
 # ray-optics
 import rayoptics as ro
-from rayoptics.optical.opticalmodel import open_model
+from rayoptics.gui.appcmds import open_model
 import rayoptics.raytr.raytrace as rt
 from rayoptics.util.misc_math import normalize
 
@@ -61,7 +61,7 @@ if __name__ == '__main__':
     rpt = 5
 
     root_pth = Path(ro.__file__).resolve().parent
-    with open(root_pth/'optical/tests/trace_results.txt', mode='w') as f:
+    with open(root_pth/'raytr/tests/trace_results.txt', mode='w') as f:
 
         tst_name = 'singlet'
         trials = trials100
@@ -77,7 +77,7 @@ if __name__ == '__main__':
 
         tst_name = 'Sasian triplet'
         trials = trials50
-        setup_stmt = setup_str.format("../models/Sasian Triplet.roa")
+        setup_stmt = setup_str.format("models/Sasian Triplet.roa")
         results.append(run_test(tst_name, setup_stmt, trials, file=f,
                                 repeat=rpt))
 
@@ -89,13 +89,13 @@ if __name__ == '__main__':
 
         tst_name = '2 spherical mirrors (spheres)'
         trials = trials100
-        setup_stmt = setup_str.format("../models/TwoSphericalMirror.roa")
+        setup_stmt = setup_str.format("models/TwoSphericalMirror.roa")
         results.append(run_test(tst_name, setup_stmt, trials, file=f,
                                 repeat=rpt))
 
         tst_name = '2 spherical mirrors (conics)'
         trials = trials100
-        setup_stmt = setup_str.format("../models/TwoMirror.roa")
+        setup_stmt = setup_str.format("models/TwoMirror.roa")
         results.append(run_test(tst_name, setup_stmt, trials, file=f,
                                 repeat=rpt))
 
@@ -107,13 +107,13 @@ if __name__ == '__main__':
 
         tst_name = 'Cassegrain'
         trials = trials100
-        setup_stmt = setup_str.format("../models/Cassegrain.roa")
+        setup_stmt = setup_str.format("models/Cassegrain.roa")
         results.append(run_test(tst_name, setup_stmt, trials, file=f,
                                 repeat=rpt))
 
         tst_name = 'Ritchey-Chretien'
         trials = trials100
-        setup_stmt = setup_str.format("../models/Ritchey_Chretien.roa")
+        setup_stmt = setup_str.format("models/Ritchey_Chretien.roa")
         results.append(run_test(tst_name, setup_stmt, trials, file=f,
                                 repeat=rpt))
 
@@ -123,11 +123,11 @@ if __name__ == '__main__':
         results.append(run_test(tst_name, setup_stmt, trials, file=f,
                                 repeat=rpt))
 
-    with open(root_pth/'optical/tests/trace_data.csv', mode='w') as f:
+    with open(root_pth/'raytr/tests/trace_data.csv', mode='w') as f:
         w = csv.writer(f, delimiter=',', quotechar='"',
                        quoting=csv.QUOTE_MINIMAL)
         for tst in results:
             w.writerow(tst[:5])
 
-    with open(root_pth/'optical/tests/trace_data.txt', mode='w') as f:
+    with open(root_pth/'raytr/tests/trace_data.txt', mode='w') as f:
         print(results, file=f)
