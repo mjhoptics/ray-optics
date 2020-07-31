@@ -45,7 +45,7 @@ from rayoptics.qtgui.plotview import (create_plot_scale_panel,
                                       create_2d_figure_toolbar)
 
 
-def open_model(file_name):
+def open_model(file_name, **kwargs):
     """ open a file and populate an optical model with the data
 
     Args:
@@ -53,6 +53,7 @@ def open_model(file_name):
 
             - .roa - a rayoptics JSON encoded file
             - .seq - a CODE V (TM) sequence file
+        kwargs (dict): keyword args passed to the reader functions
 
     Returns:
         if successful, an OpticalModel instance, otherwise, None
@@ -60,10 +61,10 @@ def open_model(file_name):
     file_extension = os.path.splitext(file_name)[1]
     opm = None
     if file_extension == '.seq':
-        opm = cvp.read_lens(file_name)
+        opm = cvp.read_lens(file_name, **kwargs)
         create_specsheet_from_model(opm)
     elif file_extension == '.roa':
-        opm = open_roa(file_name)
+        opm = open_roa(file_name, **kwargs)
 
     return opm
 

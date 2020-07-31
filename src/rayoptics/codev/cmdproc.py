@@ -47,7 +47,7 @@ def fictitious_glass_decode(gc):
     return n, v
 
 
-def read_lens(filename):
+def read_lens(filename, **kwargs):
     ''' given a CODE V .seq filename, return an OpticalModel  '''
     global _reading_private_catalog
     logging.basicConfig(filename='cv_cmd_proc.log',

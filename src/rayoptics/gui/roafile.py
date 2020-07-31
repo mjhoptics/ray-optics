@@ -49,17 +49,19 @@ def preprocess_roa(file_name, str_replacements):
     return contents
 
 
-def open_roa(file_name):
+def open_roa(file_name, mapping=None):
     """ open a ray-optics file and populate an optical model with the data
 
     Args:
         file_name (str): a filename with a .roa extension
+        mapping: dict mapping old modules to new. If None, use module_repl_050
 
     Returns:
         if successful, an OpticalModel instance, otherwise, None
     """
     opm = None
-    contents = preprocess_roa(file_name, module_repl_050)
+    str_replacements = module_repl_050 if mapping is None else mapping
+    contents = preprocess_roa(file_name, str_replacements)
     obj_dict = json_tricks.loads(contents)
     if 'optical_model' in obj_dict:
         opm = obj_dict['optical_model']
