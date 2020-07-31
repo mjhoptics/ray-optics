@@ -35,7 +35,7 @@ class RestoreOldFilesTestCase(unittest.TestCase):
         opm = open_model(root_pth/'gui/tests/cell_phone_camera_old.roa')
         assert isinstance(opm, OpticalModel)
 
-    def test_Sasian_Triple(self):
+    def test_Sasian_Triplet(self):
         root_pth = Path(ro.__file__).resolve().parent
         opm = open_model(root_pth/'gui/tests/Sasian Triplet old.roa')
         assert isinstance(opm, OpticalModel)
@@ -47,7 +47,7 @@ class RestoreOldFilesTestCase(unittest.TestCase):
             open_model(root_pth/'gui/tests/cell_phone_camera_old.roa',
                        mapping={})
 
-    def test_Sasian_Triple_fail(self):
+    def test_Sasian_Triplet_fail(self):
         root_pth = Path(ro.__file__).resolve().parent
         with self.assertRaises(ImportError):
             open_model(root_pth/'gui/tests/Sasian Triplet old.roa',
