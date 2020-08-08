@@ -144,7 +144,7 @@ def wvl_spec_data(optm, tla, qlist, dlist):
 def pupil_spec_data(optm, tla, qlist, dlist):
     pupil = optm.optical_spec.pupil
     if tla == "EPD":
-        pupil.key = 'aperture', 'object', 'height'
+        pupil.key = 'aperture', 'object', 'pupil'
     elif tla == "NAO":
         pupil.key = 'aperture', 'object', 'NA'
     elif tla == "NA":

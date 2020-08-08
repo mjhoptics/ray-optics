@@ -181,7 +181,7 @@ class SequentialModel:
         return self.rndx[i][central_wvl]
 
     def get_surface_and_gap(self, srf=None):
-        if not srf:
+        if srf is None:
             srf = self.cur_surface
         s = self.ifcs[srf]
         if srf == len(self.gaps):

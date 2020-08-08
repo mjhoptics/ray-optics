@@ -197,7 +197,20 @@ def compute_first_order(opt_model, stop, wvl):
     # print(p_ray[-2][ht], q_ray[-2][ht], n_k*p_ray[-2][slp], n_k*q_ray[-2][slp])
     # print(ak1, bk1, ck1, dk1)
 
-    if stop is not None:
+    # The code below computes the object yu and yu_bar values
+    orig_stop = stop
+    if stop is None:
+        if opt_model.parax_model.ax:
+            # floating stop surface - use parax_model for starting data
+            ax = opt_model.parax_model.ax
+            pr = opt_model.parax_model.pr
+            yu = [0., ax[0][slp]/n_0]
+            yu_bar = [pr[0][ht], pr[0][slp]/n_0]
+        else:
+            # temporarily set stop to surface 1
+            stop = 1
+
+    if stop:
         n_s = seq_model.z_dir[stop]*seq_model.central_rndx(stop)
         as1 = p_ray[stop][ht]
         bs1 = q_ray[stop][ht]
@@ -253,17 +266,16 @@ def compute_first_order(opt_model, stop, wvl):
                 slpbar0 = -ybar0/obj2enp_dist
         yu_bar = [ybar0, slpbar0]
 
-    else:  # floating stop surface - use parax_model for starting data
-        ax = opt_model.parax_model.ax
-        pr = opt_model.parax_model.pr
-        yu = [0., ax[0][slp]/n_0]
-        yu_bar = [pr[0][ht], pr[0][slp]/n_0]
+    stop = orig_stop
 
+    # We have the starting coordinates, now trace the rays
     ax_ray, pr_ray = paraxial_trace(seq_model.path(wl=wvl), 0, yu, yu_bar)
 
+    # Calculate the optical invariant
     n_0 = seq_model.central_rndx(0)
     opt_inv = n_0*(ax_ray[1][ht]*pr_ray[0][slp] - pr_ray[1][ht]*ax_ray[0][slp])
 
+    # Fill in the contents of the FirstOrderData struct
     fod = FirstOrderData()
     fod.opt_inv = opt_inv
     fod.obj_dist = obj_dist = seq_model.gaps[0].thi

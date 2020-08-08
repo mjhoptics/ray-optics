@@ -17,7 +17,8 @@ from rayoptics.optical.model_enums import DecenterType as dec
 from rayoptics.elem.surface import (DecenterData, Circular, Rectangular,
                                     Elliptical)
 from rayoptics.elem import profiles
-from rayoptics.seq.medium import Medium, Air, Glass, InterpolatedGlass
+from rayoptics.seq.medium import (glass_encode, Medium, Air,
+                                  Glass, InterpolatedGlass)
 from rayoptics.raytr.opticalspec import Field
 from rayoptics.util.misc_math import isanumber
 
@@ -25,11 +26,12 @@ from opticalglass import glassfactory as gfact
 from opticalglass import glasserror
 
 _glass_handler = None
-
+_cmd_not_handled = None
 
 def read_lens(filename, **kwargs):
     ''' given a Zemax .zmx filename, return an OpticalModel  '''
-    global _glass_handler
+    global _glass_handler, _cmd_not_handled
+    _cmd_not_handled = {}
     logging.basicConfig(filename='zmx_read_lens.log',
                         filemode='w',
                         level=logging.DEBUG)
@@ -53,7 +55,7 @@ def read_lens(filename, **kwargs):
 
 
 def process_line(opt_model, line, line_no):
-    global _glass_handler
+    global _glass_handler, _cmd_not_handled
     sm = opt_model.seq_model
     osp = opt_model.optical_spec
     cur = sm.cur_surface
@@ -140,7 +142,11 @@ def process_line(opt_model, line, line_no):
                  ):
         logging.info('Line %d: Command %s not supported', line_no, cmd)
     else:
-        print(cmd, "not handled", inputs)
+        # don't recognize this cmd, record # of times encountered
+        if cmd in _cmd_not_handled:
+            _cmd_not_handled[cmd] += 1
+        else:
+            _cmd_not_handled[cmd] = 1
 
 
 def post_process_input(opt_model):
@@ -289,8 +295,9 @@ class GlassHandler():
         return glasses_not_found
 
     def save_replacements(self):
-        with self.filename.open('w') as file:
-            json.dump(self.glasses_not_found, file)
+        if self.glasses_not_found:
+            with self.filename.open('w') as file:
+                json.dump(self.glasses_not_found, file)
 
     def __call__(self, sm, cur, cmd, inputs):
         """ process GLAS command for fictitious, catalog glass or mirror"""
@@ -307,6 +314,10 @@ class GlassHandler():
                 sm.ifcs[cur].interact_mode = 'reflect'
                 g.medium = sm.gaps[cur-1].medium
                 return True
+            elif name == '___BLANK':
+                nd = float(inputs[3])
+                vd = float(inputs[4])
+                g.medium = Glass(nd=nd, vd=vd, mat=glass_encode(nd, vd))
             else:
                 try:
                     medium = gfact.create_glass(name, self.glass_catalogs)
