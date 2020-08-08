@@ -760,7 +760,7 @@ class AirGap():
 
 class ElementModel:
 
-    def __init__(self, opt_model):
+    def __init__(self, opt_model, **kwargs):
         self.opt_model = opt_model
         self.elements = []
         self.ifcs_dict = {}

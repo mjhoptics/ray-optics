@@ -19,6 +19,8 @@ from rayoptics.parax.etendue import (obj_img_set, fld_ape_set,
                                      fld_labels, ap_labels,
                                      create_etendue_dict)
 
+conjugate_types = ['finite', 'infinite']
+
 
 def create_specsheet(conjugate_type, **inputs):
     if conjugate_type == 'finite':
@@ -69,16 +71,14 @@ def create_specsheets():
     return specsheets
 
 
-def create_specsheet_from_model(opt_model, specsheets=None):
-    if specsheets is None:
-        specsheets = create_specsheets()
-
+def create_specsheet_from_model(opt_model):
+    """Return a specsheet filled with the current data from opt_model."""
     specsheet = opt_model.specsheet
     if specsheet is None:
         conj_type = 'finite'
         if opt_model.seq_model.gaps[0].thi > 10e8:
             conj_type = 'infinite'
-        specsheet = specsheets[conj_type]
+        specsheet = create_specsheet(conj_type)
     firstorder.specsheet_from_parax_data(opt_model, specsheet)
     opt_model.specsheet = specsheet
     return specsheet
@@ -213,6 +213,9 @@ class SpecSheet():
 
         # calculate an ideal imager for imager_inputs
         imager = ideal_imager_setup(**imager_inputs)
+        # fill in remaining None values with previous imager data
+        imager = IdealImager(*[self.imager[i] if p is None else imager[i]
+                               for i, p in enumerate(imager)])
 
         if conj_type == 'finite':
             imager_defined = True if imager.m is not None else False

@@ -65,18 +65,19 @@ class SequentialModel:
         cur_surface (int): insertion index for next interface
     """
 
-    def __init__(self, opt_model):
+    def __init__(self, opt_model, do_init=True, **kwargs):
         self.opt_model = opt_model
         self.ifcs = []
         self.gaps = []
         self.gbl_tfrms = []
         self.lcl_tfrms = []
         self.z_dir = []
-        self.stop_surface = 1
-        self.cur_surface = 0
+        self.stop_surface = None
+        self.cur_surface = None
         self.wvlns = []
         self.rndx = []
-        self._initialize_arrays()
+        if do_init:
+            self._initialize_arrays()
 
     def __json_encode__(self):
         attrs = dict(vars(self))
@@ -213,8 +214,8 @@ class SequentialModel:
                 if self.stop_surface > self.cur_surface and \
                    self.stop_surface < num_ifcs - 2:
                     self.stop_surface += 1
-        self.cur_surface += 1
-        surf = self.cur_surface
+        surf = self.cur_surface = (0 if self.cur_surface is None
+                                   else self.cur_surface+1)
         self.ifcs.insert(surf, ifc)
         if gap is not None:
             self.gaps.insert(surf, gap)
@@ -225,7 +226,8 @@ class SequentialModel:
         self.gbl_tfrms.insert(surf, tfrm)
         self.lcl_tfrms.insert(surf, tfrm)
 
-        self.z_dir.insert(surf, self.z_dir[surf-1])
+        new_z_dir = self.z_dir[surf-1] if surf > 1 else 1
+        self.z_dir.insert(surf, new_z_dir)
 
         wvls = self.opt_model.optical_spec.spectral_region.wavelengths
         rindex = [gap.medium.rindex(w) for w in wvls]

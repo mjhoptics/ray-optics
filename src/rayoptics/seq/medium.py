@@ -23,12 +23,13 @@ def glass_decode(gc):
 
 class Medium:
     """ Constant refractive index medium. """
+
     def __init__(self, nd, lbl):
         self.label = lbl
         self.n = nd
 
     def __repr__(self):
-        return 'Medium ' + self.label + ': ' + str(self.n)
+        return 'Medium(' + str(self.n) + ', ' + f"'{self.label}'" + ')'
 
     def name(self):
         return self.label
@@ -47,16 +48,18 @@ class Medium:
 
 class Air(Medium):
     """ Optical definition for air (low fidelity definition) """
+
     def __init__(self):
         self.label = 'air'
         self.n = 1.0
 
     def __repr__(self):
-        return 'Air'
+        return 'Air()'
 
 
 class Glass(Medium):
     """ Optical medium defined by a glass code, i.e. index - V number pair """
+
     def __init__(self, nd=1.5168, vd=64.17, mat='N-BK7'):
         self.label = mat
         if mat == 'N-BK7':
@@ -66,8 +69,13 @@ class Glass(Medium):
             self.n = nd
             self.v = vd
 
-    def __repr__(self):
+    def __str__(self):
         return 'Glass ' + self.label + ': ' + glass_encode(self.n, self.v)
+
+    def __repr__(self):
+        return ('Glass(nd=' + str(self.n) +
+                ', vd=' + str(self.v) +
+                ', mat=' + f"'{self.label}'" + ')')
 
     def glass_code(self):
         return str(1000*round((self.n - 1), 3) + round(self.v/100, 3))
@@ -91,6 +99,7 @@ class InterpolatedGlass():
         rndx: list of refractive indices corresponding to the values in wvls
         rindex_interp: the interpolation function
     """
+
     def __init__(self, label, pairs=None, rndx=None, wvls=None):
         self.label = label
         if pairs is not None:

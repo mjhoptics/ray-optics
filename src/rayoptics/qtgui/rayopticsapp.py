@@ -26,6 +26,7 @@ from qdarkstyle.palette import DarkPalette
 
 from traitlets.config.configurable import MultipleInstanceError
 
+import rayoptics
 from rayoptics.raytr.trace import RaySeg
 import rayoptics.gui.appcmds as cmds
 from rayoptics.gui.appmanager import ModelInfo, AppManager
@@ -110,48 +111,51 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Ray Optics")
         self.show()
 
+        path = Path(rayoptics.__file__).parent
+        self.cur_dir = path / "models"
+
         if False:
             # create new model
             self.new_model()
 
         else:
             # restore a default model
-            pth = Path(__file__).resolve()
-            try:
-                root_pos = pth.parts.index('rayoptics')
-            except ValueError:
-                logging.debug("Can't find rayoptics: path is %s", pth)
-            else:
-                path = Path(*pth.parts[:root_pos+1])
-                # self.open_file(path / "codev/tests/asp46.seq")
-                # self.open_file(path / "codev/tests/dar_test.seq")
-                # self.open_file(path / "codev/tests/paraboloid.seq")
-                # self.open_file(path / "codev/tests/paraboloid_f8.seq")
-                # self.open_file(path / "codev/tests/schmidt.seq")
-                # self.open_file(path / "codev/tests/questar35.seq")
-                # self.open_file(path / "codev/tests/rc_f16.seq")
-                # self.open_file(path / "codev/tests/ag_dblgauss.seq")
-                # self.open_file(path / "codev/tests/threemir.seq")
-                # self.open_file(path / "codev/tests/folded_lenses.seq")
-                # self.open_file(path / "codev/tests/lens_reflection_test.seq")
-                # self.open_file(path / "codev/tests/dec_tilt_test.seq")
-                # self.open_file(path / "codev/tests/landscape_lens.seq")
-                # self.open_file(path / "codev/tests/mangin.seq")
-                # self.open_file(path / "optical/tests/cell_phone_camera.roa")
-                # self.open_file(path / "optical/tests/singlet_f3.roa")
 
-                # self.open_file(path / "models/Cassegrain.roa")
-                # self.open_file(path / "models/collimator.roa")
-                # self.open_file(path / "models/Dall-Kirkham.roa")
-                # self.open_file(path / "models/petzval.roa")
-                # self.open_file(path / "models/Ritchey_Chretien.roa")
-                self.open_file(path / "models/Sasian Triplet.roa")
-                # self.open_file(path / "models/singlet_f5.roa")
-                # self.open_file(path / "models/thinlens.roa")
-                # self.open_file(path / "models/telephoto.roa")
-                # self.open_file(path / "models/thin_triplet.roa")
-                # self.open_file(path / "models/TwoMirror.roa")
-                # self.open_file(path / "models/TwoSphericalMirror.roa")
+            # self.open_file(path / "codev/tests/asp46.seq")
+            # self.open_file(path / "codev/tests/dar_test.seq")
+            # self.open_file(path / "codev/tests/paraboloid.seq")
+            # self.open_file(path / "codev/tests/paraboloid_f8.seq")
+            # self.open_file(path / "codev/tests/schmidt.seq")
+            # self.open_file(path / "codev/tests/questar35.seq")
+            # self.open_file(path / "codev/tests/rc_f16.seq")
+            # self.open_file(path / "codev/tests/ag_dblgauss.seq")
+            # self.open_file(path / "codev/tests/threemir.seq")
+            # self.open_file(path / "codev/tests/folded_lenses.seq")
+            # self.open_file(path / "codev/tests/lens_reflection_test.seq")
+            # self.open_file(path / "codev/tests/dec_tilt_test.seq")
+            # self.open_file(path / "codev/tests/landscape_lens.seq")
+            # self.open_file(path / "codev/tests/mangin.seq")
+            # self.open_file(path / "optical/tests/cell_phone_camera.roa")
+            # self.open_file(path / "optical/tests/singlet_f3.roa")
+
+            # self.open_file(path / "models/Cassegrain.roa")
+            # self.open_file(path / "models/collimator.roa")
+            # self.open_file(path / "models/Dall-Kirkham.roa")
+            # self.open_file(path / "models/petzval.roa")
+            # self.open_file(path / "models/Ritchey_Chretien.roa")
+            # self.open_file(path / "models/Sasian Triplet.roa")
+            # self.open_file(path / "models/singlet_f5.roa")
+            # self.open_file(path / "models/thinlens.roa")
+            # self.open_file(path / "models/telephoto.roa")
+            # self.open_file(path / "models/thin_triplet.roa")
+            # self.open_file(path / "models/TwoMirror.roa")
+            # self.open_file(path / "models/TwoSphericalMirror.roa")
+
+            self.open_file(path / "zemax/tests/US08427765-1.ZMX")
+            # self.open_file(path / "zemax/tests/US00583336-2-scaled.zmx")
+            # self.open_file(path / "zemax/tests/HoO-V2C18Ex03.zmx")
+            # self.open_file(path / "zemax/tests/HoO-V2C18Ex27.zmx")
+            # self.open_file(path / "zemax/tests/US05831776-1.zmx")
 
     def add_subwindow(self, widget, model_info):
         sub_wind = self.mdi.addSubWindow(widget)
@@ -193,12 +197,17 @@ class MainWindow(QMainWindow):
             fileName, _ = QFileDialog.getOpenFileName(
                           self,
                           "QFileDialog.getOpenFileName()",
-                          "",
-                          "CODE V Files (*.seq);;Ray-Optics Files (*.roa)",
+                          str(self.cur_dir),
+                          "All files (*.seq *.zmx *.roa);;"
+                          "CODE V files (*.seq);;"
+                          "Ray-Optics files (*.roa);;"
+                          "Zemax files (*.zmx)",
                           options=options)
             if fileName:
                 logging.debug("open file: %s", fileName)
-                self.open_file(fileName)
+                filename = Path(fileName)
+                self.cur_dir = filename.parent
+                self.open_file(filename)
 
         if q.text() == "Save As...":
             options = QFileDialog.Options()

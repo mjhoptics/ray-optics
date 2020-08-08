@@ -84,15 +84,15 @@ class OpticalModel:
         ele_model: :class:`~rayoptics.elem.elements.ElementModel`
     """
 
-    def __init__(self, radius_mode=False, specsheet=None):
+    def __init__(self, radius_mode=False, specsheet=None, **kwargs):
         self.ro_version = rayoptics.__version__
         self.radius_mode = radius_mode
         self.specsheet = specsheet
         self.system_spec = SystemSpec()
-        self.seq_model = SequentialModel(self)
-        self.optical_spec = OpticalSpecs(self)
-        self.parax_model = ParaxialModel(self)
-        self.ele_model = ElementModel(self)
+        self.seq_model = SequentialModel(self, **kwargs)
+        self.optical_spec = OpticalSpecs(self, **kwargs)
+        self.parax_model = ParaxialModel(self, **kwargs)
+        self.ele_model = ElementModel(self, **kwargs)
 
         if self.specsheet:
             self.set_from_specsheet()

@@ -39,9 +39,9 @@ class OpticalSpecs:
 
     do_aiming_default = True
 
-    def __init__(self, opt_model, specsheet=None):
+    def __init__(self, opt_model, specsheet=None, **kwargs):
         self.opt_model = opt_model
-        self.spectral_region = WvlSpec()
+        self.spectral_region = WvlSpec(**kwargs)
         self.pupil = PupilSpec(self)
         self.field_of_view = FieldSpec(self)
         self.defocus = FocusRange(0.0)
@@ -80,6 +80,7 @@ class OpticalSpecs:
         self.field_of_view.sync_to_restore(self)
 
     def update_model(self):
+        self.spectral_region.update_model()
         self.pupil.update_model()
         self.field_of_view.update_model()
         stop = self.opt_model.seq_model.stop_surface
@@ -147,8 +148,12 @@ class WvlSpec:
 
     """
 
-    def __init__(self, wlwts=[(550., 1.)], ref_wl=0):
-        self.set_from_list(wlwts)
+    def __init__(self, wlwts=[(550., 1.)], ref_wl=0, do_init=True, **kwargs):
+        if do_init:
+            self.set_from_list(wlwts)
+        else:
+            self.wavelengths = []
+            self.spectral_wts = []
         self.reference_wvl = ref_wl
         self.coating_wvl = 550.0
 
@@ -173,6 +178,9 @@ class WvlSpec:
 
     def set_from_specsheet(self, ss):
         pass
+
+    def update_model(self):
+        self.calc_colors()
 
     def add(self, wl, wt):
         self.wavelengths.append(get_wavelength(wl))
@@ -295,10 +303,14 @@ class FieldSpec:
 
     """
 
-    def __init__(self, parent, key=('object', 'angle'), flds=[0.]):
+    def __init__(self, parent, key=('object', 'angle'), flds=[0.],
+                 do_init=True, **kwargs):
         self.optical_spec = parent
         self.key = 'field', key[0], key[1]
-        self.set_from_list(flds)
+        if do_init:
+            self.set_from_list(flds)
+        else:
+            self.fields = []
 
     def __json_encode__(self):
         attrs = dict(vars(self))

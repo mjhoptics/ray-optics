@@ -23,6 +23,7 @@ Subpackages
    rayoptics.raytr
    rayoptics.seq
    rayoptics.util
+   rayoptics.zemax
 
 Submodules
 ----------

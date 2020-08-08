@@ -13,6 +13,7 @@ import json_tricks
 import math
 
 import rayoptics.codev.cmdproc as cvp
+from rayoptics.zemax import zmxread
 
 from rayoptics.optical.opticalmodel import OpticalModel
 from rayoptics.elem.profiles import Spherical, Conic
@@ -20,7 +21,8 @@ from rayoptics.elem.elements import create_thinlens
 from rayoptics.parax.firstorder import specsheet_from_parax_data
 from rayoptics.parax.idealimager import ideal_imager_setup
 from rayoptics.parax.etendue import create_etendue_dict
-from rayoptics.parax.specsheet import (create_specsheets, SpecSheet,
+from rayoptics.parax.specsheet import (conjugate_types, SpecSheet,
+                                       create_specsheet, create_specsheets,
                                        create_specsheet_from_model)
 
 from rayoptics.elem import layout
@@ -53,18 +55,21 @@ def open_model(file_name, **kwargs):
 
             - .roa - a rayoptics JSON encoded file
             - .seq - a CODE V (TM) sequence file
+            - .zmx - a Zemax (TM) lens file
         kwargs (dict): keyword args passed to the reader functions
 
     Returns:
         if successful, an OpticalModel instance, otherwise, None
     """
-    file_extension = os.path.splitext(file_name)[1]
+    file_extension = os.path.splitext(file_name)[1].lower()
     opm = None
     if file_extension == '.seq':
         opm = cvp.read_lens(file_name, **kwargs)
         create_specsheet_from_model(opm)
     elif file_extension == '.roa':
         opm = open_roa(file_name, **kwargs)
+    elif file_extension == '.zmx':
+        opm = zmxread.read_lens(file_name, **kwargs)
 
     return opm
 
@@ -121,15 +126,19 @@ def update_specsheet(iid, opt_model):
 
 
 def create_new_ideal_imager(**inputs):
+    specsheets = {}
     conj_type = (inputs['conjugate_type'] if 'conjugate_type' in inputs
                  else 'finite')
-    specsheets = create_specsheets()
     if 'opt_model' in inputs:
         opt_model = inputs['opt_model']
-        specsheet = create_specsheet_from_model(opt_model,
-                                                specsheets=specsheets)
+        specsheet = create_specsheet_from_model(opt_model)
         conj_type = specsheet.conjugate_type
         specsheets[conj_type] = specsheet
+        for conj in conjugate_types:
+            if conj != conj_type:
+                specsheets[conj] = create_specsheet(conj)
+    else:
+        specsheets = create_specsheets()
 
     if 'gui_parent' in inputs:
         gui_parent = inputs['gui_parent']
@@ -176,7 +185,7 @@ def create_live_layout_view(opt_model, gui_parent=None):
     fig = InteractiveLayout(opt_model, refresh_gui=refresh_gui,
                             do_draw_frame=True,
                             do_draw_axes=False,
-                            do_draw_rays=True,
+                            do_draw_rays=False,
                             do_paraxial_layout=False,
                             is_dark=is_dark)
     cmds = create_live_layout_commands(fig)

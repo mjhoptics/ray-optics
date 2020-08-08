@@ -25,7 +25,7 @@ def bbox_from_poly(poly):
 
 
 class ParaxialModel():
-    def __init__(self, opt_model):
+    def __init__(self, opt_model, **kwargs):
         self.opt_model = opt_model
         self.seq_model = opt_model.seq_model
         self.sys = None
