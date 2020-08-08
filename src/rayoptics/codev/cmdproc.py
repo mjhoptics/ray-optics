@@ -14,8 +14,6 @@ from . import tla
 from . import reader as cvr
 
 from rayoptics.optical.opticalmodel import OpticalModel
-from rayoptics.optical import model_enums
-from rayoptics.optical.model_enums import PupilType, FieldType
 from rayoptics.optical.model_enums import DimensionType as dt
 from rayoptics.optical.model_enums import DecenterType as dec
 from rayoptics.elem.surface import (DecenterData, Circular, Rectangular,
@@ -31,7 +29,7 @@ from opticalglass import glasserror as ge
 
 _tla = tla.MapTLA()
 
-# Support for CODE V private catalog materials. 
+# Support for CODE V private catalog materials.
 # Should this be in OpticalModel?
 _reading_private_catalog = False
 _private_catalog_wvls = None
@@ -144,25 +142,28 @@ def wvl_spec_data(optm, tla, qlist, dlist):
 
 
 def pupil_spec_data(optm, tla, qlist, dlist):
-    osp = optm.optical_spec
-    osp.pupil.key = model_enums.get_ape_key_for_type(PupilType[tla])
-    osp.pupil.value = dlist[0]
+    pupil = optm.optical_spec.pupil
+    if tla == "EPD":
+        pupil.key = 'aperture', 'object', 'height'
+    elif tla == "NAO":
+        pupil.key = 'aperture', 'object', 'NA'
+    elif tla == "NA":
+        pupil.key = 'aperture', 'image', 'NA'
+    elif tla == "FNO":
+        pupil.key = 'aperture', 'image', 'f/#'
+
+    pupil.value = dlist[0]
     logging.debug("pupil_spec_data: %s %f", tla, dlist[0])
 
 
 def field_spec_data(optm, tla, qlist, dlist):
     fov = optm.optical_spec.field_of_view
     if tla == 'XOB' or tla == 'YOB':
-        field_type = FieldType.OBJ_HT
+        fov.key = 'field', 'object', 'height'
     elif tla == 'XAN' or tla == 'YAN':
-        field_type = FieldType.OBJ_ANG
+        fov.key = 'field', 'object', 'angle'
     elif tla == 'XIM' or tla == 'YIM':
-        field_type = FieldType.IMG_HT
-    else:
-        field_type = None
-
-    if field_type:
-        fov.key = model_enums.get_fld_key_for_type(field_type)
+        fov.key = 'field', 'image', 'height'
 
     if len(fov.fields) != len(dlist):
         fov.fields = [Field() for f in range(len(dlist))]
