@@ -151,10 +151,11 @@ class MainWindow(QMainWindow):
             # self.open_file(path / "models/TwoMirror.roa")
             # self.open_file(path / "models/TwoSphericalMirror.roa")
 
-            self.open_file(path / "zemax/tests/US08427765-1.ZMX")
+            # self.open_file(path / "zemax/tests/US08427765-1.ZMX")
             # self.open_file(path / "zemax/tests/US00583336-2-scaled.zmx")
             # self.open_file(path / "zemax/tests/HoO-V2C18Ex03.zmx")
             # self.open_file(path / "zemax/tests/HoO-V2C18Ex27.zmx")
+            self.open_file(path / "zemax/tests/HoO-V2C18Ex66.zmx")
             # self.open_file(path / "zemax/tests/US05831776-1.zmx")
 
     def add_subwindow(self, widget, model_info):

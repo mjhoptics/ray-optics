@@ -43,7 +43,7 @@ def get_ape_type_for_key(aperture_key):
         elif value_key == 'NA':
             pupil_type = PupilType.NAO
     elif obj_img_key == 'image':
-        if value_key is 'NA':
+        if value_key == 'NA':
             pupil_type = PupilType.NA
         elif value_key == 'f/#':
             pupil_type = PupilType.FNO

@@ -109,13 +109,13 @@ def process_line(opt_model, line, line_no):
     elif field_spec_data(opt_model, cmd, inputs):
         pass
 
-    elif handle_profiles(opt_model, cur, cmd, inputs):
+    elif handle_types_and_params(opt_model, cur, cmd, inputs):
         pass
 
     elif cmd in ("OPDX",  # opd
                  "RAIM",  # ray aiming
                  "CONF",  # configurations
-                 "ENPD", "PUPD",  # pupil
+                 "PUPD",  # pupil
                  "EFFL",  # focal lengths
                  "VERS",  # version
                  "MODE",  # mode
@@ -185,26 +185,44 @@ def log_cmd(label, cmd, inputs):
     logging.debug("%s: %s %s", label, cmd, str(inputs))
 
 
-def handle_profiles(optm, cur, cmd, inputs):
-    sm = optm.seq_model
+def handle_types_and_params(optm, cur, cmd, inputs):
     if cmd == "TYPE":
+        ifc = optm.seq_model.ifcs[cur]
         typ = inputs.split()[0]
         if typ == 'EVENASPH':
-            cur_profile = sm.ifcs[cur].profile
+            cur_profile = ifc.profile
             new_profile = profiles.mutate_profile(cur_profile,
                                                   'EvenPolynomial')
-            sm.ifcs[cur].profile = new_profile
+            ifc.profile = new_profile
+        elif typ == 'COORDBRK':
+            ifc.decenter = DecenterData(dec.LOCAL)
     elif cmd == "CONI":
-        s = sm.ifcs[cur]
-        cur_profile = s.profile
+        ifc = optm.seq_model.ifcs[cur]
+        cur_profile = ifc.profile
         if not hasattr(cur_profile, 'cc'):
-            s.profile = profiles.mutate_profile(cur_profile, 'Conic')
-        s.profile.cc = float(inputs.split()[0])
+            ifc.profile = profiles.mutate_profile(cur_profile, 'Conic')
+        ifc.profile.cc = float(inputs.split()[0])
     elif cmd == "PARM":
-        s = sm.ifcs[cur]
-        i, coef = inputs.split()
-        coef = float(coef)
-        s.profile.coefs.append(coef)
+        ifc = optm.seq_model.ifcs[cur]
+        i, param_val = inputs.split()
+        i = int(i)
+        param_val = float(param_val)
+        if ifc.decenter is not None:
+            # this handling of decenter data is a speculative extrapolation
+            # of a model (OSA Hnbk #66) with only alpha tilts
+            if i == 1:
+                ifc.decenter.dec[0] = param_val
+            elif i == 2:
+                ifc.decenter.dec[1] = param_val
+            elif i == 3:
+                ifc.decenter.euler[0] = param_val
+            elif i == 4:
+                ifc.decenter.euler[1] = param_val
+            elif i == 5:
+                ifc.decenter.euler[2] = param_val
+            ifc.decenter.update()
+        else:
+            ifc.profile.coefs.append(param_val)
     else:
         return False
     return True
@@ -213,11 +231,14 @@ def handle_profiles(optm, cur, cmd, inputs):
 def pupil_data(optm, cmd, inputs):
     # FNUM 2.1 0
     # OBNA 1.5E-1 0
+    # ENPD 20
     pupil = optm.optical_spec.pupil
     if cmd == 'FNUM':
         pupil.key = 'aperture', 'image', 'f/#'
     elif cmd == 'OBNA':
         pupil.key = 'aperture', 'object', 'NA'
+    elif cmd == 'ENPD':
+        pupil.key = 'aperture', 'object', 'pupil'
     else:
         return False
 
