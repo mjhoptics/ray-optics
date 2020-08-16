@@ -193,29 +193,28 @@ class WvlSpec:
         num_wvls = len(self.wavelengths)
         if num_wvls == 1:
             self.render_colors.append(accent['green'])
-        elif num_wvls == 2:
-            if self.wavelengths[0] < self.wavelengths[-1]:
-                self.render_colors.append(accent['blue'])
-                self.render_colors.append(accent['red'])
+        elif num_wvls > 1:
+            step = 1 if self.wavelengths[0] < self.wavelengths[-1] else -1
+            if num_wvls == 2:
+                c = ['blue', 'red']
+            elif num_wvls == 3:
+                c = ['blue', 'green', 'red']
+            elif num_wvls == 4:
+                c = ['blue', 'green', 'yellow', 'red']
+            elif num_wvls == 5:
+                c = ['violet', 'cyan', 'green', 'yellow', 'red']
+            elif num_wvls == 6:
+                c = ['violet', 'cyan', 'green', 'yellow', 'red', 'magenta']
             else:
-                self.render_colors.append(accent['red'])
-                self.render_colors.append(accent['blue'])
-        elif num_wvls == 3:
-            if self.wavelengths[0] < self.wavelengths[-1]:
-                self.render_colors.append(accent['blue'])
-                self.render_colors.append(accent['green'])
-                self.render_colors.append(accent['red'])
-            else:
-                self.render_colors.append(accent['red'])
-                self.render_colors.append(accent['green'])
-                self.render_colors.append(accent['blue'])
-
-        else:
-            for w in self.wavelengths:
-                print("calc_colors", w)
-                rgb = srgb.wvl_to_rgb(w)
-                print("rgb", rgb)
-                self.render_colors.append(rgb)
+                c = ['violet', 'blue', 'cyan', 'green', 'yellow',
+                     'red', 'magenta']
+            self.render_colors = [accent[clr] for clr in c[::step]]
+        # else:
+        #     for w in self.wavelengths:
+        #         print("calc_colors", w)
+        #         rgb = srgb.wvl_to_rgb(w)
+        #         print("rgb", rgb)
+        #         self.render_colors.append(rgb)
 
 
 class PupilSpec:
@@ -400,7 +399,7 @@ class FieldSpec:
             magnitude of maximum field, maximum Field instance
         """
         max_fld = None
-        max_fld_sqrd = 0.0
+        max_fld_sqrd = -1.0
         for i, f in enumerate(self.fields):
             fld_sqrd = f.x*f.x + f.y*f.y
             if fld_sqrd > max_fld_sqrd:
