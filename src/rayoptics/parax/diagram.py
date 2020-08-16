@@ -24,9 +24,8 @@ from rayoptics.util.line_intersection import get_intersect
 from rayoptics.util import misc_math
 from rayoptics.util import colors
 
-from rayoptics.elem.elements import (create_thinlens, create_mirror,
-                                     create_lens, create_from_file,
-                                     AirGap)
+import rayoptics.elem.elements as ele
+
 
 dgm_lw = {
     'data': 2,
@@ -68,19 +67,20 @@ def create_parax_design_commands(fig):
     # Add thin lens
     cmds.append(('Add Thin Lens',
                  (dgm.register_add_replace_element, (),
-                  {'node_init': create_thinlens,
-                   'factory': create_thinlens,
+                  {'node_init': ele.create_thinlens,
+                   'factory': ele.create_thinlens,
                    'interact_mode': 'transmit'})))
     # Add lens
-    cmds.append(('Add Lens', (dgm.register_add_replace_element, (),
-                              {'node_init': create_thinlens,
-                               'factory': create_lens,
-                               'interact_mode': 'transmit'})))
+    kwargs = {'node_init': ele.create_thinlens,
+              'factory': ele.create_lens,
+              'interact_mode': 'transmit'}
+    cmds.append('Add Lens', (dgm.register_add_replace_element, (), kwargs))
+
     # Add mirror
     cmds.append(('Add Mirror',
                  (dgm.register_add_replace_element, (),
-                  {'node_init': create_mirror,
-                   'factory': create_mirror,
+                  {'node_init': ele.create_mirror,
+                   'factory': ele.create_mirror,
                    'interact_mode': 'reflect'})))
     # replace with file
     pth = Path(__file__).resolve()
@@ -94,12 +94,12 @@ def create_parax_design_commands(fig):
         filepath = models_dir / 'Sasian Triplet.roa'
 
         def cff(**kwargs):
-            return create_from_file(filepath, **kwargs)
+            return ele.create_from_file(filepath, **kwargs)
 
         cmds.append(('Sasian Triplet',
                      (dgm.register_add_replace_element, (),
                       {'filename': filepath,
-                       'node_init': create_thinlens,
+                       'node_init': ele.create_thinlens,
                        'factory': cff,
                        'interact_mode': 'transmit'})))
     finally:
@@ -393,7 +393,7 @@ class DiagramEdge():
         gap = self.diagram.opt_model.seq_model.gaps[self.node]
         e = self.diagram.opt_model.ele_model.gap_dict.get(gap)
         if hasattr(e, 'gap'):
-            if isinstance(e, AirGap):
+            if isinstance(e, ele.AirGap):
                 # set alpha to 25% -> #40
                 bkgrnd_rbga = self.diagram.dgm_rgb['background1'] + '40'
                 return bkgrnd_rbga

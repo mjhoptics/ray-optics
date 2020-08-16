@@ -25,8 +25,8 @@ from rayoptics.gui.util import (GUIHandle, transform_ray_seg, bbox_from_poly,
 from rayoptics.elem import transform
 from rayoptics.raytr.trace import (trace_boundary_rays_at_field,
                                    boundary_ray_dict, RaySeg)
-from rayoptics.elem.elements import (create_thinlens, create_mirror,
-                                     create_lens, AirGap)
+import rayoptics.elem.elements as ele
+ 
 import rayoptics.optical.model_constants as mc
 from rayoptics.util.rgb2mpl import rgb2mpl
 import rayoptics.gui.appcmds as cmds
@@ -504,7 +504,7 @@ class LensLayout():
             nonlocal fig, actions
             if target is not None:
                 shape, handle = target.artist.shape
-                if handle == 'ct' and isinstance(shape.e, AirGap):
+                if handle == 'ct' and isinstance(shape.e, ele.AirGap):
                     try:
                         action = actions[event_key]
                         action(fig, shape, event, target.info)
@@ -571,7 +571,7 @@ def add_reflector(opt_model, idx, lcl_pt, create, **kwargs):
 
 
 def add_thinlens(opt_model, idx, lcl_pt, **kwargs):
-    add_elements(opt_model, idx, lcl_pt, create_thinlens, **kwargs)
+    add_elements(opt_model, idx, lcl_pt, ele.create_thinlens, **kwargs)
 
 
 def add_lens(opt_model, idx, lcl_pt, **kwargs):
@@ -585,17 +585,17 @@ def add_lens(opt_model, idx, lcl_pt, **kwargs):
     tk_new = t_k - t_ct/2
     g.thi = t0_new
 
-    seq, ele = create_lens(th=t_ct)
-    opt_model.insert_ifc_gp_ele(seq, ele, idx=idx, t=tk_new, insert=True)
+    seq, e = ele.create_lens(th=t_ct)
+    opt_model.insert_ifc_gp_ele(seq, e, idx=idx, t=tk_new, insert=True)
 
 
 def add_mirror(opt_model, idx, lcl_pt, **kwargs):
-    add_reflector(opt_model, idx, lcl_pt, create_mirror, **kwargs)
+    add_reflector(opt_model, idx, lcl_pt, ele.create_mirror, **kwargs)
 
 
 def add_conic(opt_model, idx, lcl_pt, **kwargs):
-    add_reflector(opt_model, idx, lcl_pt, create_mirror, **kwargs)
+    add_reflector(opt_model, idx, lcl_pt, ele.create_mirror, **kwargs)
 
 
 def add_doublet(opt_model, idx, lcl_pt, **kwargs):
-    add_elements(opt_model, idx, lcl_pt, create_lens, **kwargs)
+    add_elements(opt_model, idx, lcl_pt, ele.create_lens, **kwargs)

@@ -15,9 +15,9 @@ import math
 import rayoptics.codev.cmdproc as cvp
 from rayoptics.zemax import zmxread
 
-from rayoptics.optical.opticalmodel import OpticalModel
+import rayoptics.optical.opticalmodel as opticalmodel
 from rayoptics.elem.profiles import Spherical, Conic
-from rayoptics.elem.elements import create_thinlens
+import rayoptics.elem.elements as ele
 from rayoptics.parax.firstorder import specsheet_from_parax_data
 from rayoptics.parax.idealimager import ideal_imager_setup
 from rayoptics.parax.etendue import create_etendue_dict
@@ -69,7 +69,7 @@ def open_model(file_name, **kwargs):
     elif file_extension == '.roa':
         opm = open_roa(file_name, **kwargs)
     elif file_extension == '.zmx':
-        opm = zmxread.read_lens(file_name, **kwargs)
+        opm = zmxread.read_lens_file(file_name, **kwargs)
 
     return opm
 
@@ -96,7 +96,7 @@ def create_new_optical_system(efl=10.0, fov=1.0):
 
 def create_new_optical_model_from_specsheet(specsheet):
     """ create an OpticalModel with a basic thinlens model, given specsheet """
-    opt_model = OpticalModel(specsheet=specsheet)
+    opt_model = opticalmodel.OpticalModel(specsheet=specsheet)
 
     seq_model = opt_model.seq_model
 
@@ -107,8 +107,8 @@ def create_new_optical_model_from_specsheet(specsheet):
     else:
         opt_model.seq_model.gaps[0].thi = 1.0e10
 
-    opt_model.insert_ifc_gp_ele(*create_thinlens(power=1/imager.f, indx=1.5),
-                                idx=0, t=imager.sp, insert=True)
+    opt_model.insert_ifc_gp_ele(*ele.create_thinlens(
+        power=1/imager.f, indx=1.5), idx=0, t=imager.sp, insert=True)
 
     opt_model.ele_model.add_dummy_interface_at_image(seq_model,
                                                      seq_model.gbl_tfrms)
@@ -159,7 +159,7 @@ def create_new_ideal_imager(**inputs):
 
 
 def create_yybar_model():
-    opt_model = OpticalModel()
+    opt_model = opticalmodel.OpticalModel()
 
     # put in minimum calculation defaults
     opt_model.seq_model.gaps[0].thi = 1.0

@@ -13,7 +13,7 @@ import math
 from . import tla
 from . import reader as cvr
 
-from rayoptics.optical.opticalmodel import OpticalModel
+import rayoptics.optical.opticalmodel as opticalmodel
 from rayoptics.optical.model_enums import DimensionType as dt
 from rayoptics.optical.model_enums import DecenterType as dec
 from rayoptics.elem.surface import (DecenterData, Circular, Rectangular,
@@ -52,7 +52,7 @@ def read_lens(filename, **kwargs):
                         filemode='w',
                         level=logging.DEBUG)
     _reading_private_catalog = False
-    opt_model = OpticalModel()
+    opt_model = opticalmodel.OpticalModel()
     cmds = cvr.read_seq_file(filename)
     for i, c in enumerate(cmds):
         cmd_fct, tla, qlist, dlist = process_command(c)

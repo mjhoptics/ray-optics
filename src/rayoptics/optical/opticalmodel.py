@@ -12,7 +12,7 @@ import json_tricks
 
 import rayoptics
 
-from rayoptics.elem import elements
+import rayoptics.elem.elements as ele
 import rayoptics.optical.model_constants as mc
 
 from rayoptics.elem.elements import ElementModel
@@ -170,34 +170,34 @@ class OpticalModel:
         return self.system_spec.nm_to_sys_units(nm)
 
     def add_lens(self, **kwargs):
-        seq, ele = elements.create_lens(**kwargs)
+        seq, elm = ele.create_lens(**kwargs)
         kwargs['insert'] = True
-        self.insert_ifc_gp_ele(seq, ele, **kwargs)
+        self.insert_ifc_gp_ele(seq, elm, **kwargs)
 
     def add_mirror(self, **kwargs):
-        seq, ele = elements.create_mirror(**kwargs)
+        seq, elm = ele.create_mirror(**kwargs)
         kwargs['insert'] = True
-        self.insert_ifc_gp_ele(seq, ele, **kwargs)
+        self.insert_ifc_gp_ele(seq, elm, **kwargs)
 
     def add_thinlens(self, **kwargs):
-        seq, ele = elements.create_thinlens(**kwargs)
+        seq, elm = ele.create_thinlens(**kwargs)
         kwargs['insert'] = True
-        self.insert_ifc_gp_ele(seq, ele, **kwargs)
+        self.insert_ifc_gp_ele(seq, elm, **kwargs)
 
     def add_dummy_plane(self, **kwargs):
-        seq, ele = elements.create_dummy_plane(**kwargs)
+        seq, elm = ele.create_dummy_plane(**kwargs)
         kwargs['insert'] = True
-        self.insert_ifc_gp_ele(seq, ele, **kwargs)
+        self.insert_ifc_gp_ele(seq, elm, **kwargs)
 
     def add_from_file(self, filename, **kwargs):
-        seq, ele = elements.create_from_file(filename, **kwargs)
+        seq, elm = ele.create_from_file(filename, **kwargs)
         kwargs['insert'] = True
-        self.insert_ifc_gp_ele(seq, ele, **kwargs)
+        self.insert_ifc_gp_ele(seq, elm, **kwargs)
 
     def insert_ifc_gp_ele(self, *args, **kwargs):
         """ insert interfaces and gaps into seq_model and eles into ele_model
         """
-        seq, ele = args
+        seq, elm = args
         if 'idx' in kwargs:
             self.seq_model.cur_surface = kwargs['idx']
 
@@ -205,9 +205,10 @@ class OpticalModel:
         #  gap in two, and replacing a node, which uses the existing gaps.
         if 'insert' in kwargs:
             t = kwargs['t'] if 't' in kwargs else 0.
-            g, ag = elements.create_air_gap(t=t, ref_ifc=seq[-1][mc.Intfc])
+            g, ag = ele.create_air_gap(
+                t=t, ref_ifc=seq[-1][mc.Intfc])
             seq[-1][mc.Gap] = g
-            ele.append(ag)
+            elm.append(ag)
         else:
             # replacing an existing node. need to hook new chunk final
             # interface to the existing gap and following (air gap) element
@@ -219,14 +220,14 @@ class OpticalModel:
         for sg in seq:
             self.seq_model.insert(sg[mc.Intfc], sg[mc.Gap])
 
-        for e in ele:
+        for e in elm:
             self.ele_model.add_element(e)
         self.ele_model.sequence_elements()
 
     def remove_ifc_gp_ele(self, *args, **kwargs):
         """ remove interfaces and gaps from seq_model and eles from ele_model
         """
-        seq, ele = args
+        seq, elm = args
         sg = seq[0]
         idx = self.seq_model.ifcs.index(sg[mc.Intfc])
 
@@ -242,5 +243,5 @@ class OpticalModel:
             for i in range(idx+len(seq)-1, idx-1, -1):
                 self.seq_model.remove(i)
 
-        for e in ele:
+        for e in elm:
             self.ele_model.remove_element(e)
