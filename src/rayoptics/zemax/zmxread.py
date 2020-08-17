@@ -10,8 +10,9 @@
 import logging
 import math
 import json
+import requests
 
-from rayoptics.optical.opticalmodel import OpticalModel
+import rayoptics.optical.opticalmodel as opticalmodel
 from rayoptics.optical.model_enums import DimensionType as dt
 from rayoptics.optical.model_enums import DecenterType as dec
 from rayoptics.elem.surface import (DecenterData, Circular, Rectangular,
@@ -28,20 +29,42 @@ from opticalglass import glasserror
 _glass_handler = None
 _cmd_not_handled = None
 
-def read_lens(filename, **kwargs):
+
+def read_lens_file(filename, **kwargs):
     ''' given a Zemax .zmx filename, return an OpticalModel  '''
+    with filename.open() as file:
+        inpt = file.read()
+
+    opt_model = read_lens(filename, inpt, **kwargs)
+
+    return opt_model
+
+
+def read_lens_url(url, **kwargs):
+    ''' given a url to a Zemax file, return an OpticalModel  '''
+    r = requests.get(url, allow_redirects=True)
+    r.encoding = 'utf-16'
+    inpt = r.text
+
+    opt_model = read_lens(None, inpt, **kwargs)
+
+    return opt_model
+
+
+def read_lens(filename, inpt, **kwargs):
+    ''' given inpt str of a Zemax .zmx file, return an OpticalModel  '''
     global _glass_handler, _cmd_not_handled
     _cmd_not_handled = {}
     logging.basicConfig(filename='zmx_read_lens.log',
                         filemode='w',
                         level=logging.DEBUG)
-    opt_model = OpticalModel(do_init=False)
+    opt_model = opticalmodel.OpticalModel(do_init=False)
 
-    with filename.open() as file:
-        inpt = file.read()
     input_lines = inpt.splitlines()
 
-    _glass_handler = GlassHandler(filename)
+    force = kwargs.get('force', False)
+
+    _glass_handler = GlassHandler(filename, force)
 
     for i, line in enumerate(input_lines):
         process_line(opt_model, line, i+1)
@@ -189,10 +212,17 @@ def handle_types_and_params(optm, cur, cmd, inputs):
     if cmd == "TYPE":
         ifc = optm.seq_model.ifcs[cur]
         typ = inputs.split()[0]
+        # useful to remember the Type of Zemax surface
+        ifc.z_type = typ
         if typ == 'EVENASPH':
             cur_profile = ifc.profile
             new_profile = profiles.mutate_profile(cur_profile,
                                                   'EvenPolynomial')
+            ifc.profile = new_profile
+        elif typ == 'TOROIDAL':
+            cur_profile = ifc.profile
+            new_profile = profiles.mutate_profile(cur_profile,
+                                                  'YToroid')
             ifc.profile = new_profile
         elif typ == 'COORDBRK':
             ifc.decenter = DecenterData(dec.LOCAL)
@@ -207,9 +237,7 @@ def handle_types_and_params(optm, cur, cmd, inputs):
         i, param_val = inputs.split()
         i = int(i)
         param_val = float(param_val)
-        if ifc.decenter is not None:
-            # this handling of decenter data is a speculative extrapolation
-            # of a model (OSA Hnbk #66) with only alpha tilts
+        if ifc.z_type == 'COORDBRK':
             if i == 1:
                 ifc.decenter.dec[0] = param_val
             elif i == 2:
@@ -220,9 +248,17 @@ def handle_types_and_params(optm, cur, cmd, inputs):
                 ifc.decenter.euler[1] = param_val
             elif i == 5:
                 ifc.decenter.euler[2] = param_val
+            elif i == 6:
+                if param_val != 0:
+                    ifc.decenter.self.dtype = dec.REV
             ifc.decenter.update()
-        else:
+        elif ifc.z_type == 'EVENASPH':
             ifc.profile.coefs.append(param_val)
+        elif ifc.z_type == 'TOROIDAL':
+            if i == 1:
+                ifc.profile.rR = param_val
+            elif i > 1:
+                ifc.profile.coefs.append(param_val)
     else:
         return False
     return True
@@ -301,11 +337,14 @@ class GlassHandler():
     eval() string to create a replacement glass.
     """
 
-    def __init__(self, filename):
+    def __init__(self, filename, force=False):
         self.glass_catalogs = []
         self.glasses_not_found = {}
-        self.filename = filename.with_suffix('.smx')
-        self.glasses_not_found = self.load_replacements(self.filename)
+        self.filename = None
+        if filename:
+            self.filename = filename.with_suffix('.smx')
+            if not force:
+                self.glasses_not_found = self.load_replacements(self.filename)
         self.no_replacements = not self.glasses_not_found
 
     def load_replacements(self, filename):
@@ -316,7 +355,7 @@ class GlassHandler():
         return glasses_not_found
 
     def save_replacements(self):
-        if self.glasses_not_found:
+        if self.glasses_not_found and self.filename:
             with self.filename.open('w') as file:
                 json.dump(self.glasses_not_found, file)
 

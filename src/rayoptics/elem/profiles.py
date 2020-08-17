@@ -793,23 +793,285 @@ class RadialPolynomial(SurfaceProfile):
         return aspheric_profile(self, sd, dir, steps)
 
 
+class YToroid(SurfaceProfile):
+    """Y Aspheric toroid, up to 20th order, on base conic. """
+    def __init__(self,
+                 c=0.0, cR=0, cc=0.0,
+                 r=None, rR=None, ec=None,
+                 coefs=None):
+        """ initialize a EvenPolynomial profile.
+
+        Args:
+            c: curvature
+            r: radius of curvature. If zero, taken as planar. If r is
+                specified, it overrides any input for c (curvature).
+            cR: toric sweep radius of curvature
+            rR: toric sweep radius
+            cc: conic constant
+            ec: conic asphere (= cc + 1). If ec is specified, it overrides any
+                input for the conic constant (cc).
+            coefs: a list of even power coefficents, starting with the
+                quadratic term, and not exceeding the 20th order term.
+        """
+        if r:
+            self.r = r
+        else:
+            self.cv = c
+
+        if rR:
+            self.rR = rR
+        else:
+            self.cR = cR
+
+        if ec:
+            self.ec = ec
+        else:
+            self.cc = cc
+
+        if coefs:
+            self.coefs = coefs
+        else:
+            self.coefs = []
+        self.max_nonzero_coef = 0
+        self.coef2 = 0.0
+        self.coef4 = 0.0
+        self.coef6 = 0.0
+        self.coef8 = 0.0
+        self.coef10 = 0.0
+        self.coef12 = 0.0
+        self.coef14 = 0.0
+        self.coef16 = 0.0
+        self.coef18 = 0.0
+        self.coef20 = 0.0
+
+    @property
+    def r(self):
+        if self.cv != 0.0:
+            return 1.0/self.cv
+        else:
+            return 0.0
+
+    @r.setter
+    def r(self, radius):
+        if radius != 0.0:
+            self.cv = 1.0/radius
+        else:
+            self.cv = 0.0
+
+    @property
+    def rR(self):
+        if self.cR != 0.0:
+            return 1.0/self.cR
+        else:
+            return 0.0
+
+    @rR.setter
+    def rR(self, radius):
+        if radius != 0.0:
+            self.cR = 1.0/radius
+        else:
+            self.cR = 0.0
+
+    @property
+    def ec(self):
+        return self.cc + 1.0
+
+    @ec.setter
+    def ec(self, ec):
+        self.cc = ec - 1.0
+
+    def __str__(self):
+        return type(self).__name__ + " " + str(self.cv) + " " + \
+                                           str(self.cc)
+
+    def __repr__(self):
+        return (type(self).__name__ + '(c=' + repr(self.cv) +
+                ', cR=' + repr(self.cR) +
+                ', cc=' + repr(self.cc) +
+                ', coefs=' + repr(self.coefs) + ')')
+
+    def copyFrom(self, other):
+        dispatch[type(self), type(other)](self, other)
+
+    def copyDataFrom(self, other):
+        self.cv = other.cv
+        self.cR = other.cR
+        self.cc = other.cc
+        self.coef2 = other.coef2
+        self.coef4 = other.coef4
+        self.coef6 = other.coef6
+        self.coef8 = other.coef8
+        self.coef10 = other.coef10
+        self.coef12 = other.coef12
+        self.coef14 = other.coef14
+        self.coef16 = other.coef16
+        self.coef18 = other.coef18
+        self.coef20 = other.coef20
+
+    def gen_coef_list(self):
+        if len(self.coefs) == 0:
+            self.coefs = []
+            self.coefs.append(self.coef2)
+            self.coefs.append(self.coef4)
+            self.coefs.append(self.coef6)
+            self.coefs.append(self.coef8)
+            self.coefs.append(self.coef10)
+            self.coefs.append(self.coef12)
+            self.coefs.append(self.coef14)
+            self.coefs.append(self.coef16)
+            self.coefs.append(self.coef18)
+            self.coefs.append(self.coef20)
+            self.max_nonzero_coef = -1
+        for i, c in enumerate(self.coefs):
+            if c != 0.0:
+                self.max_nonzero_coef = i
+        self.max_nonzero_coef += 1
+
+    def apply_scale_factor(self, scale_factor):
+        self.cv /= scale_factor
+        self.cR /= scale_factor
+        sf_sqr = scale_factor**2
+        self.coef2 *= sf_sqr
+        self.coef4 *= sf_sqr**2
+        self.coef6 *= sf_sqr**3
+        self.coef8 *= sf_sqr**4
+        self.coef10 *= sf_sqr**5
+        self.coef12 *= sf_sqr**6
+        self.coef14 *= sf_sqr**7
+        self.coef16 *= sf_sqr**8
+        self.coef18 *= sf_sqr**9
+        self.coef20 *= sf_sqr**10
+
+    def update(self):
+        self.gen_coef_list()
+
+    def normal(self, p):
+        # sphere + conic contribution
+        y2 = p[1]*p[1]
+        e = (self.cv*p[1])/sqrt(1. - (self.cc+1.0)*self.cv*self.cv*y2)
+
+        # polynomial asphere contribution
+        e_asp = 0.0
+        y_pow = 1.0
+        c_coef = 2.0
+        for i in range(self.max_nonzero_coef):
+            e_asp += c_coef*self.coefs[i]*y_pow
+            c_coef += 2.0
+            y_pow *= y2
+
+        dfdY = e + e_asp
+        Fx = -self.cR*p[0]
+        Fy = (self.cR*self.fY(p[1]) - 1)*(dfdY)
+        Fz = 1 - self.cR*p[2]
+
+        return normalize(np.array([Fx, Fy, Fz]))
+
+    def sag(self, x, y):
+        fY = self.fY(y)
+        if self.cR == 0:
+            return fY
+        else:
+            rRp = self.rR - fY
+            z = rRp - sqrt(rRp*rRp - x*x)
+
+            z_tot = z + fY
+            return z_tot
+
+    def fY(self, y):
+        y2 = y*y
+        try:
+            # sphere + conic contribution
+            z = self.cv*y2/(1. + sqrt(1. - (self.cc+1.0)*self.cv*self.cv*y2))
+        except ValueError:
+            raise TraceMissedSurfaceError
+
+        # polynomial asphere contribution
+        z_asp = 0.0
+        y_pow = y2
+        for i in range(self.max_nonzero_coef):
+            z_asp += self.coefs[i]*y_pow
+            y_pow *= y2
+
+        z_tot = z + z_asp
+        return z_tot
+
+    def f(self, p):
+        fY = self.fY(p[1])
+        return p[2] - fY - self.cR*(p[0]*p[0] + p[2]*p[2] - fY*fY)/2
+
+    def profile(self, sd, dir=1, steps=21):
+        return aspheric_profile(self, sd, dir, steps)
+
+
+class XToroid(YToroid):
+    """X Aspheric toroid, up to 20th order, on base conic. Leverage YToroid"""
+    def __init__(self,
+                 c=0.0, cR=0, cc=0.0,
+                 r=None, rR=None, ec=None,
+                 coefs=None):
+        """ initialize a EvenPolynomial profile.
+
+        Args:
+            c: curvature
+            r: radius of curvature. If zero, taken as planar. If r is
+                specified, it overrides any input for c (curvature).
+            cR: toric sweep radius of curvature
+            rR: toric sweep radius
+            cc: conic constant
+            ec: conic asphere (= cc + 1). If ec is specified, it overrides any
+                input for the conic constant (cc).
+            coefs: a list of even power coefficents, starting with the
+                quadratic term, and not exceeding the 20th order term.
+        """
+        super().__init__(c, cR, cc, r, rR, ec, coefs)
+
+    def normal(self, p):
+        return super().normal(np.array([p[1], p[0], p[2]]))
+
+    def sag(self, x, y):
+        return super().sag(y, x)
+
+    def f(self, p):
+        return super().f(np.array([p[1], p[0], p[2]]))
+
+
 dispatch = {
   (Spherical, Spherical): Spherical.copyDataFrom,
   (Spherical, Conic): Spherical.copyDataFrom,
   (Spherical, EvenPolynomial): Spherical.copyDataFrom,
   (Spherical, RadialPolynomial): Spherical.copyDataFrom,
+  (Spherical, YToroid): Spherical.copyDataFrom,
+  (Spherical, XToroid): Spherical.copyDataFrom,
   (Conic, Spherical): Spherical.copyDataFrom,
   (Conic, Conic): Conic.copyDataFrom,
   (Conic, EvenPolynomial): Conic.copyDataFrom,
   (Conic, RadialPolynomial): Conic.copyDataFrom,
+  (Conic, YToroid): Conic.copyDataFrom,
+  (Conic, XToroid): Conic.copyDataFrom,
   (EvenPolynomial, Spherical): Spherical.copyDataFrom,
   (EvenPolynomial, Conic): Conic.copyDataFrom,
   (EvenPolynomial, EvenPolynomial): EvenPolynomial.copyDataFrom,
   (EvenPolynomial, RadialPolynomial): EvenPolynomial.copyDataFrom,
+  (EvenPolynomial, YToroid): EvenPolynomial.copyDataFrom,
+  (EvenPolynomial, XToroid): EvenPolynomial.copyDataFrom,
   (RadialPolynomial, Spherical): Spherical.copyDataFrom,
   (RadialPolynomial, Conic): Conic.copyDataFrom,
   (RadialPolynomial, EvenPolynomial): EvenPolynomial.copyDataFrom,
   (RadialPolynomial, RadialPolynomial): RadialPolynomial.copyDataFrom,
+  (RadialPolynomial, YToroid): EvenPolynomial.copyDataFrom,
+  (RadialPolynomial, XToroid): EvenPolynomial.copyDataFrom,
+  (YToroid, Spherical): Spherical.copyDataFrom,
+  (YToroid, Conic): Conic.copyDataFrom,
+  (YToroid, EvenPolynomial): EvenPolynomial.copyDataFrom,
+  (YToroid, RadialPolynomial): EvenPolynomial.copyDataFrom,
+  (YToroid, YToroid): YToroid.copyDataFrom,
+  (YToroid, XToroid): XToroid.copyDataFrom,
+  (XToroid, Spherical): Spherical.copyDataFrom,
+  (XToroid, Conic): Conic.copyDataFrom,
+  (XToroid, EvenPolynomial): EvenPolynomial.copyDataFrom,
+  (XToroid, RadialPolynomial): EvenPolynomial.copyDataFrom,
+  (XToroid, YToroid): YToroid.copyDataFrom,
+  (XToroid, XToroid): XToroid.copyDataFrom,
 }
 
 
