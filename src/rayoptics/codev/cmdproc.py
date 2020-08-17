@@ -339,6 +339,10 @@ def surface_data(optm, tla, qlist, dlist):
         update_surface_profile(seq_model, 'Conic', idx)
     elif tla == 'ASP':
         update_surface_profile(seq_model, 'EvenPolynomial', idx)
+    elif tla == 'XTO':
+        update_surface_profile(seq_model, 'XToroid', idx)
+    elif tla == 'YTO':
+        update_surface_profile(seq_model, 'YToroid', idx)
     log_cmd("surface_data", tla, qlist, dlist)
 
 
