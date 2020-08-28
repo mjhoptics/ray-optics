@@ -10,7 +10,8 @@
 
 from scipy.interpolate import interp1d
 
-from rayoptics.util.spectral_lines import spectra
+from opticalglass.spectral_lines import get_wavelength
+import opticalglass.buchdahl as buchdahl
 
 
 def glass_encode(n, v):
@@ -68,6 +69,7 @@ class Glass(Medium):
         else:
             self.n = nd
             self.v = vd
+        self.bdhl_model = buchdahl.Buchdahl2(self.n, self.v)
 
     def __str__(self):
         return 'Glass ' + self.label + ': ' + glass_encode(self.n, self.v)
@@ -87,7 +89,12 @@ class Glass(Medium):
             return self.label
 
     def rindex(self, wv_nm):
-        return self.n
+        return self.bdhl_model.rindex(wv_nm)
+
+    def update(self, nd, vd):
+        self.n = nd
+        self.v = vd
+        self.bdhl_model.update_model(nd, vd)
 
 
 class InterpolatedGlass():
@@ -157,9 +164,4 @@ class InterpolatedGlass():
         Raises:
             KeyError: if ``wvl`` is not in the spectra dictionary
         """
-        if isinstance(wv_nm, float):
-            return float(self.rindex_interp(wv_nm))
-        elif isinstance(wv_nm, int):
-            return float(self.rindex_interp(wv_nm))
-        else:
-            return float(self.rindex_interp(spectra[wv_nm]))
+        return float(self.rindex_interp(get_wavelength(wv_nm)))

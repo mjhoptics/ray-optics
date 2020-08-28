@@ -73,4 +73,4 @@ from rayoptics.mpl.interactivelayout import InteractiveLayout
 
 # opticalglass
 from opticalglass.glassfactory import create_glass
-from rayoptics.util.spectral_lines import get_wavelength
+from opticalglass.spectral_lines import get_wavelength

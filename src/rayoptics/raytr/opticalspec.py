@@ -15,7 +15,7 @@ from rayoptics.parax.firstorder import compute_first_order, list_parax_trace
 from rayoptics.raytr.trace import aim_chief_ray
 from rayoptics.optical import model_enums
 import rayoptics.optical.model_constants as mc
-from rayoptics.util.spectral_lines import get_wavelength
+from opticalglass.spectral_lines import get_wavelength
 import rayoptics.util.colour_system as cs
 from rayoptics.util import colors
 srgb = cs.cs_srgb
