@@ -26,6 +26,14 @@ CODE V sequence files can be imported
 
    > opm = open_model('ag_dblgauss.seq')
 
+Zemax .zmx files can be imported
+
+.. code::
+
+   > opm = open_model('US05831776-1.zmx')
+
+Please note that the author doesn't have access to either CODE V or Zemax so if you find problems with the import, please create an issue in Git-Hub with the problem file and the expected results.
+
 Whether created new or restored from a file, setting up the following names makes reuse of code snippets much easier
 
 .. code::
@@ -33,6 +41,7 @@ Whether created new or restored from a file, setting up the following names make
    > sm = opm.seq_model
    > osp = opm.optical_spec
    > pm = opm.parax_model
+   > em = opm.ele_model
 
 ******************
 iPython setup code

@@ -74,7 +74,7 @@ def create_parax_design_commands(fig):
     kwargs = {'node_init': ele.create_thinlens,
               'factory': ele.create_lens,
               'interact_mode': 'transmit'}
-    cmds.append('Add Lens', (dgm.register_add_replace_element, (), kwargs))
+    cmds.append(('Add Lens', (dgm.register_add_replace_element, (), kwargs)))
 
     # Add mirror
     cmds.append(('Add Mirror',

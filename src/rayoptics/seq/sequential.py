@@ -236,24 +236,43 @@ class SequentialModel:
         if ifc.interact_mode == 'reflect':
             self.update_reflections(start=surf)
 
-    def remove(self, *args):
-        """ remove surf and gap at cur_surface or an input index argument """
+    def remove(self, *args, prev=False):
+        """Remove surf and gap at cur_surface or an input index argument.
+
+        To avoid invalid sequence states, both an interface and a gap must be
+        removed at the same time. The ``prev`` argument, if True, removes the
+        gap preceding the interface. The default behavior is to remove the
+        following gap.
+        """
         if len(args) == 0:
             idx = self.cur_surface
         else:
             idx = args[0]
 
+        num_ifcs = len(self.ifcs)
         # don't allow object or image interfaces to be removed
-        if idx == 0 or idx == -1 or idx == len(self.ifcs):
-            raise IndexError
+        if prev:
+            if idx == 0 or idx == 1 or idx == num_ifcs:
+                raise IndexError
+        else:
+            if idx == 0 or idx == -1 or idx == num_ifcs:
+                raise IndexError
 
         if self.ifcs[idx].interact_mode == 'reflect':
             self.update_reflections(start=idx)
 
+        # decrement stop surface as needed
+        if self.stop_surface is not None:
+            if num_ifcs > 2:
+                if self.stop_surface > idx and self.stop_surface > 1:
+                    self.stop_surface -= 1
+
         del self.ifcs[idx]
-        del self.gaps[idx]
         del self.gbl_tfrms[idx]
         del self.lcl_tfrms[idx]
+
+        idx = idx-1 if prev else idx
+        del self.gaps[idx]
         del self.z_dir[idx]
         del self.rndx[idx]
 
@@ -411,7 +430,7 @@ class SequentialModel:
             if cvr != 0.0:
                 cvr = 1.0/cvr
         sd = ifc.surface_od()
-        imode = ifc.interact_mode
+        imode = ifc.interact_mode if ifc.interact_mode != 'transmit' else ""
 
         if gp is not None:
             thi = gp.thi
@@ -446,20 +465,58 @@ class SequentialModel:
 
         for i, sg in enumerate(self.path()):
             ifc, gap, lcl_tfrm, rndx, z_dir = sg
+            imode = (ifc.interact_mode if ifc.interact_mode != 'transmit'
+                     else "")
+
             if ifc.decenter is not None:
                 d = ifc.decenter
                 if full:
-                    print(fmt1a.format(i, ifc.interact_mode, d.dtype.name,
+                    print(fmt1a.format(i, imode, d.dtype.name,
                                        d.dec[0], d.dec[1],
                                        d.euler[0], d.euler[1], d.euler[2]))
                 else:
-                    print(fmt1b.format(i, ifc.interact_mode, d.dtype.name,
+                    print(fmt1b.format(i, imode, d.dtype.name,
                                        d.dec[1], d.euler[0]))
             elif gap is None:  # final interface, just list interact_mode
-                print(fmt1c.format(i, ifc.interact_mode))
+                print(fmt1c.format(i, imode))
 
             if gap:
                 print(fmt2.format(i, gap.thi, gap.medium.name()))
+
+    def list_sg(self):
+        """List decenter data and gap separations.
+
+        Arguments:
+            full: lists all values if True, else only y offset and alpha tilt
+        """
+        cvrd = 'r' if self.opt_model.radius_mode else 'c'
+        fmt0a = ("              {}               mode        type        y"
+                 "       alpha")
+        fmt0b = ("                      t           medium")
+        fmt1 = ("{:>4s}: {:#12.6g}       {:>10s}     {:>6s} {:#10.5g}"
+                " {:#10.5g}")
+        fmt2 = ("{:>4s}: {:#12.6g}       {:>10s}")
+        fmt3 = ("               {:#12.6g}    {:>9s}")
+
+        # print header
+        print(fmt0a.format(cvrd))
+        print(fmt0b)
+
+        labels = self.surface_label_list()
+        for i, sg in enumerate(self.path()):
+            ifc, gap, lcl_tfrm, rndx, z_dir = sg
+            s = self.list_surface_and_gap(ifc, gap)
+            s.append(self.z_dir[i])
+            cvr, thi, med, imode, sd, z_dir = s
+            if ifc.decenter is not None:
+                d = ifc.decenter
+                print(fmt1.format(labels[i], cvr, imode, d.dtype.name,
+                                  d.dec[1], d.euler[0]))
+            else:
+                print(fmt2.format(labels[i], cvr, imode))
+
+            if gap:
+                print(fmt3.format(gap.thi, gap.medium.name()))
 
     def list_elements(self):
         for i, gp in enumerate(self.gaps):

@@ -185,7 +185,7 @@ def create_live_layout_view(opt_model, gui_parent=None):
     fig = InteractiveLayout(opt_model, refresh_gui=refresh_gui,
                             do_draw_frame=True,
                             do_draw_axes=False,
-                            do_draw_rays=False,
+                            do_draw_rays=True,
                             do_paraxial_layout=False,
                             is_dark=is_dark)
     cmds = create_live_layout_commands(fig)

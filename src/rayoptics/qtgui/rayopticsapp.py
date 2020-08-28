@@ -233,9 +233,9 @@ class MainWindow(QMainWindow):
         self.add_ipython_subwindow()
         self.refresh_app_ui()
 
-    def open_file(self, file_name):
+    def open_file(self, file_name, **kwargs):
         self.cur_filename = file_name
-        self.app_manager.set_model(cmds.open_model(file_name))
+        self.app_manager.set_model(cmds.open_model(file_name, **kwargs))
         self.is_changed = True
         self.create_lens_table()
         cmds.create_live_layout_view(self.app_manager.model, gui_parent=self)

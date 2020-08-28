@@ -22,6 +22,8 @@ from rayoptics.seq.medium import (glass_encode, Medium, Air,
                                   Glass, InterpolatedGlass)
 from rayoptics.raytr.opticalspec import Field
 from rayoptics.util.misc_math import isanumber
+import rayoptics.zemax.zmx2ro as zmx2ro
+import rayoptics.oprops.thinlens as thinlens
 
 from opticalglass import glassfactory as gfact
 from opticalglass import glasserror
@@ -69,7 +71,7 @@ def read_lens(filename, inpt, **kwargs):
     for i, line in enumerate(input_lines):
         process_line(opt_model, line, i+1)
 
-    post_process_input(opt_model)
+    post_process_input(opt_model, **kwargs)
     _glass_handler.save_replacements()
 
     opt_model.update_model()
@@ -102,7 +104,8 @@ def process_line(opt_model, line, line_no):
         s, g = sm.insert_surface_and_gap()
     elif cmd == "CURV":
         s = sm.ifcs[cur]
-        s.profile.cv = float(inputs.split()[0])
+        if s.z_type != 'PARAXIAL':
+            s.profile.cv = float(inputs.split()[0])
     elif cmd == "DISZ":
         g = sm.gaps[cur]
         g.thi = float(inputs)
@@ -123,8 +126,9 @@ def process_line(opt_model, line, line_no):
         if new_wvl not in sr.wavelengths:
             sr.wavelengths.append(new_wvl)
             sr.spectral_wts.append(float(inputs[2]))  # needs check
-    elif cmd == "WAVL":
-        s.wavelengths = [float(i)*1e-6 for i in inputs.split() if i]
+    # elif cmd == "WAVL":
+    #     sr = osp.spectral_region
+    #     sr.wavelengths = [float(i)*1e+3 for i in inputs.split() if i]
 
     elif pupil_data(opt_model, cmd, inputs):
         pass
@@ -142,7 +146,6 @@ def process_line(opt_model, line, line_no):
                  "EFFL",  # focal lengths
                  "VERS",  # version
                  "MODE",  # mode
-                 "NOTE",  # note
                  "HIDE",  # surface hide
                  "MIRR",  # surface is mirror
                  "PARM",  # aspheric parameters
@@ -172,13 +175,27 @@ def process_line(opt_model, line, line_no):
             _cmd_not_handled[cmd] = 1
 
 
-def post_process_input(opt_model):
+def post_process_input(opt_model, **kwargs):
     sm = opt_model.seq_model
     sm.gaps.pop()
     conj_type = 'finite'
     if math.isinf(sm.gaps[0].thi):
         sm.gaps[0].thi = 1e10
         conj_type = 'infinite'
+
+    sm.ifcs[0].label = 'Obj'
+    sm.ifcs[-1].label = 'Img'
+
+    do_post_processing = False
+    if do_post_processing:
+        if kwargs.get('do_bend', True):
+            zmx2ro.apply_fct_to_sm(opt_model, zmx2ro.convert_to_bend)
+        if kwargs.get('do_dar', True):
+            zmx2ro.apply_fct_to_sm(opt_model, zmx2ro.convert_to_dar)
+        if kwargs.get('do_remove_null_sg', True):
+            zmx2ro.apply_fct_to_sm(opt_model, zmx2ro.remove_null_sg)
+        if kwargs.get('do_collapse_cb', True):
+            zmx2ro.apply_fct_to_sm(opt_model, zmx2ro.collapse_coordbrk)
 
     osp = opt_model.optical_spec
     sr = osp.spectral_region
@@ -226,6 +243,10 @@ def handle_types_and_params(optm, cur, cmd, inputs):
             ifc.profile = new_profile
         elif typ == 'COORDBRK':
             ifc.decenter = DecenterData(dec.LOCAL)
+        elif typ == 'PARAXIAL':
+            ifc = thinlens.ThinLens()
+            ifc.z_type = typ
+            optm.seq_model.ifcs[cur] = ifc
     elif cmd == "CONI":
         ifc = optm.seq_model.ifcs[cur]
         cur_profile = ifc.profile
@@ -254,6 +275,9 @@ def handle_types_and_params(optm, cur, cmd, inputs):
             ifc.decenter.update()
         elif ifc.z_type == 'EVENASPH':
             ifc.profile.coefs.append(param_val)
+        elif ifc.z_type == 'PARAXIAL':
+            if i == 1:
+                ifc.optical_power = 1/param_val
         elif ifc.z_type == 'TOROIDAL':
             if i == 1:
                 ifc.profile.rR = param_val
@@ -400,9 +424,12 @@ class GlassHandler():
 
         """Import all supported glass catalogs."""
         from opticalglass.cdgm import CDGMGlass
+        from opticalglass.hikari import HikariGlass
         from opticalglass.hoya import HoyaGlass
         from opticalglass.ohara import OharaGlass
         from opticalglass.schott import SchottGlass
+        from opticalglass.sumita import SumitaGlass
+        from opticalglass.buchdahl import Buchdahl
 
         if self.no_replacements:                # track the number of times
             if name in self.glasses_not_found:  # each missing glass is used
