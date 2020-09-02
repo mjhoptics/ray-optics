@@ -47,7 +47,7 @@ from rayoptics.qtgui.plotview import (create_plot_scale_panel,
                                       create_2d_figure_toolbar)
 
 
-def open_model(file_name, **kwargs):
+def open_model(file_name, info=False, **kwargs):
     """ open a file and populate an optical model with the data
 
     Args:
@@ -56,6 +56,7 @@ def open_model(file_name, **kwargs):
             - .roa - a rayoptics JSON encoded file
             - .seq - a CODE V (TM) sequence file
             - .zmx - a Zemax (TM) lens file
+        info (bool): if true, return an info tuple with import statistics
         kwargs (dict): keyword args passed to the reader functions
 
     Returns:
@@ -69,8 +70,9 @@ def open_model(file_name, **kwargs):
     elif file_extension == '.roa':
         opm = open_roa(file_name, **kwargs)
     elif file_extension == '.zmx':
-        opm = zmxread.read_lens_file(file_name, **kwargs)
-
+        opm, import_info = zmxread.read_lens_file(file_name, **kwargs)
+        if info:
+            return opm, import_info
     return opm
 
 

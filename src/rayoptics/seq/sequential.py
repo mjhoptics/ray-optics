@@ -103,6 +103,9 @@ class SequentialModel:
         self.z_dir.append(1)
         self.rndx.append([1.0])
 
+        # interfaces are inserted after cur_surface
+        self.cur_surface = 0
+
         # add image interface
         self.ifcs.append(surface.Surface('Img'))
         self.gbl_tfrms.append(tfrm)
@@ -403,8 +406,10 @@ class SequentialModel:
         for i, sg in enumerate(self.path()):
             s = self.list_surface_and_gap(sg[Intfc], gp=sg[Gap])
             s.append(self.z_dir[i])
-            print("{0:>4s}: {1:12.6f} {2:#12.6g} {3:>9s} {4:>10s} {6:2n}"
-                  "  {5:#10.5g}".format(labels[i], *s))
+            fmt = "{0:>4s}: {1:12.6f} {2:#12.6g} {3:>9s} {4:>10s} {6:2n}"
+            if s[4] is not None:  # if the sd is not None...
+                fmt += "  {5:#10.5g}"
+            print(fmt.format(labels[i], *s))
 
     def list_model_old(self):
         cvr = 'r' if self.opt_model.radius_mode else 'c'
@@ -412,9 +417,10 @@ class SequentialModel:
               .format(cvr))
         for i, sg in enumerate(self.path()):
             s = self.list_surface_and_gap(sg[Intfc], gp=sg[Gap])
-            print("{0:2n}: {1:12.6f} {2:#12.6g} {3:>9s} "
-                  "{4.name:>10s} {5:#10.5g}"
-                  .format(i, *s))
+            fmt = "{0:2n}: {1:12.6f} {2:#12.6g} {3:>9s} {4.name:>10s}"
+            if s[4] is not None:  # if the sd is not None...
+                fmt += " {5:#10.5g}"
+            print(fmt.format(i, *s))
 
     def list_gaps(self):
         for i, gp in enumerate(self.gaps):
@@ -425,6 +431,7 @@ class SequentialModel:
             print(i, s)
 
     def list_surface_and_gap(self, ifc, gp=None):
+        """Returns cvr, thi, med, imode, sd for input ifc and gap."""
         cvr = ifc.profile_cv
         if self.opt_model.radius_mode:
             if cvr != 0.0:

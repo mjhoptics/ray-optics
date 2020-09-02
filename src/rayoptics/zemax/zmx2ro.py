@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Copyright © 2020 Michael J. Hayford
-"""
+"""Post processing functions for Zemax import
 
 .. Created on Mon Aug 10 18:17:55 2020
 
@@ -85,6 +85,25 @@ def collapse_coordbrk(opt_model, cur):
     return False
 
 
+def remove_null_sg(opt_model, cur):
+    """Remove sg with planar profile and an adjacent zero thickness air gap."""
+    sm = opt_model.seq_model
+    ifc = sm.ifcs[cur]
+    if is_null_ifc(ifc):
+        prev = None
+        cur_gap = False if len(sm.gaps)-1 < cur else True
+        prev_gap = True if 0 < cur else False
+        if cur_gap and is_null_gap(sm.gaps[cur]):
+            prev = False
+        elif prev_gap and is_null_gap(sm.gaps[cur-1]):
+            prev = True
+        if prev is not None:
+            sm.remove(cur, prev=prev)
+            return True
+
+    return False
+
+
 def is_null_ifc(ifc):
     if isinstance(ifc, surface.Surface):
         if isinstance(ifc.profile, profiles.Spherical):
@@ -102,22 +121,3 @@ def is_null_gap(gap):
         return True
     else:
         return False
-
-
-def remove_null_sg(opt_model, cur):
-    """Attempt to apply the cur COORDBRK to an adjacent real interface."""
-    sm = opt_model.seq_model
-    ifc = sm.ifcs[cur]
-    if is_null_ifc(ifc):
-        prev = None
-        cur_gap = False if len(sm.gaps)-1 < cur else True
-        prev_gap = True if 0 < cur else False
-        if cur_gap and is_null_gap(sm.gaps[cur]):
-            prev = False
-        elif prev_gap and is_null_gap(sm.gaps[cur-1]):
-            prev = True
-        if prev is not None:
-            sm.remove(cur, prev=prev)
-            return True
-
-    return False

@@ -79,6 +79,10 @@ class Glass(Medium):
                 ', vd=' + str(self.v) +
                 ', mat=' + f"'{self.label}'" + ')')
 
+    def sync_to_restore(self):
+        if not hasattr(self, 'bdhl_model'):
+            self.bdhl_model = buchdahl.Buchdahl2(self.n, self.v)
+
     def glass_code(self):
         return str(1000*round((self.n - 1), 3) + round(self.v/100, 3))
 

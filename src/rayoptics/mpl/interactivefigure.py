@@ -173,12 +173,13 @@ class InteractiveFigure(StyledFigure):
             for key, gui_handle in handles.items():
                 poly, bbox = gui_handle
                 # add shape and handle key as attribute on artist
-                poly.shape = (shape, key)
-                self.artists.append(poly)
-                if len(bbox_list) == 0:
-                    bbox_list = bbox
-                else:
-                    bbox_list = np.vstack((bbox_list, bbox))
+                if ~np.isnan(bbox).all():
+                    poly.shape = (shape, key)
+                    self.artists.append(poly)
+                    if len(bbox_list) == 0:
+                        bbox_list = bbox
+                    else:
+                        bbox_list = np.vstack((bbox_list, bbox))
         bbox = util.bbox_from_poly(bbox_list)
         return bbox
 
