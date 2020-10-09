@@ -15,8 +15,7 @@ import requests
 import rayoptics.optical.opticalmodel as opticalmodel
 from rayoptics.optical.model_enums import DimensionType as dt
 from rayoptics.optical.model_enums import DecenterType as dec
-from rayoptics.elem.surface import (DecenterData, Circular, Rectangular,
-                                    Elliptical)
+from rayoptics.elem.surface import DecenterData
 from rayoptics.elem import profiles
 from rayoptics.seq.medium import (glass_encode, Medium, Air,
                                   Glass, InterpolatedGlass)
@@ -25,16 +24,14 @@ from rayoptics.util.misc_math import isanumber
 import rayoptics.zemax.zmx2ro as zmx2ro
 import rayoptics.oprops.thinlens as thinlens
 
+from opticalglass import glass as cat_glass
 from opticalglass import glassfactory as gfact
 from opticalglass import glasserror
+from opticalglass import util
 
 _glass_handler = None
 _cmd_not_handled = None
 _track_contents = None
-
-class Counter(dict):
-    def __missing__(self, key):
-        return 0
 
 
 def read_lens_file(filename, **kwargs):
@@ -65,8 +62,8 @@ def read_lens_url(url, **kwargs):
 def read_lens(filename, inpt, **kwargs):
     ''' given inpt str of a Zemax .zmx file, return an OpticalModel  '''
     global _glass_handler, _cmd_not_handled, _track_contents
-    _cmd_not_handled = Counter()
-    _track_contents = Counter()
+    _cmd_not_handled = util.Counter()
+    _track_contents = util.Counter()
     logging.basicConfig(filename='zmx_read_lens.log',
                         filemode='w',
                         level=logging.DEBUG)
@@ -316,7 +313,7 @@ def handle_types_and_params(optm, cur, cmd, inputs):
         return False
     return True
 
-
+    
 def pupil_data(optm, cmd, inputs):
     # FNUM 2.1 0
     # OBNA 1.5E-1 0
@@ -407,13 +404,13 @@ class GlassHandler():
     create an instance to replace the missing Zemax glass name. If this file
     isn't found, it is created and contains a JSON template of a dict that has
     the missing glass names as keys; the values are the number of times the
-    glass occurs in the file. Thes values should be replaced with the desired
+    glass occurs in the file. These values should be replaced with the desired
     eval() string to create a replacement glass.
     """
 
     def __init__(self, filename):
         self.glass_catalogs = []
-        self.glasses_not_found = Counter()
+        self.glasses_not_found = util.Counter()
         self.filename = None
         if filename:
             self.filename = filename.with_suffix('.smx')
@@ -421,7 +418,7 @@ class GlassHandler():
         self.no_replacements = not self.glasses_not_found
 
     def load_replacements(self, filename):
-        glasses_not_found = Counter()
+        glasses_not_found = util.Counter()
         if filename.exists():
             with filename.open('r') as file:
                 glasses_not_found = json.load(file)
@@ -467,7 +464,7 @@ class GlassHandler():
                     g.medium = Glass(nd, vd, mat=name)
                     _track_contents['6 digit code'] += 1
                     return True
-            else:
+            else:  # must be a glass type
                 try:
                     medium = gfact.create_glass(name, gfact._cat_names)
                 except glasserror.GlassNotFoundError:
@@ -477,14 +474,63 @@ class GlassHandler():
                     _track_contents['glass found'] += 1
                     return True
 
+                if self.no_replacements:
+                    medium = self.find_substitute_glass(name)
+                    if medium is not None:
+                        g.medium = medium
+                        _track_contents['glass substituted'] += 1
+                        return True
+
                 medium = self.handle_glass_not_found(name)
                 if medium is None:
                     _track_contents['glass not found'] += 1
-                    medium = Medium(1.5, 'glass')
+                    medium = Medium(1.5, 'not '+name)
                 g.medium = medium
                 return True
         else:
             return False
+
+    def find_substitute_glass(self, name):
+        """Try to find a similar glass to ``name``."""
+
+        # create a list of catalogs
+        if len(self.glass_catalogs) > 0:
+            cat_names = self.glass_catalogs
+        else:
+            cat_names = gfact._cat_names
+
+        # create a glass list for the given catalogs
+        glist = []
+        for glass_cat in cat_names:
+            try:
+                glass_cat = gfact.get_glass_catalog(glass_cat)
+            except glasserror.GlassCatalogNotFoundError:
+                pass
+            else:
+                glist += glass_cat.glass_list
+
+        # Add legacy glasses
+        glist += cat_glass.Robb1983Catalog().glass_list
+
+        # decode the input name
+        gn_decode = cat_glass.decode_glass_name(name)
+        # build an uppercase version for comparisons
+        gn_decode_uc = gn_decode[0][0].upper() + gn_decode[0][1]
+
+        subs_glasses = []
+        for g in glist:
+            gn_decode, gn, gc = g
+            if gn_decode_uc == gn_decode[0][0].upper() + gn_decode[0][1]:
+                subs_glasses.append(g)
+
+        if len(subs_glasses):
+            gn_decode, gn, gc = subs_glasses[0]
+            medium = gfact.create_glass(gn, gc)
+            eval_str = "create_glass('{:s}','{:s}')".format(gn, gc)
+            self.glasses_not_found[name] = eval_str
+            return medium
+        else:
+            return None
 
     def handle_glass_not_found(self, name):
         """Record missing glasses or create new replacement glass instances."""
@@ -497,6 +543,7 @@ class GlassHandler():
         from opticalglass.schott import SchottGlass
         from opticalglass.sumita import SumitaGlass
         from opticalglass.buchdahl import Buchdahl
+        from opticalglass.glassfactory import create_glass
 
         if self.no_replacements:                # track the number of times
             self.glasses_not_found[name] += 1   # each missing glass is used
