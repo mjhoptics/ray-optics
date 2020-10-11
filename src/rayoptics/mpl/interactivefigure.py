@@ -132,6 +132,7 @@ class InteractiveFigure(StyledFigure):
     def update_data(self, **kwargs):
         pass
 
+    # --- command support
     def action_complete(self):
         if self.on_finished:
             self.on_finished()
@@ -183,6 +184,7 @@ class InteractiveFigure(StyledFigure):
         bbox = util.bbox_from_poly(bbox_list)
         return bbox
 
+    # --- graphics element creation
     def create_patches(self, handles):
         gui_handles = {}
         for key, graphics_handle in handles.items():
@@ -339,6 +341,7 @@ class InteractiveFigure(StyledFigure):
         self.view_bbox = bbox
         self.update_axis_limits(bbox=self.view_bbox)
 
+    # --- 2D view controls
     def fit(self):
         self.set_view_bbox(self.fit_axis_limits())
         self.plot()
@@ -365,6 +368,7 @@ class InteractiveFigure(StyledFigure):
     def zoom_out(self):
         self.zoom(factor=1.2)
 
+    # --- drawing
     def draw_frame(self, do_draw_frame):
         if do_draw_frame:
             self.ax.set_axis_on()
@@ -419,6 +423,7 @@ class InteractiveFigure(StyledFigure):
 
         return self
 
+    # --- interactive actions
     def find_artists_at_location(self, event):
         """Returns a list of shapes in zorder at the event location."""
         artists = []

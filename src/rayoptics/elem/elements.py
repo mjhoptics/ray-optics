@@ -33,7 +33,7 @@ GraphicsHandle = namedtuple('GraphicsHandle', ['polydata', 'tfrm', 'polytype'])
         polytype: 'polygon' (for filled) or 'polyline'
 """
 
-
+# --- Factory functions
 def create_thinlens(power=0., indx=1.5, sd=None, **kwargs):
     tl = thinlens.ThinLens(power=power, ref_index=indx, max_ap=sd, **kwargs)
     tle = ThinElement(tl)
@@ -125,6 +125,7 @@ def create_from_file(filename, **kwargs):
     return seq, ele
 
 
+# --- Element definitions
 class Element():
     clut = rgbt.RGBTable(filename='red_blue64.csv',
                          data_range=[10.0, 100.])
@@ -758,6 +759,7 @@ class AirGap():
         return self.actions
 
 
+# --- Element model
 class ElementModel:
 
     def __init__(self, opt_model, **kwargs):

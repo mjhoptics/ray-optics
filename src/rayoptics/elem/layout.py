@@ -109,6 +109,7 @@ def create_optical_element(opt_model, e):
     return OpticalElement(opt_model, e)
 
 
+# --- Graphics elements
 class OpticalElement():
     """ mediator class for rendering and editing optical elements """
 
@@ -424,6 +425,7 @@ class ParaxialRay():
         return actions
 
 
+# --- Layout manager
 class LensLayout():
     """ manager for live layout graphics entities """
 
@@ -547,6 +549,7 @@ class LensLayout():
         return actions
 
 
+# --- Command functions
 def split_gap(opt_model, idx, lcl_pt):
     """ split g=gap[idx] into t_old = t_0 + t_k using t_0 = lcl_pt.x """
     g = opt_model.seq_model.gaps[idx]

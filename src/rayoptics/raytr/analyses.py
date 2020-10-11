@@ -27,6 +27,7 @@ from rayoptics.elem.transform import transform_after_surface
 from rayoptics.raytr import trace
 
 
+# --- Wavefront aberration
 def get_chief_ray_pkg(opt_model, fld, wvl, foc):
     """Get the chief ray package at **fld**, computing it if necessary.
 
@@ -204,6 +205,7 @@ def wave_abr_calc(fod, fld, wvl, foc, ray_pkg, chief_ray_pkg,
     return opd
 
 
+# --- Single ray
 class Ray():
     """A ray at the given field and wavelength.
 
@@ -258,6 +260,7 @@ class Ray():
         return self
 
 
+# --- Fan of rays
 class RayFan():
     """A fan of rays across the pupil at the given field and wavelength.
 
@@ -452,6 +455,7 @@ def focus_fan(opt_model, fan_pkg, fld, wvl, foc, image_pt_2d=None):
     return fan_data
 
 
+# --- List of rays
 class RayList():
     """Container class for a list of rays produced from a list or generator
 
@@ -615,6 +619,7 @@ def focus_pupil_coords(opt_model, ray_list, fld, wvl, foc, image_pt_2d=None):
     return np.array(ray_list_data)
 
 
+# --- Square grid of rays
 class RayGrid():
     """Container for a square grid of rays.
 
@@ -784,6 +789,7 @@ def focus_wavefront(opt_model, grid_pkg, fld, wvl, foc, image_pt_2d=None,
     return np.array(refocused_grid)
 
 
+# --- PSF calculation
 def psf_sampling(n=None, n_pupil=None, n_airy=None):
     """Given 2 of 3 parameters, calculate the third.
 
