@@ -13,7 +13,8 @@ import numpy as np
 from copy import deepcopy
 from pathlib import Path
 
-from rayoptics.gui.util import GUIHandle, bbox_from_poly, fit_data_range
+from rayoptics.gui.util import bbox_from_poly, fit_data_range
+from rayoptics.gui.actions import ReplaceGlassAction
 
 from rayoptics.optical.model_constants import ht, slp
 from rayoptics.optical.model_constants import pwr, tau, indx, rmd
@@ -27,6 +28,7 @@ from rayoptics.util import colors
 import rayoptics.elem.elements as ele
 
 
+# --- color management
 dgm_lw = {
     'data': 2,
     'data_hilite': 3,
@@ -411,9 +413,11 @@ class DiagramEdge():
     def handle_actions(self):
         actions = {}
         actions['shape'] = EditLensAction(self)
+        actions['area'] = EditAreaAction(self)
         return actions
 
 
+# --- Editing actions
 class BarrelConstraint():
     def __init__(self, diagram):
         self.diagram = diagram
@@ -696,6 +700,29 @@ class EditLensAction():
         self.actions['release'] = create_dispatch_action('release')
 
 
+class EditAreaAction():
+    """ Action for diagram area, placeholder for now
+
+    This is a simple wrapper class to choose the correct action, i.e. bending
+    or thickness change, depending on the UI setting.
+    """
+
+    def __init__(self, dgm_edge):
+        # actions['power'] = EditPowerAction(dgm_edge)
+        # actions['bend'] = EditBendingAction(dgm_edge)
+
+        def create_dispatch_action(event_key):
+            def dispatch_action(fig, event):
+                pass
+                # actions[diagram.bend_or_gap].actions[event_key](fig, event)
+            return dispatch_action
+
+        self.actions = {}
+        self.actions['press'] = create_dispatch_action('press')
+        self.actions['drag'] = create_dispatch_action('drag')
+        self.actions['release'] = create_dispatch_action('release')
+
+
 class EditThicknessAction():
     """ Action to move a diagram edge, using an input pt
 
@@ -958,6 +985,42 @@ class AddReplaceElementAction():
         self.actions['press'] = on_press_add_point
         self.actions['drag'] = on_drag_add_point
         self.actions['release'] = on_release_add_point
+
+
+class GlassDropAction():
+
+    def dragEnterEvent(self, view, event):
+        def glass_target_filter(artist):
+            shape, handle = artist.shape
+            if handle == 'area' and 'area' in shape.actions:
+                sm = shape.diagram.opt_model.seq_model
+                gap = sm.gaps[shape.node]
+                if gap.medium.name().lower() != 'air':
+                    return False
+            return True
+        view.figure.artist_filter = glass_target_filter
+
+    def dragMoveEvent(self, view, event):
+        x, y = view.mouseEventCoords(event.pos())
+        view.motion_notify_event(x, y, guiEvent=event)
+
+    def dragLeaveEvent(self, view, event):
+        view.figure.artist_filter = None
+
+    def dropEvent(self, view, event):
+        dropped_it = False
+        fig = view.figure
+        if fig.hilited is not None:
+            target = fig.hilited
+            shape, handle = target.artist.shape
+            if handle == 'area' and 'area' in shape.actions:
+                sm = shape.diagram.opt_model.seq_model
+                gap = sm.gaps[shape.node]
+                action = ReplaceGlassAction(gap)
+                action(fig, event)
+                dropped_it = True
+        view.figure.artist_filter = None
+        return dropped_it
 
 
 class AddElementAction():

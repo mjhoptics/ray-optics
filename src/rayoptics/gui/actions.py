@@ -25,6 +25,8 @@
 
 import math
 
+from opticalglass import glassfactory as gfact
+
 
 class Action():
     """ Action built on a set/get function pair """
@@ -153,3 +155,18 @@ class BendAction():
 #                  .format(event.lcl_pt[0], xsag, self.cv_new))
             fig.refresh_gui()
         self.actions['release'] = on_release
+
+
+class ReplaceGlassAction():
+    """ Action for replacing an element's glass from a drag/drop action. """
+
+    def __init__(self, gap):
+        self.gap = gap
+
+    def __call__(self, fig, event):
+        mime = event.mimeData()
+        # comma separated list
+        glass_name, catalog_name = mime.text().split(',')
+        mat = gfact.create_glass(glass_name, catalog_name)
+        self.gap.medium = mat
+        fig.refresh_gui()

@@ -25,15 +25,19 @@ def glass_decode(gc):
 class Medium:
     """ Constant refractive index medium. """
 
-    def __init__(self, nd, lbl):
+    def __init__(self, nd, lbl, cat=''):
         self.label = lbl
         self.n = nd
+        self._catalog_name = cat
 
     def __repr__(self):
         return 'Medium(' + str(self.n) + ', ' + f"'{self.label}'" + ')'
 
     def name(self):
         return self.label
+
+    def catalog_name(self):
+        return self._catalog_name
 
     def rindex(self, wv_nm):
         """ returns the interpolated refractive index at wv_nm
@@ -61,8 +65,9 @@ class Air(Medium):
 class Glass(Medium):
     """ Optical medium defined by a glass code, i.e. index - V number pair """
 
-    def __init__(self, nd=1.5168, vd=64.17, mat='N-BK7'):
+    def __init__(self, nd=1.5168, vd=64.17, mat='N-BK7', cat=''):
         self.label = mat
+        self._catalog_name = cat
         if mat == 'N-BK7':
             self.n = 1.5168
             self.v = 64.17

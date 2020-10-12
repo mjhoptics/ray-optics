@@ -10,6 +10,7 @@
 from pathlib import Path
 
 from PyQt5.QtCore import Qt as qt
+from PyQt5.QtCore import QModelIndex
 from PyQt5.QtCore import QSize
 from PyQt5 import QtGui
 from PyQt5.QtWidgets import (QHBoxLayout, QVBoxLayout, QWidget, QLineEdit,
@@ -23,13 +24,19 @@ from matplotlib.backends.backend_qt5agg \
 
 from rayoptics.gui.appmanager import ModelInfo
 from rayoptics.mpl.axisarrayfigure import Fit
+from rayoptics.mpl.styledfigure import StyledFigure
+
+from opticalglass import glassmap as gm
+from opticalglass import glassmapviewer as gmv
 
 
 class PlotCanvas(FigureCanvas):
 
-    def __init__(self, parent, figure):
+    def __init__(self, parent, figure, accept_drops=True, drop_action=None):
         FigureCanvas.__init__(self, figure)
         self.setParent(parent)
+        self.setAcceptDrops(True)
+        self.drop_action = drop_action if drop_action else NullDropAction()
 
         # Next 2 lines are needed so that key press events are correctly
         #  passed with mouse events
@@ -43,6 +50,42 @@ class PlotCanvas(FigureCanvas):
         FigureCanvas.updateGeometry(self)
 
         self.figure.plot()
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasFormat("text/plain"):
+            self.drop_action.dragEnterEvent(self, event)
+            event.acceptProposedAction()
+
+    def dragMoveEvent(self, event):
+        if event.mimeData().hasFormat("text/plain"):
+            self.drop_action.dragMoveEvent(self, event)
+            event.acceptProposedAction()
+
+    def dragLeaveEvent(self, event):
+        if event.mimeData().hasFormat("text/plain"):
+            self.drop_action.dragLeaveEvent(self, event)
+            event.acceptProposedAction()
+
+    def dropEvent(self, event):
+        if event.mimeData().hasText():
+            if self.drop_action.dropEvent(self, event):
+                event.acceptProposedAction()
+        else:
+            event.ignore()
+
+
+class NullDropAction():
+    def dragEnterEvent(self, view, event):
+        pass
+
+    def dragMoveEvent(self, view, event):
+        pass
+
+    def dragLeaveEvent(self, view, event):
+        pass
+
+    def dropEvent(self, view, event):
+        return False
 
 
 def update_figure_view(plotFigure):
@@ -101,7 +144,8 @@ def on_command_clicked(item):
 
 
 def create_plot_view(app, fig, title, view_width, view_ht, commands=None,
-                     add_panel_fcts=None, add_nav_toolbar=False):
+                     add_panel_fcts=None, add_nav_toolbar=False,
+                     drop_action=None):
     """ create a window hosting a (mpl) figure """
 
     def create_light_or_dark_callback(fig):
@@ -124,7 +168,7 @@ def create_plot_view(app, fig, title, view_width, view_ht, commands=None,
     plot_layout = QVBoxLayout()
     top_layout.addLayout(plot_layout)
 
-    pc = PlotCanvas(app, fig)
+    pc = PlotCanvas(app, fig, drop_action=drop_action)
     if add_panel_fcts is not None:
         panel_layout = QHBoxLayout()
         plot_layout.addLayout(panel_layout)
@@ -144,6 +188,42 @@ def create_plot_view(app, fig, title, view_width, view_ht, commands=None,
 
     if add_nav_toolbar:
         plot_layout.addWidget(NavigationToolbar(pc, sub_window))
+
+    sub_window.show()
+
+
+def create_glass_map_view(app, glass_db):
+
+    def create_light_or_dark_callback(fig):
+        def l_or_d(is_dark):
+            fig.sync_light_or_dark(is_dark)
+        return l_or_d
+
+    title = 'Glass Map Viewer'
+
+    width = 1100
+    height = 650
+
+    # glass_db = gm.GlassMapDB(['Schott', 'Hoya', 'Ohara'])
+    db_display = [True]*len(glass_db.catalogs)
+    plot_display_type = "Refractive Index"
+    # hotwire GlassMapFigure to inherit from StyledFigure
+    gm.GlassMapFigure.__bases__ = (StyledFigure,)
+    fig = gm.GlassMapFigure(glass_db, db_display,
+                            plot_display_type,
+                            width=5, height=4)
+
+    widget, _, _, pick_model = gmv.init_UI(app, fig)
+
+    def refresh_gui(**kwargs):
+        pick_model.fill_table(fig.pick_list)
+    fig.refresh_gui = refresh_gui
+    mi = ModelInfo(app.app_manager.model, update_figure_view, (fig,))
+    sub_window = app.add_subwindow(widget, mi)
+    sub_window.sync_light_or_dark = create_light_or_dark_callback(fig)
+    sub_window.setWindowTitle(title)
+    orig_x, orig_y = app.initial_window_offset()
+    sub_window.setGeometry(orig_x, orig_y, width, height)
 
     sub_window.show()
 

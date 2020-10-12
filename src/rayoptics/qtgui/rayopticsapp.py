@@ -32,6 +32,7 @@ import rayoptics.gui.appcmds as cmds
 from rayoptics.gui.appmanager import ModelInfo, AppManager
 import rayoptics.qtgui.dockpanels as dock
 from rayoptics.qtgui.ipyconsole import create_ipython_console
+from rayoptics.qtgui.pytableview import TableView
 
 from rayoptics.parax import firstorder
 from rayoptics.raytr import trace
@@ -69,11 +70,12 @@ class MainWindow(QMainWindow):
         file_menu.addAction("Close")
         file_menu.triggered[QAction].connect(self.file_action)
 
-        view_menu = bar.addMenu("View")
+        view_menu = bar.addMenu("Data View")
         view_menu.addAction("Spec Sheet")
         view_menu.addAction("Optical Layout")
         view_menu.addAction("Lens Table")
         view_menu.addAction("Element Table")
+        view_menu.addAction("Glass Map")
         # view_menu.addAction("Lens View")
         view_menu.triggered[QAction].connect(self.view_action)
 
@@ -86,7 +88,7 @@ class MainWindow(QMainWindow):
         parax_menu.triggered[QAction].connect(self.view_action)
 
         analysis_menu = bar.addMenu("Analysis")
-        view_menu.addAction("Ray Table")
+        analysis_menu.addAction("Ray Table")
         analysis_menu.addAction("Ray Fans")
         analysis_menu.addAction("OPD Fans")
         analysis_menu.addAction("Spot Diagram")
@@ -121,6 +123,7 @@ class MainWindow(QMainWindow):
         else:
             # restore a default model
 
+            # self.cur_dir = path / "codev/tests"
             # self.open_file(path / "codev/tests/asp46.seq")
             # self.open_file(path / "codev/tests/dar_test.seq")
             # self.open_file(path / "codev/tests/paraboloid.seq")
@@ -135,9 +138,12 @@ class MainWindow(QMainWindow):
             # self.open_file(path / "codev/tests/dec_tilt_test.seq")
             # self.open_file(path / "codev/tests/landscape_lens.seq")
             # self.open_file(path / "codev/tests/mangin.seq")
+            # self.open_file(path / "codev/tests/CODV_32327.seq")
+            # self.open_file(path / "codev/tests/dar_test.seq")
             # self.open_file(path / "optical/tests/cell_phone_camera.roa")
             # self.open_file(path / "optical/tests/singlet_f3.roa")
 
+            # self.cur_dir = path / "models"
             # self.open_file(path / "models/Cassegrain.roa")
             # self.open_file(path / "models/collimator.roa")
             # self.open_file(path / "models/Dall-Kirkham.roa")
@@ -151,12 +157,25 @@ class MainWindow(QMainWindow):
             # self.open_file(path / "models/TwoMirror.roa")
             # self.open_file(path / "models/TwoSphericalMirror.roa")
 
+            # self.cur_dir = path / "zemax/tests"
             # self.open_file(path / "zemax/tests/US08427765-1.ZMX")
             # self.open_file(path / "zemax/tests/US00583336-2-scaled.zmx")
             # self.open_file(path / "zemax/tests/HoO-V2C18Ex03.zmx")
             # self.open_file(path / "zemax/tests/HoO-V2C18Ex27.zmx")
-            self.open_file(path / "zemax/tests/HoO-V2C18Ex66.zmx")
+            # self.open_file(path / "zemax/tests/HoO-V2C18Ex46.zmx")
+            # self.open_file(path / "zemax/tests/HoO-V2C18Ex66.zmx")
             # self.open_file(path / "zemax/tests/US05831776-1.zmx")
+
+            # self.cur_dir = path / "zemax/models/telescopes"
+            # self.open_file(path / "zemax/models/telescopes/Figure4.zmx")
+            # self.open_file(path / "zemax/models/telescopes/HoO-V2C18Ex11.zmx")
+
+            self.cur_dir = path / "zemax/models/PhotoPrime"
+            # self.open_file(path / "zemax/models/PhotoPrime/US05321554-4.ZMX")
+            # self.open_file(path / "zemax/models/PhotoPrime/US06476982-1.ZMX")
+            # self.open_file(path / "zemax/models/PhotoPrime/US07190532-1.ZMX")
+            # self.open_file(path / "zemax/models/PhotoPrime/US04331391-1.zmx")
+            self.open_file(path / "zemax/models/PhotoPrime/US05331467-1.zmx")
 
     def add_subwindow(self, widget, model_info):
         sub_wind = self.mdi.addSubWindow(widget)
@@ -235,7 +254,8 @@ class MainWindow(QMainWindow):
 
     def open_file(self, file_name, **kwargs):
         self.cur_filename = file_name
-        self.app_manager.set_model(cmds.open_model(file_name, **kwargs))
+        opt_model = cmds.open_model(file_name, **kwargs)
+        self.app_manager.set_model(opt_model)
         self.is_changed = True
         self.create_lens_table()
         cmds.create_live_layout_view(self.app_manager.model, gui_parent=self)
@@ -266,6 +286,9 @@ class MainWindow(QMainWindow):
         if q.text() == "Element Table":
             model = cmds.create_element_table_model(opt_model)
             self.create_table_view(model, "Element Table")
+
+        if q.text() == "Glass Map":
+            cmds.create_glass_map_view(opt_model, gui_parent=self)
 
         if q.text() == "Ray Fans":
             cmds.create_ray_fan_view(opt_model, "Ray", gui_parent=self)
@@ -390,31 +413,29 @@ class MainWindow(QMainWindow):
         # construct the top level layout
         layout = QVBoxLayout(widget)
 
-        tableView = QTableView()
-        tableView.setAlternatingRowColors(True)
+        table_view = TableView(table_model)
+        table_view.setAlternatingRowColors(True)
 
         # Add table to box layout
-        layout.addWidget(tableView)
+        layout.addWidget(table_view)
 
         # set the layout on the widget
         widget.setLayout(layout)
 
         sub = self.add_subwindow(widget, ModelInfo(self.app_manager.model,
                                                    cmds.update_table_view,
-                                                   (tableView,)))
+                                                   (table_view,)))
         sub.setWindowTitle(table_title)
 
         sub.installEventFilter(self)
 
-        tableView.setModel(table_model)
-
-        tableView.setMinimumWidth(tableView.horizontalHeader().length() +
-                                  tableView.horizontalHeader().height())
+        table_view.setMinimumWidth(table_view.horizontalHeader().length() +
+                                   table_view.horizontalHeader().height())
 #                                  The following line should work but returns 0
-#                                  tableView.verticalHeader().width())
+#                                  table_view.verticalHeader().width())
 
-        view_width = tableView.width()
-        view_ht = tableView.height()
+        view_width = table_view.width()
+        view_ht = table_view.height()
         orig_x, orig_y = self.initial_window_offset()
         sub.setGeometry(orig_x, orig_y, view_width, view_ht)
 
@@ -423,7 +444,7 @@ class MainWindow(QMainWindow):
 
         sub.show()
 
-        return tableView
+        return table_view
 
     def eventFilter(self, obj, event):
         """Used by table_view in response to installEventFilter."""

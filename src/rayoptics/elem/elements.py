@@ -20,7 +20,8 @@ from rayoptics.elem.profiles import Spherical, Conic
 from rayoptics.elem.surface import Surface
 from rayoptics.seq.gap import Gap
 import rayoptics.gui.appcmds as cmds
-from rayoptics.gui.actions import Action, AttrAction, SagAction, BendAction
+from rayoptics.gui.actions import (Action, AttrAction, SagAction, BendAction,
+                                   ReplaceGlassAction)
 from rayoptics.seq.medium import Glass, glass_decode
 import opticalglass.glasspolygons as gp
 
@@ -321,6 +322,7 @@ class Element():
         shape_actions = {}
         shape_actions['pt'] = BendAction(self)
         shape_actions['y'] = AttrAction(self, 'sd')
+        shape_actions['glass'] = ReplaceGlassAction(self.gap)
         self.actions['shape'] = shape_actions
 
         s1_prof_actions = {}

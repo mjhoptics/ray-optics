@@ -12,23 +12,27 @@ import os.path
 import json_tricks
 import math
 
+from opticalglass import glassmap as gm
+from opticalglass import glassfactory as gfact
+
 import rayoptics.codev.cmdproc as cvp
 from rayoptics.zemax import zmxread
 
 import rayoptics.optical.opticalmodel as opticalmodel
 from rayoptics.elem.profiles import Spherical, Conic
 import rayoptics.elem.elements as ele
+from rayoptics.elem import layout
+from rayoptics.parax import diagram
 from rayoptics.parax.firstorder import specsheet_from_parax_data
 from rayoptics.parax.idealimager import ideal_imager_setup
 from rayoptics.parax.etendue import create_etendue_dict
 from rayoptics.parax.specsheet import (conjugate_types, SpecSheet,
                                        create_specsheet, create_specsheets,
                                        create_specsheet_from_model)
+import rayoptics.seq.medium as medium
 
-from rayoptics.elem import layout
 from rayoptics.gui.appmanager import ModelInfo
 from rayoptics.gui.roafile import open_roa
-import rayoptics.parax.diagram as diagram
 
 from rayoptics.mpl.interactivelayout import InteractiveLayout
 from rayoptics.mpl.axisarrayfigure import Fit
@@ -172,6 +176,7 @@ def create_yybar_model():
 
     return opt_model
 
+
 def get_defaults_from_gui_parent(gui_parent):
     if gui_parent:
         refresh_gui = gui_parent.refresh_gui
@@ -198,8 +203,8 @@ def create_live_layout_view(opt_model, gui_parent=None):
                   create_draw_rays_groupbox,
                   ]
     plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht,
-                              add_panel_fcts=panel_fcts,
-                              commands=cmds)
+                              add_panel_fcts=panel_fcts, commands=cmds,
+                              drop_action=layout.GlassDropAction())
 
 
 def create_live_layout_commands(fig):
@@ -248,8 +253,8 @@ def create_paraxial_design_view_v2(opt_model, dgm_type, gui_parent=None):
     #               create_diagram_controls_groupbox,
     #               ]
     plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht,
-                              add_panel_fcts=panel_fcts,
-                              commands=cmds)
+                              add_panel_fcts=panel_fcts, commands=cmds,
+                              drop_action=diagram.GlassDropAction())
 
 
 def create_ray_fan_view(opt_model, data_type, gui_parent=None):
@@ -324,12 +329,33 @@ def create_3rd_order_bar_chart(opt_model, gui_parent=None):
                               add_panel_fcts=panel_fcts)
 
 
+def create_glass_map_view(opt_model, gui_parent=None):
+    refresh_gui, is_dark = get_defaults_from_gui_parent(gui_parent)
+    glass_names = set()
+    glasses = list()
+    for g in opt_model.seq_model.gaps:
+        m = g.medium
+        if not isinstance(m, medium.Air):
+            if m.name() not in glass_names:
+                glass_names.add(m.name())
+                glasses.append(m)
+    glass_db = gm.GlassMapDB(glasses, gfact._catalog_list)
+    plotview.create_glass_map_view(gui_parent, glass_db)
+
+
 def update_table_view(table_view):
     table_model = table_view.model()
     table_model.endResetModel()
 
 
 def create_lens_table_model(seq_model):
+    def replace_glass(event, index):
+        mime = event.mimeData()
+        # comma separated list
+        glass_name, catalog_name = mime.text().split(',')
+        mat = gfact.create_glass(glass_name, catalog_name)
+        seq_model.gaps[index].medium = mat
+
     colEvalStr = ['.ifcs[{}].interface_type()',
                   '.ifcs[{}].profile_cv',
                   '.ifcs[{}].surface_od()', '.gaps[{}].thi',
@@ -338,10 +364,13 @@ def create_lens_table_model(seq_model):
     colHeaders = ['type', 'cv', 'sd', 'thi', 'medium', 'mode']
     colFormats = ['{:s}', '{:12.7g}', '{:12.5g}', '{:12.5g}',
                   '{:s}', '{:s}']
+    drop_actions = [None]*len(colHeaders)
+    drop_actions[4] = replace_glass
     return PyTableModel(seq_model, '', colEvalStr, rowHeaders,
                         colHeaders, colFormats, True,
                         get_num_rows=seq_model.get_num_surfaces,
-                        get_row_headers=seq_model.surface_label_list)
+                        get_row_headers=seq_model.surface_label_list,
+                        drop_actions=drop_actions)
 
 
 def create_element_table_model(opt_model):

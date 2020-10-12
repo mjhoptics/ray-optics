@@ -45,7 +45,7 @@ class PyTableModel(QAbstractTableModel):
 
     def __init__(self, root, rootEvalStr, colEvalStr, rowHeaders,
                  colHeaders, colFormats, is_editable=False, get_num_rows=None,
-                 get_row_headers=None):
+                 get_row_headers=None, drop_actions=None):
         """
     """
         super().__init__()
@@ -58,6 +58,10 @@ class PyTableModel(QAbstractTableModel):
         self.is_editable = is_editable
         self.get_num_rows = get_num_rows
         self.get_row_headers = get_row_headers
+        if drop_actions:
+            self.drop_actions = drop_actions
+        else:
+            self.drop_actions = [None]*len(self.colHeaders)
 
     def rowCount(self, index):
         if self.get_num_rows is not None:

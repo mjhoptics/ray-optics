@@ -44,18 +44,20 @@ class InteractiveFigure(StyledFigure):
     """Base class for domain specific figures with support for input events
 
     The **InteractiveFigure** class supplies common implementations for:
-        
+
         - polyline and polygon 2D graphics
         - selection support for mpl graphic objects
         - mouse/touch event handling
         - interface commands for zooming and panning the display area
-        
+
     Attributes:
         opt_model: parent optical model
         do_draw_frame: if True, draw frame around the figure
         do_draw_axes: if True, draw coordinate axes for the figure
         oversize_factor: what fraction to oversize the view bounding box
         aspect: 'equal' for 1:1 aspect ratio, 'auto' for best ratio
+        artist_filter: an (optional) callable applied in
+                       find_artists_at_location(), returns True if rejected
     """
 
     def __init__(self,
@@ -74,6 +76,7 @@ class InteractiveFigure(StyledFigure):
         self.selected = None
         self.do_scale_bounds = do_scale_bounds
 
+        self.artist_filter = None
         self.do_action = self.do_shape_action
         self.event_dict = {}
 
@@ -164,6 +167,7 @@ class InteractiveFigure(StyledFigure):
         self.do_action = do_command_action
         self.on_finished = on_finished
 
+    # --- graphics element creation
     def update_patches(self, shapes):
         """ loop over the input shapes, fetching their current geometry
         and attaching it to the corresponding ``Artist``
@@ -184,7 +188,6 @@ class InteractiveFigure(StyledFigure):
         bbox = util.bbox_from_poly(bbox_list)
         return bbox
 
-    # --- graphics element creation
     def create_patches(self, handles):
         gui_handles = {}
         for key, graphics_handle in handles.items():
@@ -432,6 +435,10 @@ class InteractiveFigure(StyledFigure):
                 inside, info = artist.contains(event)
                 if inside:
                     shape, handle = artist.shape
+                    if self.artist_filter:
+                        if self.artist_filter(artist):
+                            continue
+
                     artists.append(SelectInfo(artist, info))
                     if 'ind' in info:
                         logging.debug("on motion, artist {}: {}.{}, z={}, "

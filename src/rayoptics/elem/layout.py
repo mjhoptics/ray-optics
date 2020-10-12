@@ -245,6 +245,7 @@ class RayBundle():
         self.start_offset = start_offset
         self.handles = {}
         self.actions = self.edit_ray_bundle_actions()
+        self.handle_actions = {}
         self.ray_table_callback = ray_table_callback
 
     def get_label(self):
@@ -350,6 +351,7 @@ class ParaxialRay():
         self.color = color
         self.handles = {}
         self.actions = self.edit_paraxial_layout_actions()
+        self.handle_actions = {}
         self.vertex = None
 
     def get_label(self):
@@ -602,3 +604,35 @@ def add_conic(opt_model, idx, lcl_pt, **kwargs):
 
 def add_doublet(opt_model, idx, lcl_pt, **kwargs):
     add_elements(opt_model, idx, lcl_pt, ele.create_lens, **kwargs)
+
+
+class GlassDropAction():
+
+    def dragEnterEvent(self, view, event):
+        def glass_target_filter(artist):
+            shape, handle = artist.shape
+            if handle == 'shape' and 'shape' in shape.handle_actions:
+                if 'glass' in shape.handle_actions['shape']:
+                    return False
+            return True
+        view.figure.artist_filter = glass_target_filter
+
+    def dragMoveEvent(self, view, event):
+        x, y = view.mouseEventCoords(event.pos())
+        view.motion_notify_event(x, y, guiEvent=event)
+
+    def dragLeaveEvent(self, view, event):
+        view.figure.artist_filter = None
+
+    def dropEvent(self, view, event):
+        dropped_it = False
+        fig = view.figure
+        if fig.hilited is not None:
+            target = fig.hilited
+            shape, handle = target.artist.shape
+            if 'glass' in shape.handle_actions['shape']:
+                action = shape.handle_actions['shape']['glass']
+                action(fig, event)
+                dropped_it = True
+        view.figure.artist_filter = None
+        return dropped_it
