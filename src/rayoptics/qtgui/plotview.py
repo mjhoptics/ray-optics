@@ -62,9 +62,7 @@ class PlotCanvas(FigureCanvas):
             event.acceptProposedAction()
 
     def dragLeaveEvent(self, event):
-        if event.mimeData().hasFormat("text/plain"):
-            self.drop_action.dragLeaveEvent(self, event)
-            event.acceptProposedAction()
+        self.drop_action.dragLeaveEvent(self, event)
 
     def dropEvent(self, event):
         if event.mimeData().hasText():
@@ -205,15 +203,14 @@ def create_glass_map_view(app, glass_db):
     height = 650
 
     # glass_db = gm.GlassMapDB(['Schott', 'Hoya', 'Ohara'])
-    db_display = [True]*len(glass_db.catalogs)
-    plot_display_type = "Refractive Index"
+    pdt = "Refractive Index"
     # hotwire GlassMapFigure to inherit from StyledFigure
     gm.GlassMapFigure.__bases__ = (StyledFigure,)
-    fig = gm.GlassMapFigure(glass_db, db_display,
-                            plot_display_type,
-                            width=5, height=4)
+    fig = gm.GlassMapFigure(glass_db, plot_display_type=pdt,
+                            # width=5, height=4,
+                            )
 
-    widget, _, _, pick_model = gmv.init_UI(app, fig)
+    widget, pick_model = gmv.init_UI(app, fig)
 
     def refresh_gui(**kwargs):
         pick_model.fill_table(fig.pick_list)

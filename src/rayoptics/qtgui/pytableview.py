@@ -40,9 +40,7 @@ class TableView(QTableView):
             event.acceptProposedAction()
 
     def dragLeaveEvent(self, event):
-        if event.mimeData().hasFormat("text/plain"):
-            self.drop_action.dragLeaveEvent(self, event)
-            event.acceptProposedAction()
+        self.drop_action.dragLeaveEvent(self, event)
 
     def dropEvent(self, event):
         if event.mimeData().hasText():
