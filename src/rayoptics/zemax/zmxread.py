@@ -15,7 +15,8 @@ import requests
 import rayoptics.optical.opticalmodel as opticalmodel
 from rayoptics.optical.model_enums import DimensionType as dt
 from rayoptics.optical.model_enums import DecenterType as dec
-from rayoptics.elem.surface import DecenterData
+from rayoptics.elem.surface import (DecenterData, Circular, Rectangular,
+                                    Elliptical)
 from rayoptics.elem import profiles
 from rayoptics.seq.medium import (glass_encode, Medium, Air,
                                   Glass, InterpolatedGlass)
@@ -123,9 +124,6 @@ def process_line(opt_model, line, line_no):
     elif _glass_handler(sm, cur, cmd, inputs):
         pass
 
-    elif cmd == "DIAM":
-        s = sm.ifcs[cur]
-        s.set_max_aperture(float(inputs.split()[0]))
     elif cmd == "STOP":
         sm.set_stop()
 
@@ -154,6 +152,9 @@ def process_line(opt_model, line, line_no):
     elif handle_types_and_params(opt_model, cur, cmd, inputs):
         pass
 
+    elif handle_aperture_data(opt_model, cur, cmd, inputs):
+        pass
+
     elif cmd in ("OPDX",  # opd
                  "RAIM",  # ray aiming
                  "CONF",  # configurations
@@ -176,7 +177,7 @@ def process_line(opt_model, line, line_no):
                  "ZVAN", "WWGN",
                  "WAVN", "MNCA", "MNEA",
                  "MNCG", "MNEG", "MXCA", "MXCG", "RGLA", "TRAC",
-                 "FLAP", "TCMM", "FLOA", "PMAG", "TOTR", "SLAB",
+                 "TCMM", "FLOA", "PMAG", "TOTR", "SLAB",
                  "POPS", "COMM", "PZUP", "LANG", "FIMP", "COAT",
                  ):
         logging.info('Line %d: Command %s not supported', line_no, cmd)
@@ -313,7 +314,51 @@ def handle_types_and_params(optm, cur, cmd, inputs):
         return False
     return True
 
-    
+
+def handle_aperture_data(optm, cur, cmd, inputs):
+    # DIAM 7.5 1 0 0 1 ""
+    # FLAP 0 7.5 0
+    global _track_contents
+    sm = optm.seq_model
+    items = inputs.split()
+    if cmd == "DIAM":
+        ifc = sm.ifcs[cur]
+        ca_val = float(items[0])
+        ca_type = int(items[1])
+        ca_list = ifc.clear_apertures
+        if len(ca_list) == 0:
+            ca = None
+            if ca_type == 0:
+                ca = Circular()
+            elif ca_type == 1:
+                ca = Circular()
+            elif ca_type == 4:
+                ca = Rectangular()
+                _track_contents['non_circular_ca_type'] += 1
+            elif ca_type == 6:
+                ca = Elliptical()
+                _track_contents['non_circular_ca_type'] += 1
+            else:
+                _track_contents['ca_type_not_recognized'] += 1
+                # print('ca_type', cur, ca_type, items[1])
+                return True
+
+            if ca:
+                ca_list.append(ca)
+        else:
+            ca = ca_list[-1]
+
+        ca.radius = ca_val
+        ifc.set_max_aperture(ca_val)
+    elif cmd == "FLAP":
+        # Don't really understand how this is used...
+        pass
+    else:
+        return False
+
+    return True
+
+
 def pupil_data(optm, cmd, inputs):
     # FNUM 2.1 0
     # OBNA 1.5E-1 0

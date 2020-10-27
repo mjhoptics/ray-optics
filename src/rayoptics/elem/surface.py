@@ -210,6 +210,7 @@ class DecenterData():
         - BEND:  used for fold mirrors, orientation applied before and after surface
 
     """
+
     def __init__(self, dtype, x=0., y=0., alpha=0., beta=0., gamma=0.):
         self.dtype = dtype
         # x, y, z vertex decenter
@@ -278,6 +279,9 @@ class Aperture():
         x, y = self.dimension()
         return sqrt(x*x + y*y)
 
+    def point_inside(self, x, y):
+        pass
+
     def bounding_box(self):
         center = np.array([self.x_offset, self.y_offset])
         extent = np.array(self.dimension())
@@ -286,6 +290,11 @@ class Aperture():
     def apply_scale_factor(self, scale_factor):
         self.x_offset *= scale_factor
         self.y_offset *= scale_factor
+
+    def tform(self, x, y):
+        x -= self.x_offset
+        y -= self.y_offset
+        return x, y
 
 
 class Circular(Aperture):
@@ -301,6 +310,10 @@ class Circular(Aperture):
 
     def max_dimension(self):
         return self.radius
+
+    def point_inside(self, x, y):
+        x, y = self.tform(x, y)
+        return sqrt(x*x + y*y) <= self.radius
 
     def apply_scale_factor(self, scale_factor):
         super().apply_scale_factor(scale_factor)
@@ -319,6 +332,10 @@ class Rectangular(Aperture):
     def set_dimension(self, x, y):
         self.x_half_width = abs(x)
         self.y_half_width = abs(y)
+
+    def point_inside(self, x, y):
+        x, y = self.tform(x, y)
+        return abs(x) <= self.x_half_width and abs(y) <= self.y_half_width
 
     def apply_scale_factor(self, scale_factor):
         super().apply_scale_factor(scale_factor)
