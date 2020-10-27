@@ -413,6 +413,21 @@ def aim_chief_ray(opt_model, fld, wvl=None):
     return aim_pt
 
 
+def apply_paraxial_vignetting(opt_model):
+    osp = opt_model.optical_spec
+    pm = opt_model.parax_model
+    max_field, jth = osp.field_of_view.max_field()
+    for j, fld in enumerate(osp.field_of_view.fields):
+        rel_fov = math.sqrt(fld.x**2 + fld.y**2)/max_field
+        min_vly, min_vuy = pm.paraxial_vignetting(rel_fov)
+        if min_vly[1] is not None:
+            fld.vly = 1 - min_vly[0]
+        if min_vuy[1] is not None:
+            fld.vuy = 1 - min_vuy[0]
+        # print("Field {:2d}: {:8.3f}, ly:{:8.3f} uy:{:8.3f}".format(
+        #     j, rel_fov, fld.vly, fld.vuy))
+
+
 def setup_pupil_coords(opt_model, fld, wvl, foc, image_pt=None):
     chief_ray_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
     image_pt_2d = None if image_pt is None else image_pt[:2]

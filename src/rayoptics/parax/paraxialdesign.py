@@ -63,6 +63,7 @@ class ParaxialModel():
             self.ax.append([ax_ray[i][ht], n*ax_ray[i][slp], n*ax_ray[i][aoi]])
             self.pr.append([pr_ray[i][ht], n*pr_ray[i][slp], n*pr_ray[i][aoi]])
 
+    # --- add/delete points from diagram
     def add_node(self, node, new_vertex, type_sel, interact_mode):
         """ Add a node in the paraxial data structures """
         ns = self.seq_model.get_num_surfaces()
@@ -116,22 +117,10 @@ class ParaxialModel():
         path_stop = node + len(seq)
         inserted_seq = list(self.seq_model.path(start=node-1, stop=path_stop))
         sys_seq = self.seq_path_to_paraxial_lens(inserted_seq[1:])
-        pp_info = self.compute_principle_points(node, inserted_seq)
+        pp_info = self.compute_principle_points(inserted_seq)
         self.replace_node_with_seq(node, sys_seq, pp_info)
 
         return args, kwargs
-
-    def compute_principle_points(self, node, seq):
-        n_0 = seq[0][mc.Indx]
-        z_dir_before = seq[0][mc.Zdir]
-        n_k = seq[-1][mc.Indx]
-        z_dir_k = seq[-1][mc.Zdir]
-        path = [[Surface(), Gap(), None, n_0, z_dir_before]]
-        path.extend(seq[1:])
-        pp_info = fo.compute_principle_points(iter(path),
-                                              n_0=z_dir_before*n_0,
-                                              n_k=z_dir_k*n_k)
-        return pp_info
 
     def replace_node_with_seq(self, node, sys_seq, pp_info):
         """ replaces the data at node with sys_seq """
@@ -165,6 +154,7 @@ class ParaxialModel():
         del self.ax[surf]
         del self.pr[surf]
 
+    # --- edit diagram points
     def apply_ht_dgm_data(self, surf, new_vertex=None):
         """ This routine calculates all data dependent on the input
             height coordinates (y,ybar) at surface surf.
@@ -289,6 +279,7 @@ class ParaxialModel():
                 ax_ray[s][ht] = ax_ray[c][ht] + sys[c][tau]*ax_ray[c][slp]
                 pr_ray[s][ht] = pr_ray[c][ht] + sys[c][tau]*pr_ray[c][slp]
 
+    # --- list output
     def list_lens(self):
         """ list the paraxial axial and chief rays, and power, reduced distance
         """
@@ -315,6 +306,7 @@ class ParaxialModel():
         """List out the first order imaging properties of the model."""
         self.opt_model.optical_spec.parax_data.fod.list_first_order_data()
 
+    # --- convert to/from sequential model
     def seq_path_to_paraxial_lens(self, path):
         """ returns lists of power, reduced thickness, signed index and refract
             mode
@@ -351,6 +343,7 @@ class ParaxialModel():
                 n_before = n_after
                 slp_before = slp_after
 
+    # --- power and thickness solves
     def pwr_slope_solve(self, ray, surf, slp_new):
         p = ray[surf-1]
         c = ray[surf]
@@ -370,10 +363,55 @@ class ParaxialModel():
         thi = (ht_new - c[ht])/c[slp]
         return thi
 
-    def apply_data(self, vertex, lcl_pt):
-        ray = self.ray
-        p = ray[vertex-1]
-        c = ray[vertex]
-        c_slp_new = (lcl_pt[1] - c[ht])/lcl_pt[0]
-        pwr = (p[slp] - c_slp_new)/c[ht]
-        self.opt_model.seq_model.ifcs[vertex].optical_power = pwr
+    # --- calculations
+    def compute_principle_points(self, seq):
+        """ Returns paraxial p and q rays, plus partial first order data.
+
+        Args:
+            seq: a sequence containing interfaces and gaps to be traced.
+                  for each iteration, the sequence should return a
+                  list containing: **Intfc, Gap, Trfm, Index, Z_Dir**
+
+        Returns:
+            (p_ray, q_ray, (efl, pp1, ppk, ffl, bfl))
+
+            - p_ray: [ht, slp, aoi], [1, 0, -]
+            - q_ray: [ht, slp, aoi], [0, 1, -]
+            - efl: effective focal length
+            - pp1: distance of front principle plane from 1st interface
+            - ppk: distance of rear principle plane from last interface
+            - ffl: front focal length
+            - bfl: back focal length
+        """
+        n_0 = seq[0][mc.Indx]
+        z_dir_before = seq[0][mc.Zdir]
+        n_k = seq[-1][mc.Indx]
+        z_dir_k = seq[-1][mc.Zdir]
+        path = [[Surface(), Gap(), None, n_0, z_dir_before]]
+        path.extend(seq[1:])
+        pp_info = fo.compute_principle_points(iter(path),
+                                              n_0=z_dir_before*n_0,
+                                              n_k=z_dir_k*n_k)
+        return pp_info
+
+    def paraxial_vignetting(self, rel_fov=1):
+        """Calculate the vignetting factors using paraxial optics. """
+        sm = self.seq_model
+        min_vly = 1, None
+        min_vuy = 1, None
+        for i, ifc in enumerate(sm.ifcs):
+            if self.ax[i][mc.ht] != 0:
+                max_ap = ifc.surface_od()
+                y = self.ax[i][mc.ht]
+                ybar = self.pr[i][mc.ht]
+                ratio = (max_ap - abs(rel_fov*ybar))/abs(y)
+                if ybar < 0:
+                    if ratio < min_vly[0]:
+                        min_vly = ratio, i
+                else:
+                    if ratio < min_vuy[0]:
+                        min_vuy = ratio, i
+        #         print("{:3d}: {:8.3f} {:8.3f} {:8.3f}".format(
+        #             i, ratio, self.pr[i][mc.ht], self.ax[i][mc.ht]))
+        # print("min_vly:", min_vly, "min_vuy:", min_vuy)
+        return min_vly, min_vuy

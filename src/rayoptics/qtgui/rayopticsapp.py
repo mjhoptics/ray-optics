@@ -96,6 +96,10 @@ class MainWindow(QMainWindow):
         analysis_menu.addAction("Astigmatism Curves")
         analysis_menu.triggered[QAction].connect(self.view_action)
 
+        tools_menu = bar.addMenu("Tools")
+        tools_menu.addAction("Paraxial Vignetting")
+        tools_menu.triggered[QAction].connect(self.view_action)
+
         wnd_menu = bar.addMenu("Window")
         wnd_menu.addAction("Cascade")
         wnd_menu.addAction("Tiled")
@@ -326,6 +330,10 @@ class MainWindow(QMainWindow):
 
         if q.text() == "Ray Table":
             self.create_ray_table(opt_model)
+
+        if q.text() == "Paraxial Vignetting":
+            trace.apply_paraxial_vignetting(opt_model)
+            self.refresh_gui()
 
     def window_action(self, q):
         if q.text() == "Cascade":
