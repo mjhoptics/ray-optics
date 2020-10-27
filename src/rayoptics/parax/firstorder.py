@@ -323,7 +323,26 @@ def compute_first_order(opt_model, stop, wvl):
 
 
 def compute_principle_points(path, n_0=1.0, n_k=1.0):
-    """ Returns paraxial p and q rays, plus partial first order data. """
+    """ Returns paraxial p and q rays, plus partial first order data.
+
+    Args:
+        path: an iterator containing interfaces and gaps to be traced.
+              for each iteration, the sequence or generator should return a
+              list containing: **Intfc, Gap, Trfm, Index, Z_Dir**
+        n_0: refractive index preceding the first interface
+        n_k: refractive index following last interface
+
+    Returns:
+        (p_ray, q_ray, (efl, pp1, ppk, ffl, bfl))
+
+        - p_ray: [ht, slp, aoi], [1, 0, -]
+        - q_ray: [ht, slp, aoi], [0, 1, -]
+        - efl: effective focal length
+        - pp1: distance of front principle plane from 1st interface
+        - ppk: distance of rear principle plane from last interface
+        - ffl: front focal length
+        - bfl: back focal length
+    """
     uq0 = 1/n_0
     p_ray, q_ray = paraxial_trace(path, 0, [1., 0.], [0., uq0])
 

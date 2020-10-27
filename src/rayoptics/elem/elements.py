@@ -128,6 +128,25 @@ def create_from_file(filename, **kwargs):
 
 # --- Element definitions
 class Element():
+    """Lens element domain model. Manage rendering and selection/editing.
+
+    An Element consists of 2 Surfaces, 1 Gap, and edge_extent information.
+
+    Attributes:
+        parent: the :class:`~.ElementModel`
+        label: string identifier
+        s1: first/origin :class:`~rayoptics.seq.interface.Interface`
+        s2: second/last :class:`~rayoptics.seq.interface.Interface`
+        gap: element thickness and material :class:`~rayoptics.seq.gap.Gap`
+        tfrm: global transform to element origin, (Rot3, trans3)
+        medium_name: the material filling the gap
+        sd: semi-diameter property
+        flat1: semi-diameter of flat if s1 is concave, or None
+        flat2: semi-diameter of flat if s2 is concave, or None
+        render_color: RGBA color used to fill the lens profile
+        handles: dict of graphical entities
+        actions: dict of actions associated with the graphical handles
+    """
     clut = rgbt.RGBTable(filename='red_blue64.csv',
                          data_range=[10.0, 100.])
 
