@@ -3,6 +3,11 @@
 Changelog
 =========
 
+Version 0.6.0
+==============
+
+Add import of Zemax .zmx files. Demonstrate access to lens-designs.com collection of zemax files and use that to test import capability. Build a strong tie with :mod:`opticalglass` package, including drag and drop from a glassmap view to the layout, yybar and lens table views. Add x, y-toroids. Add a paraxial-based set vig calculation to Tools menu. Set up a protocol for aperture checking in the ray trace.
+
 Version 0.5.0
 ==============
 
