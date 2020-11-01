@@ -15,6 +15,12 @@ from collections import namedtuple
 ideal_imager_keys = ['m', 's', 'sp', 'tt', 'f']
 ideal_imager_labels = ["m", "s", "s'", "tt", "f"]
 IdealImager = namedtuple('IdealImager', ideal_imager_keys)
+IdealImager.m.__doc__ = "(lateral) magnification"
+IdealImager.s.__doc__ = "object distance from first principal plane, P1->Obj"
+IdealImager.sp.__doc__ = "image distance from second principal plane, P2->Img"
+IdealImager.tt.__doc__ = "total track length, tt = sp - s"
+IdealImager.f.__doc__ = "focal length"
+
 """ tuple grouping together first order specifications
 
     Attributes:

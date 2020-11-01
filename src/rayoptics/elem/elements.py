@@ -26,6 +26,11 @@ from rayoptics.seq.medium import Glass, glass_decode
 import opticalglass.glasspolygons as gp
 
 GraphicsHandle = namedtuple('GraphicsHandle', ['polydata', 'tfrm', 'polytype'])
+GraphicsHandle.polydata.__doc__ = "poly data in local coordinates"
+GraphicsHandle.tfrm.__doc__ = "global transformation for polydata"
+GraphicsHandle.polytype.__doc__ = "'polygon' (for filled) or 'polyline'"
+
+
 """ tuple grouping together graphics rendering data
 
     Attributes:

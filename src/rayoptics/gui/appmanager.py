@@ -12,6 +12,13 @@ import logging
 from collections import namedtuple
 
 ModelInfo = namedtuple('ModelInfo', ['model', 'fct', 'args', 'kwargs'])
+ModelInfo.__new__.__defaults__ = (None, (), {})
+ModelInfo.model.__doc__ = "object associated with view update function"
+ModelInfo.fct.__doc__ = "view update function, can be None"
+ModelInfo.args.__doc__ = "list of fct arguments"
+ModelInfo.kwargs.__doc__ = "list of fct keyword arguments"
+
+
 """ package of a model and a update function with args and kwargs
 
     Attributes:
@@ -23,7 +30,7 @@ ModelInfo = namedtuple('ModelInfo', ['model', 'fct', 'args', 'kwargs'])
     Note:
         ``model`` is required; ``fct``, ``args`` and ``kwargs`` are optional
 """
-ModelInfo.__new__.__defaults__ = (None, (), {})
+
 
 
 class AppManager:

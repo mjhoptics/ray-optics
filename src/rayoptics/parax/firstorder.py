@@ -14,6 +14,11 @@ from rayoptics.optical.model_constants import ht, slp, aoi
 from rayoptics.parax.idealimager import ideal_imager_setup
 
 ParaxData = namedtuple('ParaxData', ['ax_ray', 'pr_ray', 'fod'])
+ParaxData.ax_ray.__doc__ = "axial marginal ray data, y, u, i"
+ParaxData.pr_ray.__doc__ = "chief ray data, y, u, i"
+ParaxData.fod.__doc__ = "instance of :class:`~.FirstOrderData`"
+
+
 """ tuple grouping together paraxial rays and first order properties
 
     Attributes:

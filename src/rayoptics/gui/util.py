@@ -11,6 +11,10 @@ from collections import namedtuple
 import numpy as np
 
 GUIHandle = namedtuple('GUIHandle', ['poly', 'bbox'])
+GUIHandle.poly.__doc__ = "poly entity for underlying graphics system (e.g. mpl)"
+GUIHandle.bbox.__doc__ = "bounding box for poly"
+
+
 """ tuple grouping together graphics entity and bounding box
 
     Attributes:

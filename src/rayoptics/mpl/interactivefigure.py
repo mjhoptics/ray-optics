@@ -23,6 +23,10 @@ from rayoptics.util import rgb2mpl
 
 
 SelectInfo = namedtuple('SelectInfo', ['artist', 'info'])
+SelectInfo.artist.__doc__ = "the artist"
+SelectInfo.info.__doc__ = "a dictionary of artist specific details of selection"
+
+
 """ tuple grouping together an artist and info returned from contains(event)
 
     Attributes:
