@@ -64,12 +64,3 @@ rayoptics.util.rgbtable module
    :members:
    :undoc-members:
    :show-inheritance:
-
-rayoptics.util.spectral\_lines module
--------------------------------------
-
-.. automodule:: rayoptics.util.spectral_lines
-   :members:
-   :undoc-members:
-   :show-inheritance:
-

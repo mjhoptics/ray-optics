@@ -19,10 +19,12 @@ import rayoptics.oprops.thinlens as thinlens
 from rayoptics.elem.profiles import Spherical, Conic
 from rayoptics.elem.surface import Surface
 from rayoptics.seq.gap import Gap
+from rayoptics.seq.medium import Glass, glass_decode
+
 import rayoptics.gui.appcmds as cmds
 from rayoptics.gui.actions import (Action, AttrAction, SagAction, BendAction,
                                    ReplaceGlassAction)
-from rayoptics.seq.medium import Glass, glass_decode
+
 import opticalglass.glasspolygons as gp
 
 GraphicsHandle = namedtuple('GraphicsHandle', ['polydata', 'tfrm', 'polytype'])
@@ -138,14 +140,13 @@ class Element():
     An Element consists of 2 Surfaces, 1 Gap, and edge_extent information.
 
     Attributes:
-        parent: the :class:`~.ElementModel`
+        parent: the :class:`ElementModel`
         label: string identifier
         s1: first/origin :class:`~rayoptics.seq.interface.Interface`
         s2: second/last :class:`~rayoptics.seq.interface.Interface`
         gap: element thickness and material :class:`~rayoptics.seq.gap.Gap`
         tfrm: global transform to element origin, (Rot3, trans3)
         medium_name: the material filling the gap
-        sd: semi-diameter property
         flat1: semi-diameter of flat if s1 is concave, or None
         flat2: semi-diameter of flat if s2 is concave, or None
         render_color: RGBA color used to fill the lens profile
@@ -179,6 +180,7 @@ class Element():
 
     @property
     def sd(self):
+        """Semi-diameter """
         return self._sd
 
     @sd.setter
@@ -787,6 +789,15 @@ class AirGap():
 
 # --- Element model
 class ElementModel:
+    """Maintain the element based representation of the optical model
+
+    Attributes:
+        opt_model: the :class:`~rayoptics.optical.opticalmodel.OpticalModel`
+        elements: list of element type things
+        ifcs_dict: given an interface, which element contains it?
+        gap_dict: given a gap, which element contains it?
+
+    """
 
     def __init__(self, opt_model, **kwargs):
         self.opt_model = opt_model

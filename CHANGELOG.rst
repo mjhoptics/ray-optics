@@ -1,4 +1,5 @@
 .. currentmodule:: rayoptics
+
 =========
 Changelog
 =========
@@ -82,3 +83,4 @@ Version 0.1.0
 =============
 
 major update that reads CV files, supports Hoya, Ohara and Schott glass catalogs, computes paraxial and real rays, and has Qt UI for lens data table, 2D lens picture and glass map view.
+

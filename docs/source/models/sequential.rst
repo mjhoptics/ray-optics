@@ -1,5 +1,4 @@
 .. currentmodule:: rayoptics
-.. |opm| replace:: :class:`~optical.opticalmodel.OpticalModel`
 .. |sm| replace:: :class:`~seq.sequential.SequentialModel`
 .. |ifc| replace:: :class:`~seq.interface.Interface`
 .. |surf| replace:: :class:`~elem.surface.Surface`
