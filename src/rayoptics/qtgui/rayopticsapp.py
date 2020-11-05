@@ -378,6 +378,7 @@ class MainWindow(QMainWindow):
 
         def handle_context_menu(point):
             try:
+                vheader = view.verticalHeader()
                 row = vheader.logicalIndexAt(point.y())
             except NameError:
                 pass
