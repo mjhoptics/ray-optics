@@ -4,12 +4,14 @@ Installation
 
 .. _install:
 
-rayoptics is installed using ``pip3``.
+To install :mod:`rayoptics` using pip, use
 
 .. code::
 
-    > pip3 install rayoptics
+    > pip install rayoptics
 
-.. todo::
+Alternatively, :mod:`rayoptics` can be installed from the conda-forge channel using conda
 
-    Add conda distribution for rayoptics
+.. code::
+
+   > conda install rayoptics --channel conda-forge
