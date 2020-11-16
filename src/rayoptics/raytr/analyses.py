@@ -25,6 +25,7 @@ from rayoptics.raytr import sampler
 from rayoptics.raytr.raytrace import eic_distance
 from rayoptics.elem.transform import transform_after_surface
 from rayoptics.raytr import trace
+from rayoptics.raytr import traceerror as terr
 
 
 # --- Wavefront aberration
@@ -548,6 +549,50 @@ def trace_ray_list(opt_model, pupil_coords, fld, wvl, foc,
         else:  # ray outside pupil
             if append_if_none:
                 ray_list.append([pupil[0], pupil[1], None])
+
+    return ray_list
+
+
+def trace_list_of_rays(opt_model, rays, output_filter=None, **kwargs):
+    """Trace a list of rays (pt, dir, wvl) and return ray_pkgs in a list.
+
+    Args:
+        opt_model: :class:`~.OpticalModel` instance
+        rays: list of (pt0, dir0, wvl)
+
+            - pt0: starting point in coords of first interface
+            - dir0: starting direction cosines in coords of first interface
+            - wvl: wavelength in nm
+
+        output_filter: None, "last", or a callable. See below
+        **kwargs: kwyword args passed to the trace function
+
+    The output_filter keyword argument controls what ray data is returned to
+    the caller.
+
+        - if None, returns the entire traced ray
+        - if "last", returns the ray data from the last interface
+        - if a callable, if must take a ray_pkg as an argument and return the
+          desired data or None
+
+    Returns:
+        A list with an entry for each ray in rays
+    """
+    ray_list = []
+    for ray in rays:
+        pt0, dir0, wvl = ray
+        try:
+            ray_pkg = trace.trace(opt_model, pt0, dir0, wvl, **kwargs)
+        except terr.TraceError:
+            ray_list.append(None)
+        else:
+            if output_filter is None:
+                ray_list.append(ray_pkg)
+            elif output_filter == 'last':
+                ray, op_delta, wvl = ray_pkg
+                ray_list.append((ray[-1], op_delta, wvl))
+            else:
+                ray_list.append(output_filter(ray_pkg))
 
     return ray_list
 
