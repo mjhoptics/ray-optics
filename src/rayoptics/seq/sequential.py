@@ -815,7 +815,7 @@ def create_surface_and_gap(surf_data, radius_mode=False, prev_medium=None,
         s.profile.cv = surf_data[0]
 
     if len(surf_data) > 2:
-        if isanumber(surf_data[2]):
+        if isanumber(surf_data[2]):  # assume all args are numeric
             if len(surf_data) < 3:
                 if surf_data[2] == 1.0:
                     mat = m.Air()
@@ -824,12 +824,17 @@ def create_surface_and_gap(surf_data, radius_mode=False, prev_medium=None,
             else:
                 mat = m.Glass(surf_data[2], surf_data[3], '')
 
-        else:
+        else:  # string args
             if surf_data[2].upper() == 'REFL':
                 s.interact_mode = 'reflect'
                 mat = prev_medium
             else:
-                name, cat = surf_data[2], surf_data[3]
+                num_args = len(surf_data[2:])
+                if num_args == 2:
+                    name, cat = surf_data[2], surf_data[3]
+                else:
+                    name, cat = surf_data[2].split(',')
+
                 try:
                     mat = gfact.create_glass(name, cat)
                 except ge.GlassNotFoundError as gerr:
