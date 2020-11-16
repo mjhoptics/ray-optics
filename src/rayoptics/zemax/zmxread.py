@@ -36,11 +36,31 @@ _track_contents = None
 
 
 def read_lens_file(filename, **kwargs):
-    ''' given a Zemax .zmx filename, return an OpticalModel  '''
-    with filename.open() as file:
-        inpt = file.read()
+    """ given a Zemax .zmx filename, return an OpticalModel
+
+    It appears that Zemax .zmx files are written in UTF-16 encoding. Test
+    against what seem to be common encodings. If other encodings are used in
+    'files in the wild', please add them to the list.
+    """
+    global _track_contents
+    if 'encoding' in kwargs:
+        encodings = kwargs['encoding']
+        if isinstance(encodings, str):
+            encodings = encodings,
+    else:  # default list of encodings to try
+        encodings = ['utf-16', 'utf-8', 'utf-8-sig']
+
+    for decode in encodings:
+        try:
+            with filename.open(encoding=decode) as file:
+                inpt = file.read()
+        except UnicodeError:
+            pass
+        else:
+            break
 
     opt_model, info = read_lens(filename, inpt, **kwargs)
+    _track_contents['encoding'] = decode
 
     return opt_model, info
 
@@ -470,12 +490,14 @@ class GlassHandler():
         return glasses_not_found
 
     def save_replacements(self):
-        if self.glasses_not_found and self.filename:
-            fname = self.filename.name.rsplit('.', 1)[0]
-            fname += '_tmpl.smx'
-            self.filename = self.filename.with_name(fname)
-            with self.filename.open('w') as file:
-                json.dump(self.glasses_not_found, file)
+        """If unfound glasses, write smx template file. """
+        if _track_contents['glass not found'] > 0:
+            if self.glasses_not_found and self.filename:
+                fname = self.filename.name.rsplit('.', 1)[0]
+                fname += '_tmpl.smx'
+                self.filename = self.filename.with_name(fname)
+                with self.filename.open('w') as file:
+                    json.dump(self.glasses_not_found, file)
 
     def __call__(self, sm, cur, cmd, inputs):
         """ process GLAS command for fictitious, catalog glass or mirror"""

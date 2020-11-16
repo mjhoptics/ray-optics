@@ -31,7 +31,8 @@ class Medium:
         self._catalog_name = cat
 
     def __repr__(self):
-        return 'Medium(' + str(self.n) + ', ' + f"'{self.label}'" + ')'
+        return ('Medium(' + str(self.n) + ', ' + f"'{self.label}'" +
+                ', cat=' + f"'{self._catalog_name}'" + ')')
 
     def name(self):
         return self.label
@@ -61,6 +62,12 @@ class Air(Medium):
     def __repr__(self):
         return 'Air()'
 
+    def name(self):
+        return self.label
+
+    def catalog_name(self):
+        return ''
+
 
 class Glass(Medium):
     """ Optical medium defined by a glass code, i.e. index - V number pair """
@@ -68,12 +75,8 @@ class Glass(Medium):
     def __init__(self, nd=1.5168, vd=64.17, mat='N-BK7', cat=''):
         self.label = mat
         self._catalog_name = cat
-        if mat == 'N-BK7':
-            self.n = 1.5168
-            self.v = 64.17
-        else:
-            self.n = nd
-            self.v = vd
+        self.n = nd
+        self.v = vd
         self.bdhl_model = buchdahl.Buchdahl2(self.n, self.v)
 
     def __str__(self):
@@ -82,7 +85,8 @@ class Glass(Medium):
     def __repr__(self):
         return ('Glass(nd=' + str(self.n) +
                 ', vd=' + str(self.v) +
-                ', mat=' + f"'{self.label}'" + ')')
+                ', mat=' + f"'{self.label}'" +
+                ', cat=' + f"'{self._catalog_name}'" + ')')
 
     def sync_to_restore(self):
         if not hasattr(self, 'bdhl_model'):
@@ -116,8 +120,9 @@ class InterpolatedGlass():
         rindex_interp: the interpolation function
     """
 
-    def __init__(self, label, pairs=None, rndx=None, wvls=None):
+    def __init__(self, label, pairs=None, rndx=None, wvls=None, cat=''):
         self.label = label
+        self._catalog = cat
         if pairs is not None:
             self.wvls = []
             self.rndx = []
@@ -130,7 +135,8 @@ class InterpolatedGlass():
         self.update()
 
     def __repr__(self):
-        return ('InterpolatedGlass(' + repr(self.label) +
+        return ('InterpolatedGlass(' + f"'{self.label}'" +
+                ', cat=' + f"'{self._catalog}'" +
                 ', wvls=' + repr(self.wvls) +
                 ', rndx=' + repr(self.rndx) + ')')
 
@@ -159,6 +165,10 @@ class InterpolatedGlass():
             return self.glass_code()
         else:
             return self.label
+
+    def catalog_name(self):
+        """ returns the glass catalog name """
+        return self._catalog
 
     def rindex(self, wv_nm):
         """ returns the interpolated refractive index at wv_nm
