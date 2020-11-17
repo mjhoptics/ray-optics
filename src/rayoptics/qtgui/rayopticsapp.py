@@ -161,7 +161,7 @@ class MainWindow(QMainWindow):
             # self.open_file(path / "models/TwoMirror.roa")
             # self.open_file(path / "models/TwoSphericalMirror.roa")
 
-            # self.cur_dir = path / "zemax/tests"
+            self.cur_dir = path / "zemax/tests"
             # self.open_file(path / "zemax/tests/US08427765-1.ZMX")
             # self.open_file(path / "zemax/tests/US00583336-2-scaled.zmx")
             # self.open_file(path / "zemax/tests/HoO-V2C18Ex03.zmx")
@@ -169,17 +169,18 @@ class MainWindow(QMainWindow):
             # self.open_file(path / "zemax/tests/HoO-V2C18Ex46.zmx")
             # self.open_file(path / "zemax/tests/HoO-V2C18Ex66.zmx")
             # self.open_file(path / "zemax/tests/US05831776-1.zmx")
+            self.open_file(path / "zemax/tests/354710-C-Zemax(ZMX).zmx")
 
             # self.cur_dir = path / "zemax/models/telescopes"
             # self.open_file(path / "zemax/models/telescopes/Figure4.zmx")
             # self.open_file(path / "zemax/models/telescopes/HoO-V2C18Ex11.zmx")
 
-            self.cur_dir = path / "zemax/models/PhotoPrime"
+            # self.cur_dir = path / "zemax/models/PhotoPrime"
             # self.open_file(path / "zemax/models/PhotoPrime/US05321554-4.ZMX")
             # self.open_file(path / "zemax/models/PhotoPrime/US06476982-1.ZMX")
             # self.open_file(path / "zemax/models/PhotoPrime/US07190532-1.ZMX")
             # self.open_file(path / "zemax/models/PhotoPrime/US04331391-1.zmx")
-            self.open_file(path / "zemax/models/PhotoPrime/US05331467-1.zmx")
+            # self.open_file(path / "zemax/models/PhotoPrime/US05331467-1.zmx")
 
     def add_subwindow(self, widget, model_info):
         sub_wind = self.mdi.addSubWindow(widget)
