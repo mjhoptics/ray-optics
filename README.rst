@@ -5,13 +5,13 @@ ray-optics
 Installation
 ------------
 
-To install :mod:`rayoptics` using pip, use
+To install *rayoptics* using pip, use
 
 .. code::
 
     > pip install rayoptics
 
-Alternatively, :mod:`rayoptics` can be installed from the conda-forge channel using conda
+Alternatively, *rayoptics* can be installed from the conda-forge channel using conda
 
 .. code::
 
@@ -20,7 +20,7 @@ Alternatively, :mod:`rayoptics` can be installed from the conda-forge channel us
 Documentation
 -------------
 
-The documentation for **ray-optics** is hosted at `Read the Docs <https://ray-optics.readthedocs.io>`_
+The documentation for *ray-optics* is hosted at `Read the Docs <https://ray-optics.readthedocs.io>`_
 
 Tools for image forming optical design and analysis
 ---------------------------------------------------
