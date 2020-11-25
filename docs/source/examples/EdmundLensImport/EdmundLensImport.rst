@@ -25,7 +25,7 @@ Use the object oriented filesystem interface from Python 3
 Read CODE V seq file for Edmund part 32-327, Achromatic Lens
 ------------------------------------------------------------
 
-Use the :func:`~.opticalmodel.open_model` function to read CODE V **.seq** files and the native rayoptics JSON files, **.roa**
+Use the :func:`~.gui.appcmds.open_model` function to read CODE V **.seq** files and the native rayoptics JSON files, **.roa**
 
 It returns an instance of :class:`~.opticalmodel.OpticalModel` that contains all of the model data.
 
@@ -49,18 +49,18 @@ Setup convenient aliases for using rayoptics functions
 .. parsed-literal::
 
                  r            t        medium     mode   zdr      sd
-     Obj:     0.000000  1.00000e+13       air   transmit  1      0.0000
-    32327:    61.470000      6.00000     N-BK7   transmit  1      12.000
-       2:   -44.640000      2.50000     N-SF5   transmit  1      12.289
-       3:  -129.940000      95.9519       air   transmit  1      12.000
-     Img:     0.000000      0.00000             transmit  1   0.0046062
+     Obj:     0.000000  1.00000e+13       air             1      0.0000
+    32327:    61.470000      6.00000     N-BK7             1      12.000
+       2:   -44.640000      2.50000     N-SF5             1      12.289
+       3:  -129.940000      95.9519       air             1      12.000
+     Img:     0.000000      0.00000                       1   0.0046062
 
 
 Display first order properties of the model
 -------------------------------------------
 
 The calculated first order data is in the :class:`~.firstorder.FirstOrderData` class.
-An instance of :class:`~.FirstOrderData`, :attr:`.opticalspec.OpticalSpecs.parax_data`, is managed by the :class:`.opticalspec.OpticalSpecs` class.
+An instance of :class:`~.FirstOrderData`, :attr:`~.opticalspec.OpticalSpecs.parax_data`, is managed by the :class:`~.opticalspec.OpticalSpecs` class.
 
 Other essential optical specification data is also managed by the :class:`~.opticalspec.OpticalSpecs` class:
 
@@ -132,7 +132,7 @@ This is done using the :mod:`.axisarrayfigure` module.
 .. image:: output_15_0.png
 
 
-The model in the CODE V seq file only had 1 wavelength defined. Use the :class:`~.opticalspec.OpticalSpecs` instance, ``osp``, to modify the :attr:`~.opticalspec.OpticalSpecs.spectral_region` in the optical subpackage to add wavelengths in the red and blue. The wavelenghts can be specified directly in nm or by using spectral line designations, as done here.
+The model in the CODE V seq file only had 1 wavelength defined. Use the :class:`~.opticalspec.OpticalSpecs` instance, `osp`, to modify the :attr:`~.opticalspec.OpticalSpecs.spectral_region` in the optical subpackage to add wavelengths in the red and blue. The wavelenghts can be specified directly in nm or by using spectral line designations, as done here.
 
 .. code:: ipython3
 
@@ -153,7 +153,7 @@ The model in the CODE V seq file only had 1 wavelength defined. Use the :class:`
 
 
 After changing the wavelengths, update the optical model using :meth:`~.OpticalModel.update_model` to ensure all of the data is consistent.
-The :class:`~.opticalmodel.OpticalModel` class is in the opticalmodel module in the optical subpackage
+The :class:`~.opticalmodel.OpticalModel` class is in the :mod:`~.opticalmodel` module in the :mod:`~.optical` subpackage.
 
 .. code:: ipython3
 
