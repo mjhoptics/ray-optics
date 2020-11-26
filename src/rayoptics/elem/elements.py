@@ -806,7 +806,7 @@ class ElementModel:
         self.gap_dict = {}
 
     def reset(self):
-        self.__init__()
+        self.__init__(self.opt_model)
 
     def __json_encode__(self):
         attrs = dict(vars(self))
