@@ -14,12 +14,16 @@ from collections import namedtuple
 import math
 import numpy as np
 
+import treelib
+
 import rayoptics.util.rgbtable as rgbt
 import rayoptics.oprops.thinlens as thinlens
 from rayoptics.elem.profiles import Spherical, Conic
 from rayoptics.elem.surface import Surface
 from rayoptics.seq.gap import Gap
 from rayoptics.seq.medium import Glass, glass_decode
+import rayoptics.optical.model_constants as mc
+from rayoptics.optical.model_constants import Intfc, Gap, Indx, Tfrm, Zdir
 
 import rayoptics.gui.appcmds as cmds
 from rayoptics.gui.actions import (Action, AttrAction, SagAction, BendAction,
@@ -45,7 +49,8 @@ GraphicsHandle.polytype.__doc__ = "'polygon' (for filled) or 'polyline'"
 def create_thinlens(power=0., indx=1.5, sd=None, **kwargs):
     tl = thinlens.ThinLens(power=power, ref_index=indx, max_ap=sd, **kwargs)
     tle = ThinElement(tl)
-    return [[tl, None, None, 1, +1]], [tle]
+    tree = tle.tree()
+    return [[tl, None, None, 1, +1]], [tle], tree
 
 
 def create_mirror(c=0.0, r=None, cc=0.0, ec=None,
@@ -87,7 +92,10 @@ def create_mirror(c=0.0, r=None, cc=0.0, ec=None,
     m = Surface(profile=prf, interact_mode='reflect', max_ap=sd,
                 delta_n=delta_n, **kwargs)
     me = Mirror(m, sd=sd)
-    return [[m, None, None, 1, -1]], [me]
+
+    tree = me.tree()
+
+    return [[m, None, None, 1, -1]], [me], tree
 
 
 def create_lens(power=0., bending=0., th=None, sd=1., med=None):
@@ -102,19 +110,22 @@ def create_lens(power=0., bending=0., th=None, sd=1., med=None):
         th = sd/5
     g = Gap(t=th, med=med)
     le = Element(s1, s2, g, sd=sd)
-    return [[s1, g, None, rndx, 1], [s2, None, None, 1, 1]], [le]
+    tree = le.tree()
+
+    return [[s1, g, None, rndx, 1], [s2, None, None, 1, 1]], [le], tree
 
 
 def create_dummy_plane(sd=1., **kwargs):
     s = Surface(**kwargs)
     se = DummyInterface(s, sd=sd)
-    return [[s, None, None, 1, +1]], [se]
+    tree = se.tree()
+    return [[s, None, None, 1, +1]], [se], tree
 
 
 def create_air_gap(t=0., ref_ifc=None):
     g = Gap(t=t)
     ag = AirGap(g, ref_ifc)
-    return g, ag
+    return g, ag, None
 
 
 def create_from_file(filename, **kwargs):
@@ -127,10 +138,14 @@ def create_from_file(filename, **kwargs):
         cur_power = osp.parax_data.fod.power
         scale_factor = desired_power/cur_power
         sm.apply_scale_factor(scale_factor)
-    em.elements_from_sequence(sm)
+    tree = treelib.Tree()
+    tree.create_node(identifier='root')
+    for i, s in enumerate(sm.ifcs[1:-1], start=1):
+        tree.create_node(tag='i{}'.format(i), identifier=s, parent='root')
+    elements_from_sequence(em, sm, tree)
     seq = [list(node) for node in sm.path(start=1, stop=-1)]
     ele = [em.gap_dict[g] for g in sm.gaps[1:-1]]
-    return seq, ele
+    return seq, ele, tree
 
 
 # --- Element definitions
@@ -222,6 +237,17 @@ class Element():
         self.s1_indx = seq_model.ifcs.index(self.s1)
         self.s2_indx = seq_model.ifcs.index(self.s2)
         self.render_color = self.calc_render_color()
+
+    def tree(self):
+        tree = treelib.Tree()
+        tree.create_node(tag='E', identifier=self)
+        tree.create_node(tag='p1', identifier=self.s1.profile, parent=self)
+        tree.create_node(tag='i{}'.format(self.s1_indx), identifier=self.s1,
+                         parent=self.s1.profile)
+        tree.create_node(tag='p2', identifier=self.s2.profile, parent=self)
+        tree.create_node(tag='i{}'.format(self.s2_indx), identifier=self.s2,
+                         parent=self.s2.profile)
+        return tree
 
     def reference_interface(self):
         return self.s1
@@ -425,6 +451,14 @@ class Mirror():
         if not hasattr(self, 'medium_name'):
             self.medium_name = 'Mirror'
 
+    def tree(self):
+        tree = treelib.Tree()
+        tree.create_node(identifier=self)
+        tree.create_node(tag='p', identifier=self.s.profile, parent=self)
+        tree.create_node(tag='i{}'.format(self.s_indx), identifier=self.s,
+                         parent=self.s.profile)
+        return tree
+
     def reference_interface(self):
         return self.s
 
@@ -522,6 +556,196 @@ class Mirror():
         return self.actions
 
 
+class CementedElement():
+    """Lens element domain model. Manage rendering and selection/editing.
+
+    An Element consists of 2 Surfaces, 1 Gap, and edge_extent information.
+
+    Attributes:
+        parent: the :class:`ElementModel`
+        label: string identifier
+        s1: first/origin :class:`~rayoptics.seq.interface.Interface`
+        s2: second/last :class:`~rayoptics.seq.interface.Interface`
+        gap: element thickness and material :class:`~rayoptics.seq.gap.Gap`
+        tfrm: global transform to element origin, (Rot3, trans3)
+        medium_name: the material filling the gap
+        flat1: semi-diameter of flat if s1 is concave, or None
+        flat2: semi-diameter of flat if s2 is concave, or None
+        render_color: RGBA color used to fill the lens profile
+        handles: dict of graphical entities
+        actions: dict of actions associated with the graphical handles
+    """
+    clut = rgbt.RGBTable(filename='red_blue64.csv',
+                         data_range=[10.0, 100.])
+
+    label_format = 'CE{}'
+
+    def __init__(self, ifc_list, label='CementedElement'):
+        self.label = label
+        g_tfrm = ifc_list[0][3]
+        if g_tfrm is not None:
+            self.tfrm = g_tfrm
+        else:
+            self.tfrm = (np.identity(3), np.array([0., 0., 0.]))
+        self.idx = []
+        self.ifcs = []
+        self.gaps = []
+        self.medium_name = ''
+        for interface in ifc_list:
+            i, ifc, g, g_tfrm = interface
+            self.idx.append(i)
+            self.ifcs.append(ifc)
+            if g is not None:
+                self.gaps.append(g)
+                if self.medium_name != '':
+                    self.medium_name += ', '
+                self.medium_name += g.medium.name()
+
+        self._sd = self.update_size()
+        self.flats = [None]*len(self.ifcs)
+
+        self.render_color = self.calc_render_color()
+        self.handles = {}
+        self.actions = {}
+
+    @property
+    def sd(self):
+        """Semi-diameter """
+        return self._sd
+
+    @sd.setter
+    def sd(self, semidiam):
+        self._sd = semidiam
+        self.edge_extent = (-semidiam, semidiam)
+
+    def __json_encode__(self):
+        attrs = dict(vars(self))
+        del attrs['parent']
+        del attrs['tfrm']
+        del attrs['idx']
+        del attrs['ifcs']
+        del attrs['gaps']
+        del attrs['flats']
+        del attrs['handles']
+        del attrs['actions']
+        return attrs
+
+    def __str__(self):
+        fmt = 'Element: {!r}, {!r}, t={:.4f}, sd={:.4f}, glass: {}'
+        return fmt.format(self.s1.profile, self.s2.profile, self.gap.thi,
+                          self.sd, self.gap.medium.name())
+
+    def sync_to_restore(self, ele_model, surfs, gaps, tfrms):
+        # when restoring, we want to use the stored indices to look up the
+        # new object instances
+        self.parent = ele_model
+        self.tfrm = tfrms[self.s1_indx]
+        self.s1 = surfs[self.s1_indx]
+        self.gap = gaps[self.s1_indx]
+        self.s2 = surfs[self.s2_indx]
+        if not hasattr(self, 'medium_name'):
+            self.medium_name = self.gap.medium.name()
+
+    def sync_to_update(self, seq_model):
+        # when updating, we want to use the stored object instances to get the
+        # current indices into the interface list (e.g. to handle insertion and
+        # deletion of interfaces)
+        self.s1_indx = seq_model.ifcs.index(self.s1)
+        self.s2_indx = seq_model.ifcs.index(self.s2)
+        self.render_color = self.calc_render_color()
+
+    def tree(self):
+        tree = treelib.Tree()
+        tree.create_node(identifier=self)
+        for i, ifc in enumerate(self.ifcs, start=1):
+            pid = 'p{}'.format(i)
+            tree.create_node(tag=pid, identifier=ifc.profile, parent=self)
+            tree.create_node(tag='i{}'.format(self.idx[i-1]), identifier=ifc,
+                             parent=ifc.profile)
+        return tree
+
+    def reference_interface(self):
+        return self.ifcs[0]
+
+    def reference_idx(self):
+        return self.idx[0]
+
+    def interface_list(self):
+        return self.ifcs
+
+    def gap_list(self):
+        return self.gaps
+
+    def update_size(self):
+        extents = np.union1d(self.ifcs[0].get_y_aperture_extent(),
+                             self.ifcs[-1].get_y_aperture_extent())
+        self.edge_extent = (extents[0], extents[-1])
+        self.sd = max([ifc.surface_od() for ifc in self.ifcs])
+        return self.sd
+
+    def calc_render_color(self):
+        try:
+            gc = float(self.gap.medium.glass_code())
+        except AttributeError:
+            return (255, 255, 255, 64)  # white
+        else:
+            # set element color based on V-number
+            indx, vnbr = glass_decode(gc)
+            dsg, rgb = gp.find_glass_designation(indx, vnbr)
+#            rgb = Element.clut.get_color(vnbr)
+            return rgb
+
+    def compute_flat(self, s):
+        ca = s.surface_od()
+        if (1.0 - ca/self.sd) >= 0.05:
+            flat = ca
+        else:
+            flat = None
+        return flat
+
+    def extent(self):
+        if hasattr(self, 'edge_extent'):
+            return self.edge_extent
+        else:
+            return (-self.sd, self.sd)
+
+    def render_shape(self):
+        if self.ifcs[0].profile_cv < 0.0:
+            self.flats[0] = self.compute_flat(self.ifcs[0])
+        if self.ifcs[-1].profile_cv > 0.0:
+            self.flats[-1] = self.compute_flat(self.ifcs[-1])
+
+        self.profiles = []
+        sense = 1
+        for ifc, flat in zip(self.ifcs, self.flats):
+            poly = ifc.full_profile(self.extent(), flat, sense)
+            self.profiles.append(poly)
+            sense = -sense
+
+        poly = self.profiles[0]
+        thi = self.gaps[0].thi
+        for i, poly_profile in enumerate(self.profiles[1:]):
+            for p in poly_profile:
+                p[0] += thi
+            thi += self.gaps[i].thi
+            poly += poly_profile
+        poly.append(poly[0])
+        return poly
+
+    def render_handles(self, opt_model):
+        self.handles = {}
+
+        shape = self.render_shape()
+        self.handles['shape'] = GraphicsHandle(shape, self.tfrm, 'polygon')
+
+        return self.handles
+
+    def handle_actions(self):
+        self.actions = {}
+
+        return self.actions
+
+
 class ThinElement():
 
     label_format = 'TL{}'
@@ -554,6 +778,13 @@ class ThinElement():
 
     def __str__(self):
         return str(self.intrfc)
+
+    def tree(self):
+        tree = treelib.Tree()
+        tree.create_node(identifier=self)
+        tree.create_node(identifier='p', parent=self)
+        tree.create_node(identifier=self.intrfc, parent='p')
+        return tree
 
     def sync_to_restore(self, ele_model, surfs, gaps, tfrms):
         self.parent = ele_model
@@ -635,6 +866,14 @@ class DummyInterface():
         self.ref_ifc = surfs[self.idx]
         if not hasattr(self, 'medium_name'):
             self.medium_name = 'Interface'
+
+    def tree(self):
+        tree = treelib.Tree()
+        tree.create_node(identifier=self)
+        tree.create_node(tag='p', identifier=self.ref_ifc.profile, parent=self)
+        tree.create_node(tag='i{}'.format(self.idx), identifier=self.ref_ifc,
+                         parent=self.ref_ifc.profile)
+        return tree
 
     def reference_interface(self):
         return self.ref_ifc
@@ -998,3 +1237,112 @@ class ElementModel:
 
     def element_type(self, i):
         return type(self.elements[i]).__name__
+
+
+def add_element_to_tree(e, tree, root='root'):
+    e_tree = e.tree()
+    e_tree.get_node(e).tag = e.label
+    leaves = e_tree.leaves()
+    for node in leaves:
+        tree.remove_node(node.identifier)
+    tree.paste(root, e_tree, deep=True)
+    # e_tree.get_node(e).update_bpointer(tree.get_node(root))
+    return tree
+
+
+def elements_from_sequence(ele_model, seq_model, tree):
+    """ generate an element list from a sequential model """
+
+    num_elements = 0
+    g_tfrms = seq_model.compute_global_coords(1)
+    buried_reflector = False
+    eles = []
+    path = seq_model.path()
+    for i, seg in enumerate(path):
+        ifc, g, rindx, tfrm, z_dir = seg
+        g_tfrm = g_tfrms[i]
+
+        if g is not None:
+            if g.medium.name().lower() == 'air':
+                num_eles = len(eles)
+                if num_eles == 0:
+                    if i > 0:
+                        process_airgap(ele_model, seq_model, tree, i, g, ifc,
+                                       g_tfrm, num_elements, add_ele=True)
+                else:
+                    if buried_reflector is True:
+                        num_eles = (num_eles-1)//2
+
+                    if num_eles == 1:
+                        i1, s1, g1, g_tfrm1 = eles[0]
+                        sd = max(s1.surface_od(), ifc.surface_od())
+                        e = Element(s1, ifc, g1, sd=sd, tfrm=g_tfrm1,
+                                    idx=i1, idx2=i)
+                        num_elements += 1
+                        e.label = e.label_format.format(num_elements)
+                        tree = add_element_to_tree(e, tree)
+
+                        ele_model.add_element(e)
+                        eles = []
+
+                    elif num_eles > 1:
+                        eles.append((i, ifc, None, g_tfrm))
+                        ce = CementedElement(eles)
+                        num_elements += 1
+                        ce.label = ce.label_format.format(num_elements)
+                        tree = add_element_to_tree(ce, tree)
+
+                        ele_model.add_element(ce)
+                        eles = []
+                    buried_reflector = False
+
+            else:  # a non-air medium
+                # if buried_reflector is True:
+                #     # skip interfaces until we get to air
+                #     continue
+                # handle buried mirror, e.g. prism or Mangin mirror
+                if ifc.interact_mode == 'reflect':
+                    buried_reflector = True
+
+                eles.append((i, ifc, g, g_tfrm))
+
+
+def process_airgap(ele_model, seq_model, tree, i, g, s, g_tfrm,
+                   num_ele, add_ele=True):
+    if s.interact_mode == 'reflect' and add_ele:
+        sd = s.surface_od()
+        z_dir = seq_model.z_dir[i]
+        m = Mirror(s, sd=sd, tfrm=g_tfrm, idx=i, z_dir=z_dir)
+        num_ele += 1
+        m.label = Mirror.label_format.format(num_ele)
+        tree = add_element_to_tree(m, tree)
+        ele_model.add_element(m)
+    elif s.interact_mode == 'transmit':
+        add_dummy = False
+        if i == 0:
+            add_dummy = True  # add dummy for the object
+            dummy_label = 'Object'
+        else:  # i > 0
+            gp = seq_model.gaps[i-1]
+            if gp.medium.name().lower() == 'air':
+                add_dummy = True
+                if seq_model.stop_surface == i:
+                    dummy_label = 'Aperture Stop'
+                else:
+                    dummy_label = DummyInterface.label_format.format(i)
+        if add_dummy:
+            sd = s.surface_od()
+            di = DummyInterface(s, sd=sd, tfrm=g_tfrm, idx=i)
+            di.label = dummy_label
+            tree = add_element_to_tree(di, tree)
+            ele_model.add_element(di)
+    elif isinstance(s, thinlens.ThinLens) and add_ele:
+        te = ThinElement(s, tfrm=g_tfrm, idx=i)
+        num_ele += 1
+        te.label = ThinElement.label_format.format(num_ele)
+        tree = add_element_to_tree(te, tree)
+        ele_model.add_element(te)
+
+    # add an AirGap
+    ag = AirGap(g, s, idx=i, tfrm=g_tfrm)
+    ele_model.add_element(ag)

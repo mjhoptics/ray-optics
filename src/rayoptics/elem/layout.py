@@ -18,6 +18,7 @@
 """
 
 import numpy as np
+import treelib
 
 from rayoptics.gui.util import (GUIHandle, transform_ray_seg, bbox_from_poly,
                                 transform_poly, inv_transform_poly)
@@ -437,9 +438,17 @@ class LensLayout():
 
         light_or_dark(is_dark=is_dark)
 
+        seq_model = self.opt_model.seq_model
         ele_model = self.opt_model.ele_model
         if len(ele_model.elements) == 0:
-            ele_model.elements_from_sequence(self.opt_model.seq_model)
+            tree = treelib.Tree()
+            tree.create_node(identifier='root')
+            for i, s in enumerate(seq_model.ifcs[1:-1], start=1):
+                tree.create_node(tag='i{}'.format(i), identifier=s,
+                                 parent='root')
+            tree.show()
+            ele.elements_from_sequence(ele_model, seq_model, tree)
+            tree.show()
 
     def sync_light_or_dark(self, is_dark):
         global lo_rgb

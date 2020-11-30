@@ -9,6 +9,7 @@
 """
 import os.path
 import json_tricks
+import treelib
 
 import rayoptics
 
@@ -93,6 +94,8 @@ class OpticalModel:
         self.optical_spec = OpticalSpecs(self, **kwargs)
         self.parax_model = ParaxialModel(self, **kwargs)
         self.ele_model = ElementModel(self, **kwargs)
+        self.part_tree = treelib.Tree()
+        self.part_tree.create_node('root', self)
 
         if self.specsheet:
             self.set_from_specsheet()
