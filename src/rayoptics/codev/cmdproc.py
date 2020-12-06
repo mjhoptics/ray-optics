@@ -20,12 +20,14 @@ from rayoptics.elem.surface import (DecenterData, Circular, Rectangular,
                                     Elliptical)
 from rayoptics.elem import profiles
 from rayoptics.oprops import doe
-from rayoptics.seq.medium import Air, Glass, InterpolatedGlass
+from rayoptics.seq.medium import (Air, Glass, InterpolatedGlass, Medium,
+                                  GlassHandlerBase)
 from rayoptics.raytr.opticalspec import Field
 from rayoptics.util.misc_math import isanumber
 
 from opticalglass import glassfactory as gfact
-from opticalglass import glasserror as ge
+from opticalglass import glasserror
+from opticalglass import util
 
 _tla = tla.MapTLA()
 
@@ -34,6 +36,9 @@ _tla = tla.MapTLA()
 _reading_private_catalog = False
 _private_catalog_wvls = None
 _private_catalog_glasses = {}
+
+_glass_handler = None
+_track_contents = None
 
 
 def fictitious_glass_decode(gc):
@@ -47,12 +52,15 @@ def fictitious_glass_decode(gc):
 
 def read_lens(filename, **kwargs):
     ''' given a CODE V .seq filename, return an OpticalModel  '''
+    global _glass_handler, _track_contents
     global _reading_private_catalog
     logging.basicConfig(filename='cv_cmd_proc.log',
                         filemode='w',
                         level=logging.DEBUG)
     _reading_private_catalog = False
+    _track_contents = util.Counter()
     opt_model = opticalmodel.OpticalModel()
+    _glass_handler = CVGlassHandler(filename)
     cmds = cvr.read_seq_file(filename)
     for i, c in enumerate(cmds):
         cmd_fct, tla, qlist, dlist = process_command(c)
@@ -62,9 +70,13 @@ def read_lens(filename, **kwargs):
         else:
             logging.info('Line %d: Command %s not supported', i+1, c[0])
 
+    _glass_handler.save_replacements()
+    _track_contents.update(_glass_handler.track_contents)
+
     opt_model.update_model()
 
-    return opt_model
+    info = _track_contents, _glass_handler.glasses_not_found
+    return opt_model, info
 
 
 def process_command(cmd):
@@ -241,6 +253,7 @@ def surface_cmd(opt_model, tla, qlist, dlist):
 
 
 def update_surface_and_gap(opt_model, dlist, idx=None):
+    global _glass_handler
     seq_model = opt_model.seq_model
     if isinstance(idx, int):
         s, g = seq_model.get_surface_and_gap(idx)
@@ -266,7 +279,7 @@ def update_surface_and_gap(opt_model, dlist, idx=None):
                 s.interact_mode = 'reflect'
                 g.medium = seq_model.gaps[seq_model.cur_surface-1].medium
             else:
-                g.medium = process_glass_data(dlist[2])
+                g.medium = _glass_handler.process_glass_data(dlist[2])
 
     else:
         # at image surface, apply defocus to previous thickness
@@ -294,7 +307,7 @@ def process_glass_data(glass_data):
                     name = name[:-1]+' '+name[-1]
             try:
                 medium = gfact.create_glass(name, cat)
-            except ge.GlassNotFoundError as gerr:
+            except glasserror.GlassNotFoundError as gerr:
                 logging.info('%s glass data type %s not found',
                              gerr.catalog,
                              gerr.name)
@@ -560,3 +573,49 @@ def diffractive_optic(optm, tla, qlist, dlist):
                 coefs[cidx-1] = dlist[0]
 
     log_cmd("diffractive_optic", tla, qlist, dlist)
+
+
+class CVGlassHandler(GlassHandlerBase):
+    """Handle glass restoration during CODEV import.
+
+    This class relies on GlassHandlerBase to provide most of the functionality
+    needed to find the requested glass or a substitute.
+    """
+
+    def process_glass_data(self, glass_data):
+        if isanumber(glass_data):
+            # process as a 6 digit code, no decimal point
+            medium = self.find_6_digit_code(glass_data)
+            if medium is not None:
+                self.track_contents['6 digit code'] += 1
+                return medium
+            else:  # process as fictitious glass code
+                nd, vd = fictitious_glass_decode(float(glass_data))
+                medium = Glass(nd, vd, mat=glass_data)
+                self.track_contents['fictitious glass'] += 1
+                return medium
+        else:  # look for glass name and optional catalog
+            name_cat = glass_data.split('_')
+            if len(name_cat) == 2:
+                name, catalog = name_cat
+            elif len(name_cat) == 1:
+                name, catalog = glass_data, None
+
+            if catalog is not None:
+                if catalog.upper() == 'SCHOTT' and name[:1].upper() == 'N':
+                    name = name[:1]+'-'+name[1:]
+                elif catalog.upper() == 'OHARA' and name[:1].upper() == 'S':
+                    name = name[:1]+'-'+name[1:]
+                    if not name[-2:].isdigit() and name[-1].isdigit():
+                        name = name[:-1]+' '+name[-1]
+
+            medium = self.find_glass(name, catalog)
+            if medium:
+                return medium
+            else:  # name with no data. default to crown glass
+                global _private_catalog_glasses
+                if name in _private_catalog_glasses:
+                    medium = _private_catalog_glasses[name]
+                else:
+                    medium = Medium(1.5, 'not '+name)
+                return medium

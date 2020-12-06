@@ -69,8 +69,10 @@ def open_model(file_name, info=False, **kwargs):
     file_extension = os.path.splitext(file_name)[1].lower()
     opm = None
     if file_extension == '.seq':
-        opm = cvp.read_lens(file_name, **kwargs)
+        opm, import_info = cvp.read_lens(file_name, **kwargs)
         create_specsheet_from_model(opm)
+        if info:
+            return opm, import_info
     elif file_extension == '.roa':
         opm = open_roa(file_name, **kwargs)
     elif file_extension == '.zmx':
