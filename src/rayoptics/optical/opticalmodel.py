@@ -9,7 +9,7 @@
 """
 import os.path
 import json_tricks
-import treelib
+from anytree import Node
 
 import rayoptics
 
@@ -34,6 +34,7 @@ class SystemSpec:
         temperature (float): model temperature in degrees Celsius
         pressure (float): model pressure in mm/Hg
     """
+
     def __init__(self):
         self.title = ''
         self.initials = ''
@@ -94,8 +95,7 @@ class OpticalModel:
         self.optical_spec = OpticalSpecs(self, **kwargs)
         self.parax_model = ParaxialModel(self, **kwargs)
         self.ele_model = ElementModel(self, **kwargs)
-        self.part_tree = treelib.Tree()
-        self.part_tree.create_node('root', self)
+        self.part_tree = Node('root', id=self)
 
         if self.specsheet:
             self.set_from_specsheet()
@@ -114,6 +114,7 @@ class OpticalModel:
         attrs = dict(vars(self))
         if hasattr(self, 'app_manager'):
             del attrs['app_manager']
+        del attrs['part_tree']
         return attrs
 
     def set_from_specsheet(self, specsheet=None):

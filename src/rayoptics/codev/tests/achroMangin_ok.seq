@@ -1,0 +1,12 @@
+rdm y
+so 0 1e11
+s -9.435 0.346 NSSK2_Schott
+stop
+s 37.5 1.092 NKZFS4_Schott
+s -14.357 -1.092 REFL
+s 37.5 -0.346 NSSK2_Schott
+s -9.435 -7.935
+si 0 0
+wl 488. 587. 656.
+epd 5.0
+yan 0

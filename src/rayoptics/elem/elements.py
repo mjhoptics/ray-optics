@@ -10,11 +10,13 @@
 
 import logging
 from collections import namedtuple
+import itertools
 
 import math
 import numpy as np
 
-import treelib
+from anytree import Node, RenderTree
+from anytree.search import find_by_attr
 
 import rayoptics.util.rgbtable as rgbt
 import rayoptics.oprops.thinlens as thinlens
@@ -22,8 +24,6 @@ from rayoptics.elem.profiles import Spherical, Conic
 from rayoptics.elem.surface import Surface
 from rayoptics.seq.gap import Gap
 from rayoptics.seq.medium import Glass, glass_decode
-import rayoptics.optical.model_constants as mc
-from rayoptics.optical.model_constants import Intfc, Gap, Indx, Tfrm, Zdir
 
 import rayoptics.gui.appcmds as cmds
 from rayoptics.gui.actions import (Action, AttrAction, SagAction, BendAction,
@@ -31,10 +31,12 @@ from rayoptics.gui.actions import (Action, AttrAction, SagAction, BendAction,
 
 import opticalglass.glasspolygons as gp
 
-GraphicsHandle = namedtuple('GraphicsHandle', ['polydata', 'tfrm', 'polytype'])
+GraphicsHandle = namedtuple('GraphicsHandle', ['polydata', 'tfrm', 'polytype',
+                                               'color'], defaults=(None,))
 GraphicsHandle.polydata.__doc__ = "poly data in local coordinates"
 GraphicsHandle.tfrm.__doc__ = "global transformation for polydata"
 GraphicsHandle.polytype.__doc__ = "'polygon' (for filled) or 'polyline'"
+GraphicsHandle.color.__doc__ = "RGBA for the polydata or None for default"
 
 
 """ tuple grouping together graphics rendering data
@@ -138,14 +140,27 @@ def create_from_file(filename, **kwargs):
         cur_power = osp.parax_data.fod.power
         scale_factor = desired_power/cur_power
         sm.apply_scale_factor(scale_factor)
-    tree = treelib.Tree()
-    tree.create_node(identifier='root')
+    root = Node('root', id='root')
     for i, s in enumerate(sm.ifcs[1:-1], start=1):
-        tree.create_node(tag='i{}'.format(i), identifier=s, parent='root')
-    elements_from_sequence(em, sm, tree)
+        i = Node('i{}'.format(i), id=s, parent=root)
+    elements_from_sequence(em, sm, root)
     seq = [list(node) for node in sm.path(start=1, stop=-1)]
     ele = [em.gap_dict[g] for g in sm.gaps[1:-1]]
-    return seq, ele, tree
+    return seq, ele, root
+
+
+def calc_render_color_for_material(matl):
+    """ get element color based on V-number of glass"""
+    try:
+        gc = float(matl.glass_code())
+    except AttributeError:
+        return (255, 255, 255, 64)  # white
+    else:
+        # set element color based on V-number
+        indx, vnbr = glass_decode(gc)
+        dsg, rgb = gp.find_glass_designation(indx, vnbr)
+        # rgb = Element.clut.get_color(vnbr)
+        return rgb
 
 
 # --- Element definitions
@@ -189,7 +204,6 @@ class Element():
         self._sd = sd
         self.flat1 = None
         self.flat2 = None
-        self.render_color = self.calc_render_color()
         self.handles = {}
         self.actions = {}
 
@@ -236,18 +250,21 @@ class Element():
         # deletion of interfaces)
         self.s1_indx = seq_model.ifcs.index(self.s1)
         self.s2_indx = seq_model.ifcs.index(self.s2)
-        self.render_color = self.calc_render_color()
 
     def tree(self):
-        tree = treelib.Tree()
-        tree.create_node(tag='E', identifier=self)
-        tree.create_node(tag='p1', identifier=self.s1.profile, parent=self)
-        tree.create_node(tag='i{}'.format(self.s1_indx), identifier=self.s1,
-                         parent=self.s1.profile)
-        tree.create_node(tag='p2', identifier=self.s2.profile, parent=self)
-        tree.create_node(tag='i{}'.format(self.s2_indx), identifier=self.s2,
-                         parent=self.s2.profile)
-        return tree
+        """Build tree linking sequence to element model. """
+
+        # Interface tree
+        e = Node('E', id=self)
+        p1 = Node('p1', id=self.s1.profile, parent=e)
+        Node('i{}'.format(self.s1_indx), id=self.s1, parent=p1)
+        p2 = Node('p2', id=self.s2.profile, parent=e)
+        Node('i{}'.format(self.s2_indx), id=self.s2, parent=p2)
+
+        # Gap branch
+        Node('g{}'.format(self.s1_indx), id=self.gap, parent=e)
+
+        return e
 
     def reference_interface(self):
         return self.s1
@@ -286,18 +303,6 @@ class Element():
         self.sd = max(self.s1.surface_od(), self.s2.surface_od())
         return self.sd
 
-    def calc_render_color(self):
-        try:
-            gc = float(self.gap.medium.glass_code())
-        except AttributeError:
-            return (255, 255, 255, 64)  # white
-        else:
-            # set element color based on V-number
-            indx, vnbr = glass_decode(gc)
-            dsg, rgb = gp.find_glass_designation(indx, vnbr)
-#            rgb = Element.clut.get_color(vnbr)
-            return rgb
-
     def compute_flat(self, s):
         ca = s.surface_od()
         if (1.0 - ca/self.sd) >= 0.05:
@@ -330,7 +335,9 @@ class Element():
         ifcs_gbl_tfrms = opt_model.seq_model.gbl_tfrms
 
         shape = self.render_shape()
-        self.handles['shape'] = GraphicsHandle(shape, self.tfrm, 'polygon')
+        color = calc_render_color_for_material(self.gap.medium)
+        self.handles['shape'] = GraphicsHandle(shape, self.tfrm, 'polygon',
+                                               color)
 
         extent = self.extent()
         if self.flat1 is not None:
@@ -452,12 +459,14 @@ class Mirror():
             self.medium_name = 'Mirror'
 
     def tree(self):
-        tree = treelib.Tree()
-        tree.create_node(identifier=self)
-        tree.create_node(tag='p', identifier=self.s.profile, parent=self)
-        tree.create_node(tag='i{}'.format(self.s_indx), identifier=self.s,
-                         parent=self.s.profile)
-        return tree
+        # Interface branch
+        m = Node('M', id=self)
+        p = Node('p', id=self.s.profile, parent=m)
+        Node('i{}'.format(self.s_indx), id=self.s, parent=p)
+
+        # Gap branch = None
+
+        return m
 
     def reference_interface(self):
         return self.s
@@ -511,7 +520,7 @@ class Mirror():
         ifcs_gbl_tfrms = opt_model.seq_model.gbl_tfrms
 
         self.handles['shape'] = GraphicsHandle(self.render_shape(), self.tfrm,
-                                               'polygon')
+                                               'polygon', self.render_color)
 
         poly = self.s.full_profile(self.extent(), None)
         self.handles['s_profile'] = GraphicsHandle(poly,
@@ -601,10 +610,13 @@ class CementedElement():
                     self.medium_name += ', '
                 self.medium_name += g.medium.name()
 
+        if len(self.gaps) == len(self.ifcs):
+            self.gaps.pop()
+            self.medium_name = self.medium_name.rpartition(',')[0]
+
         self._sd = self.update_size()
         self.flats = [None]*len(self.ifcs)
 
-        self.render_color = self.calc_render_color()
         self.handles = {}
         self.actions = {}
 
@@ -626,6 +638,7 @@ class CementedElement():
         del attrs['ifcs']
         del attrs['gaps']
         del attrs['flats']
+        del attrs['ele_list']
         del attrs['handles']
         del attrs['actions']
         return attrs
@@ -652,17 +665,31 @@ class CementedElement():
         # deletion of interfaces)
         self.s1_indx = seq_model.ifcs.index(self.s1)
         self.s2_indx = seq_model.ifcs.index(self.s2)
-        self.render_color = self.calc_render_color()
+
+    def element_list(self):
+        idx = self.idx
+        ifcs = self.ifcs
+        gaps = self.gaps
+        e_list = []
+        for i in range(len(gaps)):
+            e = Element(ifcs[i], ifcs[i+1], gaps[i],
+                        sd=self.sd, tfrm=self.tfrm,
+                        idx=idx[i], idx2=idx[i+1])
+            e_list.append(e)
 
     def tree(self):
-        tree = treelib.Tree()
-        tree.create_node(identifier=self)
-        for i, ifc in enumerate(self.ifcs, start=1):
+        ce = Node('CE', id=self)
+        for i, sg in enumerate(itertools.zip_longest(self.ifcs, self.gaps),
+                               start=1):
+            ifc, gap = sg
             pid = 'p{}'.format(i)
-            tree.create_node(tag=pid, identifier=ifc.profile, parent=self)
-            tree.create_node(tag='i{}'.format(self.idx[i-1]), identifier=ifc,
-                             parent=ifc.profile)
-        return tree
+            p = Node(pid, id=ifc.profile, parent=ce)
+            Node('i{}'.format(self.idx[i-1]), id=ifc, parent=p)
+            # Gap branch
+            if gap is not None:
+                Node('g{}'.format(self.idx[i-1]), id=gap, parent=ce)
+
+        return ce
 
     def reference_interface(self):
         return self.ifcs[0]
@@ -682,18 +709,6 @@ class CementedElement():
         self.edge_extent = (extents[0], extents[-1])
         self.sd = max([ifc.surface_od() for ifc in self.ifcs])
         return self.sd
-
-    def calc_render_color(self):
-        try:
-            gc = float(self.gap.medium.glass_code())
-        except AttributeError:
-            return (255, 255, 255, 64)  # white
-        else:
-            # set element color based on V-number
-            indx, vnbr = glass_decode(gc)
-            dsg, rgb = gp.find_glass_designation(indx, vnbr)
-#            rgb = Element.clut.get_color(vnbr)
-            return rgb
 
     def compute_flat(self, s):
         ca = s.surface_od()
@@ -715,6 +730,7 @@ class CementedElement():
         if self.ifcs[-1].profile_cv > 0.0:
             self.flats[-1] = self.compute_flat(self.ifcs[-1])
 
+        # generate the profile polylines
         self.profiles = []
         sense = 1
         for ifc, flat in zip(self.ifcs, self.flats):
@@ -722,22 +738,35 @@ class CementedElement():
             self.profiles.append(poly)
             sense = -sense
 
-        poly = self.profiles[0]
-        thi = self.gaps[0].thi
+        # offset the profiles wrt the element origin
+        thi = 0
         for i, poly_profile in enumerate(self.profiles[1:]):
+            thi += self.gaps[i].thi
             for p in poly_profile:
                 p[0] += thi
-            thi += self.gaps[i].thi
-            poly += poly_profile
-        poly.append(poly[0])
-        return poly
+
+        # just return outline
+        poly_shape = []
+        poly_shape += self.profiles[0]
+        poly_shape += self.profiles[-1]
+        poly_shape.append(poly_shape[0])
+
+        return poly_shape
 
     def render_handles(self, opt_model):
         self.handles = {}
 
         shape = self.render_shape()
-        self.handles['shape'] = GraphicsHandle(shape, self.tfrm, 'polygon')
+        # self.handles['shape'] = GraphicsHandle(shape, self.tfrm, 'polygon')
 
+        for i, gap in enumerate(self.gaps):
+            poly = []
+            poly += self.profiles[i]
+            poly += self.profiles[i+1]
+            poly.append(self.profiles[i][0])
+            color = calc_render_color_for_material(gap.medium)
+            self.handles['shape'+str(i+1)] = GraphicsHandle(poly, self.tfrm,
+                                                            'polygon', color)
         return self.handles
 
     def handle_actions(self):
@@ -780,11 +809,9 @@ class ThinElement():
         return str(self.intrfc)
 
     def tree(self):
-        tree = treelib.Tree()
-        tree.create_node(identifier=self)
-        tree.create_node(identifier='p', parent=self)
-        tree.create_node(identifier=self.intrfc, parent='p')
-        return tree
+        tle = Node(id=self)
+        Node('tl', id=self.intrfc, parent=tle)
+        return tle
 
     def sync_to_restore(self, ele_model, surfs, gaps, tfrms):
         self.parent = ele_model
@@ -819,7 +846,8 @@ class ThinElement():
     def render_handles(self, opt_model):
         self.handles = {}
         shape = self.render_shape()
-        self.handles['shape'] = GraphicsHandle(shape, self.tfrm, 'polygon')
+        self.handles['shape'] = GraphicsHandle(shape, self.tfrm, 'polygon',
+                                               self.render_color)
         return self.handles
 
     def handle_actions(self):
@@ -868,12 +896,10 @@ class DummyInterface():
             self.medium_name = 'Interface'
 
     def tree(self):
-        tree = treelib.Tree()
-        tree.create_node(identifier=self)
-        tree.create_node(tag='p', identifier=self.ref_ifc.profile, parent=self)
-        tree.create_node(tag='i{}'.format(self.idx), identifier=self.ref_ifc,
-                         parent=self.ref_ifc.profile)
-        return tree
+        di = Node('di', id=self)
+        p = Node('p', id=self.ref_ifc.profile, parent=di)
+        Node('i{}'.format(self.idx), id=self.ref_ifc, parent=p)
+        return di
 
     def reference_interface(self):
         return self.ref_ifc
@@ -1239,18 +1265,18 @@ class ElementModel:
         return type(self.elements[i]).__name__
 
 
-def add_element_to_tree(e, tree, root='root'):
-    e_tree = e.tree()
-    e_tree.get_node(e).tag = e.label
-    leaves = e_tree.leaves()
+def add_element_to_tree(e, root_node):
+    e_node = e.tree()
+    e_node.name = e.label
+    leaves = e_node.leaves
     for node in leaves:
-        tree.remove_node(node.identifier)
-    tree.paste(root, e_tree, deep=True)
-    # e_tree.get_node(e).update_bpointer(tree.get_node(root))
-    return tree
+        dup_node = find_by_attr(root_node, name='id', value=node.id)
+        dup_node.parent = None
+    e_node.parent = root_node
+    return e_node
 
 
-def elements_from_sequence(ele_model, seq_model, tree):
+def elements_from_sequence(ele_model, seq_model, root_node):
     """ generate an element list from a sequential model """
 
     num_elements = 0
@@ -1267,11 +1293,14 @@ def elements_from_sequence(ele_model, seq_model, tree):
                 num_eles = len(eles)
                 if num_eles == 0:
                     if i > 0:
-                        process_airgap(ele_model, seq_model, tree, i, g, ifc,
-                                       g_tfrm, num_elements, add_ele=True)
+                        process_airgap(ele_model, seq_model, root_node,
+                                       i, g, ifc, g_tfrm, num_elements,
+                                       add_ele=True)
                 else:
                     if buried_reflector is True:
-                        num_eles = (num_eles-1)//2
+                        num_eles = num_eles//2
+                        eles.append((i, ifc, g, g_tfrm))
+                        i, ifc, g, g_tfrm = eles[1]
 
                     if num_eles == 1:
                         i1, s1, g1, g_tfrm1 = eles[0]
@@ -1280,26 +1309,67 @@ def elements_from_sequence(ele_model, seq_model, tree):
                                     idx=i1, idx2=i)
                         num_elements += 1
                         e.label = e.label_format.format(num_elements)
-                        tree = add_element_to_tree(e, tree)
 
+                        e_node = add_element_to_tree(e, root_node)
                         ele_model.add_element(e)
-                        eles = []
+                        if buried_reflector is True:
+                            ifc2 = eles[-1][1]
+                            ifc_node = find_by_attr(root_node, name='id',
+                                                    value=ifc2)
+                            # ifc_node.parent = e_node.children[0]
+                            p_node = find_by_attr(e_node, name='name',
+                                                  value='p1')
+                            ifc_node.parent = p_node
+                            g_node = find_by_attr(root_node, name='id',
+                                                  value=g)
+                            g_node.parent = e_node
 
                     elif num_eles > 1:
-                        eles.append((i, ifc, None, g_tfrm))
-                        ce = CementedElement(eles)
+                        if not buried_reflector:
+                            eles.append((i, ifc, g, g_tfrm))
+                        e = CementedElement(eles[:num_eles+1])
                         num_elements += 1
-                        ce.label = ce.label_format.format(num_elements)
-                        tree = add_element_to_tree(ce, tree)
+                        e.label = e.label_format.format(num_elements)
 
-                        ele_model.add_element(ce)
-                        eles = []
+                        e_node = add_element_to_tree(e, root_node)
+                        ele_model.add_element(e)
+                        if buried_reflector is True:
+                            for i, j in enumerate(range(-1, -num_eles-1, -1),
+                                                  start=1):
+                                ifc = eles[j][1]
+                                ifc_node = find_by_attr(root_node,
+                                                        name='id',
+                                                        value=ifc)
+                                pid = 'p{}'.format(i)
+                                p_node = find_by_attr(e_node,
+                                                      name='name',
+                                                      value=pid)
+                                ifc_node.parent = p_node
+                                g = eles[j-1][2]
+                                g_node = find_by_attr(root_node, name='id',
+                                                      value=g)
+                                if g_node:
+                                    g_node.parent = e_node
+                            # for j, seg in enumerate(eles[-1:-num_eles-1:-1],
+                            #                         start=1):
+                            #     ifc = seg[1]
+                            #     ifc_node = find_by_attr(root_node,
+                            #                             name='id',
+                            #                             value=ifc)
+                            #     pid = 'p{}'.format(j)
+                            #     p_node = find_by_attr(e_node,
+                            #                           name='name',
+                            #                           value=pid)
+                            #     ifc_node.parent = p_node
+                            #     g = seg[2]
+                            #     g_node = find_by_attr(root_node, name='id',
+                            #                           value=g)
+                            #     if g_node:
+                            #         g_node.parent = e_node
+                    eles = []
                     buried_reflector = False
 
             else:  # a non-air medium
-                # if buried_reflector is True:
-                #     # skip interfaces until we get to air
-                #     continue
                 # handle buried mirror, e.g. prism or Mangin mirror
                 if ifc.interact_mode == 'reflect':
                     buried_reflector = True
@@ -1307,7 +1377,7 @@ def elements_from_sequence(ele_model, seq_model, tree):
                 eles.append((i, ifc, g, g_tfrm))
 
 
-def process_airgap(ele_model, seq_model, tree, i, g, s, g_tfrm,
+def process_airgap(ele_model, seq_model, root_node, i, g, s, g_tfrm,
                    num_ele, add_ele=True):
     if s.interact_mode == 'reflect' and add_ele:
         sd = s.surface_od()
@@ -1315,7 +1385,7 @@ def process_airgap(ele_model, seq_model, tree, i, g, s, g_tfrm,
         m = Mirror(s, sd=sd, tfrm=g_tfrm, idx=i, z_dir=z_dir)
         num_ele += 1
         m.label = Mirror.label_format.format(num_ele)
-        tree = add_element_to_tree(m, tree)
+        root_node = add_element_to_tree(m, root_node)
         ele_model.add_element(m)
     elif s.interact_mode == 'transmit':
         add_dummy = False
@@ -1334,13 +1404,13 @@ def process_airgap(ele_model, seq_model, tree, i, g, s, g_tfrm,
             sd = s.surface_od()
             di = DummyInterface(s, sd=sd, tfrm=g_tfrm, idx=i)
             di.label = dummy_label
-            tree = add_element_to_tree(di, tree)
+            root_node = add_element_to_tree(di, root_node)
             ele_model.add_element(di)
     elif isinstance(s, thinlens.ThinLens) and add_ele:
         te = ThinElement(s, tfrm=g_tfrm, idx=i)
         num_ele += 1
         te.label = ThinElement.label_format.format(num_ele)
-        tree = add_element_to_tree(te, tree)
+        root_node = add_element_to_tree(te, root_node)
         ele_model.add_element(te)
 
     # add an AirGap

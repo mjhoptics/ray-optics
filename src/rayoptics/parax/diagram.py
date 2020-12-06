@@ -12,6 +12,7 @@ import math
 import numpy as np
 from copy import deepcopy
 from pathlib import Path
+from anytree.search import find_by_attr
 
 from rayoptics.gui.util import bbox_from_poly, fit_data_range
 from rayoptics.gui.actions import ReplaceGlassAction
@@ -392,15 +393,18 @@ class DiagramEdge():
         return view.create_patches(self.handles)
 
     def render_color(self):
-        gap = self.diagram.opt_model.seq_model.gaps[self.node]
-        e = self.diagram.opt_model.ele_model.gap_dict.get(gap)
-        if hasattr(e, 'gap'):
+        opt_model = self.diagram.opt_model
+        gap = opt_model.seq_model.gaps[self.node]
+        g_node = find_by_attr(opt_model.part_tree, name='id', value=gap)
+        e = g_node.parent.id if g_node else None
+
+        if e and len(e.gap_list()) > 0:
             if isinstance(e, ele.AirGap):
                 # set alpha to 25% -> #40
                 bkgrnd_rbga = self.diagram.dgm_rgb['background1'] + '40'
                 return bkgrnd_rbga
             else:
-                return e.render_color
+                return ele.calc_render_color_for_material(gap.medium)
         else:
             # single surface element, like mirror or thinlens, use airgap
             # set alpha to 25% -> #40

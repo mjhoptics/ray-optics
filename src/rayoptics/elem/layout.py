@@ -18,7 +18,7 @@
 """
 
 import numpy as np
-import treelib
+from anytree import Node, RenderTree
 
 from rayoptics.gui.util import (GUIHandle, transform_ray_seg, bbox_from_poly,
                                 transform_poly, inv_transform_poly)
@@ -27,6 +27,7 @@ from rayoptics.elem import transform
 from rayoptics.raytr.trace import (trace_boundary_rays_at_field,
                                    boundary_ray_dict, RaySeg)
 from rayoptics.elem import elements as ele
+import rayoptics.seq.medium as medium
 
 import rayoptics.optical.model_constants as mc
 from rayoptics.util.rgb2mpl import rgb2mpl
@@ -107,6 +108,13 @@ def shift_start_of_ray_bundle(start_bundle, ray_bundle, rot, t):
 
 
 def create_optical_element(opt_model, e):
+    # if isinstance(e, ele.CementedElement):
+    #     e_list = []
+    #     for elemnt in e.ele_list:
+    #         e_list.append(OpticalElement(opt_model, elemnt))
+    # else:
+    #     e_list = (OpticalElement(opt_model, e))
+    # return e_list
     return OpticalElement(opt_model, e)
 
 
@@ -130,7 +138,7 @@ class OpticalElement():
             poly_gbl, bbox = transform_poly(graphics_handle.tfrm, poly)
             if graphics_handle.polytype == 'polygon':
                 p = view.create_polygon(poly_gbl,
-                                        fill_color=self.render_color(),
+                                        fill_color=graphics_handle.color,
                                         zorder=2.5)
             elif graphics_handle.polytype == 'polyline':
                 hilite_kwargs = {
@@ -441,14 +449,15 @@ class LensLayout():
         seq_model = self.opt_model.seq_model
         ele_model = self.opt_model.ele_model
         if len(ele_model.elements) == 0:
-            tree = treelib.Tree()
-            tree.create_node(identifier='root')
+            root = opt_model.part_tree
             for i, s in enumerate(seq_model.ifcs[1:-1], start=1):
-                tree.create_node(tag='i{}'.format(i), identifier=s,
-                                 parent='root')
-            tree.show()
-            ele.elements_from_sequence(ele_model, seq_model, tree)
-            tree.show()
+                Node('i{}'.format(i), id=s, parent=root)
+                gap = seq_model.gaps[i]
+                if not isinstance(gap.medium, medium.Air):
+                    Node('g{}'.format(i), id=gap, parent=root)
+            print(RenderTree(root).by_attr())
+            ele.elements_from_sequence(ele_model, seq_model, root)
+            print(RenderTree(root).by_attr())
 
     def sync_light_or_dark(self, is_dark):
         global lo_rgb
