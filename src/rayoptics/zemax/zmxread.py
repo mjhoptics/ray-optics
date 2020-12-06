@@ -133,6 +133,8 @@ def process_line(opt_model, line, line_no):
         _track_contents["VERS"] = inputs.strip("\"")
     elif cmd == "SURF":
         s, g = sm.insert_surface_and_gap()
+        # set type to Standard, some files don't have a Type command
+        s.z_type = 'STANDARD'
     elif cmd == "CURV":
         s = sm.ifcs[cur]
         if s.z_type != 'PARAXIAL':
