@@ -263,7 +263,7 @@ class ImagerSpecGroupBox(QGroupBox):
 
     def update_checkboxes(self):
         partition, max_inputs = self.specsheet.partition_defined()
-        if partition is 'imager':
+        if partition == 'imager':
             # the inputs for imager are sufficient to calculate all; mark
             # inputs editable and disable the others
             enabled_list = [False]*5
@@ -317,7 +317,7 @@ class EtendueGroupBox(QGroupBox):
 
         self.groupboxes = dict2D(fld_ape_set, obj_img_set)
 
-        if itype is 'infinite':
+        if itype == 'infinite':
             gb00 = SpaceGroupBox(parent=self, title='object space',
                                  obj_img='object', fld_ape='field',
                                  keys=(fld_labels[1],))
