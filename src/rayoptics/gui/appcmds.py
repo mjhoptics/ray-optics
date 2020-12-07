@@ -11,6 +11,7 @@
 import os.path
 import json_tricks
 import math
+import pathlib
 
 from opticalglass import glassmap as gm
 from opticalglass import glassfactory as gfact
@@ -66,7 +67,8 @@ def open_model(file_name, info=False, **kwargs):
     Returns:
         if successful, an OpticalModel instance, otherwise, None
     """
-    file_extension = os.path.splitext(file_name)[1].lower()
+    file_name = pathlib.Path(file_name)
+    file_extension = file_name.suffix.lower()
     opm = None
     if file_extension == '.seq':
         opm, import_info = cvp.read_lens(file_name, **kwargs)

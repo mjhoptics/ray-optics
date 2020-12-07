@@ -212,8 +212,8 @@ def post_process_input(opt_model, filename, **kwargs):
     sm.gaps.pop()
 
     if opt_model.system_spec.title == '' and filename is not None:
-        fname_full = str(filename)
-        _, cat, fname = fname_full.rsplit('/', 2)
+        fname_full = filename.resolve()
+        cat, fname = fname_full.parts[-2:]
         title = "{:s}: {:s}".format(cat, fname)
         opt_model.system_spec.title = title
 
