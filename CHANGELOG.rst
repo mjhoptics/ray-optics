@@ -4,6 +4,11 @@
 Changelog
 =========
 
+Version 0.6.2
+==============
+
+Fixes for .zmx import. Refactor GlassHandler to allow CODEV import to use as well.
+
 Version 0.6.1
 ==============
 
