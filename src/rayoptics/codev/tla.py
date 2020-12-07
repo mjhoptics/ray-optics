@@ -17,11 +17,11 @@ class MapTLA:
         TLA, CmdFct, IndxQuals, DataType, Quals = range(5)
         if len(MapTLA._d) == 0:
             path = Path(__file__).resolve().parent
-            with open(path / 'tla_mapping.csv', 'rU') as f:
+            with open(path / 'tla_mapping.csv') as f:
                 reader = csv.reader(f)
                 for row in reader:
-                    if row[TLA] is not '':
-                        if row[Quals] is not '':
+                    if row[TLA] != '':
+                        if row[Quals] != '':
                             row[Quals] = row[Quals].split(',')
                         MapTLA._d[row[TLA]] = row[CmdFct:]
 
