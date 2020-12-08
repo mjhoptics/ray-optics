@@ -7,17 +7,12 @@
 .. codeauthor: Michael J. Hayford
 """
 
-import logging
 from collections import namedtuple
 
-from PyQt5 import QtCore
-from PyQt5.QtCore import QDate, QSize, Qt
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import (QCheckBox, QComboBox, QDateTimeEdit, QAction,
-                             QDialog, QGroupBox, QHBoxLayout, QLabel,
-                             QLineEdit, QListView, QListWidget, QDockWidget,
-                             QListWidgetItem, QPushButton, QSpinBox,
-                             QStackedWidget, QVBoxLayout, QFormLayout, QWidget)
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QDoubleValidator
+from PyQt5.QtWidgets import (QCheckBox, QComboBox, QAction, QLineEdit,
+                             QDockWidget, QFormLayout, QWidget)
 
 from rayoptics.optical.model_enums import PupilType
 from rayoptics.optical.model_enums import FieldType
@@ -75,129 +70,102 @@ def togglePanel(gui_app, state, item_key):
         panel_info.panel_widget.update(gui_app.app_manager.model)
 
 
-class UIWidget():
-    def __init__(self, gui_app, widgetLabel, widgetClass,
-                 rootEvalStr, get_eval_str, set_eval_str=None):
+class ModelBinding():
+    """
+    ModelBinding the the base class for binding part of the optical model
+    to a UI element. UI elements should extend this class.
+
+    When more getters/setters are needed, overwrite the get/set functions
+    to directly get/set the model part
+    """
+    def __init__(self, gui_app, get_parent, field):
+        """
+        Create a new ModelBinding. gui_app is the instance that should be
+        refreshed on change, get_parent is a function which returns the parent
+        of the optical model element being bound, and field is the name of
+        element (or list index if get_parent() returns a list)
+
+        E.g: if the model part being changed was foo.bar.baz, get_parent should
+        return foo.bar and field should be the string 'baz'.
+
+        get_parent() is a function to ensure the current optical model is
+        updated. If the model itself were passed in and then a new model was
+        loaded the binding would become stale. Using a function prevents this.
+        """
         self.gui_app = gui_app
-        self.rootEvalStr = rootEvalStr
-        self.get_eval_str = get_eval_str
-        if set_eval_str is not None:
-            self.set_eval_str = set_eval_str
+        self.get_parent = get_parent
+        self.field = field
+
+    def set(self, value):
+        """ Updates the model with the new value """
+        toset = self.get_parent()
+        if isinstance(toset, list):
+            toset.__setitem__(self.field, value)
         else:
-            self.set_eval_str = get_eval_str + '={}'
-#            self.set_eval_str = get_eval_str + '="{:s}"'
-        self.widgetLabel = widgetLabel
-        self.widget = widgetClass()
+            setattr(toset, self.field, value)
 
-    def get_root_object(self):
-        root = self.gui_app.app_manager.model
-        if len(self.rootEvalStr) == 0:
-            return root
+    def get(self):
+        """ Retreives the model's current value """
+        toget = self.get_parent()
+        if isinstance(toget, list):
+            return toget.__getitem__(self.field)
         else:
-            root_eval_str = ('root' + self.rootEvalStr)
-            try:
-                root = eval(root_eval_str)
-            except IndexError:
-                return root
-            else:
-                return root
-
-    def data(self):
-        root = self.get_root_object()
-        eval_str = 'root' + self.get_eval_str
-        try:
-            val = eval(eval_str)
-            return val
-        except IndexError:
-            return ''
-        except TypeError:
-            print('Data type error: ', eval_str, val)
-            return ''
-
-    def setData(self, value):
-        root = self.get_root_object()
-        exec_str = ('root' + self.set_eval_str).format(value)
-        try:
-            exec(exec_str)
-            return True
-        except IndexError:
-            return False
-        except SyntaxError:
-            logging.info('Syntax error: "%s"', value)
-            return False
-
-    def updateData(self):
-        """ push widget data to backend """
-        pass
-
-    def refresh(self):
-        """ push backend data to widget """
-        pass
+            return getattr(toget, self.field)
 
 
-class TextFieldWidget(UIWidget):
-    def __init__(self, gui_app, widgetLabel, widgetClass,
-                 rootEvalStr, get_eval_str, valueFormat, set_eval_str=None):
-        super().__init__(gui_app, widgetLabel, widgetClass, rootEvalStr,
-                         get_eval_str, set_eval_str)
-        self.valueFormat = valueFormat
-        self.widget.editingFinished.connect(self.updateData)
-        self.widget.setAlignment(QtCore.Qt.AlignLeft)
-
-    def updateData(self):
-        """ push widget data to backend """
-        self.setData(self.widget.text())
-        self.gui_app.refresh_gui()
-
-    def refresh(self):
-        """ push backend data to widget """
-        valStr = self.valueFormat.format(self.data())
-        self.widget.setText(valStr)
-
-
-class ChoiceWidget(UIWidget):
-    def __init__(self, gui_app, widgetLabel, widgetClass,
-                 rootEvalStr, get_eval_str, combo_items, set_eval_str=None):
-        super().__init__(gui_app, widgetLabel, widgetClass, rootEvalStr,
-                         get_eval_str, set_eval_str)
+class ChoiceWidget(ModelBinding):
+    def __init__(self, gui_app, get_parent, field, combo_items):
+        super().__init__(gui_app, get_parent, field)
+        w = QComboBox()
         for item in combo_items:
-            self.widget.addItem(item)
-        self.widget.currentIndexChanged.connect(self.updateData)
+            w.addItem(item)
+        w.currentIndexChanged.connect(self.currentIndexChanged)
+        self.widget = w
 
-    def updateData(self):
-        """ push widget data to backend """
-        self.setData(self.widget.currentIndex())
+    def currentIndexChanged(self):
+        self.set(self.widget.currentIndex())
         self.gui_app.refresh_gui()
 
     def refresh(self):
-        """ push backend data to widget """
-        self.widget.setCurrentIndex(self.data())
+        self.widget.setCurrentIndex(self.get())
+
+
+class TextFieldWidget(ModelBinding):
+    def __init__(self, gui_app, get_parent, field, valueFormat='{:s}'):
+        super().__init__(gui_app, get_parent, field)
+        w = QLineEdit()
+        w.setAlignment(Qt.AlignLeft)
+        w.editingFinished.connect(self.editingFinished)
+        self.widget = w
+        # valueFormat is how the data from the model is rendered in the textbox
+        self.valueFormat = valueFormat
+        # convert is called on the text to convert to the type the model uses
+        self.convert = lambda a: a
+
+    def editingFinished(self):
+        self.set(self.convert(self.widget.text()))
+        self.gui_app.refresh_gui()
+
+    def refresh(self):
+        self.widget.setText(self.valueFormat.format(self.get()))
+
+
+class FloatFieldWidget(TextFieldWidget):
+    """ FloatFieldWidget is like a TextFieldWidget but only for floats """
+    def __init__(self, gui_app, root_fn, field, valueformat='{:.7g}'):
+        super().__init__(gui_app, root_fn, field, valueformat)
+        self.convert = float
+        self.widget.setValidator(QDoubleValidator())
 
 
 class SpectrumWavelengthsPanel(QWidget):
-    rootEvalStr = '.optical_spec.spectral_region'
-    evalStr = '.central_wvl', '.wavelengths[0]', '.wavelengths[-1]'
-
     def __init__(self, gui_app, parent=None):
         super().__init__(parent)
 
-        self.ctrl_wvl_edit = TextFieldWidget(
-            gui_app, 'central', QLineEdit,
-            SpectrumWavelengthsPanel.rootEvalStr,
-            SpectrumWavelengthsPanel.evalStr[0],
-            '{:7.1f}')
-
-        self.red_wvl_edit = TextFieldWidget(
-            gui_app, 'red', QLineEdit,
-            SpectrumWavelengthsPanel.rootEvalStr,
-            SpectrumWavelengthsPanel.evalStr[1],
-            '{:7.1f}')
-
-        self.blue_wvl_edit = TextFieldWidget(
-            gui_app, 'blue', QLineEdit,
-            SpectrumWavelengthsPanel.rootEvalStr,
-            SpectrumWavelengthsPanel.evalStr[2],
-            '{:7.1f}')
+        self.gui_app = gui_app
+        self.ctrl_wvl_edit = FloatFieldWidget(gui_app, self.root, 'central_wvl')
+        self.red_wvl_edit = FloatFieldWidget(gui_app, lambda: self.root().wavelengths, 0)
+        self.blue_wvl_edit = FloatFieldWidget(gui_app, lambda: self.root().wavelengths, -1)
 
         wavlnsLayout = QFormLayout()
         wavlnsLayout.addRow('central', self.ctrl_wvl_edit.widget)
@@ -208,6 +176,9 @@ class SpectrumWavelengthsPanel(QWidget):
         wavlnsLayout.addRow('', self.achroCheckBox)
 
         self.setLayout(wavlnsLayout)
+
+    def root(self):
+        return self.gui_app.app_manager.model.optical_spec.spectral_region
 
     def update(self, opt_model):
         """ push backend data to widgets """
@@ -227,31 +198,26 @@ class SpectrumWavelengthsPanel(QWidget):
 
 
 class AperturePanel(QWidget):
-    rootEvalStr = '.optical_spec.pupil'
-    evalStr = '.value', '.get_pupil_type()'
     comboItems = ["Ent Pupil Diam", "Object NA", "F/#", "NA"]
-    set_combo_str = '.mutate_pupil_type(PupilType({}))'
 
     def __init__(self, gui_app, parent=None):
         super().__init__(parent)
 
+        self.gui_app = gui_app
         apertureLayout = QFormLayout()
 
-        self.aperture_combo = ChoiceWidget(gui_app, 'pupil_type', QComboBox,
-                                           AperturePanel.rootEvalStr,
-                                           AperturePanel.evalStr[1],
-                                           AperturePanel.comboItems,
-                                           set_eval_str=
-                                           AperturePanel.set_combo_str)
+        self.aperture_combo = ChoiceWidget(gui_app, self.root, None, self.comboItems)
+        self.aperture_combo.get = lambda: self.root().get_pupil_type()
+        self.aperture_combo.set = lambda value: self.root().mutate_pupil_type(PupilType(value))
         apertureLayout.addRow('Type', self.aperture_combo.widget)
 
-        self.aperture_edit = TextFieldWidget(gui_app, 'value', QLineEdit,
-                                             AperturePanel.rootEvalStr,
-                                             AperturePanel.evalStr[0],
-                                             '{:12.5f}')
+        self.aperture_edit = FloatFieldWidget(gui_app, self.root, 'value')
         apertureLayout.addRow('value', self.aperture_edit.widget)
 
         self.setLayout(apertureLayout)
+
+    def root(self):
+        return self.gui_app.app_manager.model.optical_spec.pupil
 
     def update(self, opt_model):
         """ push backend data to widgets """
@@ -260,31 +226,27 @@ class AperturePanel(QWidget):
 
 
 class FieldOfViewPanel(QWidget):
-    rootEvalStr = '.optical_spec.field_of_view'
-    evalStr = '.value', '.get_field_type()'
     comboItems = ["Object Angle", "Object Height", "Image Height"]
-    set_combo_str = '.mutate_field_type(FieldType({}))'
 
     def __init__(self, gui_app, parent=None):
         super().__init__(parent)
 
+        self.gui_app = gui_app
+
         fieldLayout = QFormLayout()
 
-        self.field_combo = ChoiceWidget(gui_app, 'field_type', QComboBox,
-                                        FieldOfViewPanel.rootEvalStr,
-                                        FieldOfViewPanel.evalStr[1],
-                                        FieldOfViewPanel.comboItems,
-                                        set_eval_str=
-                                        FieldOfViewPanel.set_combo_str)
+        self.field_combo = ChoiceWidget(gui_app, self.root, None, self.comboItems)
+        self.field_combo.get = lambda: self.root().get_field_type()
+        self.field_combo.set = lambda value: self.root().mutate_field_type(FieldType(value))
         fieldLayout.addRow('Type', self.field_combo.widget)
 
-        self.field_edit = TextFieldWidget(gui_app, 'value', QLineEdit,
-                                          FieldOfViewPanel.rootEvalStr,
-                                          FieldOfViewPanel.evalStr[0],
-                                          '{:12.5f}')
+        self.field_edit = FloatFieldWidget(gui_app, self.root, 'value')
         fieldLayout.addRow('value', self.field_edit.widget)
 
         self.setLayout(fieldLayout)
+
+    def root(self):
+        return self.gui_app.app_manager.model.optical_spec.field_of_view
 
     def update(self, opt_model):
         """ push backend data to widgets """
@@ -293,55 +255,36 @@ class FieldOfViewPanel(QWidget):
 
 
 class SystemSpecPanel(QWidget):
-    rootEvalStr = '.system_spec'
-    evalStr = ('.dimensions.value', '.title', '.initials', '.temperature',
-               '.pressure')
     comboItems = ["mm", "cm", "m", "inches"]
-    set_combo_str = '.dimensions=DimensionType({})'
-    set_text_str = ".title='{:s}'", ".initials='{:s}'"
 
     def __init__(self, gui_app, parent=None):
         super().__init__(parent)
 
+        self.gui_app = gui_app
+
         systemLayout = QFormLayout()
 
-        self.dimension_combo = ChoiceWidget(gui_app, 'dimensions', QComboBox,
-                                            SystemSpecPanel.rootEvalStr,
-                                            SystemSpecPanel.evalStr[0],
-                                            SystemSpecPanel.comboItems,
-                                            set_eval_str=
-                                            SystemSpecPanel.set_combo_str)
+        self.dimension_combo = ChoiceWidget(gui_app, lambda: self.root().dimensions, 'value', self.comboItems)
+        self.dimension_combo.set = lambda value: setattr(self.root(), 'dimensions', DimensionType(value))
+
         systemLayout.addRow('system units', self.dimension_combo.widget)
 
-        self.title_edit = TextFieldWidget(gui_app, 'title', QLineEdit,
-                                          SystemSpecPanel.rootEvalStr,
-                                          SystemSpecPanel.evalStr[1],
-                                          '{:s}',
-                                          set_eval_str=
-                                          SystemSpecPanel.set_text_str[0])
+        self.title_edit = TextFieldWidget(gui_app, self.root, 'title')
         systemLayout.addRow('title', self.title_edit.widget)
 
-        self.initials_edit = TextFieldWidget(gui_app, 'initials', QLineEdit,
-                                             SystemSpecPanel.rootEvalStr,
-                                             SystemSpecPanel.evalStr[2],
-                                             '{:s}',
-                                             set_eval_str=
-                                             SystemSpecPanel.set_text_str[1])
+        self.initials_edit = TextFieldWidget(gui_app, self.root, 'initials')
         systemLayout.addRow('initials', self.initials_edit.widget)
 
-        self.temp_edit = TextFieldWidget(gui_app, 'temperature', QLineEdit,
-                                         SystemSpecPanel.rootEvalStr,
-                                         SystemSpecPanel.evalStr[3],
-                                         '{:7.1f}')
+        self.temp_edit = FloatFieldWidget(gui_app, self.root, 'temperature')
         systemLayout.addRow('temperature', self.temp_edit.widget)
 
-        self.pressure_edit = TextFieldWidget(gui_app, 'pressure', QLineEdit,
-                                             SystemSpecPanel.rootEvalStr,
-                                             SystemSpecPanel.evalStr[4],
-                                             '{:9.3f}')
+        self.pressure_edit = FloatFieldWidget(gui_app, self.root, 'pressure')
         systemLayout.addRow('pressure', self.pressure_edit.widget)
 
         self.setLayout(systemLayout)
+
+    def root(self):
+        return self.gui_app.app_manager.model.system_spec
 
     def update(self, opt_model):
         """ push backend data to widgets """
