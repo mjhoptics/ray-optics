@@ -7,17 +7,12 @@
 .. codeauthor: Michael J. Hayford
 """
 
-import logging
 from collections import namedtuple
 
-from PyQt5 import QtCore
-from PyQt5.QtCore import QDate, QSize, Qt
-from PyQt5.QtGui import QIcon, QDoubleValidator
-from PyQt5.QtWidgets import (QCheckBox, QComboBox, QDateTimeEdit, QAction,
-                             QDialog, QGroupBox, QHBoxLayout, QLabel,
-                             QLineEdit, QListView, QListWidget, QDockWidget,
-                             QListWidgetItem, QPushButton, QSpinBox,
-                             QStackedWidget, QVBoxLayout, QFormLayout, QWidget)
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QDoubleValidator
+from PyQt5.QtWidgets import (QCheckBox, QComboBox, QAction, QLineEdit,
+                             QDockWidget, QFormLayout, QWidget)
 
 from rayoptics.optical.model_enums import PupilType
 from rayoptics.optical.model_enums import FieldType
@@ -139,7 +134,7 @@ class TextFieldWidget(ModelBinding):
     def __init__(self, gui_app, get_parent, field, valueFormat='{:s}'):
         super().__init__(gui_app, get_parent, field)
         w = QLineEdit()
-        w.setAlignment(QtCore.Qt.AlignLeft)
+        w.setAlignment(Qt.AlignLeft)
         w.editingFinished.connect(self.editingFinished)
         self.widget = w
         # valueFormat is how the data from the model is rendered in the textbox
