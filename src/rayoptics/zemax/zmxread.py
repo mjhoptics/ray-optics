@@ -45,7 +45,7 @@ def read_lens_file(filename, **kwargs):
         if isinstance(encodings, str):
             encodings = encodings,
     else:  # default list of encodings to try
-        encodings = ['utf-16', 'utf-8', 'utf-8-sig']
+        encodings = ['utf-16', 'utf-8', 'utf-8-sig', 'iso-8859-1']
 
     for decode in encodings:
         try:
