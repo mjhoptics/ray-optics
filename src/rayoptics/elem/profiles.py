@@ -7,9 +7,10 @@
 
 .. codeauthor: Michael J. Hayford
 """
-
 import numpy as np
 from math import sqrt, copysign, sin, atan2
+from scipy import optimize
+
 from rayoptics.util.misc_math import normalize
 from rayoptics.raytr.traceerror import TraceError, TraceMissedSurfaceError
 
@@ -43,25 +44,42 @@ def intersect_parabola(cv, p, d, z_dir=1.0):
 
 
 class SurfaceProfile:
+    """Base class for surface profiles. """
+
     def __repr__(self):
         return "{!s}()".format(type(self).__name__)
 
     def update(self):
-        pass
+        return self
 
     def f(self, p):
+        """Returns the value of the profile surface function at point *p*. """
+        pass
+
+    def df(self, p):
+        "Returns the gradient of the profile surface function at point *p*. "
         pass
 
     def normal(self, p):
-        pass
+        """Returns the unit normal of the profile at point *p*. """
+        return normalize(self.df(p))
 
     def sag(self, x, y):
+        """Returns the sagitta (z coordinate) of the surface at x, y. """
         pass
 
     def profile(self, sd, dir=1, steps=6):
+        """Return a 2d polyline approximating the surface profile.
+
+        Args:
+            sd:  semi-diameter of the profile
+            dir: +1 for profile from neg to postive direction, -1 if otherwise
+            steps: number of points to generate
+        """
         pass
 
     def apply_scale_factor(self, scale_factor):
+        """Apply *scale_factor* to the profile definition. """
         pass
 
     def intersect(self, p0, d, eps, z_dir):
@@ -79,17 +97,116 @@ class SurfaceProfile:
         Raises:
             :exc:`~rayoptics.raytr.traceerror.TraceMissedSurfaceError`
         '''
-        p = p1 = p0
-        s1 = -self.f(p1)/np.dot(d, self.normal(p1))
+        return self.intersect_spencer(p0, d, eps, z_dir)
+
+    def intersect_welford(self, p, d, eps, z_dir):
+        ''' Intersect a profile, starting from an arbitrary point.
+
+        From Welford, Aberrations of Optical Systems (ISBN-10: 0852745648),
+        eqs 4.34 thru 4.41.
+
+        Args:
+            p0:  start point of the ray in the profile's coordinate system
+            d:  direction cosine of the ray in the profile's coordinate system
+            z_dir: +1 if propagation positive direction, -1 if otherwise
+            eps: numeric tolerance for convergence of any iterative procedure
+
+        Returns:
+            tuple: distance to intersection point *s1*, intersection point *p*
+
+        Raises:
+            :exc:`~rayoptics.raytr.traceerror.TraceMissedSurfaceError`
+        '''
+        from numpy.linalg import norm
+
+        p0 = np.array([p[0]+(d[0]/d[2])*p[2], p[1]+(d[1]/d[2])*p[2], 0])
+
+        z1 = self.sag(p0[0], p0[1])
+        p1 = np.array([p0[0], p0[1], z1])
+        delta = abs(z1)
+        # print("intersect", z1)
+        iter = 0
+        while delta > eps and iter < 1000:
+            n1 = self.normal(p1)
+            z1p = (d[2]*np.dot(n1, (p1 - p0)))/np.dot(d, n1)
+            x2 = (d[0]/d[2])*z1p + p0[0]
+            y2 = (d[1]/d[2])*z1p + p0[1]
+            z2 = self.sag(x2, y2)
+            p2 = np.array([x2, y2, z2])
+            delta = abs(z2 - p1[2])
+            # print("intersect", p1[2], z2, delta)
+            p1 = p2
+            iter += 1
+        # print('intersect iter =', iter)
+        s1 = norm(p1 - p)
+        return s1, p1
+
+    def intersect_spencer(self, p0, d, eps, z_dir):
+        ''' Intersect a profile, starting from an arbitrary point.
+
+        From Spencer and Murty, `General Ray-Tracing Procedure
+        <https://doi.org/10.1364/JOSA.52.000672>`_
+
+        Args:
+            p0:  start point of the ray in the profile's coordinate system
+            d:  direction cosine of the ray in the profile's coordinate system
+            z_dir: +1 if propagation positive direction, -1 if otherwise
+            eps: numeric tolerance for convergence of any iterative procedure
+
+        Returns:
+            tuple: distance to intersection point *s1*, intersection point *p*
+
+        Raises:
+            :exc:`~rayoptics.raytr.traceerror.TraceMissedSurfaceError`
+        '''
+        p = p0
+        s1 = -self.f(p)/np.dot(d, self.df(p))
         delta = abs(s1)
-#        print("intersect", s1)
-        while delta > eps:
-            p = p1 + s1*d
-            s2 = s1 - self.f(p)/np.dot(d, self.normal(p))
+        # print("intersect", s1)
+        iter = 0
+        while delta > eps and iter < 1000:
+            p = p0 + s1*d
+            s2 = s1 - self.f(p)/np.dot(d, self.df(p))
             delta = abs(s2 - s1)
-#            print("intersect", s1, s2, delta)
+            # print("intersect", s1, s2, delta)
             s1 = s2
+            iter += 1
+        # print('intersect iter =', iter)
         return s1, p
+
+    def intersect_scipy(self, p0, d, eps, z_dir):
+        ''' Intersect a profile, starting from an arbitrary point.
+
+        Args:
+            p0:  start point of the ray in the profile's coordinate system
+            d:  direction cosine of the ray in the profile's coordinate system
+            z_dir: +1 if propagation positive direction, -1 if otherwise
+            eps: numeric tolerance for convergence of any iterative procedure
+
+        Returns:
+            tuple: distance to intersection point *s1*, intersection point *p*
+
+        Raises:
+            :exc:`~rayoptics.raytr.traceerror.TraceMissedSurfaceError`
+        '''
+
+        def gen_f(profile, p0, d, z_dir):
+            def func(s):
+                p = p0 + s*d
+                f = profile.f(p)
+                df = np.dot(d, self.df(p))
+                return f, df
+            return func
+
+        conic = mutate_profile(self, 'Conic')
+        s1, p1 = conic.intersect(p0, d, eps, z_dir)
+        f = gen_f(self, p0, d, z_dir)
+        sol = optimize.root_scalar(f, x0=s1, fprime=True,
+                                   method='newton', xtol=eps, maxiter=1000)
+        s = sol.root
+        p1 = p0 + s*d
+        # print('intersect iter =', sol.function_calls, sol.converged, sol.flag)
+        return s, p1
 
 
 class Spherical(SurfaceProfile):
@@ -103,7 +220,7 @@ class Spherical(SurfaceProfile):
             r: radius of curvature. If zero, taken as planar. If r is
                 specified, it overrides any input for c (curvature).
         """
-        if r:
+        if r is not None:
             self.r = r
         else:
             self.cv = c
@@ -140,10 +257,6 @@ class Spherical(SurfaceProfile):
     def apply_scale_factor(self, scale_factor):
         self.cv /= scale_factor
 
-    def normal(self, p):
-        return normalize(np.array(
-                [-self.cv*p[0], -self.cv*p[1], 1.0-self.cv*p[2]]))
-
     def intersect_tangent_plane(self, p, d, eps, z_dir):
         # Welford's intersection with a sphere, starting from the tangent plane
         # transfer p to tangent plane of surface
@@ -166,6 +279,7 @@ class Spherical(SurfaceProfile):
     def intersect(self, p, d, eps, z_dir):
         ''' Intersection with a sphere, starting from an arbitrary point. '''
 
+#        return super().intersect(p, d, eps, z_dir)
         # Substitute expressions equivalent to Welford's 4.8 and 4.9
         # For quadratic equation ax**2 + bx + c = 0:
         #  ax2 = 2a
@@ -184,6 +298,10 @@ class Spherical(SurfaceProfile):
 
     def f(self, p):
         return p[2] - 0.5*self.cv*(np.dot(p, p))
+
+    def df(self, p):
+        return np.array(
+                [-self.cv*p[0], -self.cv*p[1], 1.0-self.cv*p[2]])
 
     def sag(self, x, y):
         if self.cv != 0.0:
@@ -251,6 +369,7 @@ class Conic(SurfaceProfile):
         cc = -1.0: paraboloid
         cc < -1.0: hyperboloid
     """
+
     def __init__(self, c=0.0, cc=0.0, r=None, ec=None):
         """ initialize a Conic profile.
 
@@ -262,12 +381,12 @@ class Conic(SurfaceProfile):
             ec: conic asphere (= cc + 1). If ec is specified, it overrides any
                 input for the conic constant (cc).
         """
-        if r:
+        if r is not None:
             self.r = r
         else:
             self.cv = c
 
-        if ec:
+        if ec is not None:
             self.ec = ec
         else:
             self.cc = cc
@@ -312,12 +431,6 @@ class Conic(SurfaceProfile):
     def apply_scale_factor(self, scale_factor):
         self.cv /= scale_factor
 
-    def normal(self, p):
-        return normalize(np.array(
-                [-self.cv*p[0],
-                 -self.cv*p[1],
-                 1.0-(self.cc+1.0)*self.cv*p[2]]))
-
     def intersect_tangent_plane(self, p, d, eps, z_dir):
         # Welford's intersection with a conic, starting from the tangent plane
         # transfer p to tangent plane of surface
@@ -359,6 +472,12 @@ class Conic(SurfaceProfile):
         return p[2] - 0.5*self.cv*(p[0]*p[0] +
                                    p[1]*p[1] +
                                    (self.cc+1.0)*p[2]*p[2])
+
+    def df(self, p):
+        return np.array(
+                [-self.cv*p[0],
+                 -self.cv*p[1],
+                 1.0-(self.cc+1.0)*self.cv*p[2]])
 
     def sag(self, x, y):
         r2 = x*x + y*y
@@ -431,6 +550,7 @@ def aspheric_profile(surface_profile, sd, dir=1, steps=21):
 
 class EvenPolynomial(SurfaceProfile):
     """ Even Polynomial asphere up to 20th order, on base conic. """
+
     def __init__(self, c=0.0, cc=0.0, r=None, ec=None, coefs=None):
         """ initialize a EvenPolynomial profile.
 
@@ -444,17 +564,17 @@ class EvenPolynomial(SurfaceProfile):
             coefs: a list of even power coefficents, starting with the
                 quadratic term, and not exceeding the 20th order term.
         """
-        if r:
+        if r is not None:
             self.r = r
         else:
             self.cv = c
 
-        if ec:
+        if ec is not None:
             self.ec = ec
         else:
             self.cc = cc
 
-        if coefs:
+        if coefs is not None:
             self.coefs = coefs
         else:
             self.coefs = []
@@ -553,23 +673,7 @@ class EvenPolynomial(SurfaceProfile):
 
     def update(self):
         self.gen_coef_list()
-
-    def normal(self, p):
-        # sphere + conic contribution
-        r2 = p[0]*p[0] + p[1]*p[1]
-        e = self.cv/sqrt(1. - (self.cc+1.0)*self.cv*self.cv*r2)
-
-        # polynomial asphere contribution
-        e_asp = 0.0
-        r_pow = 1.0
-        c_coef = 2.0
-        for i in range(self.max_nonzero_coef):
-            e_asp += c_coef*self.coefs[i]*r_pow
-            c_coef += 2.0
-            r_pow *= r2
-
-        e_tot = e + e_asp
-        return normalize(np.array([-e_tot*p[0], -e_tot*p[1], 1.0]))
+        return self
 
     def sag(self, x, y):
         r2 = x*x + y*y
@@ -591,6 +695,23 @@ class EvenPolynomial(SurfaceProfile):
 
     def f(self, p):
         return p[2] - self.sag(p[0], p[1])
+
+    def df(self, p):
+        # sphere + conic contribution
+        r2 = p[0]*p[0] + p[1]*p[1]
+        e = self.cv/sqrt(1. - self.ec*self.cv*self.cv*r2)
+
+        # polynomial asphere contribution
+        r_pow = sqrt(r2)  # = r
+        e_asp = 0.0
+        c_coef = 2.0
+        for i in range(self.max_nonzero_coef):
+            e_asp += c_coef*self.coefs[i]*r_pow
+            c_coef += 2.0
+            r_pow *= r2
+
+        e_tot = e + e_asp
+        return np.array([-e_tot*p[0], -e_tot*p[1], 1.0])
 
     def profile(self, sd, dir=1, steps=21):
         return aspheric_profile(self, sd, dir, steps)
@@ -621,12 +742,12 @@ class RadialPolynomial(SurfaceProfile):
             coefs: a list of radial coefficents, starting with the
                 constant term, (and not exceeding the 10th order term).
         """
-        if r:
+        if r is not None:
             self.r = r
         else:
             self.cv = c
 
-        if cc:
+        if cc is not None:
             self.cc = cc
         else:
             self.ec = ec
@@ -743,29 +864,7 @@ class RadialPolynomial(SurfaceProfile):
 
     def update(self):
         self.gen_coef_list()
-
-    def normal(self, p):
-        # sphere + conic contribution
-        r2 = p[0]*p[0] + p[1]*p[1]
-        r = sqrt(r2)
-        e = self.cv/sqrt(1. - self.ec*self.cv*self.cv*r2)
-
-        # polynomial asphere contribution - compute using Horner's Rule
-        e_asp = 0.0
-        if r == 0.0:
-            r_pow = 1.0
-        else:
-            # Initialize to 1/r because we multiply by r's components p[0] and
-            # p[1] at the final normalization step.
-            r_pow = 1.0/r
-        c_coef = 1.0
-        for coef in self.coefs[1:self.max_nonzero_coef]:
-            e_asp += c_coef*coef*r_pow
-            c_coef += 1.0
-            r_pow *= r
-
-        e_tot = e + e_asp
-        return normalize(np.array([-e_tot*p[0], -e_tot*p[1], 1.0]))
+        return self
 
     def sag(self, x, y):
         r2 = x*x + y*y
@@ -778,7 +877,7 @@ class RadialPolynomial(SurfaceProfile):
 
         # polynomial asphere contribution
         z_asp = 0.0
-        r_pow = 1.0
+        r_pow = r
         for coef in self.coefs[:self.max_nonzero_coef]:
             z_asp += coef*r_pow
             r_pow *= r
@@ -789,12 +888,36 @@ class RadialPolynomial(SurfaceProfile):
     def f(self, p):
         return p[2] - self.sag(p[0], p[1])
 
+    def df(self, p):
+        # sphere + conic contribution
+        r2 = p[0]*p[0] + p[1]*p[1]
+        r = sqrt(r2)
+        e = self.cv/sqrt(1. - self.ec*self.cv*self.cv*r2)
+
+        # polynomial asphere contribution - compute using Horner's Rule
+        e_asp = 0.0
+        if r == 0.0:
+            r_pow = 1.0
+        else:
+            # Initialize to 1/r because we multiply by r's components p[0] and
+            # p[1] at the final normalization step.
+            r_pow = 1.0
+        c_coef = 1.0
+        for coef in self.coefs[:self.max_nonzero_coef]:
+            e_asp += c_coef*coef*r_pow
+            c_coef += 1.0
+            r_pow *= r
+
+        e_tot = e + e_asp
+        return np.array([-e_tot*p[0], -e_tot*p[1], 1.0])
+
     def profile(self, sd, dir=1, steps=21):
         return aspheric_profile(self, sd, dir, steps)
 
 
 class YToroid(SurfaceProfile):
     """Y Aspheric toroid, up to 20th order, on base conic. """
+
     def __init__(self,
                  c=0.0, cR=0, cc=0.0,
                  r=None, rR=None, ec=None,
@@ -813,22 +936,22 @@ class YToroid(SurfaceProfile):
             coefs: a list of even power coefficents, starting with the
                 quadratic term, and not exceeding the 20th order term.
         """
-        if r:
+        if r is not None:
             self.r = r
         else:
             self.cv = c
 
-        if rR:
+        if rR is not None:
             self.rR = rR
         else:
             self.cR = cR
 
-        if ec:
+        if ec is not None:
             self.ec = ec
         else:
             self.cc = cc
 
-        if coefs:
+        if coefs is not None:
             self.coefs = coefs
         else:
             self.coefs = []
@@ -944,27 +1067,7 @@ class YToroid(SurfaceProfile):
 
     def update(self):
         self.gen_coef_list()
-
-    def normal(self, p):
-        # sphere + conic contribution
-        y2 = p[1]*p[1]
-        e = (self.cv*p[1])/sqrt(1. - (self.cc+1.0)*self.cv*self.cv*y2)
-
-        # polynomial asphere contribution
-        e_asp = 0.0
-        y_pow = 1.0
-        c_coef = 2.0
-        for i in range(self.max_nonzero_coef):
-            e_asp += c_coef*self.coefs[i]*y_pow
-            c_coef += 2.0
-            y_pow *= y2
-
-        dfdY = e + e_asp
-        Fx = -self.cR*p[0]
-        Fy = (self.cR*self.fY(p[1]) - 1)*(dfdY)
-        Fz = 1 - self.cR*p[2]
-
-        return normalize(np.array([Fx, Fy, Fz]))
+        return self
 
     def sag(self, x, y):
         fY = self.fY(y)
@@ -999,12 +1102,34 @@ class YToroid(SurfaceProfile):
         fY = self.fY(p[1])
         return p[2] - fY - self.cR*(p[0]*p[0] + p[2]*p[2] - fY*fY)/2
 
+    def df(self, p):
+        # sphere + conic contribution
+        y2 = p[1]*p[1]
+        e = (self.cv*p[1])/sqrt(1. - (self.cc+1.0)*self.cv*self.cv*y2)
+
+        # polynomial asphere contribution
+        e_asp = 0.0
+        y_pow = 1.0
+        c_coef = 2.0
+        for i in range(self.max_nonzero_coef):
+            e_asp += c_coef*self.coefs[i]*y_pow
+            c_coef += 2.0
+            y_pow *= y2
+
+        dfdY = e + e_asp
+        Fx = -self.cR*p[0]
+        Fy = (self.cR*self.fY(p[1]) - 1)*(dfdY)
+        Fz = 1 - self.cR*p[2]
+
+        return np.array([Fx, Fy, Fz])
+
     def profile(self, sd, dir=1, steps=21):
         return aspheric_profile(self, sd, dir, steps)
 
 
 class XToroid(YToroid):
     """X Aspheric toroid, up to 20th order, on base conic. Leverage YToroid"""
+
     def __init__(self,
                  c=0.0, cR=0, cc=0.0,
                  r=None, rR=None, ec=None,
@@ -1033,6 +1158,9 @@ class XToroid(YToroid):
 
     def f(self, p):
         return super().f(np.array([p[1], p[0], p[2]]))
+
+    def df(self, p):
+        return super().df(np.array([p[1], p[0], p[2]]))
 
 
 dispatch = {
