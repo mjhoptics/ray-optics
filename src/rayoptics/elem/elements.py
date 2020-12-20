@@ -41,6 +41,7 @@ GraphicsHandle.polytype.__doc__ = "'polygon' (for filled) or 'polyline'"
         polytype: 'polygon' (for filled) or 'polyline'
 """
 
+
 # --- Factory functions
 def create_thinlens(power=0., indx=1.5, sd=None, **kwargs):
     tl = thinlens.ThinLens(power=power, ref_index=indx, max_ap=sd, **kwargs)
@@ -59,7 +60,7 @@ def create_mirror(c=0.0, r=None, cc=0.0, ec=None,
         ec: 1 + cc
         power:  optical power of the mirror
         sd:  semi-diameter
-        profile: Spherical or Conic
+        profile: Spherical or Conic type, or a profile instance
     '''
     delta_n = kwargs['delta_n'] if 'delta_n' in kwargs else -2
     if power:
@@ -78,6 +79,8 @@ def create_mirror(c=0.0, r=None, cc=0.0, ec=None,
         prf = Spherical(c=cv)
     elif profile is Conic:
         prf = Conic(c=cv, cc=k)
+    elif profile is not None:
+        prf = profile
     else:
         if k == 0.0:
             prf = Spherical(c=cv)
