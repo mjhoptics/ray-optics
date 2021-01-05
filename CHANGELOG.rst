@@ -4,6 +4,11 @@
 Changelog
 =========
 
+Version 0.6.3
+==============
+
+Fixes for aspheric ray intersection calculation, implemented by reworking the :mod:`~.elem.profiles` module. Generalize the :func:`~.elem.elements.create_mirror` fct to accept a :class:`~.elem.profiles.SurfaceProfile` instance in addition.
+
 Version 0.6.2
 ==============
 
