@@ -272,6 +272,8 @@ class Element():
             # set element color based on V-number
             indx, vnbr = glass_decode(gc)
             dsg, rgb = gp.find_glass_designation(indx, vnbr)
+            if rgb is None:
+                return [228, 237, 243, 64]  # ED designation
 #            rgb = Element.clut.get_color(vnbr)
             return rgb
 
