@@ -405,8 +405,8 @@ class InteractiveFigure(StyledFigure):
             self.ax = self.add_subplot(1, 1, 1, aspect=self.aspect)
 
         for a in self.artists:
-            a.set_picker(5)
             if isinstance(a, lines.Line2D):
+                a.set_pickradius(5)
                 self.ax.add_line(a)
             elif isinstance(a, patches.Patch):
                 self.ax.add_patch(a)

@@ -321,7 +321,7 @@ class DiagramNode():
                                   'linewidth': dgm_lw['data'],
                                   'marker': 'o',
                                   'markersize': dgm_lw['node'],
-                                  'picker': 6,
+                                  'pickradius': 6,
                                   'color': dgm_rgb['node'],
                                   'hilite': dgm_rgb['hilite'],
                                   'zorder': 3.})
@@ -340,7 +340,7 @@ class DiagramNode():
                 self.handles['slide'] = (seg, 'polyline',
                                          {'linestyle': '--',
                                           'linewidth': dgm_lw['guide'],
-                                          'picker': 6,
+                                          'pickradius': 6,
                                           'color': dgm_rgb['slide'],
                                           'hilite': hilite_kwargs,
                                           'zorder': 2.5})
@@ -376,7 +376,7 @@ class DiagramEdge():
         dgm_rgb = self.diagram.dgm_rgb
         edge_poly = shape[self.node:self.node+2]
         self.handles['shape'] = (edge_poly, 'polyline',
-                                 {'picker': 6,
+                                 {'pickradius': 6,
                                   'linewidth': dgm_lw['data'],
                                   'hilite_linewidth': dgm_lw['data_hilite'],
                                   'color': dgm_rgb['edge'],
