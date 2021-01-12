@@ -8,6 +8,23 @@
     The ability to apply focus and image shifts to an already acquired data set
     is provided for use interactively and in other performance critical areas.
 
+    The following classes are implemented in this module:
+
+        - :class:`~.Ray`: trace a single ray
+        - :class:`~.RayFan`: trace a fan of rays in either the x or y meridian
+        - :class:`~.RayList`: trace a list of rays from an object point
+        - :class:`~.RayGrid`: trace a rectilinear grid of rays
+
+    All but the `Ray` class are supported by a group of functions to trace the
+    rays, accumulate the data (trace_*), and refocus (focus_*) the data. A
+    all-in-one function (eval_*) to trace and apply focus is supplied also.
+    These are used in the update_data methods of the classes to generate the
+    ray data.
+
+    This module also has functions to calculate chief ray and reference sphere
+    information as well as functions for calculating the monochromatic PSF of
+    the model.
+
 .. Created on Sat Feb 22 22:01:56 2020
 
 .. codeauthor: Michael J. Hayford
@@ -340,7 +357,7 @@ def smooth_plot_data(f_x, f_y, num_points=100):
 
 
 def trace_ray_fan(opt_model, fan_rng, fld, wvl, foc, **kwargs):
-    """ xy determines whether x (=0) or y (=1) fan """
+    """Trace a fan of rays, according to fan_rng. """
     start = np.array(fan_rng[0])
     stop = fan_rng[1]
     num = fan_rng[2]
@@ -397,7 +414,7 @@ def eval_fan(opt_model, fld, wvl, foc, xy,
 
 def trace_fan(opt_model, fld, wvl, foc, xy,
               image_pt_2d=None, num_rays=21):
-    """Trace a grid of rays and evaluate the OPD across the wavefront."""
+    """Trace a fan of rays and precalculate data for rapid refocus later."""
     fod = opt_model.optical_spec.parax_data.fod
     cr_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
     ref_sphere = setup_exit_pupil_coords(opt_model, fld, wvl, foc, cr_pkg,
@@ -405,6 +422,7 @@ def trace_fan(opt_model, fld, wvl, foc, xy,
     fld.chief_ray = cr_pkg
     fld.ref_sphere = ref_sphere
 
+    """ xy determines whether x (=0) or y (=1) fan """
     fan_start = np.array([0., 0.])
     fan_stop = np.array([0., 0.])
     fan_start[xy] = -1.0
@@ -428,7 +446,7 @@ def trace_fan(opt_model, fld, wvl, foc, xy,
 
 
 def focus_fan(opt_model, fan_pkg, fld, wvl, foc, image_pt_2d=None):
-    """Trace a grid of rays and evaluate the OPD across the wavefront."""
+    """Refocus the fan of rays and return the tranverse abr. and OPD."""
     fod = opt_model.optical_spec.parax_data.fod
     fan, upd_fan = fan_pkg
     cr_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
@@ -572,7 +590,7 @@ def trace_list_of_rays(opt_model, rays, output_filter=None, **kwargs):
 
         - if None, returns the entire traced ray
         - if "last", returns the ray data from the last interface
-        - if a callable, if must take a ray_pkg as an argument and return the
+        - if a callable, it must take a ray_pkg as an argument and return the
           desired data or None
 
     Returns:
@@ -599,7 +617,7 @@ def trace_list_of_rays(opt_model, rays, output_filter=None, **kwargs):
 
 def eval_pupil_coords(opt_model, fld, wvl, foc,
                       image_pt_2d=None, num_rays=21):
-    """Trace a grid of rays and pre-calculate data needed for rapid refocus."""
+    """Trace a list of rays and return the transverse abr."""
     cr_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
     ref_sphere = setup_exit_pupil_coords(opt_model, fld, wvl, foc, cr_pkg,
                                          image_pt_2d=image_pt_2d)
@@ -630,7 +648,7 @@ def eval_pupil_coords(opt_model, fld, wvl, foc,
 
 def trace_pupil_coords(opt_model, pupil_coords, fld, wvl, foc,
                        image_pt_2d=None):
-    """Trace a list of rays and pre-calculate data needed for rapid refocus."""
+    """Trace a list of rays and return data needed for rapid refocus."""
     cr_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
     ref_sphere = setup_exit_pupil_coords(opt_model, fld, wvl, foc, cr_pkg,
                                          image_pt_2d=image_pt_2d)
@@ -644,7 +662,7 @@ def trace_pupil_coords(opt_model, pupil_coords, fld, wvl, foc,
 
 
 def focus_pupil_coords(opt_model, ray_list, fld, wvl, foc, image_pt_2d=None):
-    """Given pre-calculated info and a ref. sphere, return the ray's OPD."""
+    """Given pre-traced rays and a ref. sphere, return the transverse abr."""
     cr_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
     ref_sphere = setup_exit_pupil_coords(opt_model, fld, wvl, foc, cr_pkg,
                                          image_pt_2d=image_pt_2d)
@@ -810,7 +828,7 @@ def trace_wavefront(opt_model, fld, wvl, foc,
 
 def focus_wavefront(opt_model, grid_pkg, fld, wvl, foc, image_pt_2d=None,
                     value_if_none=np.NaN):
-    """Given pre-calculated info and a ref. sphere, return the ray's OPD."""
+    """Given pre-traced rays and a ref. sphere, return the ray's OPD."""
     fod = opt_model.optical_spec.parax_data.fod
     grid, upd_grid = grid_pkg
     cr_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
