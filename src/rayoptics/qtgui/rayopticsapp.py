@@ -18,7 +18,7 @@ from PyQt5.QtCore import Qt as qt
 from PyQt5.QtCore import QEvent
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (QApplication, QAction, QMainWindow, QMdiArea,
-                             QFileDialog, QTableView, QWidget, QMenu,
+                             QFileDialog, QWidget, QMenu,
                              QVBoxLayout)
 from PyQt5.QtCore import pyqtSlot
 import qdarkstyle
@@ -147,13 +147,13 @@ class MainWindow(QMainWindow):
             # self.open_file(path / "optical/tests/cell_phone_camera.roa")
             # self.open_file(path / "optical/tests/singlet_f3.roa")
 
-            # self.cur_dir = path / "models"
+            self.cur_dir = path / "models"
             # self.open_file(path / "models/Cassegrain.roa")
             # self.open_file(path / "models/collimator.roa")
             # self.open_file(path / "models/Dall-Kirkham.roa")
             # self.open_file(path / "models/petzval.roa")
             # self.open_file(path / "models/Ritchey_Chretien.roa")
-            # self.open_file(path / "models/Sasian Triplet.roa")
+            self.open_file(path / "models/Sasian Triplet.roa")
             # self.open_file(path / "models/singlet_f5.roa")
             # self.open_file(path / "models/thinlens.roa")
             # self.open_file(path / "models/telephoto.roa")
@@ -161,7 +161,7 @@ class MainWindow(QMainWindow):
             # self.open_file(path / "models/TwoMirror.roa")
             # self.open_file(path / "models/TwoSphericalMirror.roa")
 
-            self.cur_dir = path / "zemax/tests"
+            # self.cur_dir = path / "zemax/tests"
             # self.open_file(path / "zemax/tests/US08427765-1.ZMX")
             # self.open_file(path / "zemax/tests/US00583336-2-scaled.zmx")
             # self.open_file(path / "zemax/tests/HoO-V2C18Ex03.zmx")
@@ -169,7 +169,7 @@ class MainWindow(QMainWindow):
             # self.open_file(path / "zemax/tests/HoO-V2C18Ex46.zmx")
             # self.open_file(path / "zemax/tests/HoO-V2C18Ex66.zmx")
             # self.open_file(path / "zemax/tests/US05831776-1.zmx")
-            self.open_file(path / "zemax/tests/354710-C-Zemax(ZMX).zmx")
+            # self.open_file(path / "zemax/tests/354710-C-Zemax(ZMX).zmx")
 
             # self.cur_dir = path / "zemax/models/telescopes"
             # self.open_file(path / "zemax/models/telescopes/Figure4.zmx")
