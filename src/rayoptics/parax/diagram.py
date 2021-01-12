@@ -1016,8 +1016,12 @@ class GlassDropAction():
             if handle == 'area' and 'area' in shape.actions:
                 sm = shape.diagram.opt_model.seq_model
                 gap = sm.gaps[shape.node]
-                action = ReplaceGlassAction(gap)
+                action = ReplaceGlassAction(gap, update=False)
                 action(fig, event)
+                pm = shape.diagram.opt_model.parax_model
+                pm.update_rindex(shape.node)
+                pm.paraxial_lens_to_seq_model()
+                fig.refresh_gui()
                 dropped_it = True
         view.figure.artist_filter = None
         return dropped_it

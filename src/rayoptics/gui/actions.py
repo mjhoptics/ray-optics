@@ -160,8 +160,9 @@ class BendAction():
 class ReplaceGlassAction():
     """ Action for replacing an element's glass from a drag/drop action. """
 
-    def __init__(self, gap):
+    def __init__(self, gap, update=True):
         self.gap = gap
+        self.update = update
 
     def __call__(self, fig, event):
         mime = event.mimeData()
@@ -169,4 +170,5 @@ class ReplaceGlassAction():
         glass_name, catalog_name = mime.text().split(',')
         mat = gfact.create_glass(glass_name, catalog_name)
         self.gap.medium = mat
-        fig.refresh_gui()
+        if self.update:
+            fig.refresh_gui()

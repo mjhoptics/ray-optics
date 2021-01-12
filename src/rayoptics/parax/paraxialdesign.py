@@ -245,6 +245,12 @@ class ParaxialModel():
                 ax_ray[s][ht] = ax_ray[c][slp]*sys[c][tau] + ax_ray[c][ht]
                 pr_ray[s][ht] = pr_ray[c][slp]*sys[c][tau] + pr_ray[c][ht]
 
+    def update_rindex(self, surf):
+        """Update the refractive index using the `gap` at *surf*."""
+        gap = self.seq_model.gaps[surf]
+        wvl = self.seq_model.central_wavelength()
+        self.sys[surf][indx] = gap.medium.rindex(wvl)
+
     # ParaxTrace() - This routine performs a paraxial raytrace from object
     #                (surface 0) to image.  The last operation is a
     #                transfer to the image surface.
