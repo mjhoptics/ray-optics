@@ -4,6 +4,11 @@
 Changelog
 =========
 
+Version 0.6.4
+==============
+
+Rework :mod:`~.mpl.analysisfigure` module to better separate axis vs figure functions. Simplify default layout options, but support more complicated layouts as needed. Correctly update the model when dropping a glass onto the |ybar| diagram. Fix issue #18 and update documentation.
+
 Version 0.6.3
 ==============
 
