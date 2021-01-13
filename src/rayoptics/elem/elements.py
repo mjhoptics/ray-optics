@@ -162,7 +162,9 @@ def calc_render_color_for_material(matl):
         # set element color based on V-number
         indx, vnbr = glass_decode(gc)
         dsg, rgb = gp.find_glass_designation(indx, vnbr)
-        # rgb = Element.clut.get_color(vnbr)
+        if rgb is None:
+            return [228, 237, 243, 64]  # ED designation
+#            rgb = Element.clut.get_color(vnbr)
         return rgb
 
 
@@ -306,23 +308,6 @@ class Element():
         self.sd = max(self.s1.surface_od(), self.s2.surface_od())
         return self.sd
 
-<<<<<<< .merge_file_Bnk2Wn
-=======
-    def calc_render_color(self):
-        try:
-            gc = float(self.gap.medium.glass_code())
-        except AttributeError:
-            return (255, 255, 255, 64)  # white
-        else:
-            # set element color based on V-number
-            indx, vnbr = glass_decode(gc)
-            dsg, rgb = gp.find_glass_designation(indx, vnbr)
-            if rgb is None:
-                return [228, 237, 243, 64]  # ED designation
-#            rgb = Element.clut.get_color(vnbr)
-            return rgb
-
->>>>>>> .merge_file_dZOlTq
     def compute_flat(self, s):
         ca = s.surface_od()
         if (1.0 - ca/self.sd) >= 0.05:
