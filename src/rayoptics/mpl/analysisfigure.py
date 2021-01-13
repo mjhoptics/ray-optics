@@ -3,6 +3,16 @@
 # Copyright © 2020 Michael J. Hayford
 """Single panel, multiplot MPL figure, with support for line and surface plots
 
+    This package is designed to work with data sources in the
+    :mod:`~.raytr.analyses` package. This package provides a MPL Figure
+    subclass, :class:`~.AnalysisFigure`, that is a container for one or more
+    plots. The plots are managed by the other classes in this package:
+
+       - :class:`~.RayFanPlot`: transverse ray aberreations and OPD
+       - :class:`~.RayGeoPSF`: spot diagrams and 2D histograms
+       - :class:`~.Wavefront`: wavefront map
+       - :class:`~.DiffractionPSF`: diffraction Point Spread Function
+
 .. Created on Tue Mar 17 16:21:27 2020
 
 .. codeauthor: Michael J. Hayford
@@ -17,13 +27,29 @@ from rayoptics.raytr import analyses
 
 
 class AnalysisFigure(StyledFigure):
-    """Containing Figure for single panel plots, supports update_data."""
+    """Containing Figure for single panel plots, supports update_data.
 
-    def __init__(self, data_objs, **kwargs):
+    Attributes:
+        subplots: list of plots for this figure
+        data_objs: the data sources for the plots. If not specified, the
+                   subplots will be queried for the data sources.
+        grid: tuple of the # rows and # columns in the figure, defaults to
+              (1, 1)
+        gs: GridSpec instance, created from *grid*.
+        gridspecs: optional, list of subplotspecs, one for each subplot. These
+                   are used for detailed control of subplot positions.
+        kwargs: passed to Figure base class
+    """
 
-        self.data_objs = data_objs
-        self.subplots = []
+    def __init__(self, data_objs=None, subplots=None, grid=None, **kwargs):
         super().__init__(**kwargs)
+
+        self.subplots = subplots if subplots is not None else []
+        self.data_objs = data_objs if data_objs is not None else []
+
+        self.grid = grid if grid is not None else (1, 1)
+        self.gs = self.add_gridspec(nrows=self.grid[0], ncols=self.grid[1])
+        self.gridspecs = []
 
     def refresh(self, **kwargs):
         """Call update_data() followed by plot(), return self.
@@ -39,25 +65,37 @@ class AnalysisFigure(StyledFigure):
         return self
 
     def update_data(self, build='rebuild', **kwargs):
-        for data_obj in self.data_objs:
-            data_obj.update_data(build=build)
+        if len(self.data_objs) > 0:
+            for data_obj in self.data_objs:
+                data_obj.update_data(build=build)
+        else:
+            for subplot in self.subplots:
+                subplot.update_data(build=build)
 
         return self
 
     def plot(self):
         self.clf()
-        for subplot in self.subplots:
-            subplot.plot()
+        nrows, ncols = self.grid
+        if len(self.gridspecs) == 0:
+            for i, subplot in enumerate(self.subplots, start=1):
+                ax = self.add_subplot(nrows, ncols, i)
+                subplot.init_axis(ax)
+                subplot.plot(ax)
+        elif len(self.gridspecs) == len(self.subplots):
+            for subplot, gridspec in zip(self.subplots, self.gridspecs):
+                ax = self.add_subplot(gridspec)
+                subplot.init_axis(ax)
+                subplot.plot(ax)
 
         self.canvas.draw_idle()
+        return self
 
 
 class RayFanPlot():
     """Single axis line plot, supporting data display from multiple RayFans.
 
     Attributes:
-        fig: the parent figure for this panel
-        gs: gridspec for this panel
         fan_list: list of (fan, data_type, kwargs)
 
             - fan: a RayFan instance
@@ -72,14 +110,10 @@ class RayFanPlot():
 
     """
 
-    def __init__(self, fig, gs, fan_list,
+    def __init__(self, fan_list,
                  user_scale_value=0.1, scale_type='fit',
                  yaxis_ticks_position='left',
                  **kwargs):
-        self.fig = fig
-        self.fig.subplots.append(self)
-
-        self.gs = gs
         self.fan_list = fan_list
 
         if 'title' in kwargs:
@@ -93,8 +127,8 @@ class RayFanPlot():
     def init_axis(self, ax):
         ax.grid(True)
         ax.set_xlim(-1., 1.)
-        ax.axvline(0, c=self.fig._rgb['foreground'], lw=1)
-        ax.axhline(0, c=self.fig._rgb['foreground'], lw=1)
+        ax.axvline(0, c=ax.figure._rgb['foreground'], lw=1)
+        ax.axhline(0, c=ax.figure._rgb['foreground'], lw=1)
         ax.tick_params(labelbottom=False)
         ax.yaxis.set_ticks_position(self.yaxis_ticks_position)
         if self.title is not None:
@@ -108,10 +142,7 @@ class RayFanPlot():
     def update_data(self, build='rebuild'):
         return self
 
-    def plot(self):
-        ax = self.fig.add_subplot(self.gs)
-        self.init_axis(ax)
-
+    def plot(self, ax):
         for fan_pkg in self.fan_list:
             fan, data_type, kws = fan_pkg
             if data_type == 'dx':
@@ -143,8 +174,6 @@ class RayGeoPSF():
     """Single axis spot diagram or 2d histogram.
 
     Attributes:
-        fig: the parent figure for this panel
-        gs: gridspec for this panel
         ray_list: a RayList instance
         dsp_type: display type, either 'spot' or 'hist2d'
         scale_type: if 'fit', set scale to encompass largest data value
@@ -154,14 +183,10 @@ class RayGeoPSF():
         kwargs: passed to plot call
     """
 
-    def __init__(self, fig, gs, ray_list,
+    def __init__(self, ray_list,
                  user_scale_value=0.1, scale_type='fit',
                  yaxis_ticks_position='left', dsp_typ='hist2d',
                  **kwargs):
-        self.fig = fig
-        self.fig.subplots.append(self)
-
-        self.gs = gs
         self.ray_list = ray_list
         self.dsp_typ = dsp_typ
 
@@ -187,8 +212,8 @@ class RayGeoPSF():
         if self.dsp_typ == 'spot':
             ax.grid(True)
             linewidth = 0.5
-            ax.axvline(0, c=self.fig._rgb['foreground'], lw=linewidth)
-            ax.axhline(0, c=self.fig._rgb['foreground'], lw=linewidth)
+            ax.axvline(0, c=ax.figure._rgb['foreground'], lw=linewidth)
+            ax.axhline(0, c=ax.figure._rgb['foreground'], lw=linewidth)
 
         ax.yaxis.set_ticks_position(self.yaxis_ticks_position)
         if self.title is not None:
@@ -216,10 +241,7 @@ class RayGeoPSF():
         center_y = (max_y + min_y)/2
         return delta_x, delta_y, center_x, center_y
 
-    def plot(self):
-        ax = self.fig.add_subplot(self.gs)
-        self.init_axis(ax)
-
+    def plot(self, ax):
         delta_x, delta_y, center_x, center_y = self.ray_data_bounds()
         if self.scale_type == 'fit':
             max_delta = delta_x if delta_x > delta_y else delta_y
@@ -266,8 +288,6 @@ class Wavefront():
     """Single axis wavefront map.
 
     Attributes:
-        fig: the parent figure for this panel
-        gs: gridspec for this panel
         ray_grid: a RayGrid instance
         do_contours: if True, display contour plot, else plot data grid as an
         image
@@ -279,13 +299,9 @@ class Wavefront():
         kwargs: passed to plot call
     """
 
-    def __init__(self, fig, gs, ray_grid,
+    def __init__(self, ray_grid,
                  do_contours=False, user_scale_value=None,
                  **kwargs):
-        self.fig = fig
-        self.fig.subplots.append(self)
-
-        self.gs = gs
         self.ray_grid = ray_grid
 
         if 'title' in kwargs:
@@ -314,10 +330,7 @@ class Wavefront():
         self.ray_grid.update_data(build=build)
         return self
 
-    def plot(self):
-        ax = self.fig.add_subplot(self.gs)
-        self.init_axis(ax)
-
+    def plot(self, ax):
         grid = self.ray_grid.grid
         max_value = max(np.nanmax(grid[2]), -np.nanmin(grid[2]))
         max_value = self.user_scale if self.user_scale else max_value
@@ -339,7 +352,7 @@ class Wavefront():
                              extent=[-1., 1., -1., 1.],
                              **self.plot_kwargs
                              )
-        self.fig.colorbar(hmap, ax=ax, use_gridspec=True)
+        ax.figure.colorbar(hmap, ax=ax, use_gridspec=True)
         ax.set_aspect('equal')
 
         return self
@@ -349,8 +362,6 @@ class DiffractionPSF():
     """Point Spread Function (PSF) calculation and display.
 
     Attributes:
-        fig: the parent figure for this panel
-        gs: gridspec for this panel
         pupil_grid: a RayGrid instance
         maxdim: the size of the sampling array
         title: title, if desired, of this plot panel
@@ -359,12 +370,8 @@ class DiffractionPSF():
         kwargs: passed to plot call
     """
 
-    def __init__(self, fig, gs, pupil_grid, maxdim,
+    def __init__(self, pupil_grid, maxdim,
                  yaxis_ticks_position='left', **kwargs):
-        self.fig = fig
-        self.fig.subplots.append(self)
-
-        self.gs = gs
         self.pupil_grid = pupil_grid
         self.maxdim = maxdim
 
@@ -409,10 +416,7 @@ class DiffractionPSF():
         self.AP = analyses.calc_psf(self.pupil_grid.grid[2], ndim, maxdim)
         return self
 
-    def plot(self):
-        ax = self.fig.add_subplot(self.gs)
-        self.init_axis(ax)
-
+    def plot(self, ax):
         image_scale = self.image_scale
         hmap = ax.imshow(self.AP,
                          origin='lower',
@@ -421,7 +425,7 @@ class DiffractionPSF():
                                  -image_scale, image_scale],
                          **self.plot_kwargs
                          )
-        self.fig.colorbar(hmap, ax=ax, use_gridspec=True)
+        ax.figure.colorbar(hmap, ax=ax, use_gridspec=True)
         ax.set_aspect('equal')
 
         return self

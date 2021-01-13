@@ -262,7 +262,7 @@ def on_plot_scale_toggled(cntxt, scale_type):
     plotFigure.scale_type = scale_type
     if scale_type == Fit.User_Scale:
         scale_wdgt.setReadOnly(False)
-        scale_wdgt.setText('{:7.4f}'.format(plotFigure.user_scale_value))
+        scale_wdgt.setText('{:.7g}'.format(plotFigure.user_scale_value))
     else:
         scale_wdgt.setReadOnly(True)
 
@@ -271,12 +271,11 @@ def on_plot_scale_toggled(cntxt, scale_type):
 
 def on_plot_scale_changed(cntxt):
     plotFigure, scale_wdgt = cntxt
-    eval_str = scale_wdgt.text()
     try:
-        val = eval(eval_str)
+        val = float(scale_wdgt.text())
         plotFigure.user_scale_value = val
-        scale_wdgt.setText('{:7.4f}'.format(val))
-    except IndexError:
+        scale_wdgt.setText('{:.7g}'.format(val))
+    except ValueError:
         return ''
 
     plotFigure.plot()
@@ -437,7 +436,7 @@ def on_barrel_constraint_toggled(cntxt, state):
     if checked:
         diagram.do_barrel_constraint = True
         barrel_wdgt.setReadOnly(False)
-        barrel_wdgt.setText('{:7.4f}'.format(diagram.barrel_constraint_radius))
+        barrel_wdgt.setText('{:.7g}'.format(diagram.barrel_constraint_radius))
     else:
         diagram.do_barrel_constraint = False
         barrel_wdgt.setReadOnly(True)
@@ -447,12 +446,11 @@ def on_barrel_constraint_toggled(cntxt, state):
 
 def on_barrel_constraint_changed(cntxt):
     fig, barrel_wdgt = cntxt
-    eval_str = barrel_wdgt.text()
     try:
-        val = eval(eval_str)
+        val = float(barrel_wdgt.text())
         fig.diagram.barrel_constraint_radius = val
-        barrel_wdgt.setText('{:7.4f}'.format(val))
-    except IndexError:
+        barrel_wdgt.setText('{:.7g}'.format(val))
+    except ValueError:
         return ''
 
     fig.refresh()

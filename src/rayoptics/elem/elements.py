@@ -47,6 +47,7 @@ GraphicsHandle.color.__doc__ = "RGBA for the polydata or None for default"
         polytype: 'polygon' (for filled) or 'polyline'
 """
 
+
 # --- Factory functions
 def create_thinlens(power=0., indx=1.5, sd=None, **kwargs):
     tl = thinlens.ThinLens(power=power, ref_index=indx, max_ap=sd, **kwargs)
@@ -66,7 +67,7 @@ def create_mirror(c=0.0, r=None, cc=0.0, ec=None,
         ec: 1 + cc
         power:  optical power of the mirror
         sd:  semi-diameter
-        profile: Spherical or Conic
+        profile: Spherical or Conic type, or a profile instance
     '''
     delta_n = kwargs['delta_n'] if 'delta_n' in kwargs else -2
     if power:
@@ -85,6 +86,8 @@ def create_mirror(c=0.0, r=None, cc=0.0, ec=None,
         prf = Spherical(c=cv)
     elif profile is Conic:
         prf = Conic(c=cv, cc=k)
+    elif profile is not None:
+        prf = profile
     else:
         if k == 0.0:
             prf = Spherical(c=cv)
@@ -303,6 +306,23 @@ class Element():
         self.sd = max(self.s1.surface_od(), self.s2.surface_od())
         return self.sd
 
+<<<<<<< .merge_file_Bnk2Wn
+=======
+    def calc_render_color(self):
+        try:
+            gc = float(self.gap.medium.glass_code())
+        except AttributeError:
+            return (255, 255, 255, 64)  # white
+        else:
+            # set element color based on V-number
+            indx, vnbr = glass_decode(gc)
+            dsg, rgb = gp.find_glass_designation(indx, vnbr)
+            if rgb is None:
+                return [228, 237, 243, 64]  # ED designation
+#            rgb = Element.clut.get_color(vnbr)
+            return rgb
+
+>>>>>>> .merge_file_dZOlTq
     def compute_flat(self, s):
         ca = s.surface_od()
         if (1.0 - ca/self.sd) >= 0.05:
