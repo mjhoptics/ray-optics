@@ -756,6 +756,21 @@ class SequentialModel:
 
         return tfrms
 
+    def find_matching_ifcs(self):
+        rot_tols = dict(atol=1e-14, rtol=1e-8)
+        tols = dict(atol=1e-14, rtol=1e-14)
+        matches = []
+        for i, gi in enumerate(self.gbl_tfrms):
+            i1 = i+1
+            for j, gj in enumerate(self.gbl_tfrms[i1:], start=i1):
+                if (
+                        np.allclose(gi[0], gj[0], **rot_tols) and
+                        np.allclose(gi[1], gj[1], **tols)
+                        ):
+                    print(f'coincident surfs: {i} - {j}')
+                    matches.append((i, j))
+        return matches
+
 
 def gen_sequence(surf_data_list, **kwargs):
     """ create a sequence iterator from the surf_data_list

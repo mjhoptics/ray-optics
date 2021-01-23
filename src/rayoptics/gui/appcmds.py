@@ -12,6 +12,7 @@ import os.path
 import json_tricks
 import math
 import pathlib
+import anytree
 
 from opticalglass import glassmap as gm
 from opticalglass import glassfactory as gfact
@@ -52,7 +53,7 @@ from rayoptics.qtgui.plotview import (create_plot_scale_panel,
                                       create_2d_figure_toolbar)
 
 
-def open_model(file_name, info=False, **kwargs):
+def open_model(file_name, info=False, post_process_imports=True, **kwargs):
     """ open a file and populate an optical model with the data
 
     Args:
@@ -62,6 +63,7 @@ def open_model(file_name, info=False, **kwargs):
             - .seq - a CODE V (TM) sequence file
             - .zmx - a Zemax (TM) lens file
         info (bool): if true, return an info tuple with import statistics
+        post_process_imports (bool): for lens design program file import,
         kwargs (dict): keyword args passed to the reader functions
 
     Returns:
@@ -70,15 +72,25 @@ def open_model(file_name, info=False, **kwargs):
     file_name = pathlib.Path(file_name)
     file_extension = file_name.suffix.lower()
     opm = None
-    if file_extension == '.seq':
-        opm, import_info = cvp.read_lens(file_name, **kwargs)
-        create_specsheet_from_model(opm)
-        if info:
-            return opm, import_info
-    elif file_extension == '.roa':
+    if file_extension == '.roa':
+        # if we have a rayoptics file, we just read it
         opm = open_roa(file_name, **kwargs)
-    elif file_extension == '.zmx':
-        opm, import_info = zmxread.read_lens_file(file_name, **kwargs)
+    else:
+        # if we're importing another program's file, collect import info
+        if file_extension == '.seq':
+            opm, import_info = cvp.read_lens(file_name, **kwargs)
+        elif file_extension == '.zmx':
+            opm, import_info = zmxread.read_lens_file(file_name, **kwargs)
+        # At this point we have seq_model, opticalspec and sys_model.
+        # Generate the remaining databases and relations unless declined.
+        if post_process_imports:
+            create_specsheet_from_model(opm)
+            # create element model and part_tree
+            root = opm.part_tree
+            # initialize part tree using the imported seq_model
+            ele.init_part_tree_from_seq(opm.seq_model, root)
+            ele.elements_from_sequence(opm.ele_model, opm.seq_model, root)
+            # opt_model.list_part_tree()
         if info:
             return opm, import_info
     return opm

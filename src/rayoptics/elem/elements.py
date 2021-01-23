@@ -15,7 +15,7 @@ import itertools
 import math
 import numpy as np
 
-from anytree import Node, RenderTree
+from anytree import Node, RenderTree, PreOrderIter
 from anytree.search import find_by_attr
 
 import rayoptics.util.rgbtable as rgbt
@@ -23,7 +23,7 @@ import rayoptics.oprops.thinlens as thinlens
 from rayoptics.elem.profiles import Spherical, Conic
 from rayoptics.elem.surface import Surface
 from rayoptics.seq.gap import Gap
-from rayoptics.seq.medium import Glass, glass_decode
+from rayoptics.seq.medium import Air, Glass, glass_decode
 
 import rayoptics.gui.appcmds as cmds
 from rayoptics.gui.actions import (Action, AttrAction, SagAction, BendAction,
@@ -96,14 +96,15 @@ def create_mirror(c=0.0, r=None, cc=0.0, ec=None,
 
     m = Surface(profile=prf, interact_mode='reflect', max_ap=sd,
                 delta_n=delta_n, **kwargs)
-    me = Mirror(m, sd=sd)
+    ele_kwargs = {'label': kwargs['label']} if 'label' in kwargs else {}
+    me = Mirror(m, sd=sd, **ele_kwargs)
 
     tree = me.tree()
 
     return [[m, None, None, 1, -1]], [me], tree
 
 
-def create_lens(power=0., bending=0., th=None, sd=1., med=None):
+def create_lens(power=0., bending=0., th=None, sd=1., med=None, **kwargs):
     if med is None:
         med = Glass()
     rndx = med.rindex('d')
@@ -130,25 +131,25 @@ def create_dummy_plane(sd=1., **kwargs):
 def create_air_gap(t=0., ref_ifc=None):
     g = Gap(t=t)
     ag = AirGap(g, ref_ifc)
-    return g, ag, None
+    tree = ag.tree()
+    return g, ag, tree
 
 
 def create_from_file(filename, **kwargs):
     opm = cmds.open_model(filename)
     sm = opm.seq_model
     osp = opm.optical_spec
-    em = opm.ele_model
     if 'power' in kwargs:
         desired_power = kwargs['power']
         cur_power = osp.parax_data.fod.power
         scale_factor = desired_power/cur_power
         sm.apply_scale_factor(scale_factor)
-    root = Node('root', id='root')
-    for i, s in enumerate(sm.ifcs[1:-1], start=1):
-        i = Node('i{}'.format(i), id=s, parent=root)
-    elements_from_sequence(em, sm, root)
     seq = [list(node) for node in sm.path(start=1, stop=-1)]
-    ele = [em.gap_dict[g] for g in sm.gaps[1:-1]]
+    e_nodes = [node for node in PreOrderIter(opm.part_tree,
+                                             filter_=lambda n:
+                                                 '#element' in n.tag)]
+    ele = [node.id for node in e_nodes]
+    root = Node('file', id=None, tag='#group', children=e_nodes)
     return seq, ele, root
 
 
@@ -184,7 +185,6 @@ class Element():
         medium_name: the material filling the gap
         flat1: semi-diameter of flat if s1 is concave, or None
         flat2: semi-diameter of flat if s2 is concave, or None
-        render_color: RGBA color used to fill the lens profile
         handles: dict of graphical entities
         actions: dict of actions associated with the graphical handles
     """
@@ -256,18 +256,21 @@ class Element():
         self.s1_indx = seq_model.ifcs.index(self.s1)
         self.s2_indx = seq_model.ifcs.index(self.s2)
 
-    def tree(self):
+    def tree(self, tag=None):
         """Build tree linking sequence to element model. """
 
+        default_tag = '#element#lens'
+        tag = default_tag+tag if tag is not None else default_tag
+
         # Interface tree
-        e = Node('E', id=self)
-        p1 = Node('p1', id=self.s1.profile, parent=e)
-        Node('i{}'.format(self.s1_indx), id=self.s1, parent=p1)
-        p2 = Node('p2', id=self.s2.profile, parent=e)
-        Node('i{}'.format(self.s2_indx), id=self.s2, parent=p2)
+        e = Node('E', id=self, tag=tag)
+        p1 = Node('p1', id=self.s1.profile, tag='#profile', parent=e)
+        Node(f'i{self.s1_indx}', id=self.s1, tag='#ifc', parent=p1)
+        p2 = Node('p2', id=self.s2.profile, tag='#profile', parent=e)
+        Node(f'i{self.s2_indx}', id=self.s2, tag='#ifc', parent=p2)
 
         # Gap branch
-        Node('g{}'.format(self.s1_indx), id=self.gap, parent=e)
+        Node(f'g{self.s1_indx}', id=self.gap, tag='#gap', parent=e)
 
         return e
 
@@ -419,9 +422,7 @@ class Mirror():
     def __init__(self, ifc, tfrm=None, idx=0, sd=1., thi=None, z_dir=1.0,
                  label='Mirror'):
         self.label = label
-#        self.render_color = (192, 192, 192, 112)
         self.render_color = (158, 158, 158, 64)
-#        self.render_color = (64, 64, 64, 64)
         if tfrm is not None:
             self.tfrm = tfrm
         else:
@@ -463,11 +464,16 @@ class Mirror():
         if not hasattr(self, 'medium_name'):
             self.medium_name = 'Mirror'
 
-    def tree(self):
+    def sync_to_update(self, seq_model):
+        self.s_indx = seq_model.ifcs.index(self.s)
+
+    def tree(self, tag=None):
+        default_tag = '#element#mirror'
+        tag = default_tag+tag if tag is not None else default_tag
         # Interface branch
-        m = Node('M', id=self)
-        p = Node('p', id=self.s.profile, parent=m)
-        Node('i{}'.format(self.s_indx), id=self.s, parent=p)
+        m = Node('M', id=self, tag=tag)
+        p = Node('p', id=self.s.profile, tag='#profile', parent=m)
+        Node(f'i{self.s_indx}', id=self.s, tag='#ifc', parent=p)
 
         # Gap branch = None
 
@@ -484,9 +490,6 @@ class Mirror():
 
     def gap_list(self):
         return []
-
-    def sync_to_update(self, seq_model):
-        self.s_indx = seq_model.ifcs.index(self.s)
 
     def update_size(self):
         self.edge_extent = self.s.get_y_aperture_extent()
@@ -571,21 +574,20 @@ class Mirror():
 
 
 class CementedElement():
-    """Lens element domain model. Manage rendering and selection/editing.
+    """Cemented element domain model. Manage rendering and selection/editing.
 
-    An Element consists of 2 Surfaces, 1 Gap, and edge_extent information.
+    A CementedElement consists of 3 or more Surfaces, 2 or more Gaps, and
+    edge_extent information.
 
     Attributes:
         parent: the :class:`ElementModel`
         label: string identifier
-        s1: first/origin :class:`~rayoptics.seq.interface.Interface`
-        s2: second/last :class:`~rayoptics.seq.interface.Interface`
-        gap: element thickness and material :class:`~rayoptics.seq.gap.Gap`
+        idxs: list of seq_model interface indices
+        ifcs: list of :class:`~rayoptics.seq.interface.Interface`
+        gaps: list of thickness and material :class:`~rayoptics.seq.gap.Gap`
         tfrm: global transform to element origin, (Rot3, trans3)
         medium_name: the material filling the gap
-        flat1: semi-diameter of flat if s1 is concave, or None
-        flat2: semi-diameter of flat if s2 is concave, or None
-        render_color: RGBA color used to fill the lens profile
+        flats: semi-diameter of flat if ifc is concave, or None
         handles: dict of graphical entities
         actions: dict of actions associated with the graphical handles
     """
@@ -601,13 +603,13 @@ class CementedElement():
             self.tfrm = g_tfrm
         else:
             self.tfrm = (np.identity(3), np.array([0., 0., 0.]))
-        self.idx = []
+        self.idxs = []
         self.ifcs = []
         self.gaps = []
         self.medium_name = ''
         for interface in ifc_list:
             i, ifc, g, g_tfrm = interface
-            self.idx.append(i)
+            self.idxs.append(i)
             self.ifcs.append(ifc)
             if g is not None:
                 self.gaps.append(g)
@@ -639,7 +641,6 @@ class CementedElement():
         attrs = dict(vars(self))
         del attrs['parent']
         del attrs['tfrm']
-        del attrs['idx']
         del attrs['ifcs']
         del attrs['gaps']
         del attrs['flats']
@@ -649,18 +650,16 @@ class CementedElement():
         return attrs
 
     def __str__(self):
-        fmt = 'Element: {!r}, {!r}, t={:.4f}, sd={:.4f}, glass: {}'
-        return fmt.format(self.s1.profile, self.s2.profile, self.gap.thi,
-                          self.sd, self.gap.medium.name())
+        fmt = 'CementedElement: {}'
+        return fmt.format(self.idxs)
 
     def sync_to_restore(self, ele_model, surfs, gaps, tfrms):
         # when restoring, we want to use the stored indices to look up the
         # new object instances
         self.parent = ele_model
-        self.tfrm = tfrms[self.s1_indx]
-        self.s1 = surfs[self.s1_indx]
-        self.gap = gaps[self.s1_indx]
-        self.s2 = surfs[self.s2_indx]
+        self.ifcs = [surfs[i] for i in self.idxs]
+        self.gaps = [gaps[i] for i in self.idxs[:-1]]
+        self.tfrm = tfrms[self.idxs[0]]
         if not hasattr(self, 'medium_name'):
             self.medium_name = self.gap.medium.name()
 
@@ -668,31 +667,32 @@ class CementedElement():
         # when updating, we want to use the stored object instances to get the
         # current indices into the interface list (e.g. to handle insertion and
         # deletion of interfaces)
-        self.s1_indx = seq_model.ifcs.index(self.s1)
-        self.s2_indx = seq_model.ifcs.index(self.s2)
+        self.idxs = [seq_model.ifcs.index(ifc) for ifc in self.ifcs]
 
     def element_list(self):
-        idx = self.idx
+        idxs = self.idxs
         ifcs = self.ifcs
         gaps = self.gaps
         e_list = []
         for i in range(len(gaps)):
             e = Element(ifcs[i], ifcs[i+1], gaps[i],
                         sd=self.sd, tfrm=self.tfrm,
-                        idx=idx[i], idx2=idx[i+1])
+                        idx=idxs[i], idx2=idxs[i+1])
             e_list.append(e)
 
-    def tree(self):
-        ce = Node('CE', id=self)
+    def tree(self, tag=None):
+        default_tag = '#element#cemented'
+        tag = default_tag+tag if tag is not None else default_tag
+        ce = Node('CE', id=self, tag=tag)
         for i, sg in enumerate(itertools.zip_longest(self.ifcs, self.gaps),
                                start=1):
             ifc, gap = sg
-            pid = 'p{}'.format(i)
-            p = Node(pid, id=ifc.profile, parent=ce)
-            Node('i{}'.format(self.idx[i-1]), id=ifc, parent=p)
+            pid = f'p{i}'.format(i)
+            p = Node(pid, id=ifc.profile, tag='#profile', parent=ce)
+            Node(f'i{self.idxs[i-1]}', id=ifc, tag='#ifc', parent=p)
             # Gap branch
             if gap is not None:
-                Node('g{}'.format(self.idx[i-1]), id=gap, parent=ce)
+                Node(f'g{self.idxs[i-1]}', id=gap, tag='#gap', parent=ce)
 
         return ce
 
@@ -700,7 +700,7 @@ class CementedElement():
         return self.ifcs[0]
 
     def reference_idx(self):
-        return self.idx[0]
+        return self.idxs[0]
 
     def interface_list(self):
         return self.ifcs
@@ -813,9 +813,11 @@ class ThinElement():
     def __str__(self):
         return str(self.intrfc)
 
-    def tree(self):
-        tle = Node(id=self)
-        Node('tl', id=self.intrfc, parent=tle)
+    def tree(self, tag=None):
+        default_tag = '#element#thinlens'
+        tag = default_tag+tag if tag is not None else default_tag
+        tle = Node('TL', id=self, tag=tag)
+        Node('tl', id=self.intrfc, tag='#ifc', parent=tle)
         return tle
 
     def sync_to_restore(self, ele_model, surfs, gaps, tfrms):
@@ -824,6 +826,9 @@ class ThinElement():
         self.intrfc = surfs[self.intrfc_indx]
         if not hasattr(self, 'medium_name'):
             self.medium_name = 'Thin Element'
+
+    def sync_to_update(self, seq_model):
+        self.intrfc_indx = seq_model.ifcs.index(self.intrfc)
 
     def reference_interface(self):
         return self.intrfc
@@ -836,9 +841,6 @@ class ThinElement():
 
     def gap_list(self):
         return []
-
-    def sync_to_update(self, seq_model):
-        self.intrfc_indx = seq_model.ifcs.index(self.intrfc)
 
     def update_size(self):
         self.sd = self.intrfc.surface_od()
@@ -900,10 +902,15 @@ class DummyInterface():
         if not hasattr(self, 'medium_name'):
             self.medium_name = 'Interface'
 
-    def tree(self):
-        di = Node('di', id=self)
-        p = Node('p', id=self.ref_ifc.profile, parent=di)
-        Node('i{}'.format(self.idx), id=self.ref_ifc, parent=p)
+    def sync_to_update(self, seq_model):
+        self.idx = seq_model.ifcs.index(self.ref_ifc)
+
+    def tree(self, tag=None):
+        default_tag = '#dummyifc'
+        tag = default_tag+tag if tag is not None else default_tag
+        di = Node('di', id=self, tag=tag)
+        p = Node('p', id=self.ref_ifc.profile, tag='#profile', parent=di)
+        Node(f'i{self.idx}', id=self.ref_ifc, tag='#ifc', parent=p)
         return di
 
     def reference_interface(self):
@@ -917,9 +924,6 @@ class DummyInterface():
 
     def gap_list(self):
         return []
-
-    def sync_to_update(self, seq_model):
-        self.idx = seq_model.ifcs.index(self.ref_ifc)
 
     def update_size(self):
         self.sd = self.ref_ifc.surface_od()
@@ -968,9 +972,9 @@ class DummyInterface():
 
 class AirGap():
 
-    label_format = 'AirGap {}'
+    label_format = 'AG{}'
 
-    def __init__(self, g, ref_ifc, idx=0, tfrm=None, label='AirGap'):
+    def __init__(self, g, ref_ifc, idx=0, tfrm=None, label='AG'):
         if tfrm is not None:
             self.tfrm = tfrm
         else:
@@ -1007,6 +1011,16 @@ class AirGap():
         if not hasattr(self, 'medium_name'):
             self.medium_name = self.gap.medium.name()
 
+    def sync_to_update(self, seq_model):
+        self.idx = seq_model.gaps.index(self.gap)
+
+    def tree(self, tag=None):
+        default_tag = '#airgap'
+        tag = default_tag+tag if tag is not None else default_tag
+        ag = Node('ag', id=self, tag=tag)
+        Node('g', id=self.gap, tag='#gap', parent=ag)
+        return ag
+
     def reference_interface(self):
         return self.ref_ifc
 
@@ -1018,9 +1032,6 @@ class AirGap():
 
     def gap_list(self):
         return [self.gap]
-
-    def sync_to_update(self, seq_model):
-        self.idx = seq_model.gaps.index(self.gap)
 
     def update_size(self):
         pass
@@ -1064,16 +1075,12 @@ class ElementModel:
     Attributes:
         opt_model: the :class:`~rayoptics.optical.opticalmodel.OpticalModel`
         elements: list of element type things
-        ifcs_dict: given an interface, which element contains it?
-        gap_dict: given a gap, which element contains it?
 
     """
 
     def __init__(self, opt_model, **kwargs):
         self.opt_model = opt_model
         self.elements = []
-        self.ifcs_dict = {}
-        self.gap_dict = {}
 
     def reset(self):
         self.__init__(self.opt_model)
@@ -1081,8 +1088,6 @@ class ElementModel:
     def __json_encode__(self):
         attrs = dict(vars(self))
         del attrs['opt_model']
-        del attrs['ifcs_dict']
-        del attrs['gap_dict']
         return attrs
 
     def sync_to_restore(self, opt_model):
@@ -1092,95 +1097,16 @@ class ElementModel:
         gaps = seq_model.gaps
         tfrms = seq_model.compute_global_coords(1)
 
-        self.ifcs_dict = {}
-        self.gap_dict = {}
-
         # special processing for older models
-        self.airgaps_from_sequence(seq_model, tfrms)
-        self.add_dummy_interface_at_image(seq_model, tfrms)
+        # self.airgaps_from_sequence(seq_model, tfrms)
+        # self.add_dummy_interface_at_image(seq_model, tfrms)
 
         for i, e in enumerate(self.elements):
             e.sync_to_restore(self, surfs, gaps, tfrms)
-            for ifc in e.interface_list():
-                self.ifcs_dict[ifc] = e
-            for g in e.gap_list():
-                self.gap_dict[g] = e
             if not hasattr(e, 'label'):
                 e.label = e.label_format.format(i+1)
         self.sequence_elements()
-        self.relabel_airgaps()
-#        self.list_elements()
-
-    def elements_from_sequence(self, seq_model):
-        """ generate an element list from a sequential model """
-
-        # if there are elements in the list already, just return
-        if len(self.elements) > 0:
-            return
-
-        num_elements = 0
-        tfrms = seq_model.compute_global_coords(1)
-        for i, g in enumerate(seq_model.gaps):
-            s1 = seq_model.ifcs[i]
-            tfrm = tfrms[i]
-            if g.medium.name().lower() == 'air':
-                if i > 0:
-                    self.process_airgap(seq_model, i, g, s1, tfrm,
-                                        num_elements, add_ele=True)
-            else:  # a non-air medium
-                # handle buried mirror, e.g. prism or Mangin mirror
-                if s1.interact_mode == 'reflect':
-                    gp = seq_model.gaps[i-1]
-                    if gp.medium.name().lower() == g.medium.name().lower():
-                        continue
-
-                s2 = seq_model.ifcs[i+1]
-                sd = max(s1.surface_od(), s2.surface_od())
-                e = Element(s1, s2, g, sd=sd, tfrm=tfrm, idx=i, idx2=i+1)
-                num_elements += 1
-                e.label = Element.label_format.format(num_elements)
-                self.add_element(e)
-
-        self.add_dummy_interface_at_image(seq_model, tfrms)
-
-        self.relabel_airgaps()
-
-    def process_airgap(self, seq_model, i, g, s, tfrm, num_ele, add_ele=True):
-        if s.interact_mode == 'reflect' and add_ele:
-            sd = s.surface_od()
-            z_dir = seq_model.z_dir[i]
-            m = Mirror(s, sd=sd, tfrm=tfrm, idx=i, z_dir=z_dir)
-            num_ele += 1
-            m.label = Mirror.label_format.format(num_ele)
-            self.add_element(m)
-        elif s.interact_mode == 'transmit':
-            add_dummy = False
-            if i == 0:
-                add_dummy = True  # add dummy for the object
-                dummy_label = 'Object'
-            else:  # i > 0
-                gp = seq_model.gaps[i-1]
-                if gp.medium.name().lower() == 'air':
-                    add_dummy = True
-                    if seq_model.stop_surface == i:
-                        dummy_label = 'Aperture Stop'
-                    else:
-                        dummy_label = DummyInterface.label_format.format(i)
-            if add_dummy:
-                tfrm = tfrm
-                sd = s.surface_od()
-                di = DummyInterface(s, sd=sd, tfrm=tfrm, idx=i)
-                di.label = dummy_label
-                self.add_element(di)
-        elif isinstance(s, thinlens.ThinLens) and add_ele:
-            te = ThinElement(s, tfrm=tfrm, idx=i)
-            num_ele += 1
-            te.label = ThinElement.label_format.format(num_ele)
-            self.add_element(te)
-
-        # add an AirGap
-        ag = AirGap(g, s, idx=i, tfrm=tfrm)
-        self.add_element(ag)
+        # self.relabel_airgaps()
 
     def airgaps_from_sequence(self, seq_model, tfrms):
         """ add airgaps and dummy interfaces to an older version model """
@@ -1195,8 +1121,9 @@ class ElementModel:
                 if i > 0:
                     s = seq_model.ifcs[i]
                     tfrm = tfrms[i]
-                    self.process_airgap(seq_model, i, g, s, tfrm,
-                                        num_elements, add_ele=False)
+                    num_elements = self.process_airgap(
+                        seq_model, i, g, s, tfrm,
+                        num_elements, add_ele=False)
 
     def add_dummy_interface_at_image(self, seq_model, tfrms):
         if len(self.elements) and self.elements[-1].label == 'Image':
@@ -1206,6 +1133,7 @@ class ElementModel:
         idx = seq_model.get_num_surfaces() - 1
         di = DummyInterface(s, sd=s.surface_od(), tfrm=tfrms[-1], idx=idx)
         di.label = 'Image'
+        add_element_to_tree(di, self.opt_model.part_tree, tag='#image')
         self.add_element(di)
 
     def update_model(self):
@@ -1218,7 +1146,7 @@ class ElementModel:
             try:
                 i = seq_model.ifcs.index(intrfc)
             except ValueError:
-                print("Interface {} not found".format(intrfc.lbl))
+                print(f"Interface {intrfc.lbl} not found")
             else:
                 e.tfrm = tfrms[i]
         self.sequence_elements()
@@ -1245,21 +1173,30 @@ class ElementModel:
     def add_element(self, e):
         e.parent = self
         self.elements.append(e)
-        for ifc in e.interface_list():
-            self.ifcs_dict[ifc] = e
-        for g in e.gap_list():
-            self.gap_dict[g] = e
 
     def remove_element(self, e):
-        for ifc in e.interface_list():
-            self.ifcs_dict.pop(ifc)
-        for g in e.gap_list():
-            self.gap_dict.pop(g)
         e.parent = None
         self.elements.remove(e)
 
     def get_num_elements(self):
         return len(self.elements)
+
+    def list_model(self, tag='#element'):
+        def tag_filter(tags):
+            def find_tagged_node(node):
+                for tag in tags:
+                    if tag in node.tag:
+                        return True
+                return False
+            return find_tagged_node
+
+        tags = tag.split('#')[1:]
+        root_node = self.opt_model.part_tree
+        elements = [node.id for node in PreOrderIter(
+            root_node, filter_=tag_filter(tags))]
+        for i, ele in enumerate(elements):
+            print("%d: %s (%s): %s" %
+                  (i, ele.label, type(ele).__name__, ele))
 
     def list_elements(self):
         for i, ele in enumerate(self.elements):
@@ -1270,15 +1207,91 @@ class ElementModel:
         return type(self.elements[i]).__name__
 
 
-def add_element_to_tree(e, root_node):
-    e_node = e.tree()
+def sync_part_tree_on_restore(ele_model, seq_model, root_node):
+    ele_dict = {e.label: e for e in ele_model.elements}
+    for node in PreOrderIter(root_node):
+        name = node.name
+        if name in ele_dict:
+            node.id = ele_dict[name]
+        elif name[0] == 'i':
+            idx = int(name[1:])
+            node.id = seq_model.ifcs[idx]
+        elif name[0] == 'g':
+            idx = int(name[1:])
+            node.id = seq_model.gaps[idx]
+        elif name[0] == 'p':
+            p_name = node.parent.name
+            e = ele_dict[p_name]
+            idx = int(name[1:]) - 1
+            node.id = e.interface_list()[idx].profile
+        elif name[:1] == 'di':
+            p_name = node.parent.name
+            e = ele_dict[p_name]
+            node.id = e.ref_ifc
+        elif name[:1] == 'tl':
+            p_name = node.parent.name
+            e = ele_dict[p_name]
+            node.id = e.intrfc
+
+
+def sync_part_tree_on_update(ele_model, seq_model, root_node):
+    ele_dict = {e.label: e for e in ele_model.elements}
+    for node in PreOrderIter(root_node):
+        name = node.name
+        if name[0] == 'i':
+            idx = seq_model.ifcs.index(node.id)
+            node.name = f'i{idx}'
+        elif name[0] == 'g':
+            idx = seq_model.gaps.index(node.id)
+            node.name = f'g{idx}'
+        elif name[0] == 'p':
+            p_name = node.parent.name
+            e = ele_dict[p_name]
+            idx = int(name[1:])-1 if len(name) > 1 else 0
+            node.id = e.interface_list()[idx].profile
+        elif name[:2] == 'di':
+            p_name = node.parent.name
+            e = ele_dict[p_name]
+            node.id = e.ref_ifc
+            idx = seq_model.ifcs.index(node.id)
+            node.name = f'di{idx}'
+        elif name[:2] == 'tl':
+            p_name = node.parent.name
+            e = ele_dict[p_name]
+            node.id = e.intrfc
+            idx = seq_model.ifcs.index(node.id)
+            node.name = f'tl{idx}'
+        else:
+            if hasattr(node.id, 'label'):
+                node.name = node.id.label
+
+
+def add_element_to_tree(e, root_node, tag=None):
+    e_node = e.tree(tag=tag)
     e_node.name = e.label
     leaves = e_node.leaves
     for node in leaves:
         dup_node = find_by_attr(root_node, name='id', value=node.id)
-        dup_node.parent = None
+        if dup_node is not None:
+            dup_node.parent = None
     e_node.parent = root_node
     return e_node
+
+
+def add_element_model_to_tree(ele_model, root_node):
+    for e in ele_model.elements:
+        if hasattr(e, 'tree'):
+            add_element_to_tree(e, root_node)
+    return root_node
+
+
+def init_part_tree_from_seq(seq_model, root_node):
+    """Initialize part tree using a *seq_model*. """
+    for i, s in enumerate(seq_model.ifcs[1:-1], start=1):
+        Node(f'i{i}', id=s, tag='#ifc', parent=root_node)
+        gap = seq_model.gaps[i]
+        # if not isinstance(gap.medium, Air):
+        Node(f'g{i}', id=gap, tag='#gap', parent=root_node)
 
 
 def elements_from_sequence(ele_model, seq_model, root_node):
@@ -1298,9 +1311,10 @@ def elements_from_sequence(ele_model, seq_model, root_node):
                 num_eles = len(eles)
                 if num_eles == 0:
                     if i > 0:
-                        process_airgap(ele_model, seq_model, root_node,
-                                       i, g, ifc, g_tfrm, num_elements,
-                                       add_ele=True)
+                        num_elements = process_airgap(
+                            ele_model, seq_model, root_node,
+                            i, g, ifc, g_tfrm, num_elements,
+                            add_ele=True)
                 else:
                     if buried_reflector is True:
                         num_eles = num_eles//2
@@ -1345,7 +1359,7 @@ def elements_from_sequence(ele_model, seq_model, root_node):
                                 ifc_node = find_by_attr(root_node,
                                                         name='id',
                                                         value=ifc)
-                                pid = 'p{}'.format(i)
+                                pid = f'p{i}'
                                 p_node = find_by_attr(e_node,
                                                       name='name',
                                                       value=pid)
@@ -1355,22 +1369,6 @@ def elements_from_sequence(ele_model, seq_model, root_node):
                                                       value=g)
                                 if g_node:
                                     g_node.parent = e_node
-                            # for j, seg in enumerate(eles[-1:-num_eles-1:-1],
-                            #                         start=1):
-                            #     ifc = seg[1]
-                            #     ifc_node = find_by_attr(root_node,
-                            #                             name='id',
-                            #                             value=ifc)
-                            #     pid = 'p{}'.format(j)
-                            #     p_node = find_by_attr(e_node,
-                            #                           name='name',
-                            #                           value=pid)
-                            #     ifc_node.parent = p_node
-                            #     g = seg[2]
-                            #     g_node = find_by_attr(root_node, name='id',
-                            #                           value=g)
-                            #     if g_node:
-                            #         g_node.parent = e_node
                     eles = []
                     buried_reflector = False
 
@@ -1390,34 +1388,40 @@ def process_airgap(ele_model, seq_model, root_node, i, g, s, g_tfrm,
         m = Mirror(s, sd=sd, tfrm=g_tfrm, idx=i, z_dir=z_dir)
         num_ele += 1
         m.label = Mirror.label_format.format(num_ele)
-        root_node = add_element_to_tree(m, root_node)
+        e_node = add_element_to_tree(m, root_node)
         ele_model.add_element(m)
+    elif isinstance(s, thinlens.ThinLens) and add_ele:
+        te = ThinElement(s, tfrm=g_tfrm, idx=i)
+        num_ele += 1
+        te.label = ThinElement.label_format.format(num_ele)
+        e_node = add_element_to_tree(te, root_node)
+        ele_model.add_element(te)
     elif s.interact_mode == 'transmit':
         add_dummy = False
+        dummy_tag = None
         if i == 0:
             add_dummy = True  # add dummy for the object
             dummy_label = 'Object'
+            dummy_tag = '#object'
         else:  # i > 0
             gp = seq_model.gaps[i-1]
             if gp.medium.name().lower() == 'air':
                 add_dummy = True
                 if seq_model.stop_surface == i:
-                    dummy_label = 'Aperture Stop'
+                    dummy_label = 'Stop'
+                    dummy_tag = '#stop'
                 else:
                     dummy_label = DummyInterface.label_format.format(i)
         if add_dummy:
             sd = s.surface_od()
             di = DummyInterface(s, sd=sd, tfrm=g_tfrm, idx=i)
             di.label = dummy_label
-            root_node = add_element_to_tree(di, root_node)
+            e_node = add_element_to_tree(di, root_node, tag=dummy_tag)
             ele_model.add_element(di)
-    elif isinstance(s, thinlens.ThinLens) and add_ele:
-        te = ThinElement(s, tfrm=g_tfrm, idx=i)
-        num_ele += 1
-        te.label = ThinElement.label_format.format(num_ele)
-        root_node = add_element_to_tree(te, root_node)
-        ele_model.add_element(te)
 
     # add an AirGap
     ag = AirGap(g, s, idx=i, tfrm=g_tfrm)
+    ag.label = ag.label_format.format(i+1)
+    ag_node = add_element_to_tree(ag, root_node)
     ele_model.add_element(ag)
+    return num_ele

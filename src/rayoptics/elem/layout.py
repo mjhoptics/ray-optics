@@ -18,7 +18,7 @@
 """
 
 import numpy as np
-from anytree import Node, RenderTree
+from anytree import Node
 
 from rayoptics.gui.util import (GUIHandle, transform_ray_seg, bbox_from_poly,
                                 transform_poly, inv_transform_poly)
@@ -455,9 +455,9 @@ class LensLayout():
                 gap = seq_model.gaps[i]
                 if not isinstance(gap.medium, medium.Air):
                     Node('g{}'.format(i), id=gap, parent=root)
-            print(RenderTree(root).by_attr())
+            # opt_model.list_part_tree()
             ele.elements_from_sequence(ele_model, seq_model, root)
-            print(RenderTree(root).by_attr())
+            # opt_model.list_part_tree()
 
     def sync_light_or_dark(self, is_dark):
         global lo_rgb
@@ -608,8 +608,8 @@ def add_lens(opt_model, idx, lcl_pt, **kwargs):
     tk_new = t_k - t_ct/2
     g.thi = t0_new
 
-    seq, e = ele.create_lens(th=t_ct)
-    opt_model.insert_ifc_gp_ele(seq, e, idx=idx, t=tk_new, insert=True)
+    descriptor = ele.create_lens(th=t_ct)
+    opt_model.insert_ifc_gp_ele(*descriptor, idx=idx, t=tk_new, insert=True)
 
 
 def add_mirror(opt_model, idx, lcl_pt, **kwargs):

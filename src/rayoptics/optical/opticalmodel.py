@@ -9,7 +9,10 @@
 """
 import os.path
 import json_tricks
-from anytree import Node
+from anytree import Node, RenderTree
+from anytree.exporter import DictExporter
+from anytree.importer import DictImporter
+from anytree.search import find_by_attr
 
 import rayoptics
 
@@ -95,7 +98,7 @@ class OpticalModel:
         self.optical_spec = OpticalSpecs(self, **kwargs)
         self.parax_model = ParaxialModel(self, **kwargs)
         self.ele_model = ElementModel(self, **kwargs)
-        self.part_tree = Node('root', id=self)
+        self.part_tree = Node('root', id=self, tag='#group#root')
 
         if self.specsheet:
             self.set_from_specsheet()
@@ -174,34 +177,34 @@ class OpticalModel:
         return self.system_spec.nm_to_sys_units(nm)
 
     def add_lens(self, **kwargs):
-        seq, elm = ele.create_lens(**kwargs)
+        descriptor = ele.create_lens(**kwargs)
         kwargs['insert'] = True
-        self.insert_ifc_gp_ele(seq, elm, **kwargs)
+        self.insert_ifc_gp_ele(*descriptor, **kwargs)
 
     def add_mirror(self, **kwargs):
-        seq, elm = ele.create_mirror(**kwargs)
+        descriptor = ele.create_mirror(**kwargs)
         kwargs['insert'] = True
-        self.insert_ifc_gp_ele(seq, elm, **kwargs)
+        self.insert_ifc_gp_ele(*descriptor, **kwargs)
 
     def add_thinlens(self, **kwargs):
-        seq, elm = ele.create_thinlens(**kwargs)
+        descriptor = ele.create_thinlens(**kwargs)
         kwargs['insert'] = True
-        self.insert_ifc_gp_ele(seq, elm, **kwargs)
+        self.insert_ifc_gp_ele(*descriptor, **kwargs)
 
     def add_dummy_plane(self, **kwargs):
-        seq, elm = ele.create_dummy_plane(**kwargs)
+        descriptor = ele.create_dummy_plane(**kwargs)
         kwargs['insert'] = True
-        self.insert_ifc_gp_ele(seq, elm, **kwargs)
+        self.insert_ifc_gp_ele(*descriptor, **kwargs)
 
     def add_from_file(self, filename, **kwargs):
-        seq, elm = ele.create_from_file(filename, **kwargs)
+        descriptor = ele.create_from_file(filename, **kwargs)
         kwargs['insert'] = True
-        self.insert_ifc_gp_ele(seq, elm, **kwargs)
+        self.insert_ifc_gp_ele(*descriptor, **kwargs)
 
-    def insert_ifc_gp_ele(self, *args, **kwargs):
+    def insert_ifc_gp_ele(self, *descriptor, **kwargs):
         """ insert interfaces and gaps into seq_model and eles into ele_model
         """
-        seq, elm = args
+        seq, elm, e_node = descriptor
         if 'idx' in kwargs:
             self.seq_model.cur_surface = kwargs['idx']
 
@@ -209,17 +212,27 @@ class OpticalModel:
         #  gap in two, and replacing a node, which uses the existing gaps.
         if 'insert' in kwargs:
             t = kwargs['t'] if 't' in kwargs else 0.
-            g, ag = ele.create_air_gap(
+            g, ag, ag_node = ele.create_air_gap(
                 t=t, ref_ifc=seq[-1][mc.Intfc])
+            ag.label = ag.label_format.format(self.seq_model.cur_surface+1)
             seq[-1][mc.Gap] = g
             elm.append(ag)
+            ag_node.parent = self.part_tree
         else:
             # replacing an existing node. need to hook new chunk final
             # interface to the existing gap and following (air gap) element
             g = self.seq_model.gaps[self.seq_model.cur_surface+1]
             seq[-1][mc.Gap] = g
-            ag = self.ele_model.gap_dict[g]
-            ag.ref_ifc = seq[-1][mc.Intfc]  # tacit assumption is ag == AirGap
+            g_node = find_by_attr(self.part_tree, name='id', value=g)
+            ag_node = g_node.parent
+            while ag_node is not None:
+                if '#airgap' in ag_node.tag:
+                    break
+                else:
+                    ag_node = ag_node.parent
+
+            ag = ag_node.id
+            ag.ref_ifc = seq[-1][mc.Intfc]
 
         for sg in seq:
             self.seq_model.insert(sg[mc.Intfc], sg[mc.Gap])
@@ -227,11 +240,12 @@ class OpticalModel:
         for e in elm:
             self.ele_model.add_element(e)
         self.ele_model.sequence_elements()
+        e_node.parent = self.part_tree
 
-    def remove_ifc_gp_ele(self, *args, **kwargs):
+    def remove_ifc_gp_ele(self, *descriptor, **kwargs):
         """ remove interfaces and gaps from seq_model and eles from ele_model
         """
-        seq, elm = args
+        seq, elm, e_node = descriptor
         sg = seq[0]
         idx = self.seq_model.ifcs.index(sg[mc.Intfc])
 
@@ -249,3 +263,8 @@ class OpticalModel:
 
         for e in elm:
             self.ele_model.remove_element(e)
+
+        e_node.parent = None
+
+    def list_part_tree(self):
+        print(RenderTree(self.part_tree).by_attr())

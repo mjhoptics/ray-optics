@@ -9,6 +9,7 @@
 """
 
 import numpy as np
+from anytree.search import find_by_attr
 
 from rayoptics.optical.model_constants import ht, slp, aoi
 from rayoptics.optical.model_constants import pwr, tau, indx, rmd
@@ -102,7 +103,7 @@ class ParaxialModel():
         sd = abs(self.ax[node][ht]) + abs(self.pr[node][ht])
 
         # create an element with the node's properties
-        seq, ele = factory(power=power, sd=sd)
+        seq, ele, e_node = factory(power=power, sd=sd)
 
         n_before = self.sys[node-1][indx]
         thi_before = n_before*self.sys[node-1][tau]
@@ -110,7 +111,7 @@ class ParaxialModel():
 
         # insert the path sequence and elements into the
         #  sequential and element models
-        args = seq, ele
+        args = seq, ele, e_node
         kwargs = {'idx': node-1, 't': thi, **inputs}
         self.opt_model.insert_ifc_gp_ele(*args, **kwargs)
 
@@ -139,8 +140,9 @@ class ParaxialModel():
     def get_object_for_node(self, node):
         ''' basic 1:1 relationship between seq and parax model sequences '''
         ifc = self.seq_model.ifcs[node]
-        ele = self.opt_model.ele_model.ifcs_dict[ifc]
-        args = [[ifc, None, None, 1, 1]], [ele]
+        i_node = find_by_attr(self.opt_model.part_tree, name='id', value=ifc)
+        e_node = i_node.parent.parent
+        args = [[ifc, None, None, 1, 1]], [e_node.id], e_node
         kwargs = {'idx': node}
         return args, kwargs
 
