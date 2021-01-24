@@ -17,6 +17,7 @@ import rayoptics.optical.model_constants as mc
 import rayoptics.parax.firstorder as fo
 from rayoptics.seq.gap import Gap
 from rayoptics.elem.surface import Surface
+from rayoptics.elem import elements
 
 
 def bbox_from_poly(poly):
@@ -103,7 +104,7 @@ class ParaxialModel():
         sd = abs(self.ax[node][ht]) + abs(self.pr[node][ht])
 
         # create an element with the node's properties
-        seq, ele, e_node = factory(power=power, sd=sd)
+        seq, ele, e_node = descriptor = factory(power=power, sd=sd)
 
         n_before = self.sys[node-1][indx]
         thi_before = n_before*self.sys[node-1][tau]
@@ -111,9 +112,8 @@ class ParaxialModel():
 
         # insert the path sequence and elements into the
         #  sequential and element models
-        args = seq, ele, e_node
         kwargs = {'idx': node-1, 't': thi, **inputs}
-        self.opt_model.insert_ifc_gp_ele(*args, **kwargs)
+        self.opt_model.insert_ifc_gp_ele(*descriptor, **kwargs)
 
         path_stop = node + len(seq)
         inserted_seq = list(self.seq_model.path(start=node-1, stop=path_stop))
@@ -121,7 +121,7 @@ class ParaxialModel():
         pp_info = self.compute_principle_points(inserted_seq)
         self.replace_node_with_seq(node, sys_seq, pp_info)
 
-        return args, kwargs
+        return descriptor, kwargs
 
     def replace_node_with_seq(self, node, sys_seq, pp_info):
         """ replaces the data at node with sys_seq """
@@ -140,8 +140,8 @@ class ParaxialModel():
     def get_object_for_node(self, node):
         ''' basic 1:1 relationship between seq and parax model sequences '''
         ifc = self.seq_model.ifcs[node]
-        i_node = find_by_attr(self.opt_model.part_tree, name='id', value=ifc)
-        e_node = i_node.parent.parent
+        e_node = elements.find_parent_node(ifc, '#element',
+                                           self.opt_model.part_tree)
         args = [[ifc, None, None, 1, 1]], [e_node.id], e_node
         kwargs = {'idx': node}
         return args, kwargs

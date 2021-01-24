@@ -395,11 +395,12 @@ class DiagramEdge():
     def render_color(self):
         opt_model = self.diagram.opt_model
         gap = opt_model.seq_model.gaps[self.node]
-        g_node = find_by_attr(opt_model.part_tree, name='id', value=gap)
-        e = g_node.parent.id if g_node else None
+        e_node = ele.find_parent_node(gap, '#element#airgap',
+                                      opt_model.part_tree)
+        e = e_node.id if e_node else None
 
-        if e and len(e.gap_list()) > 0:
-            if isinstance(e, ele.AirGap):
+        if e:
+            if '#airgap' in e_node.tag:
                 # set alpha to 25% -> #40
                 bkgrnd_rbga = self.diagram.dgm_rgb['background1'] + '40'
                 return bkgrnd_rbga

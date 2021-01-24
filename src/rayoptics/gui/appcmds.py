@@ -398,13 +398,12 @@ def create_element_table_model(opt_model):
                   '.elements[{}].medium_name',
                   '.elements[{}].tfrm[1][1]',
                   '.elements[{}].tfrm[1][2]',
-                  '.elements[{}].reference_idx()',
-                  '.elements[{}].reference_interface().interface_type()']
+                  '.elements[{}].reference_idx()']
 
     rowHeaders = get_row_headers()
-    colHeaders = ['label', 'type', 'medium', 'y', 'z', 'idx', 'ref ifc']
+    colHeaders = ['label', 'type', 'medium', 'y', 'z', 'idx']
     colFormats = ['{:s}', '{:s}', '{:s}', '{:12.5g}', '{:12.5g}',
-                  '{:d}', '{:s}']
+                  '{:d}']
     return PyTableModel(ele_model, '', colEvalStr, rowHeaders,
                         colHeaders, colFormats, True,
                         get_num_rows=ele_model.get_num_elements,

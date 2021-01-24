@@ -155,6 +155,17 @@ class OpticalModel:
         else:
             self.specsheet = None
 
+        if hasattr(self, 'part_tree'):
+            part_tree_compressed = self.part_tree
+            importer = DictImporter()
+            self.part_tree = importer.import_(part_tree_compressed)
+            ele.sync_part_tree_on_restore(self.ele_model, self.seq_model,
+                                          self.part_tree)
+        else:
+            self.part_tree = Node('root', id=self, tag='#group#root')
+            ele.add_element_model_to_tree(self.ele_model, self.part_tree)
+            self.list_part_tree()
+
         self.update_model()
 
     def update_model(self):
@@ -164,6 +175,8 @@ class OpticalModel:
         self.ele_model.update_model()
         if self.specsheet is None:
             self.specsheet = create_specsheet_from_model(self)
+        ele.sync_part_tree_on_update(self.ele_model, self.seq_model,
+                                     self.part_tree)
 
     def nm_to_sys_units(self, nm):
         """ convert nm to system units
@@ -212,8 +225,7 @@ class OpticalModel:
         #  gap in two, and replacing a node, which uses the existing gaps.
         if 'insert' in kwargs:
             t = kwargs['t'] if 't' in kwargs else 0.
-            g, ag, ag_node = ele.create_air_gap(
-                t=t, ref_ifc=seq[-1][mc.Intfc])
+            g, ag, ag_node = ele.create_air_gap(t=t)
             ag.label = ag.label_format.format(self.seq_model.cur_surface+1)
             seq[-1][mc.Gap] = g
             elm.append(ag)
@@ -223,16 +235,8 @@ class OpticalModel:
             # interface to the existing gap and following (air gap) element
             g = self.seq_model.gaps[self.seq_model.cur_surface+1]
             seq[-1][mc.Gap] = g
-            g_node = find_by_attr(self.part_tree, name='id', value=g)
-            ag_node = g_node.parent
-            while ag_node is not None:
-                if '#airgap' in ag_node.tag:
-                    break
-                else:
-                    ag_node = ag_node.parent
-
-            ag = ag_node.id
-            ag.ref_ifc = seq[-1][mc.Intfc]
+            ag = ele.find_parent_obj(g, '#airgap', self.part_tree)
+            ag.idx = seq[-1][mc.Intfc]
 
         for sg in seq:
             self.seq_model.insert(sg[mc.Intfc], sg[mc.Gap])

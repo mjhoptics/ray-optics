@@ -128,9 +128,9 @@ def create_dummy_plane(sd=1., **kwargs):
     return [[s, None, None, 1, +1]], [se], tree
 
 
-def create_air_gap(t=0., ref_ifc=None):
+def create_air_gap(t=0.):
     g = Gap(t=t)
-    ag = AirGap(g, ref_ifc)
+    ag = AirGap(g)
     tree = ag.tree()
     return g, ag, tree
 
@@ -974,7 +974,7 @@ class AirGap():
 
     label_format = 'AG{}'
 
-    def __init__(self, g, ref_ifc, idx=0, tfrm=None, label='AG'):
+    def __init__(self, g, idx=0, tfrm=None, label='AG'):
         if tfrm is not None:
             self.tfrm = tfrm
         else:
@@ -983,7 +983,6 @@ class AirGap():
         self.render_color = (237, 243, 254, 64)  # light blue
         self.gap = g
         self.medium_name = self.gap.medium.name()
-        self.ref_ifc = ref_ifc
         self.idx = idx
         self.handles = {}
         self.actions = {}
@@ -993,7 +992,6 @@ class AirGap():
         del attrs['parent']
         del attrs['tfrm']
         del attrs['gap']
-        del attrs['ref_ifc']
         del attrs['handles']
         del attrs['actions']
         return attrs
@@ -1004,7 +1002,6 @@ class AirGap():
     def sync_to_restore(self, ele_model, surfs, gaps, tfrms):
         self.parent = ele_model
         self.gap = gaps[self.idx]
-        self.ref_ifc = surfs[self.idx]
         self.tfrm = tfrms[self.idx]
         if not hasattr(self, 'render_color'):
             self.render_color = (237, 243, 254, 64)  # light blue
@@ -1018,11 +1015,11 @@ class AirGap():
         default_tag = '#airgap'
         tag = default_tag+tag if tag is not None else default_tag
         ag = Node('ag', id=self, tag=tag)
-        Node('g', id=self.gap, tag='#gap', parent=ag)
+        Node(f'g{self.idx}', id=self.gap, tag='#gap', parent=ag)
         return ag
 
     def reference_interface(self):
-        return self.ref_ifc
+        return None
 
     def reference_idx(self):
         return self.idx
@@ -1046,10 +1043,10 @@ class AirGap():
         # Modify the tfrm to account for any decenters following
         #  the reference ifc.
         tfrm = self.tfrm
-        if self.ref_ifc.decenter is not None:
-            d = self.ref_ifc.decenter
+        decenter = opt_model.seq_model.ifcs[self.idx].decenter
+        if decenter is not None:
             r_global, t_global = tfrm
-            r_after_ifc, t_after_ifc = d.tform_after_surf()
+            r_after_ifc, t_after_ifc = decenter.tform_after_surf()
             t = r_global.dot(t_after_ifc) + t_global
             r = r_global if r_after_ifc is None else r_global.dot(r_after_ifc)
             tfrm = r, t
@@ -1101,10 +1098,10 @@ class ElementModel:
         # self.airgaps_from_sequence(seq_model, tfrms)
         # self.add_dummy_interface_at_image(seq_model, tfrms)
 
-        for i, e in enumerate(self.elements):
+        for i, e in enumerate(self.elements, start=1):
             e.sync_to_restore(self, surfs, gaps, tfrms)
             if not hasattr(e, 'label'):
-                e.label = e.label_format.format(i+1)
+                e.label = e.label_format.format(i)
         self.sequence_elements()
         # self.relabel_airgaps()
 
@@ -1142,20 +1139,17 @@ class ElementModel:
         for e in self.elements:
             e.update_size()
             e.sync_to_update(seq_model)
-            intrfc = e.reference_interface()
-            try:
-                i = seq_model.ifcs.index(intrfc)
-            except ValueError:
-                print(f"Interface {intrfc.lbl} not found")
-            else:
-                e.tfrm = tfrms[i]
+            e.tfrm = tfrms[e.reference_idx()]
         self.sequence_elements()
 
     def sequence_elements(self):
         """ Sort elements in order of reference interfaces in seq_model """
         seq_model = self.opt_model.seq_model
-        self.elements.sort(key=lambda e:
-                           seq_model.ifcs.index(e.reference_interface()))
+        # sort by element reference z coord
+        self.elements.sort(key=lambda e: e.tfrm[1][2])
+        # sort by element reference interface sequential index
+        # self.elements.sort(key=lambda e:
+        #                    seq_model.ifcs.index(e.reference_interface()))
         # Make sure z_dir matches the sequential model. Used to get
         # the correct substrate offset.
         if hasattr(seq_model, 'z_dir'):
@@ -1266,6 +1260,22 @@ def sync_part_tree_on_update(ele_model, seq_model, root_node):
                 node.name = node.id.label
 
 
+def find_parent_node(obj, tag, root_node):
+    leaf_node = find_by_attr(root_node, name='id', value=obj)
+    parent_node = leaf_node.parent if leaf_node else None
+    while parent_node is not None:
+        if tag in parent_node.tag:
+            break
+        else:
+            parent_node = parent_node.parent
+    return parent_node
+
+
+def find_parent_object(obj, tag, root_node):
+    parent_node = find_parent_node(obj, tag, root_node).id
+    return parent_node.id if parent_node else None
+
+
 def add_element_to_tree(e, root_node, tag=None):
     e_node = e.tree(tag=tag)
     e_node.name = e.label
@@ -1343,6 +1353,12 @@ def elements_from_sequence(ele_model, seq_model, root_node):
                                                   value=g)
                             g_node.parent = e_node
 
+                            g1_node = find_by_attr(root_node, name='id',
+                                                   value=g1)
+                            g1_node.parent = e_node
+                            # set up for airgap
+                            i, ifc, g, g_tfrm = eles[-1]
+
                     elif num_eles > 1:
                         if not buried_reflector:
                             eles.append((i, ifc, g, g_tfrm))
@@ -1369,6 +1385,15 @@ def elements_from_sequence(ele_model, seq_model, root_node):
                                                       value=g)
                                 if g_node:
                                     g_node.parent = e_node
+                        # set up for airgap
+                        i, ifc, g, g_tfrm = eles[-1]
+
+                    # add an AirGap
+                    ag = AirGap(g, idx=i, tfrm=g_tfrm)
+                    ag.label = ag.label_format.format(i)
+                    add_element_to_tree(ag, root_node)
+                    ele_model.add_element(ag)
+
                     eles = []
                     buried_reflector = False
 
@@ -1420,8 +1445,8 @@ def process_airgap(ele_model, seq_model, root_node, i, g, s, g_tfrm,
             ele_model.add_element(di)
 
     # add an AirGap
-    ag = AirGap(g, s, idx=i, tfrm=g_tfrm)
-    ag.label = ag.label_format.format(i+1)
+    ag = AirGap(g, idx=i, tfrm=g_tfrm)
+    ag.label = ag.label_format.format(i)
     ag_node = add_element_to_tree(ag, root_node)
     ele_model.add_element(ag)
     return num_ele
