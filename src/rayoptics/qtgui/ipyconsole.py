@@ -8,15 +8,35 @@
 .. codeauthor: Michael J. Hayford
 """
 
+from PyQt5.QtGui import QColor
 from qtconsole.rich_jupyter_widget import RichJupyterWidget
 from qtconsole.inprocess import QtInProcessKernelManager
 from IPython.lib import guisupport
+
+import qdarkstyle
+from qdarkstyle.palette import DarkPalette
 
 from rayoptics.gui.appmanager import ModelInfo
 
 
 def create_ipython_console(app, title, view_width, view_ht):
     """ create a iPython console with a rayoptics environment """
+
+    def create_light_or_dark_callback(ipy_console):
+        # if not hasattr(ipy_console, 'background'):
+        #     ipy_console.background = ipy_console.background()
+
+        def l_or_d(is_dark):
+            if is_dark:
+                ipy_console.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+                # rgb = DarkPalette.color_palette()
+                # ipy_console.setBackground(QColor(
+                #     rgb['COLOR_BACKGROUND_NORMAL']))
+            else:
+                ipy_console.setStyleSheet('')
+                # ipy_console.setBackground(ipy_console.background)
+        return l_or_d
+
     opt_model = app.app_manager.model
     if opt_model:
         ro_env = {
@@ -44,6 +64,7 @@ def create_ipython_console(app, title, view_width, view_ht):
     mi = ModelInfo(opt_model)
     sub_window = app.add_subwindow(ipy_console, mi)
     sub_window.setWindowTitle(title)
+    sub_window.sync_light_or_dark = create_light_or_dark_callback(ipy_console)
     orig_x, orig_y = app.initial_window_offset()
     sub_window.setGeometry(orig_x, orig_y, view_width, view_ht)
 
