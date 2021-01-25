@@ -23,6 +23,7 @@ from anytree import Node
 from rayoptics.gui.util import (GUIHandle, transform_ray_seg, bbox_from_poly,
                                 transform_poly, inv_transform_poly)
 
+from rayoptics.elem import parttree
 from rayoptics.elem import transform
 from rayoptics.raytr.trace import (trace_boundary_rays_at_field,
                                    boundary_ray_dict, RaySeg)
@@ -448,16 +449,9 @@ class LensLayout():
 
         seq_model = self.opt_model.seq_model
         ele_model = self.opt_model.ele_model
+        part_tree = self.opt_model.part_tree
         if len(ele_model.elements) == 0:
-            root = opt_model.part_tree
-            for i, s in enumerate(seq_model.ifcs[1:-1], start=1):
-                Node('i{}'.format(i), id=s, parent=root)
-                gap = seq_model.gaps[i]
-                if not isinstance(gap.medium, medium.Air):
-                    Node('g{}'.format(i), id=gap, parent=root)
-            # opt_model.list_part_tree()
-            ele.elements_from_sequence(ele_model, seq_model, root)
-            # opt_model.list_part_tree()
+            parttree.elements_from_sequence(ele_model, seq_model, part_tree)
 
     def sync_light_or_dark(self, is_dark):
         global lo_rgb

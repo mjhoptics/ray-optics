@@ -140,8 +140,7 @@ class ParaxialModel():
     def get_object_for_node(self, node):
         ''' basic 1:1 relationship between seq and parax model sequences '''
         ifc = self.seq_model.ifcs[node]
-        e_node = elements.find_parent_node(ifc, '#element',
-                                           self.opt_model.part_tree)
+        e_node = self.opt_model.part_tree.parent_node(ifc)
         args = [[ifc, None, None, 1, 1]], [e_node.id], e_node
         kwargs = {'idx': node}
         return args, kwargs

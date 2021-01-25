@@ -8,11 +8,8 @@
 .. codeauthor: Michael J. Hayford
 """
 
-import os.path
-import json_tricks
 import math
 import pathlib
-import anytree
 
 from opticalglass import glassmap as gm
 from opticalglass import glassfactory as gfact
@@ -23,6 +20,7 @@ from rayoptics.zemax import zmxread
 import rayoptics.optical.opticalmodel as opticalmodel
 from rayoptics.elem.profiles import Spherical, Conic
 import rayoptics.elem.elements as ele
+import rayoptics.elem.parttree as pt
 from rayoptics.elem import layout
 from rayoptics.parax import diagram
 from rayoptics.parax.firstorder import specsheet_from_parax_data
@@ -86,11 +84,8 @@ def open_model(file_name, info=False, post_process_imports=True, **kwargs):
         if post_process_imports:
             create_specsheet_from_model(opm)
             # create element model and part_tree
-            root = opm.part_tree
-            # initialize part tree using the imported seq_model
-            ele.init_part_tree_from_seq(opm.seq_model, root)
-            ele.elements_from_sequence(opm.ele_model, opm.seq_model, root)
-            # opt_model.list_part_tree()
+            part_tree = opm.part_tree
+            pt.elements_from_sequence(opm.ele_model, opm.seq_model, part_tree)
         if info:
             return opm, import_info
     return opm

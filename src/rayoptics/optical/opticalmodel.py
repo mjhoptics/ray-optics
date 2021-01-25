@@ -20,6 +20,7 @@ import rayoptics.elem.elements as ele
 import rayoptics.optical.model_constants as mc
 
 from rayoptics.elem.elements import ElementModel
+from rayoptics.elem.parttree import PartTree
 from rayoptics.parax.paraxialdesign import ParaxialModel
 from rayoptics.seq.sequential import SequentialModel
 from rayoptics.raytr.opticalspec import OpticalSpecs
@@ -98,7 +99,7 @@ class OpticalModel:
         self.optical_spec = OpticalSpecs(self, **kwargs)
         self.parax_model = ParaxialModel(self, **kwargs)
         self.ele_model = ElementModel(self, **kwargs)
-        self.part_tree = Node('root', id=self, tag='#group#root')
+        self.part_tree = PartTree(self, **kwargs)
 
         if self.specsheet:
             self.set_from_specsheet()
@@ -117,7 +118,6 @@ class OpticalModel:
         attrs = dict(vars(self))
         if hasattr(self, 'app_manager'):
             del attrs['app_manager']
-        del attrs['part_tree']
         return attrs
 
     def set_from_specsheet(self, specsheet=None):
@@ -156,15 +156,10 @@ class OpticalModel:
             self.specsheet = None
 
         if hasattr(self, 'part_tree'):
-            part_tree_compressed = self.part_tree
-            importer = DictImporter()
-            self.part_tree = importer.import_(part_tree_compressed)
-            ele.sync_part_tree_on_restore(self.ele_model, self.seq_model,
-                                          self.part_tree)
+            self.part_tree.sync_to_restore(self)
         else:
-            self.part_tree = Node('root', id=self, tag='#group#root')
-            ele.add_element_model_to_tree(self.ele_model, self.part_tree)
-            self.list_part_tree()
+            self.part_tree = PartTree(self)
+            self.part_tree.add_element_model_to_tree(self.ele_model)
 
         self.update_model()
 
@@ -173,10 +168,9 @@ class OpticalModel:
         self.optical_spec.update_model()
         self.parax_model.update_model()
         self.ele_model.update_model()
+        self.part_tree.update_model()
         if self.specsheet is None:
             self.specsheet = create_specsheet_from_model(self)
-        ele.sync_part_tree_on_update(self.ele_model, self.seq_model,
-                                     self.part_tree)
 
     def nm_to_sys_units(self, nm):
         """ convert nm to system units
@@ -221,6 +215,8 @@ class OpticalModel:
         if 'idx' in kwargs:
             self.seq_model.cur_surface = kwargs['idx']
 
+        e_node.parent = self.part_tree.root_node
+
         # distinguish between adding a new chunk, which requires splitting a
         #  gap in two, and replacing a node, which uses the existing gaps.
         if 'insert' in kwargs:
@@ -229,13 +225,13 @@ class OpticalModel:
             ag.label = ag.label_format.format(self.seq_model.cur_surface+1)
             seq[-1][mc.Gap] = g
             elm.append(ag)
-            ag_node.parent = self.part_tree
+            ag_node.parent = self.part_tree.root_node
         else:
             # replacing an existing node. need to hook new chunk final
             # interface to the existing gap and following (air gap) element
             g = self.seq_model.gaps[self.seq_model.cur_surface+1]
             seq[-1][mc.Gap] = g
-            ag = ele.find_parent_obj(g, '#airgap', self.part_tree)
+            ag = self.part_tree.parent_object(g, '#airgap')
             ag.idx = seq[-1][mc.Intfc]
 
         for sg in seq:
@@ -244,7 +240,6 @@ class OpticalModel:
         for e in elm:
             self.ele_model.add_element(e)
         self.ele_model.sequence_elements()
-        e_node.parent = self.part_tree
 
     def remove_ifc_gp_ele(self, *descriptor, **kwargs):
         """ remove interfaces and gaps from seq_model and eles from ele_model
@@ -271,4 +266,4 @@ class OpticalModel:
         e_node.parent = None
 
     def list_part_tree(self):
-        print(RenderTree(self.part_tree).by_attr())
+        self.part_tree.list_tree()

@@ -12,7 +12,6 @@ import math
 import numpy as np
 from copy import deepcopy
 from pathlib import Path
-from anytree.search import find_by_attr
 
 from rayoptics.gui.util import bbox_from_poly, fit_data_range
 from rayoptics.gui.actions import ReplaceGlassAction
@@ -395,8 +394,7 @@ class DiagramEdge():
     def render_color(self):
         opt_model = self.diagram.opt_model
         gap = opt_model.seq_model.gaps[self.node]
-        e_node = ele.find_parent_node(gap, '#element#airgap',
-                                      opt_model.part_tree)
+        e_node = opt_model.part_tree.parent_node(gap, '#element#airgap')
         e = e_node.id if e_node else None
 
         if e:

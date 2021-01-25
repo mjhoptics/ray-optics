@@ -25,6 +25,14 @@ rayoptics.elem.layout module
    :undoc-members:
    :show-inheritance:
 
+rayoptics.elem.parttree module
+------------------------------
+
+.. automodule:: rayoptics.elem.parttree
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 rayoptics.elem.profiles module
 ------------------------------
 
