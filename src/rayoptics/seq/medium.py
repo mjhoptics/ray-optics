@@ -245,7 +245,9 @@ class GlassHandlerBase():
         """ find ``name`` glass or a substitute or, if none found, n=1.5 """
 
         try:
-            medium = gfact.create_glass(name, gfact._cat_names)
+            if len(catalog) == 0:
+                catalog = gfact._cat_names
+            medium = gfact.create_glass(name, catalog)
         except glasserror.GlassNotFoundError:
             pass
         else:
