@@ -129,6 +129,7 @@ class MainWindow(QMainWindow):
 
             # self.cur_dir = path / "codev/tests"
             # self.open_file(path / "codev/tests/asp46.seq")
+            # self.open_file(path / "codev/tests/achroMangin.seq")
             # self.open_file(path / "codev/tests/dar_test.seq")
             # self.open_file(path / "codev/tests/paraboloid.seq")
             # self.open_file(path / "codev/tests/paraboloid_f8.seq")
@@ -143,6 +144,7 @@ class MainWindow(QMainWindow):
             # self.open_file(path / "codev/tests/landscape_lens.seq")
             # self.open_file(path / "codev/tests/mangin.seq")
             # self.open_file(path / "codev/tests/CODV_32327.seq")
+            # self.open_file(path / "codev/tests/questar35.seq")
             # self.open_file(path / "codev/tests/dar_test.seq")
             # self.open_file(path / "optical/tests/cell_phone_camera.roa")
             # self.open_file(path / "optical/tests/singlet_f3.roa")
@@ -158,6 +160,7 @@ class MainWindow(QMainWindow):
             # self.open_file(path / "models/thinlens.roa")
             # self.open_file(path / "models/telephoto.roa")
             # self.open_file(path / "models/thin_triplet.roa")
+            # self.open_file(path / "models/galilean.roa")
             # self.open_file(path / "models/TwoMirror.roa")
             # self.open_file(path / "models/TwoSphericalMirror.roa")
 
