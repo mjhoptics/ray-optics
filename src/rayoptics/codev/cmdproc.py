@@ -286,42 +286,6 @@ def update_surface_and_gap(opt_model, dlist, idx=None):
         seq_model.gaps[idx-1].thi += dlist[1]
 
 
-def process_glass_data(glass_data):
-    """ process GLA string for fictitious, catalog or private catalog glass """
-    if isanumber(glass_data):  # process as fictitious glass code
-        n, v = fictitious_glass_decode(float(glass_data))
-        medium = Glass(n, v, '')
-
-    else:  # look for glass name and optional catalog
-        name_cat = glass_data.split('_')
-        if len(name_cat) == 2:
-            name, cat = name_cat
-        elif len(name_cat) == 1:
-            name, cat = glass_data, None
-        if cat is not None:
-            if cat.upper() == 'SCHOTT' and name[:1].upper() == 'N':
-                name = name[:1]+'-'+name[1:]
-            elif cat.upper() == 'OHARA' and name[:1].upper() == 'S':
-                name = name[:1]+'-'+name[1:]
-                if not name[-2:].isdigit() and name[-1].isdigit():
-                    name = name[:-1]+' '+name[-1]
-            try:
-                medium = gfact.create_glass(name, cat)
-            except glasserror.GlassNotFoundError as gerr:
-                logging.info('%s glass data type %s not found',
-                             gerr.catalog,
-                             gerr.name)
-                logging.info('Replacing material with air.')
-                medium = Air()
-        else:  # name with no data. default to crown glass
-            global _private_catalog_glasses
-            if name in _private_catalog_glasses:
-                medium = _private_catalog_glasses[name]
-            else:
-                medium = Glass(1.5, 60.0, name)
-    return medium
-
-
 def private_catalog(optm, tla, qlist, dlist):
     global _reading_private_catalog, _private_catalog_wvls
     if tla == "PRV":
