@@ -338,6 +338,8 @@ def handle_types_and_params(optm, cur, cmd, inputs):
 def handle_aperture_data(optm, cur, cmd, inputs):
     # DIAM 7.5 1 0 0 1 ""
     # FLAP 0 7.5 0
+    # CLAP 0 25.399999999999999 0
+    # OBDC 0.000000000000E+00 1.906000000000E+02
     global _track_contents
     sm = optm.seq_model
     items = inputs.split()
@@ -370,6 +372,12 @@ def handle_aperture_data(optm, cur, cmd, inputs):
 
         ca.radius = ca_val
         ifc.set_max_aperture(ca_val)
+    elif cmd == "OBDC":
+        # appears to be aperture offsets, x and y
+        ifc = sm.ifcs[cur]
+        ca = ifc.clear_apertures[0]
+        ca.x_offset = float(items[0])
+        ca.y_offset = float(items[1])
     elif cmd == "FLAP":
         # Don't really understand how this is used...
         pass
