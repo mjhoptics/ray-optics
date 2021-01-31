@@ -615,7 +615,7 @@ def add_conic(opt_model, idx, lcl_pt, **kwargs):
 
 
 def add_doublet(opt_model, idx, lcl_pt, **kwargs):
-    add_elements(opt_model, idx, lcl_pt, ele.create_lens, **kwargs)
+    add_elements(opt_model, idx, lcl_pt, ele.create_cemented_doublet, **kwargs)
 
 
 class GlassDropAction():

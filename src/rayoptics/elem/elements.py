@@ -26,6 +26,7 @@ import rayoptics.gui.appcmds as cmds
 from rayoptics.gui.actions import (Action, AttrAction, SagAction, BendAction,
                                    ReplaceGlassAction)
 
+import opticalglass.glassfactory as gfact
 import opticalglass.glasspolygons as gp
 
 GraphicsHandle = namedtuple('GraphicsHandle', ['polydata', 'tfrm', 'polytype',
@@ -116,6 +117,57 @@ def create_lens(power=0., bending=0., th=None, sd=1., med=None, **kwargs):
     tree = le.tree()
 
     return [[s1, g, None, rndx, 1], [s2, None, None, 1, 1]], [le], tree
+
+
+def achromat(power, Va, Vb):
+    """Compute lens powers for a thin doublet achromat, given their V-numbers."""
+    power_a = (Va/(Va - Vb))*power
+    power_b = (Vb/(Vb - Va))*power
+    return power_a, power_b
+
+
+def create_cemented_doublet(power=0., bending=0., th=None, sd=1.,
+                            glasses=('N-BK7,Schott', 'N-F2,Schott'),
+                            **kwargs):
+    from opticalglass.spectral_lines import get_wavelength
+    from opticalglass import glass
+    wvls = np.array([get_wavelength(w) for w in ['d', 'F', 'C']])
+    gla_a = gfact.create_glass(glasses[0])
+    rndx_a = gla_a.calc_rindex(wvls)
+    Va, PcDa = glass.calc_glass_constants(*rndx_a)
+    gla_b = gfact.create_glass(glasses[1])
+    rndx_b = gla_b.calc_rindex(wvls)
+    Vb, PcDb = glass.calc_glass_constants(*rndx_b)
+
+    power_a, power_b = achromat(power, Va, Vb)
+
+    cv1 = power_a/(rndx_a[0] - 1)
+    cv2 = 0
+    cv3 = power_b/(1 - rndx_b[0])
+    s1 = Surface(profile=Spherical(c=cv1), max_ap=sd,
+                 delta_n=(rndx_a[0] - 1))
+    s2 = Surface(profile=Spherical(c=cv2), max_ap=sd,
+                 delta_n=(rndx_b[0] - rndx_a[0]))
+    s3 = Surface(profile=Spherical(c=cv3), max_ap=sd,
+                 delta_n=(1 - rndx_b[0]))
+
+    if th is None:
+        th = sd/5
+    g1 = Gap(t=3*th/4, med=gla_a)
+    g2 = Gap(t=th/4, med=gla_b)
+
+    g_tfrm = np.identity(3), np.array([0., 0., 0.])
+
+    ifc_list = []
+    ifc_list.append([0, s1, g1, 1, g_tfrm])
+    ifc_list.append([1, s2, g2, 1, g_tfrm])
+    ifc_list.append([2, s3, None, 1, g_tfrm])
+    ce = CementedElement(ifc_list)
+    tree = ce.tree()
+
+    return [[s1, g1, None, rndx_a, 1],
+            [s2, g2, None, rndx_b, 1],
+            [s3, None, None, 1, 1]], [ce], tree
 
 
 def create_dummy_plane(sd=1., **kwargs):
@@ -251,21 +303,25 @@ class Element():
         self.s1_indx = seq_model.ifcs.index(self.s1)
         self.s2_indx = seq_model.ifcs.index(self.s2)
 
-    def tree(self, tag=None):
+    def tree(self, **kwargs):
         """Build tree linking sequence to element model. """
 
         default_tag = '#element#lens'
-        tag = default_tag+tag if tag is not None else default_tag
+        tag = default_tag + kwargs.get('tag', '')
+        zdir = kwargs.get('z_dir', 1)
 
-        # Interface tree
+        # Interface branch 1
         e = Node('E', id=self, tag=tag)
         p1 = Node('p1', id=self.s1.profile, tag='#profile', parent=e)
         Node(f'i{self.s1_indx}', id=self.s1, tag='#ifc', parent=p1)
-        p2 = Node('p2', id=self.s2.profile, tag='#profile', parent=e)
-        Node(f'i{self.s2_indx}', id=self.s2, tag='#ifc', parent=p2)
 
         # Gap branch
-        Node(f'g{self.s1_indx}', id=self.gap, tag='#gap', parent=e)
+        t = Node('t', id=self.gap, tag='#thic', parent=e)
+        Node(f'g{self.s1_indx}', id=(self.gap, zdir), tag='#gap', parent=t)
+
+        # Interface branch 2
+        p2 = Node('p2', id=self.s2.profile, tag='#profile', parent=e)
+        Node(f'i{self.s2_indx}', id=self.s2, tag='#ifc', parent=p2)
 
         return e
 
@@ -462,9 +518,9 @@ class Mirror():
     def sync_to_update(self, seq_model):
         self.s_indx = seq_model.ifcs.index(self.s)
 
-    def tree(self, tag=None):
+    def tree(self, **kwargs):
         default_tag = '#element#mirror'
-        tag = default_tag+tag if tag is not None else default_tag
+        tag = default_tag + kwargs.get('tag', '')
         # Interface branch
         m = Node('M', id=self, tag=tag)
         p = Node('p', id=self.s.profile, tag='#profile', parent=m)
@@ -593,7 +649,7 @@ class CementedElement():
 
     def __init__(self, ifc_list, label='CementedElement'):
         self.label = label
-        g_tfrm = ifc_list[0][3]
+        g_tfrm = ifc_list[0][4]
         if g_tfrm is not None:
             self.tfrm = g_tfrm
         else:
@@ -603,7 +659,7 @@ class CementedElement():
         self.gaps = []
         self.medium_name = ''
         for interface in ifc_list:
-            i, ifc, g, g_tfrm = interface
+            i, ifc, g, z_dir, g_tfrm = interface
             self.idxs.append(i)
             self.ifcs.append(ifc)
             if g is not None:
@@ -675,9 +731,10 @@ class CementedElement():
                         idx=idxs[i], idx2=idxs[i+1])
             e_list.append(e)
 
-    def tree(self, tag=None):
+    def tree(self, **kwargs):
         default_tag = '#element#cemented'
-        tag = default_tag+tag if tag is not None else default_tag
+        tag = default_tag + kwargs.get('tag', '')
+        zdir = kwargs.get('z_dir', 1)
         ce = Node('CE', id=self, tag=tag)
         for i, sg in enumerate(itertools.zip_longest(self.ifcs, self.gaps),
                                start=1):
@@ -687,7 +744,9 @@ class CementedElement():
             Node(f'i{self.idxs[i-1]}', id=ifc, tag='#ifc', parent=p)
             # Gap branch
             if gap is not None:
-                Node(f'g{self.idxs[i-1]}', id=gap, tag='#gap', parent=ce)
+                t = Node(f't{i}', id=gap, tag='#thic', parent=ce)
+                Node(f'g{self.idxs[i-1]}', id=(gap, zdir),
+                     tag='#gap', parent=t)
 
         return ce
 
@@ -808,9 +867,9 @@ class ThinElement():
     def __str__(self):
         return str(self.intrfc)
 
-    def tree(self, tag=None):
+    def tree(self, **kwargs):
         default_tag = '#element#thinlens'
-        tag = default_tag+tag if tag is not None else default_tag
+        tag = default_tag + kwargs.get('tag', '')
         tle = Node('TL', id=self, tag=tag)
         Node('tl', id=self.intrfc, tag='#ifc', parent=tle)
         return tle
@@ -900,9 +959,9 @@ class DummyInterface():
     def sync_to_update(self, seq_model):
         self.idx = seq_model.ifcs.index(self.ref_ifc)
 
-    def tree(self, tag=None):
+    def tree(self, **kwargs):
         default_tag = '#dummyifc'
-        tag = default_tag+tag if tag is not None else default_tag
+        tag = default_tag + kwargs.get('tag', '')
         di = Node('di', id=self, tag=tag)
         p = Node('p', id=self.ref_ifc.profile, tag='#profile', parent=di)
         Node(f'i{self.idx}', id=self.ref_ifc, tag='#ifc', parent=p)
@@ -1006,11 +1065,13 @@ class AirGap():
     def sync_to_update(self, seq_model):
         self.idx = seq_model.gaps.index(self.gap)
 
-    def tree(self, tag=None):
+    def tree(self, **kwargs):
         default_tag = '#airgap'
-        tag = default_tag+tag if tag is not None else default_tag
+        tag = default_tag + kwargs.get('tag', '')
         ag = Node('ag', id=self, tag=tag)
-        Node(f'g{self.idx}', id=self.gap, tag='#gap', parent=ag)
+        t = Node('t', id=self.gap, tag='#thic', parent=ag)
+        zdir = kwargs.get('z_dir', 1)
+        Node(f'g{self.idx}', id=(self.gap, zdir), tag='#gap', parent=t)
         return ag
 
     def reference_interface(self):
@@ -1170,7 +1231,7 @@ class ElementModel:
     def get_num_elements(self):
         return len(self.elements)
 
-    def list_model(self, tag='#element'):
+    def list_model(self, tag='#element#dummyifc'):
         nodes = self.opt_model.part_tree.nodes_with_tag(tag=tag)
         elements = [n.id for n in nodes]
         for i, ele in enumerate(elements):

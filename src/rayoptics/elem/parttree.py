@@ -51,8 +51,9 @@ class PartTree():
         for i, s in enumerate(seq_model.ifcs[1:-1], start=1):
             Node(f'i{i}', id=s, tag='#ifc', parent=self.root_node)
             gap = seq_model.gaps[i]
+            z_dir = seq_model.z_dir[i]
             # if not isinstance(gap.medium, Air):
-            Node(f'g{i}', id=gap, tag='#gap', parent=self.root_node)
+            Node(f'g{i}', id=(gap, z_dir), tag='#gap', parent=self.root_node)
 
     def add_element_model_to_tree(self, ele_model):
         for e in ele_model.elements:
@@ -60,8 +61,8 @@ class PartTree():
                 self.add_element_to_tree(e)
         return self
 
-    def add_element_to_tree(self, e, tag=None):
-        e_node = e.tree(tag=tag)
+    def add_element_to_tree(self, e, **kwargs):
+        e_node = e.tree(**kwargs)
         e_node.name = e.label
         leaves = e_node.leaves
         for leaf_node in leaves:
@@ -125,12 +126,17 @@ def sync_part_tree_on_restore(ele_model, seq_model, root_node):
             node.id = seq_model.ifcs[idx]
         elif name[0] == 'g':
             idx = int(name[1:])
-            node.id = seq_model.gaps[idx]
+            node.id = (seq_model.gaps[idx], seq_model.z_dir[idx])
         elif name[0] == 'p':
             p_name = node.parent.name
             e = ele_dict[p_name]
             idx = int(name[1:]) - 1
             node.id = e.interface_list()[idx].profile
+        elif name[0] == 't':
+            p_name = node.parent.name
+            e = ele_dict[p_name]
+            idx = int(name[1:]) - 1
+            node.id = e.gap_list()[idx]
         elif name[:1] == 'di':
             p_name = node.parent.name
             e = ele_dict[p_name]
@@ -149,7 +155,10 @@ def sync_part_tree_on_update(ele_model, seq_model, root_node):
             idx = seq_model.ifcs.index(node.id)
             node.name = f'i{idx}'
         elif name[0] == 'g':
-            idx = seq_model.gaps.index(node.id)
+            gap, z_dir = node.id
+            idx = seq_model.gaps.index(gap)
+            z_dir = seq_model.z_dir[idx]
+            node.id = (gap, z_dir)
             node.name = f'g{idx}'
         elif name[0] == 'p':
             p_name = node.parent.name
@@ -168,6 +177,11 @@ def sync_part_tree_on_update(ele_model, seq_model, root_node):
             node.id = e.intrfc
             idx = seq_model.ifcs.index(node.id)
             node.name = f'tl{idx}'
+        elif name[0] == 't':
+            p_name = node.parent.name
+            e = ele_dict[p_name]
+            idx = int(name[1:])-1 if len(name) > 1 else 0
+            node.id = e.gap_list()[idx]
         else:
             if hasattr(node.id, 'label'):
                 node.name = node.id.label
@@ -195,16 +209,16 @@ def elements_from_sequence(ele_model, seq_model, part_tree):
                     if i > 0:
                         num_elements = process_airgap(
                             ele_model, seq_model, part_tree,
-                            i, g, ifc, g_tfrm, num_elements,
+                            i, g, z_dir, ifc, g_tfrm, num_elements,
                             add_ele=True)
                 else:
                     if buried_reflector is True:
                         num_eles = num_eles//2
-                        eles.append((i, ifc, g, g_tfrm))
-                        i, ifc, g, g_tfrm = eles[1]
+                        eles.append((i, ifc, g, z_dir, g_tfrm))
+                        i, ifc, g, z_dir, g_tfrm = eles[1]
 
                     if num_eles == 1:
-                        i1, s1, g1, g_tfrm1 = eles[0]
+                        i1, s1, g1, z_dir1, g_tfrm1 = eles[0]
                         sd = max(s1.surface_od(), ifc.surface_od())
                         e = elements.Element(s1, ifc, g1, sd=sd, tfrm=g_tfrm1,
                                              idx=i1, idx2=i)
@@ -220,17 +234,16 @@ def elements_from_sequence(ele_model, seq_model, part_tree):
                                                   value='p1')
                             ifc_node.parent = p_node
 
-                            g_node = part_tree.node(g)
-                            g_node.parent = e_node
+                            g1_node = part_tree.node((g1, z_dir1))
+                            g_node = part_tree.node((g, z_dir))
+                            g_node.parent = g1_node.parent
 
-                            g1_node = part_tree.node(g1)
-                            g1_node.parent = e_node
                             # set up for airgap
-                            i, ifc, g, g_tfrm = eles[-1]
+                            i, ifc, g, z_dir, g_tfrm = eles[-1]
 
                     elif num_eles > 1:
                         if not buried_reflector:
-                            eles.append((i, ifc, g, g_tfrm))
+                            eles.append((i, ifc, g, z_dir, g_tfrm))
                         e = elements.CementedElement(eles[:num_eles+1])
                         num_elements += 1
                         e.label = e.label_format.format(num_elements)
@@ -248,16 +261,22 @@ def elements_from_sequence(ele_model, seq_model, part_tree):
                                                       value=pid)
                                 ifc_node.parent = p_node
                                 g = eles[j-1][2]
-                                g_node = part_tree.node(g)
+                                z_dir = eles[j-1][3]
+                                g_node = part_tree.node((g, z_dir))
+                                tid = f't{i}'
+                                t_node = find_by_attr(e_node,
+                                                      name='name',
+                                                      value=tid)
                                 if g_node:
-                                    g_node.parent = e_node
+                                    g_node.parent = t_node
                         # set up for airgap
-                        i, ifc, g, g_tfrm = eles[-1]
+                        i, ifc, g, z_dir, g_tfrm = eles[-1]
 
                     # add an AirGap
                     ag = elements.AirGap(g, idx=i, tfrm=g_tfrm)
                     ag.label = ag.label_format.format(i)
-                    part_tree.add_element_to_tree(ag)
+                    ag_node = part_tree.add_element_to_tree(ag)
+                    ag_node.leaves[0].id = (g, z_dir)
                     ele_model.add_element(ag)
 
                     eles = []
@@ -268,10 +287,10 @@ def elements_from_sequence(ele_model, seq_model, part_tree):
                 if ifc.interact_mode == 'reflect':
                     buried_reflector = True
 
-                eles.append((i, ifc, g, g_tfrm))
+                eles.append((i, ifc, g, z_dir, g_tfrm))
 
 
-def process_airgap(ele_model, seq_model, part_tree, i, g, s, g_tfrm,
+def process_airgap(ele_model, seq_model, part_tree, i, g, z_dir, s, g_tfrm,
                    num_ele, add_ele=True):
     if s.interact_mode == 'reflect' and add_ele:
         sd = s.surface_od()
@@ -289,7 +308,7 @@ def process_airgap(ele_model, seq_model, part_tree, i, g, s, g_tfrm,
         ele_model.add_element(te)
     elif s.interact_mode == 'transmit':
         add_dummy = False
-        dummy_tag = None
+        dummy_tag = ''
         if i == 0:
             add_dummy = True  # add dummy for the object
             dummy_label = 'Object'
@@ -314,6 +333,7 @@ def process_airgap(ele_model, seq_model, part_tree, i, g, s, g_tfrm,
     # add an AirGap
     ag = elements.AirGap(g, idx=i, tfrm=g_tfrm)
     ag.label = ag.label_format.format(i)
-    part_tree.add_element_to_tree(ag)
+    ag_node = part_tree.add_element_to_tree(ag)
+    ag_node.leaves[0].id = (g, z_dir)
     ele_model.add_element(ag)
     return num_ele

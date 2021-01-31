@@ -78,13 +78,21 @@ def create_parax_design_commands(fig):
               'interact_mode': 'transmit'}
     cmds.append(('Add Lens', (dgm.register_add_replace_element, (), kwargs)))
 
+    # Add doublet
+    kwargs = {'node_init': ele.create_thinlens,
+              'factory': ele.create_cemented_doublet,
+              'interact_mode': 'transmit'}
+    cmds.append(('Add Cemented Doublet', (dgm.register_add_replace_element, 
+                                          (), kwargs)))
+
     # Add mirror
     cmds.append(('Add Mirror',
                  (dgm.register_add_replace_element, (),
                   {'node_init': ele.create_mirror,
                    'factory': ele.create_mirror,
                    'interact_mode': 'reflect'})))
-    # replace with file
+
+    # Replace with file
     pth = Path(__file__).resolve()
     try:
         rayoptics_pos = pth.parts.index('rayoptics')
@@ -1028,59 +1036,3 @@ class GlassDropAction():
                 dropped_it = True
         view.figure.artist_filter = None
         return dropped_it
-
-
-class AddElementAction():
-    ''' Deprecated '''
-
-    def __init__(self, dgm_edge, **kwargs):
-        diagram = dgm_edge.diagram
-        seq_model = diagram.opt_model.seq_model
-        parax_model = diagram.opt_model.parax_model
-        self.cur_node = None
-
-        def on_press_add_point(fig, event):
-            # if we don't have factory functions, skip the command
-            if 'node_init' in diagram.command_inputs and \
-               'factory' in diagram.command_inputs:
-
-                self.cur_node = dgm_edge.node
-                event_data = np.array([event.xdata, event.ydata])
-                interact = diagram.command_inputs['interact_mode']
-                parax_model.add_node(self.cur_node, event_data,
-                                     diagram.type_sel, interact)
-                self.cur_node += 1
-                node_init = diagram.command_inputs['node_init']
-                self.init_inputs = diagram.assign_object_to_node(self.cur_node,
-                                                                 node_init)
-                fig.build = 'rebuild'
-                fig.refresh_gui()
-
-        def on_drag_add_point(fig, event):
-            if self.cur_node is not None:
-                event_data = np.array([event.xdata, event.ydata])
-                diagram.apply_data(self.cur_node, event_data)
-                fig.build = 'update'
-                fig.refresh_gui()
-
-        def on_release_add_point(fig, event):
-            if self.cur_node is not None:
-                factory = diagram.command_inputs['factory']
-                if factory != diagram.command_inputs['node_init']:
-                    prev_ifc = seq_model.ifcs[self.cur_node]
-                    inputs = diagram.assign_object_to_node(self.cur_node,
-                                                           factory)
-                    idx = seq_model.ifcs.index(prev_ifc)
-                    n_after = parax_model.sys[idx-1][indx]
-                    thi = n_after*parax_model.sys[idx-1][tau]
-                    seq_model.gaps[idx-1].thi = thi
-                    args, kwargs = self.init_inputs
-                    diagram.opt_model.remove_ifc_gp_ele(*args, **kwargs)
-                fig.build = 'rebuild'
-                fig.refresh_gui()
-            self.cur_node = None
-
-        self.actions = {}
-        self.actions['press'] = on_press_add_point
-        self.actions['drag'] = on_drag_add_point
-        self.actions['release'] = on_release_add_point
