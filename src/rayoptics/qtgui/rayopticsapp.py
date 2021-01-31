@@ -169,6 +169,7 @@ class MainWindow(QMainWindow):
             # self.open_file(path / "zemax/tests/HoO-V2C18Ex46.zmx")
             # self.open_file(path / "zemax/tests/HoO-V2C18Ex66.zmx")
             # self.open_file(path / "zemax/tests/US05831776-1.zmx")
+            # self.open_file(path / "zemax/tests/zmax_37992.zmx")
             # self.open_file(path / "zemax/tests/354710-C-Zemax(ZMX).zmx")
 
             # self.cur_dir = path / "zemax/models/telescopes"
