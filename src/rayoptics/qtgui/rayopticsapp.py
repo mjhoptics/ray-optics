@@ -68,7 +68,7 @@ class MainWindow(QMainWindow):
         file_menu.addAction("Save")
         file_menu.addAction("Save As...")
         file_menu.addAction("Close")
-        file_menu.triggered[QAction].connect(self.file_action)
+        file_menu.triggered[QAction].connect(self.do_file_action)
 
         view_menu = bar.addMenu("Data View")
         view_menu.addAction("Spec Sheet")
@@ -77,7 +77,7 @@ class MainWindow(QMainWindow):
         view_menu.addAction("Element Table")
         view_menu.addAction("Glass Map")
         # view_menu.addAction("Lens View")
-        view_menu.triggered[QAction].connect(self.view_action)
+        view_menu.triggered[QAction].connect(self.do_view_action)
 
         parax_menu = bar.addMenu("Paraxial Model")
         parax_menu.addAction("Paraxial Model")
@@ -85,7 +85,7 @@ class MainWindow(QMainWindow):
         parax_menu.addAction("nu-nubar View")
         parax_menu.addAction("yui Ray Table")
         parax_menu.addAction("3rd Order Aberrations")
-        parax_menu.triggered[QAction].connect(self.view_action)
+        parax_menu.triggered[QAction].connect(self.do_view_action)
 
         analysis_menu = bar.addMenu("Analysis")
         analysis_menu.addAction("Ray Table")
@@ -94,11 +94,11 @@ class MainWindow(QMainWindow):
         analysis_menu.addAction("Spot Diagram")
         analysis_menu.addAction("Wavefront Map")
         analysis_menu.addAction("Astigmatism Curves")
-        analysis_menu.triggered[QAction].connect(self.view_action)
+        analysis_menu.triggered[QAction].connect(self.do_view_action)
 
         tools_menu = bar.addMenu("Tools")
         tools_menu.addAction("Paraxial Vignetting")
-        tools_menu.triggered[QAction].connect(self.view_action)
+        tools_menu.triggered[QAction].connect(self.do_view_action)
 
         wnd_menu = bar.addMenu("Window")
         wnd_menu.addAction("Cascade")
@@ -112,7 +112,7 @@ class MainWindow(QMainWindow):
         for pi in dock.panels.values():
             wnd_menu.addAction(pi.menu_action)
 
-        wnd_menu.triggered[QAction].connect(self.window_action)
+        wnd_menu.triggered[QAction].connect(self.do_window_action)
 
         self.setWindowTitle("Ray Optics")
         self.show()
@@ -216,11 +216,14 @@ class MainWindow(QMainWindow):
         orig_y = (MainWindow.count - 1)*offset_y
         return orig_x, orig_y
 
-    def file_action(self, q):
-        if q.text() == "New":
+    def do_file_action(self, q):
+        self.file_action(q.text())
+
+    def file_action(self, action):
+        if action == "New":
             self.new_model()
 
-        if q.text() == "Open...":
+        if action == "Open...":
             options = QFileDialog.Options()
             # options |= QFileDialog.DontUseNativeDialog
             fileName, _ = QFileDialog.getOpenFileName(
@@ -238,7 +241,7 @@ class MainWindow(QMainWindow):
                 self.cur_dir = filename.parent
                 self.open_file(filename)
 
-        if q.text() == "Save As...":
+        if action == "Save As...":
             options = QFileDialog.Options()
             # options |= QFileDialog.DontUseNativeDialog
             fileName, _ = QFileDialog.getSaveFileName(
@@ -251,7 +254,7 @@ class MainWindow(QMainWindow):
                 logging.debug("save file: %s", fileName)
                 self.save_file(fileName)
 
-        if q.text() == "Close":
+        if action == "Close":
             self.close_model()
 
     def new_model(self):
@@ -280,78 +283,84 @@ class MainWindow(QMainWindow):
         """ NOTE: this does not check to save a modified model """
         self.app_manager.close_model(self.delete_subwindow)
 
-    def view_action(self, q):
+    def do_view_action(self, q):
+        self.view_action(q.text())
+
+    def view_action(self, action):
         opt_model = self.app_manager.model
 
-        if q.text() == "Spec Sheet":
+        if action == "Spec Sheet":
             cmds.create_new_ideal_imager(opt_model=opt_model, gui_parent=self)
 
-        if q.text() == "Optical Layout":
+        if action == "Optical Layout":
             cmds.create_live_layout_view(opt_model, gui_parent=self)
 
-        if q.text() == "Lens Table":
+        if action == "Lens Table":
             self.create_lens_table()
 
-        if q.text() == "Element Table":
+        if action == "Element Table":
             model = cmds.create_element_table_model(opt_model)
             self.create_table_view(model, "Element Table")
 
-        if q.text() == "Glass Map":
+        if action == "Glass Map":
             cmds.create_glass_map_view(opt_model, gui_parent=self)
 
-        if q.text() == "Ray Fans":
+        if action == "Ray Fans":
             cmds.create_ray_fan_view(opt_model, "Ray", gui_parent=self)
 
-        if q.text() == "OPD Fans":
+        if action == "OPD Fans":
             cmds.create_ray_fan_view(opt_model, "OPD", gui_parent=self)
 
-        if q.text() == "Spot Diagram":
+        if action == "Spot Diagram":
             cmds.create_ray_grid_view(opt_model, gui_parent=self)
 
-        if q.text() == "Wavefront Map":
+        if action == "Wavefront Map":
             cmds.create_wavefront_view(opt_model, gui_parent=self)
 
-        if q.text() == "Astigmatism Curves":
+        if action == "Astigmatism Curves":
             cmds.create_field_curves(opt_model, gui_parent=self)
 
-        if q.text() == "3rd Order Aberrations":
+        if action == "3rd Order Aberrations":
             cmds.create_3rd_order_bar_chart(opt_model, gui_parent=self)
 
-        if q.text() == "y-ybar View":
+        if action == "y-ybar View":
             cmds.create_paraxial_design_view_v2(opt_model, 'ht',
                                                 gui_parent=self)
 
-        if q.text() == "nu-nubar View":
+        if action == "nu-nubar View":
             cmds.create_paraxial_design_view_v2(opt_model, 'slp',
                                                 gui_parent=self)
 
-        if q.text() == "yui Ray Table":
+        if action == "yui Ray Table":
             model = cmds.create_parax_table_model(opt_model)
             self.create_table_view(model, "Paraxial Ray Table")
 
-        if q.text() == "Paraxial Model":
+        if action == "Paraxial Model":
             model = cmds.create_parax_model_table(opt_model)
             self.create_table_view(model, "Paraxial Model")
 
-        if q.text() == "Ray Table":
+        if action == "Ray Table":
             self.create_ray_table(opt_model)
 
-        if q.text() == "Paraxial Vignetting":
+        if action == "Paraxial Vignetting":
             trace.apply_paraxial_vignetting(opt_model)
             self.refresh_gui()
 
-    def window_action(self, q):
-        if q.text() == "Cascade":
+    def do_window_action(self, q):
+        self.window_action(q.text())
+
+    def window_action(self, action):
+        if action == "Cascade":
             self.mdi.cascadeSubWindows()
 
-        if q.text() == "Tiled":
+        if action == "Tiled":
             self.mdi.tileSubWindows()
 
-        if q.text() == "Light UI":
+        if action == "Light UI":
             self.is_dark = self.light_or_dark(False)
             self.app_manager.sync_light_or_dark(self.is_dark)
 
-        if q.text() == "Dark UI":
+        if action == "Dark UI":
             self.is_dark = self.light_or_dark(True)
             self.app_manager.sync_light_or_dark(self.is_dark)
 
