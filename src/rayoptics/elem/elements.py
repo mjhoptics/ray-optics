@@ -142,8 +142,10 @@ def create_cemented_doublet(power=0., bending=0., th=None, sd=1.,
     power_a, power_b = achromat(power, Va, Vb)
 
     cv1 = power_a/(rndx_a[0] - 1)
-    cv2 = 0
-    cv3 = power_b/(1 - rndx_b[0])
+    delta_cv = -cv1/2
+    cv1 += delta_cv
+    cv2 = delta_cv
+    cv3 = power_b/(1 - rndx_b[0]) + delta_cv
     s1 = Surface(profile=Spherical(c=cv1), max_ap=sd,
                  delta_n=(rndx_a[0] - 1))
     s2 = Surface(profile=Spherical(c=cv2), max_ap=sd,
@@ -152,7 +154,7 @@ def create_cemented_doublet(power=0., bending=0., th=None, sd=1.,
                  delta_n=(1 - rndx_b[0]))
 
     if th is None:
-        th = sd/5
+        th = sd/4
     g1 = Gap(t=3*th/4, med=gla_a)
     g2 = Gap(t=th/4, med=gla_b)
 
