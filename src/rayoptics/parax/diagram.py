@@ -955,6 +955,7 @@ class AddReplaceElementAction():
                                             self.cur_node,
                                             node_init,
                                             insert=True)
+                    parax_model.paraxial_lens_to_seq_model()
                     fig.build = 'rebuild'
                     fig.refresh_gui(build='rebuild')
             elif isinstance(shape, DiagramNode):
