@@ -102,16 +102,38 @@ def create_mirror(c=0.0, r=None, cc=0.0, ec=None,
     return [[m, None, None, 1, -1]], [me], tree
 
 
+def lens_from_power(power=0., bending=0., th=None, sd=1.,
+                    med=None, nom_wvl='d'):
+    if med is None:
+        med = Glass()
+    rndx = med.rindex(nom_wvl)
+
+    if th is None:
+        th = sd/5
+    
+    if bending == -1:
+        cv2 = -power/(rndx - 1)
+        cv1 = 0
+    else:
+        B = (bending - 1)/(bending + 1)
+        a = (rndx - 1)*(th/rndx)*B
+        b = 1 - B
+        c = -power/(rndx - 1)
+        cv1 = (-b + np.sqrt(b**2 - 4*a*c))/(2*a)
+        cv2 = cv1*B
+
+    return cv1, cv2, th, rndx, sd
+   
+
 def create_lens(power=0., bending=0., th=None, sd=1., med=None, **kwargs):
     if med is None:
         med = Glass()
-    rndx = med.rindex('d')
-    cv1 = power/(2*(rndx - 1))
-    cv2 = -power/(2*(rndx - 1))
+    lens = lens_from_power(power=power, bending=bending, th=th, sd=sd,
+                           med=med)
+    cv1, cv2, th, rndx, sd = lens
+
     s1 = Surface(profile=Spherical(c=cv1), max_ap=sd, delta_n=(rndx - 1))
     s2 = Surface(profile=Spherical(c=cv2), max_ap=sd, delta_n=(1 - rndx))
-    if th is None:
-        th = sd/5
     g = Gap(t=th, med=med)
     le = Element(s1, s2, g, sd=sd)
     tree = le.tree()
@@ -141,11 +163,25 @@ def create_cemented_doublet(power=0., bending=0., th=None, sd=1.,
 
     power_a, power_b = achromat(power, Va, Vb)
 
-    cv1 = power_a/(rndx_a[0] - 1)
-    delta_cv = -cv1/2
-    cv1 += delta_cv
-    cv2 = delta_cv
-    cv3 = power_b/(1 - rndx_b[0]) + delta_cv
+    if th is None:
+        th = sd/4
+    t1 = 3*th/4
+    t2 = th/4
+    if power_a < 0:
+        t1, t2 = t2, t1
+
+    lens_a = lens_from_power(power=power_a, bending=bending, th=t1, sd=sd,
+                              med=gla_a)
+    cv1, cv2, t1, indx_a, sd = lens_a
+
+    # cv1 = power_a/(rndx_a[0] - 1)
+    # delta_cv = -cv1/2
+    # cv1 += delta_cv
+    # cv2 = delta_cv
+    # cv3 = power_b/(1 - rndx_b[0]) + delta_cv
+    indx_b = rndx_b[0]
+    cv3 = (power_b/(indx_b-1) - cv2)/((t2*cv2*(indx_b-1)/indx_b) - 1)
+
     s1 = Surface(profile=Spherical(c=cv1), max_ap=sd,
                  delta_n=(rndx_a[0] - 1))
     s2 = Surface(profile=Spherical(c=cv2), max_ap=sd,
@@ -153,10 +189,8 @@ def create_cemented_doublet(power=0., bending=0., th=None, sd=1.,
     s3 = Surface(profile=Spherical(c=cv3), max_ap=sd,
                  delta_n=(1 - rndx_b[0]))
 
-    if th is None:
-        th = sd/4
-    g1 = Gap(t=3*th/4, med=gla_a)
-    g2 = Gap(t=th/4, med=gla_b)
+    g1 = Gap(t=t1, med=gla_a)
+    g2 = Gap(t=t2, med=gla_b)
 
     g_tfrm = np.identity(3), np.array([0., 0., 0.])
 
@@ -241,10 +275,16 @@ class Element():
                          data_range=[10.0, 100.])
 
     label_format = 'E{}'
+    serial_number = 0
 
     def __init__(self, s1, s2, g, tfrm=None, idx=0, idx2=1, sd=1.,
-                 label='Lens'):
-        self.label = label
+                 label=None):
+        Element.serial_number += 1
+        if label is None:
+            self.label = Element.label_format.format(Element.serial_number)
+        else:
+            self.label = label
+
         if tfrm is not None:
             self.tfrm = tfrm
         else:
@@ -471,10 +511,16 @@ class Element():
 class Mirror():
 
     label_format = 'M{}'
+    serial_number = 0
 
     def __init__(self, ifc, tfrm=None, idx=0, sd=1., thi=None, z_dir=1.0,
-                 label='Mirror'):
-        self.label = label
+                 label=None):
+        Mirror.serial_number += 1
+        if label is None:
+            self.label = Mirror.label_format.format(Mirror.serial_number)
+        else:
+            self.label = label
+
         self.render_color = (158, 158, 158, 64)
         if tfrm is not None:
             self.tfrm = tfrm
@@ -648,9 +694,16 @@ class CementedElement():
                          data_range=[10.0, 100.])
 
     label_format = 'CE{}'
+    serial_number = 0
 
-    def __init__(self, ifc_list, label='CementedElement'):
-        self.label = label
+    def __init__(self, ifc_list, label=None):
+        CementedElement.serial_number += 1
+        if label is None:
+            self.label = CementedElement.label_format.format(
+                CementedElement.serial_number)
+        else:
+            self.label = label
+
         g_tfrm = ifc_list[0][4]
         if g_tfrm is not None:
             self.tfrm = g_tfrm
@@ -839,9 +892,16 @@ class CementedElement():
 class ThinElement():
 
     label_format = 'TL{}'
+    serial_number = 0
 
-    def __init__(self, ifc, tfrm=None, idx=0, sd=None, label='ThinLens'):
-        self.label = label
+    def __init__(self, ifc, tfrm=None, idx=0, sd=None, label=None):
+        ThinElement.serial_number += 1
+        if label is None:
+            self.label = ThinElement.label_format.format(
+                ThinElement.serial_number)
+        else:
+            self.label = label
+
         self.render_color = (192, 192, 192)
         if tfrm is not None:
             self.tfrm = tfrm
@@ -921,9 +981,16 @@ class ThinElement():
 class DummyInterface():
 
     label_format = 'D{}'
+    serial_number = 0
 
-    def __init__(self, ifc, idx=0, sd=None, tfrm=None, label='DummyInterface'):
-        self.label = label
+    def __init__(self, ifc, idx=0, sd=None, tfrm=None, label=None):
+        DummyInterface.serial_number += 1
+        if label is None:
+            self.label = DummyInterface.label_format.format(
+                DummyInterface.serial_number)
+        else:
+            self.label = label
+
         self.render_color = (192, 192, 192)
         if tfrm is not None:
             self.tfrm = tfrm
@@ -1029,13 +1096,20 @@ class DummyInterface():
 class AirGap():
 
     label_format = 'AG{}'
+    serial_number = 0
 
-    def __init__(self, g, idx=0, tfrm=None, label='AG'):
+    def __init__(self, g, idx=0, tfrm=None, label=None):
+        AirGap.serial_number += 1
+        if label is None:
+            self.label = AirGap.label_format.format(AirGap.serial_number)
+        else:
+            self.label = label
+
         if tfrm is not None:
             self.tfrm = tfrm
         else:
             self.tfrm = (np.identity(3), np.array([0., 0., 0.]))
-        self.label = label
+
         self.render_color = (237, 243, 254, 64)  # light blue
         self.gap = g
         self.medium_name = self.gap.medium.name()
@@ -1186,8 +1260,8 @@ class ElementModel:
 
         s = seq_model.ifcs[-1]
         idx = seq_model.get_num_surfaces() - 1
-        di = DummyInterface(s, sd=s.surface_od(), tfrm=tfrms[-1], idx=idx)
-        di.label = 'Image'
+        di = DummyInterface(s, sd=s.surface_od(), tfrm=tfrms[-1], idx=idx,
+                            label='Image')
         self.opt_model.part_tree.add_element_to_tree(di, tag='#image')
         self.add_element(di)
 
@@ -1229,6 +1303,14 @@ class ElementModel:
     def remove_element(self, e):
         e.parent = None
         self.elements.remove(e)
+
+    def remove_node(self, e_node):
+        part_tree = self.opt_model.part_tree
+        nodes = part_tree.nodes_with_tag(tag='#element#airgap#dummyifc',
+                                         root=e_node)
+        eles = [n.id for n in nodes]
+        for e in eles:
+            self.remove_element(e)
 
     def get_num_elements(self):
         return len(self.elements)

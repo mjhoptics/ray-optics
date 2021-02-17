@@ -934,6 +934,7 @@ class AddReplaceElementAction():
         seq_model = diagram.opt_model.seq_model
         parax_model = diagram.opt_model.parax_model
         self.cur_node = None
+        self.init_inputs = None
 
         def on_press_add_point(fig, event, shape):
             # if we don't have factory functions, skip the command
@@ -986,8 +987,9 @@ class AddReplaceElementAction():
                     thi = n_after*parax_model.sys[idx-1][tau]
                     seq_model.gaps[idx-1].thi = thi
                     # remove the edit scaffolding or previous node from model
-                    args, kwargs = self.init_inputs
-                    diagram.opt_model.remove_ifc_gp_ele(*args, **kwargs)
+                    seq, eles, e_node = self.init_inputs[0]
+                    diagram.opt_model.remove_node(e_node)
+                    parax_model.paraxial_lens_to_seq_model()
                 fig.build = 'rebuild'
                 fig.refresh_gui(build='rebuild')
             self.cur_node = None

@@ -222,7 +222,6 @@ class OpticalModel:
         if 'insert' in kwargs:
             t = kwargs['t'] if 't' in kwargs else 0.
             g, ag, ag_node = ele.create_air_gap(t=t)
-            ag.label = ag.label_format.format(self.seq_model.cur_surface+1)
             seq[-1][mc.Gap] = g
             elm.append(ag)
             ag_node.parent = self.part_tree.root_node
@@ -263,6 +262,14 @@ class OpticalModel:
         for e in elm:
             self.ele_model.remove_element(e)
 
+        e_node.parent = None
+
+    def remove_node(self, e_node):
+        # remove interfaces from seq_model
+        self.seq_model.remove_node(e_node)
+        # remove elements from ele_model
+        self.ele_model.remove_node(e_node)
+        # unhook node
         e_node.parent = None
 
     def list_part_tree(self):

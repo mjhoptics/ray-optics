@@ -9,7 +9,6 @@
 """
 
 import numpy as np
-from anytree.search import find_by_attr
 
 from rayoptics.optical.model_constants import ht, slp, aoi
 from rayoptics.optical.model_constants import pwr, tau, indx, rmd
@@ -17,7 +16,8 @@ import rayoptics.optical.model_constants as mc
 import rayoptics.parax.firstorder as fo
 from rayoptics.seq.gap import Gap
 from rayoptics.elem.surface import Surface
-from rayoptics.elem import elements
+
+from rayoptics.util.line_intersection import get_intersect
 
 
 def bbox_from_poly(poly):
@@ -120,22 +120,66 @@ class ParaxialModel():
         sys_seq = self.seq_path_to_paraxial_lens(inserted_seq[1:])
         pp_info = self.compute_principle_points(inserted_seq)
         self.replace_node_with_seq(node, sys_seq, pp_info)
+        self.compute_signed_rindx()
 
         return descriptor, kwargs
 
+    def compute_signed_rindx(self):
+        """Reset the state of the refractive index array.
+        
+        This method resets the signs of the refractive indices so that they are
+        negative following an odd number of reflections, but positive otherwise.
+        """
+        flip = 1
+        for ss in self.sys:
+            ss[indx] = abs(ss[indx])
+            if ss[rmd] == 'reflect':
+                flip = -flip
+            if flip < 0:
+                ss[indx] = -ss[indx]
+
     def replace_node_with_seq(self, node, sys_seq, pp_info):
         """ replaces the data at node with sys_seq """
-        efl, pp1, ppk, ffl, bfl = pp_info[2]
-        self.sys[node-1][tau] -= pp1/self.sys[node-1][indx]
-        sys_seq[-1][tau] = self.sys[node][tau] - ppk/sys_seq[-1][indx]
-
-        self.delete_node(node)
-        for ss in sys_seq:
-            self.sys.insert(node, ss)
-            self.ax.insert(node, [0.0, 0.0, 0.0])
-            self.pr.insert(node, [0.0, 0.0, 0.0])
-            node += 1
-        self.paraxial_trace()
+        sys = self.sys
+        ax = self.ax
+        pr = self.pr
+        if len(sys_seq) == 1:
+            sys[node] = sys_seq[0]
+        else:
+            opt_inv = self.opt_inv
+            efl, pp1, ppk, ffl, bfl = pp_info[2]
+            sys[node-1][tau] -= pp1/sys[node-1][indx]
+    
+            # sys_seq[-1][tau] = sys[node][tau] - ppk/sys_seq[-1][indx]
+            p0 = [ax[node][ht], pr[node][ht]]
+            pn = [ax[node+1][ht], pr[node+1][ht]]
+            slp0 = [ax[node][slp], pr[node][slp]]
+    
+            for n, ss in enumerate(sys_seq[:-1], start=node):
+                sys.insert(n, ss)
+    
+                ax_ht = ax[n-1][ht] + sys[n-1][tau]*ax[n-1][slp]
+                ax_slp = ax[n-1][slp] - ax_ht*sys[n][pwr]
+                ax.insert(n, [ax_ht, ax_slp, 0.0])
+    
+                pr_ht = pr[n-1][ht] + sys[n-1][tau]*pr[n-1][slp]
+                pr_slp = pr[n-1][slp] - pr_ht*sys[n][pwr]
+                pr.insert(n, [pr_ht, pr_slp, 0.0])
+    
+            # replace the original node data
+            ax[n+1][slp] = slp0[0]
+            pr[n+1][slp] = slp0[1]
+            sys[n+1][pwr] = (ax[n][slp]*pr[n+1][slp] -
+                             ax[n+1][slp]*pr[n][slp])/opt_inv
+            # sys_seq[-1][pwr]
+            p1 = [ax[n][ht], pr[n][ht]]
+            p2 = [ax[n][ht]+ax[n][slp], pr[n][ht]+pr[n][slp]]
+            p2int = np.array(get_intersect(p1, p2, p0, pn))
+            ax[n+1][ht] = p2int[0]
+            pr[n+1][ht] = p2int[1]
+            sys[n][tau] = (
+                (ax[n][ht]*pr[n+1][ht] - ax[n+1][ht]*pr[n][ht])/opt_inv)
+            sys[n+1][tau] = (p2int[0]*pn[1] - pn[0]*p2int[1])/opt_inv
 
     def get_object_for_node(self, node):
         ''' basic 1:1 relationship between seq and parax model sequences '''
@@ -144,10 +188,6 @@ class ParaxialModel():
         args = [[ifc, None, None, 1, 1]], [e_node.id], e_node
         kwargs = {'idx': node}
         return args, kwargs
-
-    def add_object(self, surf, new_vertex, type_sel, factory, interact_mode):
-        new_surf = self.add_node(surf, new_vertex, type_sel, interact_mode)
-        self.assign_object_to_node(new_surf, factory)
 
     def delete_node(self, surf):
         """ delete the node at position surf """
@@ -296,18 +336,31 @@ class ParaxialModel():
 
         print("       ax_ray_ht    ax_ray_slp")
         for i in range(0, len(ax_ray)):
-            print("{:2}: {:12.5g}  {:12.6g}".format(i, ax_ray[i][ht],
+            print("{:2}: {:12.6g}  {:12.6g}".format(i, ax_ray[i][ht],
                                                     ax_ray[i][slp]))
 
         print("\n       pr_ray_ht    pr_ray_slp")
         for i in range(0, len(pr_ray)):
-            print("{:2}: {:12.5g}  {:12.6g}".format(i, pr_ray[i][ht],
+            print("{:2}: {:12.6g}  {:12.6g}".format(i, pr_ray[i][ht],
                                                     pr_ray[i][slp]))
 
         print("\n            power           tau        index    type")
         for i in range(0, len(sys)):
             print("{:2}: {:13.7g}  {:12.5g} {:12.5f}    {}".format(
                 i, sys[i][pwr], sys[i][tau], sys[i][indx], sys[i][rmd]))
+
+    def list_sys_seq(self):
+        print("             c            t        medium     mode")
+        fmt = "{:2}: {:12.7g} {:#12.6g} {:12.5f} {:>10s}"
+        sys = self.sys
+        n_before = sys[0][indx]
+        for i, sg in enumerate(self.sys):
+            n_after = sys[i][indx]
+            thi = n_after*sys[i][tau]
+            delta_n = n_after - n_before
+            cv = sys[i][pwr] if delta_n == 0 else sys[i][pwr]/delta_n
+            print(fmt.format(i, cv, thi, n_after, sys[i][rmd]))
+            n_before = n_after
 
     def first_order_data(self):
         """List out the first order imaging properties of the model."""

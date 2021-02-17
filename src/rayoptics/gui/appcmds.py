@@ -95,18 +95,23 @@ def create_new_model():
     return create_new_optical_system()
 
 
-def create_new_optical_system(efl=10.0, fov=1.0):
+def create_new_optical_system(efl=10.0, epd=1, fov=1.0):
     imager_inputs = {'s': -math.inf, 'f': efl}
     inf_conj_imgr = ideal_imager_setup(**imager_inputs)
 
     ei = create_etendue_dict()
     ei['field']['object']['angle'] = fov
+    ei['aperture']['object']['pupil'] = epd
     ssi = SpecSheet('infinite',
                     imager=inf_conj_imgr,
                     imager_inputs=imager_inputs,
                     etendue_inputs=ei)
 
     opt_model = create_new_optical_model_from_specsheet(ssi)
+
+    sr = opt_model.optical_spec.spectral_region
+    sr.set_from_list([('F', 1), ('d', 1), ('C', 1)])
+    sr.reference_wvl = 1
 
     return opt_model
 

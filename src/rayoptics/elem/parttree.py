@@ -93,7 +93,7 @@ class PartTree():
     def list_tree(self):
         print(RenderTree(self.root_node).by_attr())
 
-    def nodes_with_tag(self, tag='#element'):
+    def nodes_with_tag(self, tag='#element', root=None):
         def tag_filter(tags):
             def filter_tagged_node(node):
                 for t in tags:
@@ -103,7 +103,8 @@ class PartTree():
             return filter_tagged_node
 
         tags = tag.split('#')[1:]
-        nodes = [node for node in PreOrderIter(self.root_node,
+        root_node = self.root_node if root is None else root
+        nodes = [node for node in PreOrderIter(root_node,
                                                filter_=tag_filter(tags))]
         return nodes
 
@@ -193,7 +194,6 @@ def elements_from_sequence(ele_model, seq_model, part_tree):
     if len(part_tree.root_node.children) == 0:
         # initialize part tree using the seq_model
         part_tree.init_from_sequence(seq_model)
-    num_elements = 0
     g_tfrms = seq_model.compute_global_coords(1)
     buried_reflector = False
     eles = []
@@ -207,10 +207,9 @@ def elements_from_sequence(ele_model, seq_model, part_tree):
                 num_eles = len(eles)
                 if num_eles == 0:
                     if i > 0:
-                        num_elements = process_airgap(
+                        process_airgap(
                             ele_model, seq_model, part_tree,
-                            i, g, z_dir, ifc, g_tfrm, num_elements,
-                            add_ele=True)
+                            i, g, z_dir, ifc, g_tfrm, add_ele=True)
                 else:
                     if buried_reflector is True:
                         num_eles = num_eles//2
@@ -222,8 +221,6 @@ def elements_from_sequence(ele_model, seq_model, part_tree):
                         sd = max(s1.surface_od(), ifc.surface_od())
                         e = elements.Element(s1, ifc, g1, sd=sd, tfrm=g_tfrm1,
                                              idx=i1, idx2=i)
-                        num_elements += 1
-                        e.label = e.label_format.format(num_elements)
 
                         e_node = part_tree.add_element_to_tree(e)
                         ele_model.add_element(e)
@@ -245,8 +242,6 @@ def elements_from_sequence(ele_model, seq_model, part_tree):
                         if not buried_reflector:
                             eles.append((i, ifc, g, z_dir, g_tfrm))
                         e = elements.CementedElement(eles[:num_eles+1])
-                        num_elements += 1
-                        e.label = e.label_format.format(num_elements)
 
                         e_node = part_tree.add_element_to_tree(e)
                         ele_model.add_element(e)
@@ -274,7 +269,6 @@ def elements_from_sequence(ele_model, seq_model, part_tree):
 
                     # add an AirGap
                     ag = elements.AirGap(g, idx=i, tfrm=g_tfrm)
-                    ag.label = ag.label_format.format(i)
                     ag_node = part_tree.add_element_to_tree(ag)
                     ag_node.leaves[0].id = (g, z_dir)
                     ele_model.add_element(ag)
@@ -291,23 +285,20 @@ def elements_from_sequence(ele_model, seq_model, part_tree):
 
 
 def process_airgap(ele_model, seq_model, part_tree, i, g, z_dir, s, g_tfrm,
-                   num_ele, add_ele=True):
+                   add_ele=True):
     if s.interact_mode == 'reflect' and add_ele:
         sd = s.surface_od()
         z_dir = seq_model.z_dir[i]
         m = elements.Mirror(s, sd=sd, tfrm=g_tfrm, idx=i, z_dir=z_dir)
-        num_ele += 1
-        m.label = elements.Mirror.label_format.format(num_ele)
         part_tree.add_element_to_tree(m)
         ele_model.add_element(m)
     elif isinstance(s, thinlens.ThinLens) and add_ele:
         te = elements.ThinElement(s, tfrm=g_tfrm, idx=i)
-        num_ele += 1
-        te.label = elements.ThinElement.label_format.format(num_ele)
         part_tree.add_element_to_tree(te)
         ele_model.add_element(te)
     elif s.interact_mode == 'transmit':
         add_dummy = False
+        dummy_label = None
         dummy_tag = ''
         if i == 0:
             add_dummy = True  # add dummy for the object
@@ -320,20 +311,15 @@ def process_airgap(ele_model, seq_model, part_tree, i, g, z_dir, s, g_tfrm,
                 if seq_model.stop_surface == i:
                     dummy_label = 'Stop'
                     dummy_tag = '#stop'
-                else:
-                    dummy_label = elements.DummyInterface.label_format.format(
-                        i)
         if add_dummy:
             sd = s.surface_od()
-            di = elements.DummyInterface(s, sd=sd, tfrm=g_tfrm, idx=i)
-            di.label = dummy_label
+            di = elements.DummyInterface(s, sd=sd, tfrm=g_tfrm, idx=i,
+                                         label=dummy_label)
             part_tree.add_element_to_tree(di, tag=dummy_tag)
             ele_model.add_element(di)
 
     # add an AirGap
     ag = elements.AirGap(g, idx=i, tfrm=g_tfrm)
-    ag.label = ag.label_format.format(i)
     ag_node = part_tree.add_element_to_tree(ag)
     ag_node.leaves[0].id = (g, z_dir)
     ele_model.add_element(ag)
-    return num_ele

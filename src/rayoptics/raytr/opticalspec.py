@@ -148,7 +148,7 @@ class WvlSpec:
 
     """
 
-    def __init__(self, wlwts=[(550., 1.)], ref_wl=0, do_init=True, **kwargs):
+    def __init__(self, wlwts=[('d', 1.)], ref_wl=0, do_init=True, **kwargs):
         if do_init:
             self.set_from_list(wlwts)
         else:

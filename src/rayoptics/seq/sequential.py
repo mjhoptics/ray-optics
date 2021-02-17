@@ -273,11 +273,30 @@ class SequentialModel:
         del self.ifcs[idx]
         del self.gbl_tfrms[idx]
         del self.lcl_tfrms[idx]
+        # the following items are associated with gaps but artificially
+        # extend image space beyond the image interface
+        del self.z_dir[idx]
+        del self.rndx[idx]
 
         idx = idx-1 if prev else idx
         del self.gaps[idx]
-        del self.z_dir[idx]
-        del self.rndx[idx]
+
+    def remove_node(self, e_node):
+        part_tree = self.opt_model.part_tree
+        ifcs = [n.id for n in part_tree.nodes_with_tag(tag='#ifc',
+                                                       root=e_node)]
+        for ifc in ifcs:
+            idx = self.ifcs.index(ifc)
+            if (self.stop_surface is not None and
+                idx <= self.stop_surface and
+                idx > 1):
+                self.stop_surface -= 1
+            del self.ifcs[idx]
+            del self.gaps[idx]
+            del self.z_dir[idx]
+            del self.rndx[idx]
+            del self.lcl_tfrms[idx]
+            del self.gbl_tfrms[idx]
 
     def add_surface(self, surf_data, **kwargs):
         """ add a surface where surf is a list that contains:
