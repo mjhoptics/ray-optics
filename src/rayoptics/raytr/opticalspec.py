@@ -135,8 +135,8 @@ class OpticalSpecs:
     def list_first_order_data(self):
         self.parax_data.fod.list_first_order_data()
 
-    def list_parax_trace(self):
-        list_parax_trace(self.opt_model)
+    def list_parax_trace(self, **kwargs):
+        list_parax_trace(self.opt_model, **kwargs)
 
 
 class WvlSpec:

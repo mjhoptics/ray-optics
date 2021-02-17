@@ -46,7 +46,7 @@ class FirstOrderData:
         n_obj: refractive index at central wavelength in object space
         n_img: refractive index at central wavelength in image space
         obj_dist: object distance
-        img_dist: image distance
+        img_dist: paraxial image distance
         obj_ang: maximum object angle (degrees)
         img_ht: image height
         enp_dist: entrance pupil distance from 1st interface
@@ -240,6 +240,8 @@ def compute_first_order(opt_model, stop, wvl):
         if obj_img_key == 'object':
             if value_key == 'pupil':
                 slp0 = 0.5*pupil.value/obj2enp_dist
+            elif value_key == 'f/#':
+                slp0 = -1./(2.0*pupil.value)
             elif value_key == 'NA':
                 slp0 = n_0*math.tan(math.asin(pupil.value/n_0))
         elif obj_img_key == 'image':
@@ -284,13 +286,14 @@ def compute_first_order(opt_model, stop, wvl):
     fod = FirstOrderData()
     fod.opt_inv = opt_inv
     fod.obj_dist = obj_dist = seq_model.gaps[0].thi
-    fod.img_dist = img_dist = seq_model.gaps[-1].thi
     if ck1 == 0.0:
+        fod.img_dist = img_dist = 1e10
         fod.power = 0.0
         fod.efl = 0.0
         fod.pp1 = 0.0
         fod.ppk = 0.0
     else:
+        fod.img_dist = img_dist = -ax_ray[img][ht]/ax_ray[img][slp]
         fod.power = -ck1
         fod.efl = -1.0/ck1
         fod.pp1 = (dk1 - 1.0)*(n_0/ck1)
@@ -367,14 +370,14 @@ def compute_principle_points(path, n_0=1.0, n_k=1.0):
     else:
         efl = -1.0/ck1
         pp1 = (dk1 - 1.0)*(n_0/ck1)
-        ppk = (p_ray[-1][ht] - 1.0)*(n_k/ck1)
+        ppk = (ak1 - 1.0)*(n_k/ck1)
     ffl = pp1 - efl
     bfl = efl - ppk
 
     return p_ray, q_ray, (efl, pp1, ppk, ffl, bfl)
 
 
-def list_parax_trace(opt_model):
+def list_parax_trace(opt_model, reduced=False):
     """ list the paraxial axial and chief ray data """
     seq_model = opt_model.seq_model
     ax_ray, pr_ray, fod = opt_model.optical_spec.parax_data
@@ -384,9 +387,11 @@ def list_parax_trace(opt_model):
     for i, ax in enumerate(ax_ray):
         n = seq_model.central_rndx(i)
         n = n if seq_model.z_dir[i] > 0 else -n
+        ax_slp = n*ax_ray[i][slp] if reduced else ax_ray[i][slp]
+        pr_slp = n*pr_ray[i][slp] if reduced else pr_ray[i][slp]
         print("{:2} {:12.6g} {:12.6g} {:12.6g} {:12.6g} {:12.6g} {:12.6g}"
-              .format(i, ax_ray[i][ht], ax_ray[i][slp], n*ax_ray[i][aoi],
-                      pr_ray[i][ht], pr_ray[i][slp], n*pr_ray[i][aoi]))
+              .format(i, ax_ray[i][ht], ax_slp, n*ax_ray[i][aoi],
+                      pr_ray[i][ht], pr_slp, n*pr_ray[i][aoi]))
 
 
 def specsheet_from_parax_data(opt_model, specsheet):
