@@ -1031,7 +1031,7 @@ class DummyInterface():
     def tree(self, **kwargs):
         default_tag = '#dummyifc'
         tag = default_tag + kwargs.get('tag', '')
-        di = Node('di', id=self, tag=tag)
+        di = Node('DI', id=self, tag=tag)
         p = Node('p', id=self.ref_ifc.profile, tag='#profile', parent=di)
         Node(f'i{self.idx}', id=self.ref_ifc, tag='#ifc', parent=p)
         return di
@@ -1144,7 +1144,7 @@ class AirGap():
     def tree(self, **kwargs):
         default_tag = '#airgap'
         tag = default_tag + kwargs.get('tag', '')
-        ag = Node('ag', id=self, tag=tag)
+        ag = Node('AG', id=self, tag=tag)
         t = Node('t', id=self.gap, tag='#thic', parent=ag)
         zdir = kwargs.get('z_dir', 1)
         Node(f'g{self.idx}', id=(self.gap, zdir), tag='#gap', parent=t)

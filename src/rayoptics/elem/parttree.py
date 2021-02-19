@@ -166,12 +166,6 @@ def sync_part_tree_on_update(ele_model, seq_model, root_node):
             e = ele_dict[p_name]
             idx = int(name[1:])-1 if len(name) > 1 else 0
             node.id = e.interface_list()[idx].profile
-        elif name[:2] == 'di':
-            p_name = node.parent.name
-            e = ele_dict[p_name]
-            node.id = e.ref_ifc
-            idx = seq_model.ifcs.index(node.id)
-            node.name = f'di{idx}'
         elif name[:2] == 'tl':
             p_name = node.parent.name
             e = ele_dict[p_name]
