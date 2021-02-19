@@ -15,7 +15,7 @@ from math import sqrt, copysign
 import rayoptics.optical.model_constants as mc
 from rayoptics.elem.transform import (transform_before_surface,
                                       transform_after_surface)
-from rayoptics.optical.model_constants import Intfc, Gap, Indx, Tfrm, Zdir
+from rayoptics.optical.model_constants import Intfc, Gap, Tfrm, Indx, Zdir
 from .traceerror import (TraceMissedSurfaceError, TraceTIRError,
                          TraceEvanescentRayError)
 

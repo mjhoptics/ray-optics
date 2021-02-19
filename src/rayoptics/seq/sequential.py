@@ -16,7 +16,7 @@ from rayoptics.raytr import raytrace as rt
 from rayoptics.raytr import trace as trace
 from rayoptics.raytr import analyses
 from rayoptics.elem import transform as trns
-from rayoptics.optical.model_constants import Intfc, Gap, Indx, Tfrm, Zdir
+from rayoptics.optical.model_constants import Intfc, Gap, Tfrm, Indx, Zdir
 from opticalglass import glassfactory as gfact
 from opticalglass import glasserror as ge
 import numpy as np
