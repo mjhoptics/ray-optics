@@ -446,7 +446,8 @@ def create_parax_model_table(opt_model):
                   '.sys[{}][0]', '.sys[{}][1]', '.sys[{}][2]', '.sys[{}][3]']
     seq_model = opt_model.seq_model
     rowHeaders = seq_model.surface_label_list()
-    colHeaders = ['y', 'y-bar', 'u', 'u-bar', 'pwr', 'tau', 'n after', 'mode']
+    colHeaders = ['y', 'y-bar', 'nu', 'nu-bar',
+                  'pwr', 'tau', 'n after', 'mode']
     colFormats = ['{:12.5g}', '{:12.5g}', '{:9.6f}', '{:9.6f}',
                   '{:12.7g}', '{:12.5g}', '{:7.4f}', '{:s}']
     return PyTableModel(opt_model, rootEvalStr, colEvalStr, rowHeaders,
