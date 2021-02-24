@@ -42,10 +42,10 @@ def reflect(d_in, normal):
     return d_out
 
 
-def phase(ifc, inc_pt, d_in, normal, wvl, n_in, n_out):
+def phase(ifc, inc_pt, d_in, normal, z_dir, wvl, n_in, n_out):
     """ apply phase shift to incoming direction, d_in, about normal """
     try:
-        d_out, dW = ifc.phase(inc_pt, d_in, normal, wvl)
+        d_out, dW = ifc.phase(inc_pt, d_in, normal, z_dir, wl=wvl)
         return d_out, dW
     except ValueError:
         raise TraceEvanescentRayError(ifc, inc_pt, d_in, normal, n_in, n_out)
@@ -175,8 +175,8 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, **kwargs):
 
             # if the interface has a phase element, process that first
             if hasattr(ifc, 'phase_element'):
-                doe_dir, phs = phase(ifc, inc_pt, b4_dir, normal, wvl,
-                                     before[Indx], after[Indx])
+                doe_dir, phs = phase(ifc, inc_pt, b4_dir, normal, z_dir_before,
+                                     wvl, before[Indx], after[Indx])
                 # the output of the phase element becomes the input for the
                 #  refraction/reflection calculation
                 b4_dir = doe_dir

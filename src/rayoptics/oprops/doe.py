@@ -104,13 +104,14 @@ class DiffractiveElement:
               .format(self.ref_pt[0], self.ref_pt[1], self.ref_pt[2],
                       self.ref_virtual))
 
-    def phase(self, pt, in_dir, srf_nrml, wl=None):
+    def phase(self, pt, in_dir, srf_nrml, z_dir, wl=None):
         """Returns a diffracted ray and phase increment.
 
         Args:
             pt: point of incidence in :class:`~.Interface` coordinates
             in_dir: incoming direction cosine of incident ray
             srf_nrml: :class:`~.Interface` surface normal at pt
+            z_dir: -1 if after an odd # of reflections, +1 otherwise
             wl: wavelength in nm for ray, defaults to ref_wl
 
         Returns:
@@ -128,7 +129,8 @@ class DiffractiveElement:
         b = in_cosI + order*mu*(normal[0]*dWdX + normal[1]*dWdY)
         c = mu*(mu*(dWdX**2 + dWdY**2)/2 +
                 order*(in_dir[0]*dWdX + in_dir[1]*dWdY))
-        Q = -b + sqrt(b*b - 2*c)
+        # pick the root based on z_dir
+        Q = -b + z_dir*sqrt(b*b - 2*c)
 #        print("{:6.3f} {:12.5f} {:12.5f} {:12.5f} {:12.5f} {:12.5f} {:12.5f}"
 #              .format(mu, dW, dWdX, dWdY, b, c, Q))
         out_dir = in_dir + order*mu*(np.array([dWdX, dWdY, 0])) + Q*normal
@@ -137,6 +139,7 @@ class DiffractiveElement:
 
 
 class HolographicElement:
+    """Two point hologram element. """
     def __init__(self, label=''):
         self.label = label
         self.ref_pt = np.array([0., 0., -1e10])
@@ -153,7 +156,7 @@ class HolographicElement:
               .format(self.obj_pt[0], self.obj_pt[1], self.obj_pt[2],
                       self.obj_virtual))
 
-    def phase(self, pt, in_dir, srf_nrml, wl=None):
+    def phase(self, pt, in_dir, srf_nrml, z_dir, wl=None):
         normal = normalize(srf_nrml)
         ref_dir = normalize(pt - self.ref_pt)
         if self.ref_virtual:
@@ -170,7 +173,8 @@ class HolographicElement:
         objp_cosI = np.dot(obj_dir, in_dir)
         ro_cosI = np.dot(ref_dir, obj_dir)
         c = mu*(mu*(1.0 - ro_cosI) + (objp_cosI - refp_cosI))
-        Q = -b + sqrt(b*b - 2*c)
+        # pick the root based on z_dir
+        Q = -b + z_dir*sqrt(b*b - 2*c)
         out_dir = in_dir + mu*(obj_dir - ref_dir) + Q*normal
         dW = 0.
         return out_dir, dW
