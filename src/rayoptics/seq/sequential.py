@@ -76,6 +76,7 @@ class SequentialModel:
         self.cur_surface = None
         self.wvlns = []
         self.rndx = []
+        self.do_apertures = True
         if do_init:
             self._initialize_arrays()
 
@@ -323,6 +324,8 @@ class SequentialModel:
             if sg[Gap]:
                 if hasattr(sg[Gap], 'sync_to_restore'):
                     sg[Gap].sync_to_restore(self)
+        if not hasattr(self, 'do_apertures'):
+            self.do_apertures = True
 
     def update_model(self):
         # delta n across each surface interface must be set to some
@@ -357,10 +360,11 @@ class SequentialModel:
         self.gbl_tfrms = self.compute_global_coords()
         self.lcl_tfrms = self.compute_local_transforms()
 
-        if len(self.ifcs) > 2:
-            osp.update_model()
-
-            self.set_clear_apertures()
+        if self.do_apertures:
+            if len(self.ifcs) > 2:
+                osp.update_model()
+    
+                self.set_clear_apertures()
 
     def apply_scale_factor(self, scale_factor):
         for i, sg in enumerate(self.path()):
@@ -676,6 +680,12 @@ class SequentialModel:
     #         semi_ap = inc_pts_rd.max(axis=1)
     #         for s, max_ap in zip(self.ifcs[1:-1], semi_ap[1:-1]):
     #             s.set_max_aperture(max_ap)
+
+    def set_clear_apertures_paraxial(self):
+        ax_ray, pr_ray, _ = self.opt_model.optical_spec.parax_data
+        for i, ifc in enumerate(self.ifcs):
+            sd = abs(ax_ray[i][0]) + abs(pr_ray[i][0])
+            ifc.set_max_aperture(sd)
 
     def set_clear_apertures(self):
         rayset = trace.trace_boundary_rays(self.opt_model,

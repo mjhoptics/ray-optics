@@ -702,7 +702,7 @@ class EvenPolynomial(SurfaceProfile):
         e = self.cv/sqrt(1. - self.ec*self.cv*self.cv*r2)
 
         # polynomial asphere contribution
-        r_pow = sqrt(r2)  # = r
+        r_pow = 1
         e_asp = 0.0
         c_coef = 2.0
         for i in range(self.max_nonzero_coef):
@@ -901,7 +901,7 @@ class RadialPolynomial(SurfaceProfile):
         else:
             # Initialize to 1/r because we multiply by r's components p[0] and
             # p[1] at the final normalization step.
-            r_pow = 1.0
+            r_pow = 1/r
         c_coef = 1.0
         for coef in self.coefs[:self.max_nonzero_coef]:
             e_asp += c_coef*coef*r_pow

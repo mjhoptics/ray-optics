@@ -441,9 +441,10 @@ class Field:
 
     def __json_encode__(self):
         attrs = dict(vars(self))
-        del attrs['chief_ray']
-        del attrs['ref_sphere']
-        del attrs['pupil_rays']
+        items = ['chief_ray', 'ref_sphere', 'pupil_rays']
+        for item in items:
+            if item in attrs:
+                del attrs[item]
         return attrs
 
     def __str__(self):
