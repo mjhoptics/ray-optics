@@ -4,6 +4,11 @@
 Changelog
 =========
 
+Version 0.6.5
+==============
+
+Fixes for ray normal calculation in Even and Radial polynomial profiles, the ray trace was incorrect for these surfaces. Add do_aperture flag to :class:`~.seq.sequential.SequentialModel` to control aperture setting by :meth:`~.seq.sequential.SequentialModel.update_model`. Miscellaneous other fixes and enhancements.
+
 Version 0.6.4
 ==============
 
