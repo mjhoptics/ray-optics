@@ -104,6 +104,10 @@ class OpticalModel:
         if self.specsheet:
             self.set_from_specsheet()
 
+        if kwargs.get('do_init', True):
+            # need to do this after OpticalSpec is initialized
+            self.seq_model.update_model()
+
     def name(self):
         return self.system_spec.title
 

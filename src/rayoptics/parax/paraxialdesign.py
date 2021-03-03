@@ -459,7 +459,7 @@ class ParaxialModel():
         sm = self.seq_model
         min_vly = 1, None
         min_vuy = 1, None
-        for i, ifc in enumerate(sm.ifcs):
+        for i, ifc in enumerate(sm.ifcs[:-1]):
             if self.ax[i][mc.ht] != 0:
                 max_ap = ifc.surface_od()
                 y = self.ax[i][mc.ht]
