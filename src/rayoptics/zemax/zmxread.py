@@ -38,6 +38,13 @@ def read_lens_file(filename, **kwargs):
     It appears that Zemax .zmx files are written in UTF-16 encoding. Test
     against what seem to be common encodings. If other encodings are used in
     'files in the wild', please add them to the list.
+    
+    Args:
+        filename (pathlib.Path): a Zemax .zmx file path
+        kwargs (dict): keyword args passed to the reader functions
+
+    Returns:
+        an OpticalModel instance and a info tuple
     """
     global _track_contents
     if 'encoding' in kwargs:

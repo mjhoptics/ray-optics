@@ -25,8 +25,6 @@ from rayoptics.seq.medium import (Air, Glass, InterpolatedGlass, Medium,
 from rayoptics.raytr.opticalspec import Field
 from rayoptics.util.misc_math import isanumber
 
-from opticalglass import glassfactory as gfact
-from opticalglass import glasserror
 from opticalglass import util
 
 _tla = tla.MapTLA()
@@ -51,7 +49,15 @@ def fictitious_glass_decode(gc):
 
 
 def read_lens(filename, **kwargs):
-    ''' given a CODE V .seq filename, return an OpticalModel  '''
+    """ given a CODE V .seq filename, return an OpticalModel
+    
+    Args:
+        filename (pathlib.Path): a CODE V .seq file path
+        kwargs (dict): keyword args passed to the reader functions
+
+    Returns:
+        an OpticalModel instance and a info tuple
+    """
     global _glass_handler, _track_contents
     global _reading_private_catalog
     logging.basicConfig(filename='cv_cmd_proc.log',
