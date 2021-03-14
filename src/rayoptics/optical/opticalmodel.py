@@ -129,8 +129,8 @@ class OpticalModel:
             self.specsheet = specsheet
         else:
             specsheet = self.specsheet
-        self.seq_model.set_from_specsheet(specsheet)
         self.optical_spec.set_from_specsheet(specsheet)
+        self.seq_model.set_from_specsheet(specsheet)
 
     def save_model(self, file_name):
         file_extension = os.path.splitext(file_name)[1]
