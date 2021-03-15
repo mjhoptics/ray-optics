@@ -750,7 +750,6 @@ class CementedElement():
         del attrs['ifcs']
         del attrs['gaps']
         del attrs['flats']
-        del attrs['ele_list']
         del attrs['handles']
         del attrs['actions']
         return attrs
@@ -766,6 +765,7 @@ class CementedElement():
         self.ifcs = [surfs[i] for i in self.idxs]
         self.gaps = [gaps[i] for i in self.idxs[:-1]]
         self.tfrm = tfrms[self.idxs[0]]
+        self.flats = [None]*len(self.ifcs)
         if not hasattr(self, 'medium_name'):
             self.medium_name = self.gap.medium.name()
 

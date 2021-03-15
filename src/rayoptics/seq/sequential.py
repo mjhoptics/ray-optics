@@ -318,12 +318,22 @@ class SequentialModel:
         if hasattr(self, 'optical_spec'):
             opt_model.optical_spec = self.optical_spec
             delattr(self, 'optical_spec')
+        init_z_dir = False
+        if not hasattr(self, 'z_dir'):
+            self.z_dir = []
+            init_z_dir = True
+            z_dir_work = 1
         for sg in itertools.zip_longest(self.ifcs, self.gaps):
             if hasattr(sg[Intfc], 'sync_to_restore'):
                 sg[Intfc].sync_to_restore(self)
             if sg[Gap]:
                 if hasattr(sg[Gap], 'sync_to_restore'):
                     sg[Gap].sync_to_restore(self)
+            if init_z_dir:
+                if sg[Intfc].interact_mode == 'reflect':
+                    z_dir_work = -z_dir_work
+                self.z_dir.append(z_dir_work)
+                
         if not hasattr(self, 'do_apertures'):
             self.do_apertures = True
 

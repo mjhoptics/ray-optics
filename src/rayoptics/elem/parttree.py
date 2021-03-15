@@ -32,7 +32,8 @@ class PartTree():
         attrs['root_node'] = exporter.export(self.root_node)
         return attrs
 
-    def sync_to_restore(self):
+    def sync_to_restore(self, opt_model):
+        self.opt_model = opt_model
         if hasattr(self, 'root_node'):
             root_node_compressed = self.root_node
             importer = DictImporter()
@@ -136,7 +137,7 @@ def sync_part_tree_on_restore(ele_model, seq_model, root_node):
         elif name[0] == 't':
             p_name = node.parent.name
             e = ele_dict[p_name]
-            idx = int(name[1:]) - 1
+            idx = int(name[1:])-1 if len(name) > 1 else 0
             node.id = e.gap_list()[idx]
         elif name[:1] == 'di':
             p_name = node.parent.name
@@ -177,6 +178,8 @@ def sync_part_tree_on_update(ele_model, seq_model, root_node):
             e = ele_dict[p_name]
             idx = int(name[1:])-1 if len(name) > 1 else 0
             node.id = e.gap_list()[idx]
+        elif name == 'root':
+            pass
         else:
             if hasattr(node.id, 'label'):
                 node.name = node.id.label
@@ -216,7 +219,7 @@ def elements_from_sequence(ele_model, seq_model, part_tree):
                         e = elements.Element(s1, ifc, g1, sd=sd, tfrm=g_tfrm1,
                                              idx=i1, idx2=i)
 
-                        e_node = part_tree.add_element_to_tree(e)
+                        e_node = part_tree.add_element_to_tree(e, z_dir=z_dir1)
                         ele_model.add_element(e)
                         if buried_reflector is True:
                             ifc2 = eles[-1][1]
@@ -263,7 +266,7 @@ def elements_from_sequence(ele_model, seq_model, part_tree):
 
                     # add an AirGap
                     ag = elements.AirGap(g, idx=i, tfrm=g_tfrm)
-                    ag_node = part_tree.add_element_to_tree(ag)
+                    ag_node = part_tree.add_element_to_tree(ag, z_dir=z_dir)
                     ag_node.leaves[0].id = (g, z_dir)
                     ele_model.add_element(ag)
 
@@ -314,6 +317,6 @@ def process_airgap(ele_model, seq_model, part_tree, i, g, z_dir, s, g_tfrm,
 
     # add an AirGap
     ag = elements.AirGap(g, idx=i, tfrm=g_tfrm)
-    ag_node = part_tree.add_element_to_tree(ag)
+    ag_node = part_tree.add_element_to_tree(ag, z_dir=z_dir)
     ag_node.leaves[0].id = (g, z_dir)
     ele_model.add_element(ag)
