@@ -99,10 +99,14 @@ class DiffractiveElement:
         phase_fct = getattr(mod, fct_name)
         self.__init__(phase_fct=phase_fct, **attrs)
 
-    def list_doe(self):
-        print("ref_pt: {:12.5f} {:12.5f} {:12.5f} {}"
-              .format(self.ref_pt[0], self.ref_pt[1], self.ref_pt[2],
-                      self.ref_virtual))
+    def listobj(self):
+        if len(self.label) == 0:
+            label = 'doe'
+        else:
+            label = self.label
+        print(f"{label}: {self.phase_fct.__name__}")
+        print(f"coefficients: {self.coefficients}")
+        print(f"ref wl: {self.ref_wl}nm  order: {self.order}")
 
     def phase(self, pt, in_dir, srf_nrml, z_dir, wl=None):
         """Returns a diffracted ray and phase increment.
@@ -125,14 +129,15 @@ class DiffractiveElement:
         in_cosI = np.dot(in_dir, normal)
         mu = 1.0 if wl is None else wl/self.ref_wl
         dW, dWdX, dWdY = self.phase_fct(pt, self.coefficients)
-#        print(wl, mu, dW, dWdX, dWdY)
+        # print(wl, mu, dW, dWdX, dWdY)
         b = in_cosI + order*mu*(normal[0]*dWdX + normal[1]*dWdY)
         c = mu*(mu*(dWdX**2 + dWdY**2)/2 +
                 order*(in_dir[0]*dWdX + in_dir[1]*dWdY))
         # pick the root based on z_dir
         Q = -b + z_dir*sqrt(b*b - 2*c)
-#        print("{:6.3f} {:12.5f} {:12.5f} {:12.5f} {:12.5f} {:12.5f} {:12.5f}"
-#              .format(mu, dW, dWdX, dWdY, b, c, Q))
+        # print("   mu        dW          dWdX          dWdY          b            c           Q")
+        # print("{:6.3f} {:12.5g} {:12.5g} {:12.5g} {:12.7g} {:12.5g} {:12.5g}"
+        #       .format(mu, dW, dWdX, dWdY, b, c, Q))
         out_dir = in_dir + order*mu*(np.array([dWdX, dWdY, 0])) + Q*normal
         dW *= mu
         return out_dir, dW
@@ -148,13 +153,16 @@ class HolographicElement:
         self.obj_virtual = False
         self.ref_wl = 550.0
 
-    def list_hoe(self):
-        print("ref_pt: {:12.5f} {:12.5f} {:12.5f} {}"
-              .format(self.ref_pt[0], self.ref_pt[1], self.ref_pt[2],
-                      self.ref_virtual))
-        print("obj_pt: {:12.5f} {:12.5f} {:12.5f} {}"
-              .format(self.obj_pt[0], self.obj_pt[1], self.obj_pt[2],
-                      self.obj_virtual))
+    def listobj(self):
+        if len(self.label) == 0:
+            label = 'hoe'
+        else:
+            label = self.label
+        print(f"{label}: ref wl: {self.ref_wl}nm")
+        print(f"ref_pt: {self.ref_pt[0]:12.5g} {self.ref_pt[1]:12.5g} "
+              f"{self.ref_pt[2]:12.5g}   virtual: {self.ref_virtual}")
+        print(f"obj_pt: {self.obj_pt[0]:12.5g} {self.obj_pt[1]:12.5g} "
+              f"{self.obj_pt[2]:12.5g}   virtual: {self.obj_virtual}")
 
     def phase(self, pt, in_dir, srf_nrml, z_dir, wl=None):
         normal = normalize(srf_nrml)
