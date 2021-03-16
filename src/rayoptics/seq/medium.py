@@ -241,8 +241,8 @@ class GlassHandlerBase():
                 with self.filename.open('w') as file:
                     json.dump(self.glasses_not_found, file)
 
-    def find_glass(self, name, catalog):
-        """ find ``name`` glass or a substitute or, if none found, n=1.5 """
+    def find_glass(self, name, catalog, always=True):
+        """ find `name` glass or a substitute or, if always is True, n=1.5 """
 
         try:
             if catalog is None or len(catalog) == 0:
@@ -261,7 +261,7 @@ class GlassHandlerBase():
                 return medium
 
         medium = self.handle_glass_not_found(name)
-        if medium is None:
+        if medium is None and always is True:
             self.track_contents['glass not found'] += 1
             medium = Medium(1.5, 'not '+name)
 

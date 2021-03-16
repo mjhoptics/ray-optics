@@ -579,7 +579,7 @@ class CVGlassHandler(GlassHandlerBase):
                     if not name[-2:].isdigit() and name[-1].isdigit():
                         name = name[:-1]+' '+name[-1]
 
-            medium = self.find_glass(name, catalog)
+            medium = self.find_glass(name, catalog, always=False)
             if medium:
                 return medium
             else:  # name with no data. default to crown glass
