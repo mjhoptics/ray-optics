@@ -277,3 +277,87 @@ class SpecSheet():
         self.imager = imager
         self.etendue_values = etendue_values
         return imager, etendue_values
+
+    def get_etendue_inputs(self, ape_fld_key):
+        """returns key, value pair for 'aperture'|'field' ape_fld key. """
+        for k, v in self.etendue_inputs[ape_fld_key].items():
+            if len(v) > 0:
+                obj_img_key = k
+                for k1, v1 in v.items():
+                    value_key = k1
+                    break
+
+        key = ape_fld_key, obj_img_key, value_key
+        value = self.etendue_inputs[ape_fld_key][obj_img_key][value_key]
+        return key, value
+
+    def get_parax_start_data(self,  thi_0, n_0, n_k):
+        conj_type = self.conjugate_type
+        imager = self.imager
+
+        yu = [0., 1.]
+        yu_bar = [1., 0.]
+        if conj_type == 'infinite':
+            key, value = self.get_etendue_inputs('aperture')
+            ape_fld_key, obj_img_key, value_key = key
+            if obj_img_key == 'object':
+                if value_key == 'pupil':
+                    slp0 = 0.5*value/thi_0
+            elif obj_img_key == 'image':
+                if value_key == 'f/#':
+                    slpk = -1./(2.0*value)
+                    slp0 = slpk*imager.f
+                elif value_key == 'NA':
+                    slpk = n_k*math.tan(math.asin(value/n_k))
+                    slp0 = slpk*imager.f
+            yu = [0., slp0]
+
+            key, value = self.get_etendue_inputs('field')
+            ape_fld_key, obj_img_key, value_key = key
+            if obj_img_key == 'object':
+                if value_key == 'angle':
+                    ang = math.radians(value)
+                    slpbar0 = math.tan(ang)
+                    ybar0 = -slpbar0*thi_0
+            elif obj_img_key == 'image':
+                if value_key == 'height':
+                    ybar0 = value/imager.m
+                    slpbar0 = ybar0/thi_0
+            yu_bar = [ybar0, slpbar0]
+
+        elif conj_type == 'finite':
+            key, value = self.get_etendue_inputs('aperture')
+            ape_fld_key, obj_img_key, value_key = key
+            if obj_img_key == 'object':
+                if value_key == 'pupil':
+                    slp0 = 0.5*value/thi_0
+                elif value_key == 'f/#':
+                    slp0 = -1./(2.0*value)
+                elif value_key == 'NA':
+                    slp0 = n_0*math.tan(math.asin(value/n_0))
+            elif obj_img_key == 'image':
+                if value_key == 'f/#':
+                    slpk = -1./(2.0*value)
+                    slp0 = slpk*imager.m
+                elif value_key == 'NA':
+                    slpk = n_k*math.tan(math.asin(value/n_k))
+                    slp0 = slpk*imager.m
+            yu = [0., slp0]
+
+            key, value = self.get_etendue_inputs('field')
+            ape_fld_key, obj_img_key, value_key = key
+            if obj_img_key == 'object':
+                if value_key == 'angle':
+                    ang = math.radians(value)
+                    slpbar0 = math.tan(ang)
+                    ybar0 = -slpbar0*thi_0
+                elif value_key == 'height':
+                    ybar0 = -value
+                    slpbar0 = ybar0/thi_0
+            elif obj_img_key == 'image':
+                if value_key == 'height':
+                    ybar0 = -value/imager.m
+                    slpbar0 = ybar0/thi_0
+            yu_bar = [ybar0, slpbar0]
+
+        return yu, yu_bar

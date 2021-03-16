@@ -116,21 +116,7 @@ class OpticalSpecs:
         return fld, wvl, foc
 
     def obj_coords(self, fld):
-        fov = self.field_of_view
-        fod = self.parax_data.fod
-        field, obj_img_key, value_key = fov.key
-        if obj_img_key == 'object':
-            if value_key == 'angle':
-                ang_dg = np.array([fld.x, fld.y, 0.0])
-                dir_tan = np.tan(np.deg2rad(ang_dg))
-                obj_pt = -dir_tan*(fod.obj_dist+fod.enp_dist)
-            elif value_key == 'height':
-                obj_pt = np.array([fld.x, fld.y, 0.0])
-        elif obj_img_key == 'image':
-            if value_key == 'height':
-                img_pt = np.array([fld.x, fld.y, 0.0])
-                obj_pt = fod.red*img_pt
-        return obj_pt
+        return self.field_of_view.obj_coords(fld)
 
     def list_first_order_data(self):
         self.parax_data.fod.list_first_order_data()
@@ -247,20 +233,8 @@ class PupilSpec:
             del self.pupil_type
         self.optical_spec = optical_spec
 
-    def set_from_list(self, ppl_spec):
-        self.key = model_enums.get_ape_key_for_type(ppl_spec[0])
-        self.value = ppl_spec[1]
-
     def set_from_specsheet(self, ss):
-        for k, v in ss.etendue_inputs['aperture'].items():
-            if len(v) > 0:
-                obj_img_key = k
-                for k1, v1 in v.items():
-                    value_key = k1
-                    break
-
-        self.key = 'aperture', obj_img_key, value_key
-        self.value = ss.etendue_inputs['aperture'][obj_img_key][value_key]
+        self.key, self.value = ss.get_etendue_inputs('aperture')
 
     def get_input_for_specsheet(self):
         return self.key, self.value
@@ -298,14 +272,18 @@ class FieldSpec:
 
     Attributes:
         key: 'field', 'object'|'image', 'height'|'angle'
+        value: maximum field, per the key
         fields: list of Field instances
+        is_relative: if True, `fields` are relative to max field
 
     """
 
-    def __init__(self, parent, key=('object', 'angle'), flds=[0.],
-                 do_init=True, **kwargs):
+    def __init__(self, parent, key=('object', 'angle'), value=0., flds=[0.],
+                 is_relative=False, do_init=True, **kwargs):
         self.optical_spec = parent
         self.key = 'field', key[0], key[1]
+        self.value = value
+        self.is_relative = is_relative
         if do_init:
             self.set_from_list(flds)
         else:
@@ -320,6 +298,11 @@ class FieldSpec:
         if hasattr(self, 'field_type'):
             self.key = model_enums.get_fld_key_for_type(self.field_type)
             del self.field_type
+        if not hasattr(self, 'value'):
+            self.value = self.max_value()
+            self.is_relative = False
+        if not hasattr(self, 'is_relative'):
+            self.is_relative = False
         self.optical_spec = optical_spec
 
     def __str__(self):
@@ -332,19 +315,15 @@ class FieldSpec:
         self.value, _ = self.max_field()
 
     def set_from_specsheet(self, ss):
-        for k, v in ss.etendue_inputs['field'].items():
-            if len(v) > 0:
-                obj_img_key = k
-                for k1, v1 in v.items():
-                    value_key = k1
-                    break
+        key, value = ss.get_etendue_inputs('field')
+        if not self.is_relative:
+            fld_scale = 1 if self.value == 0 else value/self.value
 
-        self.key = 'field', obj_img_key, value_key
-        flds = [0, ss.etendue_inputs['field'][obj_img_key][value_key]]
+        flds = [0, self.value]
         self.set_from_list(flds)
 
     def get_input_for_specsheet(self):
-        return self.key, self.max_field()[0]
+        return self.key, self.value
 
     def update_model(self):
         for f in self.fields:
@@ -353,11 +332,13 @@ class FieldSpec:
         # recalculate max_field and relabel fields.
         #  relabeling really assumes the fields are radial, specifically,
         #  y axis only
-        max_field, fi = self.max_field()
-        self.value = max_field
-        field_norm = 1.0 if max_field == 0 else 1.0/max_field
+        if self.is_relative:
+            field_norm = 1
+        else:
+            field_norm = 1 if self.value == 0 else 1.0/self.value
+
         self.index_labels = []
-        for i, f in enumerate(self.fields):
+        for f in self.fields:
             if f.x != 0.0:
                 fldx = '{:5.2f}x'.format(field_norm*f.x)
             else:
@@ -392,6 +373,26 @@ class FieldSpec:
                         self.value = fod.img_ht
         self.key = fld_key
 
+    def obj_coords(self, fld):
+        fld_coord = np.array([fld.x, fld.y, 0.0])
+        if self.is_relative:
+            fld_coord *= self.value
+
+        field, obj_img_key, value_key = self.key
+
+        fod = self.optical_spec.parax_data.fod
+        if obj_img_key == 'object':
+            if value_key == 'angle':
+                dir_tan = np.tan(np.deg2rad(fld_coord))
+                obj_pt = -dir_tan*(fod.obj_dist+fod.enp_dist)
+            elif value_key == 'height':
+                obj_pt = fld_coord
+        elif obj_img_key == 'image':
+            if value_key == 'height':
+                img_pt = fld_coord
+                obj_pt = fod.red*img_pt
+        return obj_pt
+
     def max_field(self):
         """ calculates the maximum field of view
 
@@ -405,15 +406,18 @@ class FieldSpec:
             if fld_sqrd > max_fld_sqrd:
                 max_fld_sqrd = fld_sqrd
                 max_fld = i
-        return math.sqrt(max_fld_sqrd), max_fld
+        max_fld_value = math.sqrt(max_fld_sqrd)
+        if self.is_relative:
+            max_fld_value *= self.value
+        return max_fld_value, max_fld
 
 
 class Field:
-    """ a single field point
+    """ a single field point, largely a data container
 
     Attributes:
-        x: x field component in absolute units
-        y: y field component in absolute units
+        x: x field component
+        y: y field component
         vux: +x vignetting factor
         vuy: +y vignetting factor
         vlx: -x vignetting factor
