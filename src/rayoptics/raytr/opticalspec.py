@@ -298,11 +298,10 @@ class FieldSpec:
         if hasattr(self, 'field_type'):
             self.key = model_enums.get_fld_key_for_type(self.field_type)
             del self.field_type
-        if not hasattr(self, 'value'):
-            self.value = self.max_value()
-            self.is_relative = False
         if not hasattr(self, 'is_relative'):
             self.is_relative = False
+        if not hasattr(self, 'value'):
+            self.value, _ = self.max_field()
         self.optical_spec = optical_spec
 
     def __str__(self):
