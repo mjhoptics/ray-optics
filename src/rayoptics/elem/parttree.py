@@ -240,7 +240,7 @@ def elements_from_sequence(ele_model, seq_model, part_tree):
                             eles.append((i, ifc, g, z_dir, g_tfrm))
                         e = elements.CementedElement(eles[:num_eles+1])
 
-                        e_node = part_tree.add_element_to_tree(e)
+                        e_node = part_tree.add_element_to_tree(e, z_dir=z_dir)
                         ele_model.add_element(e)
                         if buried_reflector is True:
                             for i, j in enumerate(range(-1, -num_eles-1, -1),

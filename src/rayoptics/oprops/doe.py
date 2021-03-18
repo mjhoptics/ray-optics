@@ -74,6 +74,7 @@ class DiffractiveElement:
         self.ref_wl = ref_wl
         self.order = order
         self.phase_fct = phase_fct
+        self.debug_output = False
 
     def __repr__(self):
         return (type(self).__name__ + '(label=' + repr(self.label) +
@@ -135,9 +136,11 @@ class DiffractiveElement:
                 order*(in_dir[0]*dWdX + in_dir[1]*dWdY))
         # pick the root based on z_dir
         Q = -b + z_dir*sqrt(b*b - 2*c)
-        # print("   mu        dW          dWdX          dWdY          b            c           Q")
-        # print("{:6.3f} {:12.5g} {:12.5g} {:12.5g} {:12.7g} {:12.5g} {:12.5g}"
-        #       .format(mu, dW, dWdX, dWdY, b, c, Q))
+        if self.debug_output:
+            print("   mu        dW          dWdX          dWdY          b"
+                  "            c           Q")
+            print(f"{mu:6.3f} {dW:12.5g} {dWdX:12.5g} {dWdY:12.5g} {b:12.7g}"
+                  f" {c:12.7g} {Q:12.7g}")
         out_dir = in_dir + order*mu*(np.array([dWdX, dWdY, 0])) + Q*normal
         dW *= mu
         return out_dir, dW
