@@ -600,7 +600,7 @@ def trace_list_of_rays(opt_model, rays, output_filter=None, **kwargs):
     for ray in rays:
         pt0, dir0, wvl = ray
         try:
-            ray_pkg = trace.trace(opt_model, pt0, dir0, wvl, **kwargs)
+            ray_pkg = trace.trace(opt_model.seq_model, pt0, dir0, wvl, **kwargs)
         except terr.TraceError:
             ray_list.append(None)
         else:
