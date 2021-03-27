@@ -93,7 +93,7 @@ class SequentialModel:
     def _initialize_arrays(self):
         """ initialize object and image interfaces and intervening gap """
         # add object interface
-        self.ifcs.append(surface.Surface('Obj'))
+        self.ifcs.append(surface.Surface('Obj', interact_mode='dummy'))
 
         tfrm = np.identity(3), np.array([0., 0., 0.])
         self.gbl_tfrms.append(tfrm)
@@ -108,7 +108,7 @@ class SequentialModel:
         self.cur_surface = 0
 
         # add image interface
-        self.ifcs.append(surface.Surface('Img'))
+        self.ifcs.append(surface.Surface('Img', interact_mode='dummy'))
         self.gbl_tfrms.append(tfrm)
         self.lcl_tfrms.append(tfrm)
         self.z_dir.append(1)
@@ -136,7 +136,7 @@ class SequentialModel:
             wl = self.central_wavelength()
 
         if step < 0:
-            gap_start = start - 1
+            gap_start = start - 1 if start is not None else start
         else:
             gap_start = start
 
@@ -333,6 +333,9 @@ class SequentialModel:
                 if sg[Intfc].interact_mode == 'reflect':
                     z_dir_work = -z_dir_work
                 self.z_dir.append(z_dir_work)
+
+        self.ifcs[0].interact_mode = 'dummy'
+        self.ifcs[-1].interact_mode = 'dummy'
                 
         if not hasattr(self, 'do_apertures'):
             self.do_apertures = True
@@ -431,12 +434,13 @@ class SequentialModel:
                 labels.append(s.label)
         return labels
 
-    def list_model(self):
+    def list_model(self, path=None):
         cvr = 'r' if self.opt_model.radius_mode else 'c'
         print("             {}            t        medium     mode   zdr"
               "      sd".format(cvr))
         labels = self.surface_label_list()
-        for i, sg in enumerate(self.path()):
+        path = self.path() if path is None else path
+        for i, sg in enumerate(path):
             s = self.list_surface_and_gap(sg[Intfc], gp=sg[Gap])
             s.append(self.z_dir[i])
             fmt = "{0:>4s}: {1:12.6f} {2:#12.6g} {3:>9s} {4:>10s} {6:2n}"
@@ -565,7 +569,7 @@ class SequentialModel:
                       self.ifcs[i+1].profile,
                       gp)
 
-    def trace_fan(self, fct, fi, xy, num_rays=21):
+    def trace_fan(self, fct, fi, xy, num_rays=21, **kwargs):
         """ xy determines whether x (=0) or y (=1) fan """
         osp = self.opt_model.optical_spec
         fld = osp.field_of_view.fields[fi]
@@ -601,7 +605,7 @@ class SequentialModel:
             fld.ref_sphere = rs_pkg
             fan = trace.trace_fan(self.opt_model, fan_def, fld, wvl, foc,
                                   img_filter=lambda p, ray_pkg:
-                                  fct(p, xy, ray_pkg, fld, wvl, foc))
+                                  fct(p, xy, ray_pkg, fld, wvl, foc), **kwargs)
             f_x = []
             f_y = []
             for p, y_val in fan:
@@ -616,7 +620,7 @@ class SequentialModel:
         return fans_x, fans_y, max_y_val, rc
 
     def trace_grid(self, fct, fi, wl=None, num_rays=21, form='grid',
-                   append_if_none=True):
+                   append_if_none=True, **kwargs):
         """ fct is applied to the raw grid and returned as a grid  """
         osp = self.opt_model.optical_spec
         wvls = osp.spectral_region
@@ -638,7 +642,8 @@ class SequentialModel:
             grid = trace.trace_grid(self.opt_model, grid_def, fld, wvl, foc,
                                     form=form, append_if_none=append_if_none,
                                     img_filter=lambda p, ray_pkg:
-                                    fct(p, wi, ray_pkg, fld, wvl, foc))
+                                    fct(p, wi, ray_pkg, fld, wvl, foc),
+                                    **kwargs)
             grids.append(grid)
         rc = wvls.render_colors
         return grids, rc
@@ -835,6 +840,7 @@ def gen_sequence(surf_data_list, **kwargs):
         rndx.append(rn)
         lcl_tfrms.append(tfrm)
         z_dir.append(1)
+    ifcs[-1].interact_mode = 'dummy'
 
     n_before = 1.0
     z_dir_before = 1

@@ -19,7 +19,6 @@ from rayoptics.optical.model_constants import Intfc, Gap, Tfrm, Indx, Zdir
 from .traceerror import (TraceMissedSurfaceError, TraceTIRError,
                          TraceEvanescentRayError)
 
-
 def bend(d_in, normal, n_in, n_out):
     """ refract incoming direction, d_in, about normal """
     try:
@@ -45,7 +44,7 @@ def reflect(d_in, normal):
 def phase(ifc, inc_pt, d_in, normal, z_dir, wvl, n_in, n_out):
     """ apply phase shift to incoming direction, d_in, about normal """
     try:
-        d_out, dW = ifc.phase(inc_pt, d_in, normal, z_dir, wl=wvl)
+        d_out, dW = ifc.phase(inc_pt, d_in, normal, z_dir, wvl, n_in, n_out)
         return d_out, dW
     except ValueError:
         raise TraceEvanescentRayError(ifc, inc_pt, d_in, normal, n_in, n_out)
@@ -132,7 +131,7 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, **kwargs):
     # trace object surface
     obj = next(path)
     srf_obj = obj[Intfc]
-    dst_b4, pt_obj = srf_obj.intersect(pt0, dir0)
+    dst_b4, pt_obj = srf_obj.intersect(pt0, dir0, z_dir=obj[Zdir])
 
     before = obj
     before_pt = pt_obj
@@ -187,6 +186,8 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, **kwargs):
                 after_dir = reflect(b4_dir, normal)
             elif ifc.interact_mode == 'transmit':
                 after_dir = bend(b4_dir, normal, before[Indx], after[Indx])
+            elif ifc.interact_mode == 'dummy':
+                after_dir = b4_dir
             else:  # no action, input becomes output
                 after_dir = b4_dir
 
@@ -200,19 +201,20 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, **kwargs):
             #  ray and therefore doesn't require the use of a negated
             #  refractive index following a reflection. Thus we use the
             #  (positive) refractive indices from the seq_model.rndx array.
-            dW = after[Indx]*eic_dst_after - before[Indx]*eic_dst_before
-            eic.append([before[Indx], eic_dst_before,
-                        after[Indx], eic_dst_after, dW])
-            if in_surface_range(surf, include_last_surf=True):
-                opl_eic += dW
-
-            if print_details:
-                print("after:", surf, inc_pt, after_dir)
-                print("e{}= {:12.5g} e{}'= {:12.5g} dW={:10.8g} n={:8.5g}"
-                      " n'={:8.5g} zdb4={:2.0f} zdaft={:2.0f}"
-                      .format(surf, eic_dst_before, surf, eic_dst_after, dW,
-                              before[Indx], after[Indx],
-                              z_dir_before, z_dir_after))
+            if ifc.interact_mode != 'dummy':
+                dW = after[Indx]*eic_dst_after - before[Indx]*eic_dst_before
+                eic.append([before[Indx], eic_dst_before,
+                            after[Indx], eic_dst_after, dW])
+                if in_surface_range(surf, include_last_surf=True):
+                    opl_eic += dW
+    
+                if print_details:
+                    print("after:", surf, inc_pt, after_dir)
+                    print("e{}= {:12.5g} e{}'= {:12.5g} dW={:10.8g} n={:8.5g}"
+                          " n'={:8.5g} zdb4={:2.0f} zdaft={:2.0f}"
+                          .format(surf, eic_dst_before, surf, eic_dst_after,
+                                  dW, before[Indx], after[Indx],
+                                  z_dir_before, z_dir_after))
 
             before_pt = inc_pt
             before_normal = normal

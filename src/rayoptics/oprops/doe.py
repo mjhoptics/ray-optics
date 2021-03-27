@@ -21,6 +21,7 @@ from math import sqrt
 import numpy as np
 import importlib
 
+import rayoptics.raytr.raytrace as rt
 from rayoptics.util.misc_math import normalize
 
 
@@ -87,6 +88,7 @@ class DiffractiveElement:
         attrs = dict(vars(self))
         # Save model name and function name of phase_fct, so that fct can
         #  restored later (hopefully)
+        del attrs['debug_output']
         del attrs['phase_fct']
         attrs['phase_fct_module'] = self.phase_fct.__module__
         attrs['phase_fct_name'] = self.phase_fct.__name__
@@ -109,7 +111,7 @@ class DiffractiveElement:
         print(f"coefficients: {self.coefficients}")
         print(f"ref wl: {self.ref_wl}nm  order: {self.order}")
 
-    def phase(self, pt, in_dir, srf_nrml, z_dir, wl=None):
+    def phase(self, pt, in_dir, srf_nrml, z_dir, wl, n_in, n_out):
         """Returns a diffracted ray and phase increment.
 
         Args:
@@ -127,22 +129,33 @@ class DiffractiveElement:
         """
         order = self.order
         normal = normalize(srf_nrml)
-        in_cosI = np.dot(in_dir, normal)
+        inc_dir = in_dir
+        if n_in != 1.0:
+            inc_dir = rt.bend(in_dir, srf_nrml, n_in, 1)
+        in_cosI = np.dot(inc_dir, normal)
         mu = 1.0 if wl is None else wl/self.ref_wl
         dW, dWdX, dWdY = self.phase_fct(pt, self.coefficients)
         # print(wl, mu, dW, dWdX, dWdY)
         b = in_cosI + order*mu*(normal[0]*dWdX + normal[1]*dWdY)
         c = mu*(mu*(dWdX**2 + dWdY**2)/2 +
-                order*(in_dir[0]*dWdX + in_dir[1]*dWdY))
+                order*(inc_dir[0]*dWdX + inc_dir[1]*dWdY))
         # pick the root based on z_dir
         Q = -b + z_dir*sqrt(b*b - 2*c)
         if self.debug_output:
+            print('inc_dir:', inc_dir)
+            scale_dir = in_dir
+            scale_dir[2] = n_in
+            scale_dir = normalize(scale_dir)
+            print('scale_dir:', scale_dir)
             print("   mu        dW          dWdX          dWdY          b"
                   "            c           Q")
             print(f"{mu:6.3f} {dW:12.5g} {dWdX:12.5g} {dWdY:12.5g} {b:12.7g}"
                   f" {c:12.7g} {Q:12.7g}")
-        out_dir = in_dir + order*mu*(np.array([dWdX, dWdY, 0])) + Q*normal
+        out_dir = inc_dir + order*mu*(np.array([dWdX, dWdY, 0])) + Q*normal
         dW *= mu
+        if n_in != 1.0:
+            out_dir = rt.bend(out_dir, srf_nrml, 1, n_in)
+
         return out_dir, dW
 
 
@@ -167,7 +180,7 @@ class HolographicElement:
         print(f"obj_pt: {self.obj_pt[0]:12.5g} {self.obj_pt[1]:12.5g} "
               f"{self.obj_pt[2]:12.5g}   virtual: {self.obj_virtual}")
 
-    def phase(self, pt, in_dir, srf_nrml, z_dir, wl=None):
+    def phase(self, pt, in_dir, srf_nrml, z_dir, wl, n_in, n_out):
         normal = normalize(srf_nrml)
         ref_dir = normalize(pt - self.ref_pt)
         if self.ref_virtual:

@@ -102,7 +102,7 @@ class Interface:
     def normal(self, p):
         pass
 
-    def phase(self, pt, d_in, normal, z_dir, wl=None):
+    def phase(self, pt, d_in, normal, z_dir, wl, n_in, n_out):
         """Returns a diffracted ray and phase increment.
 
         Args:
@@ -119,7 +119,8 @@ class Interface:
             - dW: phase added by diffractive interaction
         """
         if hasattr(self, 'phase_element'):
-            return self.phase_element.phase(pt, d_in, normal, z_dir, wl=wl)
+            return self.phase_element.phase(pt, d_in, normal, z_dir, wl,
+                                            n_in, n_out)
 
     def apply_scale_factor(self, scale_factor):
         self.max_aperture *= scale_factor

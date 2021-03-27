@@ -231,7 +231,9 @@ def post_process_input(opt_model, filename, **kwargs):
     _track_contents['conj type'] = conj_type
 
     sm.ifcs[0].label = 'Obj'
+    sm.ifcs[0].interact_mode = 'dummy'
     sm.ifcs[-1].label = 'Img'
+    sm.ifcs[-1].interact_mode = 'dummy'
     _track_contents['# surfs'] = len(sm.ifcs)
 
     do_post_processing = False
