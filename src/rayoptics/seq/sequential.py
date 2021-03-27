@@ -863,7 +863,7 @@ def gen_sequence(surf_data_list, **kwargs):
 def create_surface_and_gap(surf_data, radius_mode=False, prev_medium=None,
                            wvl=550.0, **kwargs):
     """ create a surface and gap where surf_data is a list that contains:
-        [curvature, thickness, refractive_index, v-number] """
+        [curvature, thickness, refractive_index, v-number, semi-diameter] """
     s = surface.Surface()
 
     if radius_mode:
@@ -889,20 +889,29 @@ def create_surface_and_gap(surf_data, radius_mode=False, prev_medium=None,
                 s.interact_mode = 'reflect'
                 mat = prev_medium
             else:
-                num_args = len(surf_data[2:])
-                if num_args == 2:
+                num_str_args = 0
+                for tkn in surf_data[2:]:
+                    if isinstance(tkn, str) and len(tkn) > 0:
+                        num_str_args += 1
+                if num_str_args == 2:
                     name, cat = surf_data[2], surf_data[3]
-                else:
+                elif num_str_args == 1:
                     name, cat = surf_data[2].split(',')
-
-                try:
-                    mat = gfact.create_glass(name, cat)
-                except ge.GlassNotFoundError as gerr:
-                    logging.info('%s glass data type %s not found',
-                                 gerr.catalog,
-                                 gerr.name)
-                    logging.info('Replacing material with air.')
+                elif num_str_args == 0:
                     mat = m.Air()
+
+                if num_str_args > 0:
+                    try:
+                        mat = gfact.create_glass(name, cat)
+                    except ge.GlassNotFoundError as gerr:
+                        logging.info('%s glass data type %s not found',
+                                     gerr.catalog,
+                                     gerr.name)
+                        logging.info('Replacing material with air.')
+                        mat = m.Air()
+
+        if len(surf_data) >= 5:
+            s.set_max_aperture(surf_data[4])
 
     else:  # only curvature and thickness entered, set material to air
         mat = m.Air()
