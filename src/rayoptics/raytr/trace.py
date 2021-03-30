@@ -53,7 +53,7 @@ class RSeg():
     phase = attr.ib(default=0.0)
 
 
-def list_ray(ray_obj, tfrms=None):
+def list_ray(ray_obj, tfrms=None, start=0):
     """ pretty print a ray either in local or global coordinates """
     if isinstance(ray_obj, tuple):
         ray = ray_obj[0]
@@ -67,7 +67,7 @@ def list_ray(ray_obj, tfrms=None):
     colFormats = "{:3d}: {:12.5f} {:12.5f} {:12.5g} {:12.6f} {:12.6f} " \
                  "{:12.6f} {:12.5g}"
 
-    for i, r in enumerate(ray):
+    for i, r in enumerate(ray[start:], start=start):
         if tfrms is None:
             print(colFormats.format(i,
                                     r[mc.p][0], r[mc.p][1], r[mc.p][2],

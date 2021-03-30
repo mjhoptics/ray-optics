@@ -9,7 +9,6 @@
 """
 import math
 from collections import namedtuple
-from rayoptics.optical.model_constants import Intfc, Gap, Tfrm, Indx, Zdir
 from rayoptics.optical.model_constants import ht, slp, aoi
 from rayoptics.parax.idealimager import ideal_imager_setup
 
@@ -113,21 +112,20 @@ def paraxial_trace(path, start, start_yu, start_yu_bar):
     p_ray = []
     p_ray_bar = []
 
-    before = next(path)
-    z_dir_before = before[Zdir]
-    n_before = before[Indx] if z_dir_before > 0 else -before[Indx]
+    b4_ifc, b4_gap, _, b4_rndx, z_dir_before = next(path)
+    n_before = b4_rndx if z_dir_before > 0 else -b4_rndx
 
     b4_yui = start_yu
     b4_yui_bar = start_yu_bar
     if start == 1:
         # compute object coords from 1st surface data
-        t0 = before[Gap].thi
+        t0 = b4_gap.thi
         obj_ht = start_yu[ht] - t0*start_yu[slp]
         obj_htb = start_yu_bar[ht] - t0*start_yu_bar[slp]
         b4_yui = [obj_ht, start_yu[slp]]
         b4_yui_bar = [obj_htb, start_yu_bar[slp]]
 
-    cv = before[Intfc].profile_cv
+    cv = b4_ifc.profile_cv
     # calculate angle of incidence (aoi)
     aoi = b4_yui[slp] + b4_yui[ht] * cv
     aoi_bar = b4_yui_bar[slp] + b4_yui_bar[ht] * cv
@@ -140,27 +138,32 @@ def paraxial_trace(path, start, start_yu, start_yu_bar):
     # loop over remaining surfaces in path
     while True:
         try:
-            after = next(path)
-
-            z_dir_after = after[Zdir]
-            n_after = after[Indx] if z_dir_after > 0 else -after[Indx]
+            ifc, gap, _, rndx, z_dir_after = next(path)
 
             # Transfer
-            t = before[Gap].thi
+            t = b4_gap.thi
             cur_ht = b4_yui[ht] + t * b4_yui[slp]
             cur_htb = b4_yui_bar[ht] + t * b4_yui_bar[slp]
 
             # Refraction/Reflection
-            srf = after[Intfc]
-            k = n_before/n_after
+            if ifc.interact_mode == 'dummy':
+                cur_slp = b4_yui[slp]
+                cur_slpb = b4_yui_bar[slp]
+            else:
+                n_after = rndx if z_dir_after > 0 else -rndx
 
-            # calculate slope after refraction/reflection
-            pwr = srf.optical_power
-            cur_slp = k * b4_yui[slp] - cur_ht * pwr/n_after
-            cur_slpb = k * b4_yui_bar[slp] - cur_htb * pwr/n_after
+                k = n_before/n_after
+    
+                # calculate slope after refraction/reflection
+                pwr = ifc.optical_power
+                cur_slp = k * b4_yui[slp] - cur_ht * pwr/n_after
+                cur_slpb = k * b4_yui_bar[slp] - cur_htb * pwr/n_after
 
+                n_before = n_after
+                z_dir_before = z_dir_after
+    
             # calculate angle of incidence (aoi)
-            cv = srf.profile_cv
+            cv = ifc.profile_cv
             aoi = cur_slp + cur_ht * cv
             aoi_bar = cur_slpb + cur_htb * cv
 
@@ -173,9 +176,7 @@ def paraxial_trace(path, start, start_yu, start_yu_bar):
             b4_yui = yu
             b4_yui_bar = yu_bar
 
-            n_before = n_after
-            z_dir_before = z_dir_after
-            before = after
+            b4_gap = gap
 
         except StopIteration:
             break
@@ -381,12 +382,18 @@ def list_parax_trace(opt_model, reduced=False):
     """ list the paraxial axial and chief ray data """
     seq_model = opt_model.seq_model
     ax_ray, pr_ray, fod = opt_model.optical_spec.parax_data
+    num_gaps = len(seq_model.gaps)
     print("stop surface:", seq_model.stop_surface)
     print("           y           u           n*i         ybar         ubar"
           "        n*ibar")
-    for i, ax in enumerate(ax_ray):
-        n = seq_model.central_rndx(i)
-        n = n if seq_model.z_dir[i] > 0 else -n
+    for i in range(len(seq_model.ifcs)):
+        if i < num_gaps:
+            idx = i
+        else:
+            idx = i - 1
+        n = seq_model.central_rndx(idx)
+        n = n if seq_model.z_dir[idx] > 0 else -n
+        
         ax_slp = n*ax_ray[i][slp] if reduced else ax_ray[i][slp]
         pr_slp = n*pr_ray[i][slp] if reduced else pr_ray[i][slp]
         print("{:2} {:12.6g} {:12.6g} {:12.6g} {:12.6g} {:12.6g} {:12.6g}"

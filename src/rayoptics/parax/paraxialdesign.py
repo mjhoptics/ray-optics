@@ -373,14 +373,15 @@ class ParaxialModel():
         """
         sys = []
         for i, sg in enumerate(path):
-            n_after = sg[mc.Indx] if sg[mc.Zdir] > 0 else -sg[mc.Indx]
-            imode = sg[mc.Intfc].interact_mode
-            power = sg[mc.Intfc].optical_power
-            if sg[mc.Gap]:
-                tau = sg[mc.Gap].thi/n_after
+            ifc, gap, _, rndx, z_dir = sg
+            imode = ifc.interact_mode
+            power = ifc.optical_power
+            if gap:
+                n_after = rndx if z_dir > 0 else -rndx
+                tau = gap.thi/n_after
                 sys.append([power, tau, n_after, imode])
             else:
-                sys.append([power, 0.0, n_after, imode])
+                sys.append([power, 0.0, sys[-1][indx], imode])
         return sys
 
     def paraxial_lens_to_seq_model(self):
@@ -391,14 +392,14 @@ class ParaxialModel():
         n_before = sys[0][indx]
         slp_before = self.ax[0][slp]
         for i, sg in enumerate(self.seq_model.path()):
-            if sg[mc.Gap]:
+            ifc, gap, _, _, _ = sg
+            if gap:
                 n_after = sys[i][indx]
                 slp_after = ax_ray[i][slp]
-                sg[mc.Gap].thi = n_after*sys[i][tau]
+                gap.thi = n_after*sys[i][tau]
 
-                sg[mc.Intfc].set_optical_power(sys[i][pwr], n_before, n_after)
-                sg[mc.Intfc].from_first_order(slp_before, slp_after,
-                                              ax_ray[i][ht])
+                ifc.set_optical_power(sys[i][pwr], n_before, n_after)
+                ifc.from_first_order(slp_before, slp_after, ax_ray[i][ht])
 
                 n_before = n_after
                 slp_before = slp_after

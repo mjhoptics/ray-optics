@@ -344,6 +344,7 @@ class Element():
         # deletion of interfaces)
         self.s1_indx = seq_model.ifcs.index(self.s1)
         self.s2_indx = seq_model.ifcs.index(self.s2)
+        self.medium_name = self.gap.medium.name()
 
     def tree(self, **kwargs):
         """Build tree linking sequence to element model. """

@@ -191,9 +191,6 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, **kwargs):
             else:  # no action, input becomes output
                 after_dir = b4_dir
 
-            eic_dst_after = eic_distance_from_axis((inc_pt, after_dir),
-                                                   z_dir_after)
-
             surf += 1
 
             # Per `Hopkins, 1981 <https://dx.doi.org/10.1080/713820605>`_, the
@@ -202,6 +199,9 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, **kwargs):
             #  refractive index following a reflection. Thus we use the
             #  (positive) refractive indices from the seq_model.rndx array.
             if ifc.interact_mode != 'dummy':
+                eic_dst_after = eic_distance_from_axis((inc_pt, after_dir),
+                                                       z_dir_after)
+
                 dW = after[Indx]*eic_dst_after - before[Indx]*eic_dst_before
                 eic.append([before[Indx], eic_dst_before,
                             after[Indx], eic_dst_after, dW])

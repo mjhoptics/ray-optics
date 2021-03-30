@@ -163,6 +163,13 @@ class ReplaceGlassAction():
     def __init__(self, gap, update=True):
         self.gap = gap
         self.update = update
+        self.actions = {}
+
+        def null_action(fig, event):
+            pass
+        self.actions['press'] = null_action
+        self.actions['drag'] = null_action
+        self.actions['release'] = null_action
 
     def __call__(self, fig, event):
         mime = event.mimeData()

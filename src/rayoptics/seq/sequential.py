@@ -16,7 +16,6 @@ from rayoptics.raytr import raytrace as rt
 from rayoptics.raytr import trace as trace
 from rayoptics.raytr import analyses
 from rayoptics.elem import transform as trns
-from rayoptics.optical.model_constants import Intfc, Gap, Tfrm, Indx, Zdir
 from opticalglass import glassfactory as gfact
 from opticalglass import glasserror as ge
 import numpy as np
@@ -111,8 +110,6 @@ class SequentialModel:
         self.ifcs.append(surface.Surface('Img', interact_mode='dummy'))
         self.gbl_tfrms.append(tfrm)
         self.lcl_tfrms.append(tfrm)
-        self.z_dir.append(1)
-        self.rndx.append([1.0])
 
     def reset(self):
         self.__init__()
@@ -149,6 +146,42 @@ class SequentialModel:
                                      self.z_dir[start:stop:step])
         return path
 
+    def reverse_path(self, wl=None, start=None, stop=None, step=-1):
+        """ returns an iterable path tuple for a range in the sequential model
+    
+        Args:
+            wl: wavelength in nm for path, defaults to central wavelength
+            start: start of range
+            stop: first value beyond the end of the range
+            step: increment or stride of range
+    
+        Returns:
+            (**ifcs, gaps, lcl_tfrms, rndx, z_dir**)
+        """
+        if wl is None:
+            wl = self.central_wavelength()
+    
+        if step < 0:
+            if start is not None:
+                gap_start = start - 1
+                rndx_start = start - 1
+            else:
+                gap_start = start
+                rndx_start = -2
+        else:
+            gap_start = start
+    
+        tfrms = self.compute_local_transforms(step=-1)
+        wl_idx = self.index_for_wavelength(wl)
+        rndx = [n[wl_idx] for n in self.rndx[rndx_start:stop:step]]
+        z_dir = [-z_dir for z_dir in self.z_dir[start:stop:step]]
+        path = itertools.zip_longest(self.ifcs[start:stop:step],
+                                     self.gaps[gap_start:stop:step],
+                                     tfrms,
+                                     rndx,
+                                     z_dir)
+        return path
+
     def calc_ref_indices_for_spectrum(self, wvls):
         """ returns a list with refractive indices for all **wvls**
 
@@ -163,7 +196,6 @@ class SequentialModel:
                 rndx = mat.rindex(w)
                 ri.append(rndx)
             indices.append(ri)
-        indices.append(indices[-1])
 
         return indices
 
@@ -271,16 +303,16 @@ class SequentialModel:
                 if self.stop_surface > idx and self.stop_surface > 1:
                     self.stop_surface -= 1
 
+        # interface related attribute lists
         del self.ifcs[idx]
         del self.gbl_tfrms[idx]
         del self.lcl_tfrms[idx]
-        # the following items are associated with gaps but artificially
-        # extend image space beyond the image interface
-        del self.z_dir[idx]
-        del self.rndx[idx]
 
+        # gap related attribute lists
         idx = idx-1 if prev else idx
         del self.gaps[idx]
+        del self.z_dir[idx]
+        del self.rndx[idx]
 
     def remove_node(self, e_node):
         part_tree = self.opt_model.part_tree
@@ -324,15 +356,16 @@ class SequentialModel:
             init_z_dir = True
             z_dir_work = 1
         for sg in itertools.zip_longest(self.ifcs, self.gaps):
-            if hasattr(sg[Intfc], 'sync_to_restore'):
-                sg[Intfc].sync_to_restore(self)
-            if sg[Gap]:
-                if hasattr(sg[Gap], 'sync_to_restore'):
-                    sg[Gap].sync_to_restore(self)
-            if init_z_dir:
-                if sg[Intfc].interact_mode == 'reflect':
-                    z_dir_work = -z_dir_work
-                self.z_dir.append(z_dir_work)
+            ifc, g = sg
+            if hasattr(ifc, 'sync_to_restore'):
+                ifc.sync_to_restore(self)
+            if g:
+                if hasattr(g, 'sync_to_restore'):
+                    g.sync_to_restore(self)
+                if init_z_dir:
+                    if ifc.interact_mode == 'reflect':
+                        z_dir_work = -z_dir_work
+                    self.z_dir.append(z_dir_work)
 
         self.ifcs[0].interact_mode = 'dummy'
         self.ifcs[-1].interact_mode = 'dummy'
@@ -348,27 +381,32 @@ class SequentialModel:
 
         self.wvlns = osp.spectral_region.wavelengths
         self.rndx = self.calc_ref_indices_for_spectrum(self.wvlns)
-        n_before = self.rndx[0]
+        n_before = self.rndx[0][ref_wl]
 
         self.z_dir = []
         z_dir_before = 1
 
-        for i, s in enumerate(self.ifcs):
+        seq = itertools.zip_longest(self.ifcs, self.gaps)
+
+        for i, sg in enumerate(seq):
+            ifc, g = sg
             z_dir_after = copysign(1, z_dir_before)
-            if s.interact_mode == 'reflect':
+            if ifc.interact_mode == 'reflect':
                 z_dir_after = -z_dir_after
 
             # leave rndx data unsigned, track change of sign using z_dir
-            n_after = self.rndx[i]
-            if z_dir_after < 0:
-                n_after = [-n for n in n_after]
-            s.delta_n = n_after[ref_wl] - n_before[ref_wl]
-            n_before = n_after
+            if g is not None:
+                n_after = self.rndx[i][ref_wl]
+                if z_dir_after < 0:
+                    n_after = -n_after
+                ifc.delta_n = n_after - n_before
+                n_before = n_after
+    
+                z_dir_before = z_dir_after
+                self.z_dir.append(z_dir_after)
 
-            z_dir_before = z_dir_after
-            self.z_dir.append(z_dir_after)
             # call update() on the surface interface
-            s.update()
+            ifc.update()
 
         self.gbl_tfrms = self.compute_global_coords()
         self.lcl_tfrms = self.compute_local_transforms()
@@ -381,9 +419,10 @@ class SequentialModel:
 
     def apply_scale_factor(self, scale_factor):
         for i, sg in enumerate(self.path()):
-            sg[Intfc].apply_scale_factor(scale_factor)
-            if sg[Gap]:
-                sg[Gap].apply_scale_factor(scale_factor)
+            ifc, g = sg
+            ifc.apply_scale_factor(scale_factor)
+            if g:
+                g.apply_scale_factor(scale_factor)
 
         self.gbl_tfrms = self.compute_global_coords()
         self.lcl_tfrms = self.compute_local_transforms()
@@ -415,11 +454,12 @@ class SequentialModel:
         """ update interfaces and gaps following insertion of a mirror """
 
         for i, sg in enumerate(self.path(start=start), start=start):
+            ifc, g, lcl_tfrm, rndx, z_dir = sg
             if i > start:
-                sg[Intfc].apply_scale_factor(-1)
-                if sg[Gap]:
-                    sg[Gap].apply_scale_factor(-1)
-            self.z_dir[i] = -sg[Zdir]
+                ifc.apply_scale_factor(-1)
+                if g:
+                    g.apply_scale_factor(-1)
+            self.z_dir[i] = -z_dir
 
     def surface_label_list(self):
         """ list of surface labels or surface number, if no label """
@@ -441,8 +481,12 @@ class SequentialModel:
         labels = self.surface_label_list()
         path = self.path() if path is None else path
         for i, sg in enumerate(path):
-            s = self.list_surface_and_gap(sg[Intfc], gp=sg[Gap])
-            s.append(self.z_dir[i])
+            ifc, g = sg
+            s = self.list_surface_and_gap(ifc, gp=g)
+            if g is not None:
+                s.append(self.z_dir[i])
+            else:
+                s.append(self.z_dir[-1])
             fmt = "{0:>4s}: {1:12.6f} {2:#12.6g} {3:>9s} {4:>10s} {6:2n}"
             if s[4] is not None:  # if the sd is not None...
                 fmt += "  {5:#10.5g}"
@@ -453,7 +497,8 @@ class SequentialModel:
         print("           {}            t        medium     mode         sd"
               .format(cvr))
         for i, sg in enumerate(self.path()):
-            s = self.list_surface_and_gap(sg[Intfc], gp=sg[Gap])
+            ifc, g = sg
+            s = self.list_surface_and_gap(ifc, gp=g)
             fmt = "{0:2n}: {1:12.6f} {2:#12.6g} {3:>9s} {4.name:>10s}"
             if s[4] is not None:  # if the sd is not None...
                 fmt += " {5:#10.5g}"
@@ -474,7 +519,7 @@ class SequentialModel:
             if cvr != 0.0:
                 cvr = 1.0/cvr
         sd = ifc.surface_od()
-        imode = ifc.interact_mode if ifc.interact_mode != 'transmit' else ""
+        imode = ifc.interact_mode if ifc.interact_mode == 'reflect' else ""
 
         if gp is not None:
             thi = gp.thi
@@ -730,73 +775,66 @@ class SequentialModel:
         r, t = np.identity(3), np.array([0., 0., 0.])
         prev = r, t
         tfrms.append(prev)
-#        print(glo, t, *np.rad2deg(t3d.euler.mat2euler(r)))
         if glo > 0:
             # iterate in reverse over the segments before the
             #  global reference surface
-            go = glo
-            path = itertools.zip_longest(self.ifcs[glo::-1],
-                                         self.gaps[glo-1::-1])
-            after = next(path)
+            step = -1
+            seq = itertools.zip_longest(self.ifcs[glo::step],
+                                        self.gaps[glo-1::step])
+            ifc, gap = after = next(seq)
             # loop of remaining surfaces in path
             while True:
                 try:
-                    before = next(path)
-                    go -= 1
-                    zdist = after[Gap].thi
-                    r, t = trns.reverse_transform(before[Intfc], zdist,
-                                                  after[Intfc])
+                    b4_ifc, b4_gap = before = next(seq)
+                    zdist = gap.thi
+                    r, t = trns.reverse_transform(ifc, zdist, b4_ifc)
                     t = prev[0].dot(t) + prev[1]
                     r = prev[0].dot(r)
-#                    print(go, t,
-#                          *np.rad2deg(euler2opt(t3d.euler.mat2euler(r))))
                     prev = r, t
                     tfrms.append(prev)
-                    after = before
+                    after, ifc, gap = before, b4_ifc, b4_gap
                 except StopIteration:
                     break
             tfrms.reverse()
-        path = itertools.zip_longest(self.ifcs[glo:], self.gaps[glo:])
-        before = next(path)
+    
+        seq = itertools.zip_longest(self.ifcs[glo:], self.gaps[glo:])
+        b4_ifc, b4_gap = before = next(seq)
         prev = np.identity(3), np.array([0., 0., 0.])
-        go = glo
         # loop forward over the remaining surfaces in path
         while True:
             try:
-                after = next(path)
-                go += 1
-                zdist = before[Gap].thi
-                r, t = trns.forward_transform(before[Intfc], zdist,
-                                              after[Intfc])
+                ifc, gap = after = next(seq)
+                zdist = b4_gap.thi
+                r, t = trns.forward_transform(b4_ifc, zdist, ifc)
                 t = prev[0].dot(t) + prev[1]
                 r = prev[0].dot(r)
-#                print(go, t,
-#                      *np.rad2deg(euler2opt(t3d.euler.mat2euler(r))))
                 prev = r, t
                 tfrms.append(prev)
-                before = after
+                before, b4_ifc, b4_gap = after, ifc, gap
             except StopIteration:
                 break
+    
         return tfrms
 
-    def compute_local_transforms(self):
+    def compute_local_transforms(self, seq=None, step=1):
         """ Return forward surface coordinates (r.T, t) for each interface. """
         tfrms = []
-        path = itertools.zip_longest(self.ifcs, self.gaps)
-        before = next(path)
+        if seq is None:
+            seq = itertools.zip_longest(self.ifcs[::step],
+                                        self.gaps[::step])
+        b4_ifc, b4_gap = before = next(seq)
         while before is not None:
             try:
-                after = next(path)
+                ifc, gap = after = next(seq)
             except StopIteration:
                 tfrms.append((np.identity(3), np.array([0., 0., 0.])))
                 break
             else:
-                zdist = before[Gap].thi
-                r, t = trns.forward_transform(before[Intfc], zdist,
-                                              after[Intfc])
+                zdist = step*b4_gap.thi
+                r, t = trns.forward_transform(b4_ifc, zdist, ifc)
                 rt = r.transpose()
                 tfrms.append((rt, t))
-                before = after
+                before, b4_ifc, b4_gap = after, ifc, gap
 
         return tfrms
 
