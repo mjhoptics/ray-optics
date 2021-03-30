@@ -178,7 +178,8 @@ def create_plot_view(app, fig, title, view_width, view_ht, commands=None,
     mi = ModelInfo(app.app_manager.model, update_figure_view, (fig,))
     sub_window = app.add_subwindow(widget, mi)
     sub_window.sync_light_or_dark = create_light_or_dark_callback(fig)
-    sub_window.setWindowTitle(title)
+    lens_title = app.app_manager.model.name()
+    sub_window.setWindowTitle(title + ': ' + lens_title)
     orig_x, orig_y = app.initial_window_offset()
     sub_window.setGeometry(orig_x, orig_y, view_width, view_ht)
 

@@ -448,7 +448,8 @@ class MainWindow(QMainWindow):
         sub = self.add_subwindow(widget, ModelInfo(self.app_manager.model,
                                                    cmds.update_table_view,
                                                    (table_view,)))
-        sub.setWindowTitle(table_title)
+        lens_title = self.app_manager.model.name()
+        sub.setWindowTitle(table_title + ': ' + lens_title)
 
         sub.installEventFilter(self)
 
