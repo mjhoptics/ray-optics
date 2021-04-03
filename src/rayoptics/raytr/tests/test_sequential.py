@@ -56,20 +56,25 @@ class RayTraceTestCase(unittest.TestCase):
             else:
                 return rel_err(min(vflt), def_err)
 
+        # The default relative error tolerance could be tightened if truth
+        # (marginal_ray) can be obtained to greater precision
+        default_rel_error_tol = 3e-6
         for i, rtup in enumerate(zip(ray, f1r2.rayf1r2)):
-            xyztol = rel_err_vec(rtup[1][0], 1e-6)
+            xyztol = rel_err_vec(rtup[1][0], default_rel_error_tol)
 #            print(i, rtup[0][0], rtup[1][0], xyztol)
             npt.assert_allclose(rtup[0][0], rtup[1][0], rtol=xyztol)
             # compute direction tangents from direction cosines
-            tantol = rel_err_vec(rtup[1][1], 1e-6)
+            tantol = rel_err_vec(rtup[1][1], default_rel_error_tol)
             npt.assert_allclose([rtup[0][1][0]/rtup[0][1][2],
                                  rtup[0][1][1]/rtup[0][1][2]], rtup[1][1],
-                                rtol=tantol, atol=1e-10)
+                                rtol=tantol, atol=1e-10,
+                                err_msg=f"ray tangent at {i:} outside tol")
 
             # don't compare path length in object or image space
             if i > 1 and i < 12:
-                dsttol = rel_err(rtup[1][2], 1e-6)
-                npt.assert_allclose(rtup[0][2], rtup[1][2], rtol=dsttol)
+                dsttol = rel_err(rtup[1][2], default_rel_error_tol)
+                npt.assert_allclose(rtup[0][2], rtup[1][2], rtol=dsttol,
+                                    err_msg=f"path length at {i:} outside tol")
 
 
 if __name__ == '__main__':
