@@ -63,6 +63,7 @@ class MainWindow(QMainWindow):
 
         file_menu = bar.addMenu("File")
         file_menu.addAction("New")
+        file_menu.addAction("New Console")
         file_menu.addAction("Open...")
         file_menu.addSeparator()
         file_menu.addAction("Save")
@@ -144,8 +145,12 @@ class MainWindow(QMainWindow):
             # self.open_file(path / "codev/tests/landscape_lens.seq")
             # self.open_file(path / "codev/tests/mangin.seq")
             # self.open_file(path / "codev/tests/CODV_32327.seq")
+            # self.open_file(path / "codev/tests/CODV_65988.seq")
             # self.open_file(path / "codev/tests/questar35.seq")
             # self.open_file(path / "codev/tests/dar_test.seq")
+
+            # self.cur_dir = path / "optical/tests"
+            # self.open_file(path / "optical/tests/achroMangin.roa")
             # self.open_file(path / "optical/tests/cell_phone_camera.roa")
             # self.open_file(path / "optical/tests/singlet_f3.roa")
 
@@ -197,9 +202,12 @@ class MainWindow(QMainWindow):
         self.mdi.removeSubWindow(sub_wind)
         MainWindow.count -= 1
 
-    def add_ipython_subwindow(self):
+    def add_ipython_subwindow(self, opt_model):
         try:
-            create_ipython_console(self, 'iPython console', 800, 600)
+            title_bar = 'iPython console: '
+            if opt_model is not None:
+                title_bar = title_bar + opt_model.name()
+            create_ipython_console(self, opt_model, title_bar, 800, 600)
         except MultipleInstanceError:
             logging.debug("Unable to open iPython console. "
                           "MultipleInstanceError")
@@ -222,6 +230,9 @@ class MainWindow(QMainWindow):
     def file_action(self, action):
         if action == "New":
             self.new_model()
+
+        if action == "New Console":
+            self.new_console_empty_model()
 
         if action == "Open...":
             options = QFileDialog.Options()
@@ -258,10 +269,22 @@ class MainWindow(QMainWindow):
             self.close_model()
 
     def new_model(self):
-        iid = cmds.create_new_ideal_imager(gui_parent=self,
-                                           conjugate_type='infinite')
+        # iid = cmds.create_new_ideal_imager(gui_parent=self,
+        #                                    conjugate_type='infinite')
+        opt_model = cmds.create_new_model()
+        self.app_manager.set_model(opt_model)
+        self.refresh_gui()
 
-        self.add_ipython_subwindow()
+        self.create_lens_table()
+        cmds.create_live_layout_view(opt_model, gui_parent=self)
+        cmds.create_paraxial_design_view_v2(opt_model, 'ht',
+                                            gui_parent=self)
+        self.refresh_gui()
+        self.add_ipython_subwindow(opt_model)
+        self.refresh_app_ui()
+
+    def new_console_empty_model(self):
+        self.add_ipython_subwindow(None)
         self.refresh_app_ui()
 
     def open_file(self, file_name, **kwargs):

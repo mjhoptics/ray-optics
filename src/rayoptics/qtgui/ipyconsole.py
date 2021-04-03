@@ -11,15 +11,35 @@
 from PyQt5.QtGui import QColor
 from qtconsole.rich_jupyter_widget import RichJupyterWidget
 from qtconsole.inprocess import QtInProcessKernelManager
+from qtconsole import styles
 from IPython.lib import guisupport
 
 import qdarkstyle
 from qdarkstyle.palette import DarkPalette
 
 from rayoptics.gui.appmanager import ModelInfo
+from rayoptics.util import colors
+
+default_template = '''\
+    QPlainTextEdit, QTextEdit {
+        background-color: %(bgcolor)s;
+        background-clip: padding;
+        color: %(fgcolor)s;
+        selection-background-color: %(select)s;
+    }
+    .inverted {
+        background-color: %(fgcolor)s;
+        color: %(bgcolor)s;
+    }
+    .error { color: red; }
+    .in-prompt { color: %(i_color)s; }
+    .in-prompt-number { font-weight: bold; }
+    .out-prompt { color: %(o_color)s; }
+    .out-prompt-number { font-weight: bold; }
+'''
 
 
-def create_ipython_console(app, title, view_width, view_ht):
+def create_ipython_console(gui_parent, opt_model, title, view_width, view_ht):
     """ create a iPython console with a rayoptics environment """
 
     def create_light_or_dark_callback(ipy_console):
@@ -27,29 +47,38 @@ def create_ipython_console(app, title, view_width, view_ht):
         #     ipy_console.background = ipy_console.background()
 
         def l_or_d(is_dark):
+            accent = colors.accent_colors(is_dark)
+            prompt_style = {
+                'i_color': accent['cyan'],
+                'o_color': accent['orange'],
+            }
             if is_dark:
-                ipy_console.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
-                # rgb = DarkPalette.color_palette()
-                # ipy_console.setBackground(QColor(
-                #     rgb['COLOR_BACKGROUND_NORMAL']))
+                # ipy_console.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+                color_defs = {**styles.get_colors('solarized-dark'),
+                              **prompt_style }
+                ipy_console.style_sheet = default_template%color_defs
             else:
-                ipy_console.setStyleSheet('')
-                # ipy_console.setBackground(ipy_console.background)
+                # ipy_console.setStyleSheet('')
+                color_defs = {**styles.get_colors('solarized-light'),
+                              **prompt_style }
+                ipy_console.style_sheet = default_template%color_defs
         return l_or_d
 
-    opt_model = app.app_manager.model
     if opt_model:
         ro_env = {
-                'app': app,
+                'gui_parent': gui_parent,
+                'app': gui_parent.app_manager,
                 'opm': opt_model,
                 'sm': opt_model.seq_model,
                 'osp': opt_model.optical_spec,
-                'pm': opt_model.parax_model
+                'pm': opt_model.parax_model,
+                'em': opt_model.ele_model,
+                'pt': opt_model.part_tree,
                 }
     else:
         ro_env = {
-            'app': app,
-            'opm': opt_model
+            'gui_parent': gui_parent,
+            'app': gui_parent.app_manager,
             }
 
     ro_setup = 'from rayoptics.environment import *'
@@ -62,10 +91,10 @@ def create_ipython_console(app, title, view_width, view_ht):
     ipy_console.push_vars(ro_env)
 
     mi = ModelInfo(opt_model)
-    sub_window = app.add_subwindow(ipy_console, mi)
+    sub_window = gui_parent.add_subwindow(ipy_console, mi)
     sub_window.setWindowTitle(title)
     sub_window.sync_light_or_dark = create_light_or_dark_callback(ipy_console)
-    orig_x, orig_y = app.initial_window_offset()
+    orig_x, orig_y = gui_parent.initial_window_offset()
     sub_window.setGeometry(orig_x, orig_y, view_width, view_ht)
 
     sub_window.show()

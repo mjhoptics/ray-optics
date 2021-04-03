@@ -481,9 +481,9 @@ class SequentialModel:
         labels = self.surface_label_list()
         path = self.path() if path is None else path
         for i, sg in enumerate(path):
-            ifc, g = sg
-            s = self.list_surface_and_gap(ifc, gp=g)
-            if g is not None:
+            ifc, gap, _, _, _ = sg
+            s = self.list_surface_and_gap(ifc, gp=gap)
+            if gap is not None:
                 s.append(self.z_dir[i])
             else:
                 s.append(self.z_dir[-1])
