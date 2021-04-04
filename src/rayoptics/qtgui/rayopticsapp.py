@@ -123,7 +123,8 @@ class MainWindow(QMainWindow):
 
         if False:
             # create new model
-            self.new_model()
+            # self.new_model()
+            self.new_console_empty_model()
 
         else:
             # restore a default model
@@ -294,7 +295,7 @@ class MainWindow(QMainWindow):
         self.is_changed = True
         self.create_lens_table()
         cmds.create_live_layout_view(self.app_manager.model, gui_parent=self)
-        self.add_ipython_subwindow()
+        self.add_ipython_subwindow(opt_model)
         self.refresh_app_ui()
 
     def save_file(self, file_name):
