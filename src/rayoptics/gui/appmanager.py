@@ -133,12 +133,14 @@ class AppManager:
                     self.delete_view(view)
                 else:
                     view_close_fct(view)
-        delattr(cur_model, 'app_manager')
-        self.model = None
+        if cur_model is not None:
+            delattr(cur_model, 'app_manager')
+            self.model = None
 
     def refresh_gui(self, **kwargs):
         """ update the active model and refresh its dependent ui views """
-        self.model.update_model()
+        if self.model is not None:
+            self.model.update_model()
         self.refresh_views(**kwargs)
         self.refresh_figures(**kwargs)
 

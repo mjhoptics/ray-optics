@@ -56,12 +56,12 @@ def create_ipython_console(gui_parent, opt_model, title, view_width, view_ht):
                 # ipy_console.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
                 color_defs = {**styles.get_colors('solarized-dark'),
                               **prompt_style }
-                ipy_console.style_sheet = default_template%color_defs
             else:
                 # ipy_console.setStyleSheet('')
                 color_defs = {**styles.get_colors('solarized-light'),
                               **prompt_style }
-                ipy_console.style_sheet = default_template%color_defs
+            ipy_console.style_sheet = default_template%color_defs
+            ipy_console._style_sheet_changed()
         return l_or_d
 
     if opt_model:
