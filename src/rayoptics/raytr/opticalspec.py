@@ -46,13 +46,27 @@ class OpticalSpecs:
         self.field_of_view = FieldSpec(self)
         self.defocus = FocusRange(0.0)
         self.parax_data = None
+        self._submodels = self.map_submodels()
         self.do_aiming = OpticalSpecs.do_aiming_default
         if specsheet:
             self.set_from_specsheet(specsheet)
 
+    def map_submodels(self):
+        submodels = {}
+        submodels['wvls'] = self.spectral_region
+        submodels['pupil'] = self.pupil
+        submodels['fov'] = self.field_of_view
+        submodels['focus'] = self.defocus
+        return submodels
+        
+    def __getitem__(self, key):
+        """ Provide mapping interface to submodels. """
+        return self._submodels[key]
+
     def __json_encode__(self):
         attrs = dict(vars(self))
         del attrs['opt_model']
+        del attrs['_submodels']
         del attrs['parax_data']
         del attrs['do_aiming']
         return attrs
@@ -75,6 +89,7 @@ class OpticalSpecs:
         if not hasattr(self, 'do_aiming'):
             self.do_aiming = OpticalSpecs.do_aiming_default
 
+        self._submodels = self.map_submodels()
         self.spectral_region.sync_to_restore(self)
         self.pupil.sync_to_restore(self)
         self.field_of_view.sync_to_restore(self)

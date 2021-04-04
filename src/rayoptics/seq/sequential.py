@@ -459,7 +459,7 @@ class SequentialModel:
                 ifc.apply_scale_factor(-1)
                 if g:
                     g.apply_scale_factor(-1)
-            self.z_dir[i] = -z_dir
+                    self.z_dir[i] = -z_dir
 
     def surface_label_list(self):
         """ list of surface labels or surface number, if no label """
@@ -920,7 +920,10 @@ def create_surface_and_gap(surf_data, radius_mode=False, prev_medium=None,
                 else:
                     mat = m.Medium(surf_data[2])
             else:
-                mat = m.Glass(surf_data[2], surf_data[3], '')
+                if surf_data[2] == 1.0:
+                    mat = m.Air()
+                else:
+                    mat = m.Glass(surf_data[2], surf_data[3], '')
 
         else:  # string args
             if surf_data[2].upper() == 'REFL':

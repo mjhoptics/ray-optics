@@ -93,6 +93,7 @@ class OpticalModel:
     def __init__(self, radius_mode=False, specsheet=None, **kwargs):
         self.ro_version = rayoptics.__version__
         self.radius_mode = radius_mode
+        
         self.specsheet = specsheet
         self.system_spec = SystemSpec()
         self.seq_model = SequentialModel(self, **kwargs)
@@ -101,12 +102,29 @@ class OpticalModel:
         self.ele_model = ElementModel(self, **kwargs)
         self.part_tree = PartTree(self, **kwargs)
 
+        self._submodels = self.map_submodels()
+
         if self.specsheet:
             self.set_from_specsheet()
 
         if kwargs.get('do_init', True):
             # need to do this after OpticalSpec is initialized
             self.seq_model.update_model()
+
+    def map_submodels(self):
+        submodels = {}
+        submodels['ss'] = self.specsheet
+        submodels['sys'] = self.system_spec
+        submodels['sm'] = self.seq_model
+        submodels['osp'] = self.optical_spec
+        submodels['pm'] = self.parax_model
+        submodels['em'] = self.ele_model
+        submodels['pt'] = self.part_tree
+        return submodels
+
+    def __getitem__(self, key):
+        """ Provide mapping interface to submodels. """
+        return self._submodels[key]
 
     def name(self):
         return self.system_spec.title
@@ -122,6 +140,7 @@ class OpticalModel:
         attrs = dict(vars(self))
         if hasattr(self, 'app_manager'):
             del attrs['app_manager']
+        del attrs['_submodels']
         return attrs
 
     def set_from_specsheet(self, specsheet=None):
@@ -164,6 +183,8 @@ class OpticalModel:
         else:
             self.part_tree = PartTree(self)
             self.part_tree.add_element_model_to_tree(self.ele_model)
+
+        self._submodels = self.map_submodels()
 
         self.update_model()
 
