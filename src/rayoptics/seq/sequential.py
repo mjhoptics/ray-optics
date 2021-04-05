@@ -419,7 +419,7 @@ class SequentialModel:
 
     def apply_scale_factor(self, scale_factor):
         for i, sg in enumerate(self.path()):
-            ifc, g = sg
+            ifc, g, lcl_tfrm, rndx, z_dir = sg
             ifc.apply_scale_factor(scale_factor)
             if g:
                 g.apply_scale_factor(scale_factor)
@@ -497,7 +497,7 @@ class SequentialModel:
         print("           {}            t        medium     mode         sd"
               .format(cvr))
         for i, sg in enumerate(self.path()):
-            ifc, g = sg
+            ifc, g, _, _, _ = sg
             s = self.list_surface_and_gap(ifc, gp=g)
             fmt = "{0:2n}: {1:12.6f} {2:#12.6g} {3:>9s} {4.name:>10s}"
             if s[4] is not None:  # if the sd is not None...
