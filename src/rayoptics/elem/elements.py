@@ -10,10 +10,13 @@
 
 from collections import namedtuple
 import itertools
+from packaging import version
 
 import numpy as np
 
 from anytree import Node
+
+import rayoptics
 
 import rayoptics.util.rgbtable as rgbt
 import rayoptics.oprops.thinlens as thinlens
@@ -944,6 +947,11 @@ class ThinElement():
         if not hasattr(self, 'medium_name'):
             self.medium_name = 'Thin Element'
 
+        ro_version = ele_model.opt_model.ro_version
+        if version.parse(ro_version) < version.parse("0.7.0"):
+            ThinElement.serial_number += 1
+            self.label = ThinElement.label_format.format(ThinElement.serial_number)
+
     def sync_to_update(self, seq_model):
         self.intrfc_indx = seq_model.ifcs.index(self.intrfc)
 
@@ -977,7 +985,6 @@ class ThinElement():
     def handle_actions(self):
         self.actions = {}
         return self.actions
-
 
 class DummyInterface():
 
@@ -1138,6 +1145,11 @@ class AirGap():
             self.render_color = (237, 243, 254, 64)  # light blue
         if not hasattr(self, 'medium_name'):
             self.medium_name = self.gap.medium.name()
+
+        ro_version = ele_model.opt_model.ro_version
+        if version.parse(ro_version) < version.parse("0.7.0"):
+            AirGap.serial_number += 1
+            self.label = AirGap.label_format.format(AirGap.serial_number)
 
     def sync_to_update(self, seq_model):
         self.idx = seq_model.gaps.index(self.gap)
