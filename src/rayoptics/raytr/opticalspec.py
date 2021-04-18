@@ -333,8 +333,11 @@ class FieldSpec:
         if not self.is_relative:
             fld_scale = 1 if self.value == 0 else value/self.value
 
-        flds = [0, self.value]
-        self.set_from_list(flds)
+            for i, f in enumerate(self.fields):
+                f.x *= fld_scale
+                f.y *= fld_scale
+
+        self.key, self.value = key, value
 
     def get_input_for_specsheet(self):
         return self.key, self.value

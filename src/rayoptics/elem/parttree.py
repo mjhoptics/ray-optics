@@ -89,7 +89,8 @@ class PartTree():
 
     def parent_object(self, obj, tag='#element#airgap#dummyifc'):
         parent_node = self.parent_node(obj, tag)
-        return parent_node.id if parent_node else None
+        parent = parent_node.id if parent_node else None
+        return parent, parent_node
 
     def list_tree(self):
         print(RenderTree(self.root_node).by_attr())
@@ -134,6 +135,10 @@ def sync_part_tree_on_restore(ele_model, seq_model, root_node):
             e = ele_dict[p_name]
             idx = int(name[1:]) - 1
             node.id = e.interface_list()[idx].profile
+        elif name[:2] == 'tl':
+            p_name = node.parent.name
+            e = ele_dict[p_name]
+            node.id = e.intrfc
         elif name[0] == 't':
             p_name = node.parent.name
             e = ele_dict[p_name]
@@ -143,10 +148,6 @@ def sync_part_tree_on_restore(ele_model, seq_model, root_node):
             p_name = node.parent.name
             e = ele_dict[p_name]
             node.id = e.ref_ifc
-        elif name[:1] == 'tl':
-            p_name = node.parent.name
-            e = ele_dict[p_name]
-            node.id = e.intrfc
 
 
 def sync_part_tree_on_update(ele_model, seq_model, root_node):

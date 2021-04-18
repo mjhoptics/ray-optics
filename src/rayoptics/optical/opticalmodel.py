@@ -255,7 +255,7 @@ class OpticalModel:
             # interface to the existing gap and following (air gap) element
             g = self.seq_model.gaps[self.seq_model.cur_surface+1]
             seq[-1][mc.Gap] = g
-            ag = self.part_tree.parent_object(g, '#airgap')
+            ag, ag_node = self.part_tree.parent_object(g, '#airgap')
             ag.idx = seq[-1][mc.Intfc]
 
         for sg in seq:
