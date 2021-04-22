@@ -475,9 +475,15 @@ class LensLayout():
             return ele_length+img_dist, offset_factor*img_dist
 
     def create_element_model(self, view):
-        ele_model = self.opt_model.ele_model
-        elements = [create_optical_element(self.opt_model, e)
-                    for e in ele_model.elements]
+        opm = self.opt_model
+        pt = opm.part_tree
+        if opm['ss'].conjugate_type == 'infinite':
+            e_nodes = pt.nodes_with_tag(tag='#element#dummyifc',
+                                        not_tag='#object')
+        else:
+            e_nodes = pt.nodes_with_tag(tag='#element#dummyifc')
+        elements = [create_optical_element(opm, e_node.id)
+                    for e_node in e_nodes]
         return elements
 
     def create_ray_model(self, view, start_offset):

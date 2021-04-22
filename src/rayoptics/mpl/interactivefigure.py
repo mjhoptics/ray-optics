@@ -55,7 +55,6 @@ class InteractiveFigure(StyledFigure):
         - interface commands for zooming and panning the display area
 
     Attributes:
-        opt_model: parent optical model
         do_draw_frame: if True, draw frame around the figure
         do_draw_axes: if True, draw coordinate axes for the figure
         oversize_factor: what fraction to oversize the view bounding box

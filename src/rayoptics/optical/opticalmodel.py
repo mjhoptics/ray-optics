@@ -196,6 +196,7 @@ class OpticalModel:
         self.part_tree.update_model()
         if self.specsheet is None:
             self.specsheet = create_specsheet_from_model(self)
+            self._submodels['ss'] = self.specsheet
 
     def nm_to_sys_units(self, nm):
         """ convert nm to system units
@@ -297,5 +298,5 @@ class OpticalModel:
         # unhook node
         e_node.parent = None
 
-    def list_part_tree(self):
-        self.part_tree.list_tree()
+    def list_part_tree(self, *args, **kwargs):
+        self.part_tree.list_tree(*args, **kwargs)

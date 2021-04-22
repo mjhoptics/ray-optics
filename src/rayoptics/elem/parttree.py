@@ -7,6 +7,7 @@
 
 .. codeauthor: Michael J. Hayford
 """
+from itertools import zip_longest
 
 from anytree import Node, RenderTree, PreOrderIter
 from anytree.exporter import DictExporter
@@ -49,12 +50,13 @@ class PartTree():
 
     def init_from_sequence(self, seq_model):
         """Initialize part tree using a *seq_model*. """
-        for i, s in enumerate(seq_model.ifcs[1:-1], start=1):
-            Node(f'i{i}', id=s, tag='#ifc', parent=self.root_node)
-            gap = seq_model.gaps[i]
-            z_dir = seq_model.z_dir[i]
-            # if not isinstance(gap.medium, Air):
-            Node(f'g{i}', id=(gap, z_dir), tag='#gap', parent=self.root_node)
+        root_node = self.root_node
+        for i, sgz in enumerate(zip_longest(seq_model.ifcs, seq_model.gaps,
+                                            seq_model.z_dir)):
+            s, gap, z_dir = sgz
+            Node(f'i{i}', id=s, tag='#ifc', parent=root_node)
+            if gap is not None:
+                Node(f'g{i}', id=(gap, z_dir), tag='#gap', parent=root_node)
 
     def add_element_model_to_tree(self, ele_model):
         for e in ele_model.elements:
@@ -74,9 +76,11 @@ class PartTree():
         return e_node
 
     def node(self, obj):
+        """ Return the node paired with `obj`. """
         return find_by_attr(self.root_node, name='id', value=obj)
 
     def parent_node(self, obj, tag='#element#airgap#dummyifc'):
+        """ Return the parent node for `obj`, filtered by `tag`. """
         tags = tag.split('#')[1:]
         leaf_node = self.node(obj)
         parent_node = leaf_node.parent if leaf_node else None
@@ -88,23 +92,38 @@ class PartTree():
         return parent_node
 
     def parent_object(self, obj, tag='#element#airgap#dummyifc'):
+        """ Return the parent object (and node) for `obj`, filtered by `tag`. """
         parent_node = self.parent_node(obj, tag)
         parent = parent_node.id if parent_node else None
         return parent, parent_node
 
-    def list_tree(self):
-        print(RenderTree(self.root_node).by_attr())
+    def list_tree(self, *args, **kwargs):
+        """ Print a graphical console representation of the tree. 
 
-    def nodes_with_tag(self, tag='#element', root=None):
+        The optional arguments are passed through to the by_attr filter.
+        Useful examples or arguments include:
+
+            - pt.list_tree(lambda node: f"{node.name}: {node.tag}")
+            - pt.list_tree(attrname='tag')
+
+        """
+        print(RenderTree(self.root_node).by_attr(*args, **kwargs))
+
+    def nodes_with_tag(self, tag='#element', not_tag='', root=None):
+        """ Return a list of nodes that contain the requested `tag`. """
         def tag_filter(tags):
             def filter_tagged_node(node):
                 for t in tags:
                     if t in node.tag:
+                        for n_t in not_tags:
+                            if n_t in node.tag:
+                                return False
                         return True
                 return False
             return filter_tagged_node
 
         tags = tag.split('#')[1:]
+        not_tags = not_tag.split('#')[1:]
         root_node = self.root_node if root is None else root
         nodes = [node for node in PreOrderIter(root_node,
                                                filter_=tag_filter(tags))]
@@ -133,7 +152,10 @@ def sync_part_tree_on_restore(ele_model, seq_model, root_node):
         elif name[0] == 'p':
             p_name = node.parent.name
             e = ele_dict[p_name]
-            idx = int(name[1:]) - 1
+            try:
+                idx = int(name[1:]) - 1
+            except ValueError:
+                idx = 0
             node.id = e.interface_list()[idx].profile
         elif name[:2] == 'tl':
             p_name = node.parent.name
@@ -204,10 +226,9 @@ def elements_from_sequence(ele_model, seq_model, part_tree):
             if g.medium.name().lower() == 'air':
                 num_eles = len(eles)
                 if num_eles == 0:
-                    if i > 0:
-                        process_airgap(
-                            ele_model, seq_model, part_tree,
-                            i, g, z_dir, ifc, g_tfrm, add_ele=True)
+                    process_airgap(
+                        ele_model, seq_model, part_tree,
+                        i, g, z_dir, ifc, g_tfrm, add_ele=True)
                 else:
                     if buried_reflector is True:
                         num_eles = num_eles//2
@@ -280,6 +301,9 @@ def elements_from_sequence(ele_model, seq_model, part_tree):
                     buried_reflector = True
 
                 eles.append((i, ifc, g, z_dir, g_tfrm))
+        else:
+            process_airgap(ele_model, seq_model, part_tree,
+                           i, g, z_dir, ifc, g_tfrm)
 
 
 def process_airgap(ele_model, seq_model, part_tree, i, g, z_dir, s, g_tfrm,
@@ -294,7 +318,7 @@ def process_airgap(ele_model, seq_model, part_tree, i, g, z_dir, s, g_tfrm,
         te = elements.ThinElement(s, tfrm=g_tfrm, idx=i)
         part_tree.add_element_to_tree(te)
         ele_model.add_element(te)
-    elif s.interact_mode == 'transmit':
+    elif (s.interact_mode == 'dummy' or s.interact_mode == 'transmit'):
         add_dummy = False
         dummy_label = None
         dummy_tag = ''
@@ -302,6 +326,10 @@ def process_airgap(ele_model, seq_model, part_tree, i, g, z_dir, s, g_tfrm,
             add_dummy = True  # add dummy for the object
             dummy_label = 'Object'
             dummy_tag = '#object'
+        elif i == seq_model.get_num_surfaces() - 1:
+            add_dummy = True  # add dummy for the object
+            dummy_label = 'Image'
+            dummy_tag = '#image'
         else:  # i > 0
             gp = seq_model.gaps[i-1]
             if gp.medium.name().lower() == 'air':
@@ -316,8 +344,9 @@ def process_airgap(ele_model, seq_model, part_tree, i, g, z_dir, s, g_tfrm,
             part_tree.add_element_to_tree(di, tag=dummy_tag)
             ele_model.add_element(di)
 
-    # add an AirGap
-    ag = elements.AirGap(g, idx=i, tfrm=g_tfrm)
-    ag_node = part_tree.add_element_to_tree(ag, z_dir=z_dir)
-    ag_node.leaves[0].id = (g, z_dir)
-    ele_model.add_element(ag)
+    if g is not None:
+        # add an AirGap
+        ag = elements.AirGap(g, idx=i, tfrm=g_tfrm)
+        ag_node = part_tree.add_element_to_tree(ag, z_dir=z_dir)
+        ag_node.leaves[0].id = (g, z_dir)
+        ele_model.add_element(ag)
