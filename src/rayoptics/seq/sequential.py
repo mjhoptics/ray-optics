@@ -205,10 +205,7 @@ class SequentialModel:
 
     def index_for_wavelength(self, wvl):
         """ returns index into rndx array for wavelength `wvl` in nm """
-        if len(self.wvlns) == 0:
-            rgn = self.opt_model.optical_spec.spectral_region
-            self.wvlns = rgn.wavelengths
-
+        self.wvlns = self.opt_model.optical_spec.spectral_region.wavelengths
         return self.wvlns.index(wvl)
 
     def central_rndx(self, i):
