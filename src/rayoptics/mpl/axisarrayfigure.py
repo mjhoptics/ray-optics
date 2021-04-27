@@ -58,7 +58,7 @@ class AxisArrayFigure(StyledFigure):
         self.eval_fct = eval_fct
         self.num_rows = num_rows
         self.num_cols = num_cols
-        self.update_data()
+        self.update_data(**kwargs)
 
     def init_axis(self, ax):
         ax.grid(True)
@@ -100,9 +100,10 @@ class AxisArrayFigure(StyledFigure):
 class RayFanFigure(AxisArrayFigure):
 
     def __init__(self, opt_model, data_type, override_style=True,
-                 **kwargs):
+                 do_smoothing=True, **kwargs):
         self.max_value_all = 0.0
         self.override_style = override_style
+        self.do_smoothing = do_smoothing
         seq_model = opt_model.seq_model
         osp = opt_model.optical_spec
         central_wvl = osp.spectral_region.central_wvl
@@ -145,6 +146,7 @@ class RayFanFigure(AxisArrayFigure):
                          num_rows=num_flds, num_cols=2, **kwargs)
 
     def update_data(self, build='rebuild', **kwargs):
+        do_smoothing = kwargs.get('do_smoothing', self.do_smoothing)
         self.axis_data_array = []
         for i in reversed(range(self.num_rows)):
             row = []
@@ -155,12 +157,19 @@ class RayFanFigure(AxisArrayFigure):
 #                x_data, y_data, max_value, rc = self.eval_axis_data(i, j)
 #                rc = clip_to_range(rc, 0.0, 1.0)
                 for k in range(len(x_data)):
-                    interpolator = interp1d(x_data[k], y_data[k],
-                                            kind='cubic', assume_sorted=True)
-                    x_samp = np.linspace(x_data[k].min(), x_data[k].max(), 100)
-                    y_fit = interpolator(x_samp)
-                    x_smooth.append(x_samp)
-                    y_smooth.append(y_fit)
+                    if do_smoothing:
+                        interpolator = interp1d(x_data[k], y_data[k],
+                                                kind='cubic',
+                                                assume_sorted=True)
+                        x_samp = np.linspace(x_data[k].min(),
+                                             x_data[k].max(), 100)
+                        y_fit = interpolator(x_samp)
+                        x_smooth.append(x_samp)
+                        y_smooth.append(y_fit)
+                    else:
+                        x_smooth.append(x_data[k])
+                        y_smooth.append(y_data[k])
+                        
                 row.append((x_smooth, y_smooth, max_value, rc))
             self.axis_data_array.append(row)
         return self

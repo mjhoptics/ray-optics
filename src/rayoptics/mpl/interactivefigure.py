@@ -176,6 +176,7 @@ class InteractiveFigure(StyledFigure):
         and attaching it to the corresponding ``Artist``
         """
         bbox_list = []
+        # print('update_patches')
         for shape in shapes:
             handles = shape.update_shape(self)
             for key, gui_handle in handles.items():
@@ -183,6 +184,8 @@ class InteractiveFigure(StyledFigure):
                 # add shape and handle key as attribute on artist
                 if ~np.isnan(bbox).all():
                     poly.shape = (shape, key)
+                    # print(f'shape: {type(shape).__name__} {key}: '
+                    #       f'{type(poly).__name__}')
                     self.artists.append(poly)
                     if len(bbox_list) == 0:
                         bbox_list = bbox
