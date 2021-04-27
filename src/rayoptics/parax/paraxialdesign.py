@@ -464,15 +464,16 @@ class ParaxialModel():
             if self.ax[i][mc.ht] != 0:
                 max_ap = ifc.surface_od()
                 y = self.ax[i][mc.ht]
-                ybar = self.pr[i][mc.ht]
-                ratio = (max_ap - abs(rel_fov*ybar))/abs(y)
-                if ybar < 0:
-                    if ratio < min_vly[0]:
-                        min_vly = ratio, i
-                else:
-                    if ratio < min_vuy[0]:
-                        min_vuy = ratio, i
-        #         print("{:3d}: {:8.3f} {:8.3f} {:8.3f}".format(
-        #             i, ratio, self.pr[i][mc.ht], self.ax[i][mc.ht]))
+                ybar = rel_fov * self.pr[i][mc.ht]
+                ratio = (max_ap - abs(ybar))/abs(y)
+                if ratio > 0:
+                    if ybar < 0:
+                        if ratio < min_vly[0]:
+                            min_vly = ratio, i
+                    else:
+                        if ratio < min_vuy[0]:
+                            min_vuy = ratio, i
+                # print(f'{i:2d}: {ratio:8.3f} {ybar:8.3f} {y:8.3f} {max_ap:8.3f}')
+
         # print("min_vly:", min_vly, "min_vuy:", min_vuy)
         return min_vly, min_vuy
