@@ -5,7 +5,7 @@
    "OpticalModel"
   ],
   "attributes":{
-   "ro_version":"0.4.12+7.g2c8e340.dirty",
+   "ro_version":"0.6.5",
    "radius_mode":true,
    "specsheet":{
     "__instance_type__":[
@@ -324,7 +324,15 @@
          ],
          "attributes":{
           "gindex":55,
-          "gname":"N-LAK9"
+          "gname":"N-LAK9",
+          "coefs":[
+           1.46231905,
+           0.344399589,
+           1.15508372,
+           0.00724270156,
+           0.0243353131,
+           85.4686868
+          ]
          }
         }
        }
@@ -362,7 +370,15 @@
          ],
          "attributes":{
           "gindex":78,
-          "gname":"N-SF5"
+          "gname":"N-SF5",
+          "coefs":[
+           1.52481889,
+           0.187085527,
+           1.42729015,
+           0.011254756,
+           0.0588995392,
+           129.141675
+          ]
          }
         }
        }
@@ -400,7 +416,15 @@
          ],
          "attributes":{
           "gindex":55,
-          "gname":"N-LAK9"
+          "gname":"N-LAK9",
+          "coefs":[
+           1.46231905,
+           0.344399589,
+           1.15508372,
+           0.00724270156,
+           0.0243353131,
+           85.4686868
+          ]
          }
         }
        }
@@ -426,7 +450,8 @@
       }
      ],
      "stop_surface":3,
-     "cur_surface":6
+     "cur_surface":6,
+     "do_apertures":true
     }
    },
    "optical_spec":{
