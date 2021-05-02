@@ -478,10 +478,10 @@ class LensLayout():
         opm = self.opt_model
         pt = opm.part_tree
         if opm['ss'].conjugate_type == 'infinite':
-            e_nodes = pt.nodes_with_tag(tag='#element#dummyifc',
+            e_nodes = pt.nodes_with_tag(tag='#element#dummyifc#airgap',
                                         not_tag='#object')
         else:
-            e_nodes = pt.nodes_with_tag(tag='#element#dummyifc')
+            e_nodes = pt.nodes_with_tag(tag='#element#dummyifc#airgap')
         elements = [create_optical_element(opm, e_node.id)
                     for e_node in e_nodes]
         return elements

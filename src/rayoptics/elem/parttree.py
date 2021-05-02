@@ -347,6 +347,7 @@ def process_airgap(ele_model, seq_model, part_tree, i, g, z_dir, s, g_tfrm,
     if g is not None:
         # add an AirGap
         ag = elements.AirGap(g, idx=i, tfrm=g_tfrm)
-        ag_node = part_tree.add_element_to_tree(ag, z_dir=z_dir)
+        gap_tag = '#object' if i == 0 else ''
+        ag_node = part_tree.add_element_to_tree(ag, z_dir=z_dir, tag=gap_tag)
         ag_node.leaves[0].id = (g, z_dir)
         ele_model.add_element(ag)

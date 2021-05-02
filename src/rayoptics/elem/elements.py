@@ -948,7 +948,7 @@ class ThinElement():
             self.medium_name = 'Thin Element'
 
         ro_version = ele_model.opt_model.ro_version
-        if version.parse(ro_version) < version.parse("0.7.0"):
+        if version.parse(ro_version) < version.parse("0.7.0b"):
             ThinElement.serial_number += 1
             self.label = ThinElement.label_format.format(ThinElement.serial_number)
 
@@ -1147,7 +1147,7 @@ class AirGap():
             self.medium_name = self.gap.medium.name()
 
         ro_version = ele_model.opt_model.ro_version
-        if version.parse(ro_version) < version.parse("0.7.0"):
+        if version.parse(ro_version) < version.parse("0.7.0b"):
             AirGap.serial_number += 1
             self.label = AirGap.label_format.format(AirGap.serial_number)
 
@@ -1243,12 +1243,21 @@ class ElementModel:
         # self.airgaps_from_sequence(seq_model, tfrms)
         # self.add_dummy_interface_at_image(seq_model, tfrms)
 
+        self.reset_serial_numbers()
         for i, e in enumerate(self.elements, start=1):
             e.sync_to_restore(self, surfs, gaps, tfrms)
             if not hasattr(e, 'label'):
                 e.label = e.label_format.format(i)
         self.sequence_elements()
         # self.relabel_airgaps()
+
+    def reset_serial_numbers(self):
+        Element.serial_number = 0
+        Mirror.serial_number = 0
+        CementedElement.serial_number = 0
+        ThinElement.serial_number = 0
+        DummyInterface.serial_number = 0
+        AirGap.serial_number = 0
 
     def airgaps_from_sequence(self, seq_model, tfrms):
         """ add airgaps and dummy interfaces to an older version model """
