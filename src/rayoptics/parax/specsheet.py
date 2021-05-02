@@ -16,7 +16,6 @@ from rayoptics.util import dict2d
 
 from rayoptics.parax import etendue
 from rayoptics.parax.etendue import (obj_img_set, fld_ape_set,
-                                     fld_labels, ap_labels,
                                      create_etendue_dict)
 
 conjugate_types = ['finite', 'infinite']
@@ -26,12 +25,12 @@ def create_specsheet(conjugate_type, **inputs):
     if conjugate_type == 'finite':
         # setup finite conjugate defaults
         fev = create_etendue_dict()
-        fev['field']['object'] = dict([(fld_labels[0], None)])
-        fev['aperture']['object'] = dict([(ap_labels[2], None),
-                                          (ap_labels[1], None)])
-        fev['field']['image'] = dict([(fld_labels[0], None)])
-        fev['aperture']['image'] = dict([(ap_labels[2], None),
-                                         (ap_labels[1], None)])
+        fev['field']['object'] = dict([('height', None)])
+        fev['aperture']['object'] = dict([('f/#', None),
+                                          ('NA', None)])
+        fev['field']['image'] = dict([('height', None)])
+        fev['aperture']['image'] = dict([('f/#', None),
+                                         ('NA', None)])
         fss = SpecSheet('finite', etendue_values=fev, **inputs)
         return fss
 
@@ -41,11 +40,11 @@ def create_specsheet(conjugate_type, **inputs):
         imager = IdealImager(None, -math.inf, None, None, None)
 
         iev = create_etendue_dict()
-        iev['field']['object'] = dict([(fld_labels[1], None)])
-        iev['aperture']['object'] = dict([(ap_labels[0], None)])
-        iev['field']['image'] = dict([(fld_labels[0], None)])
-        iev['aperture']['image'] = dict([(ap_labels[2], None),
-                                         (ap_labels[1], None)])
+        iev['field']['object'] = dict([('angle', None)])
+        iev['aperture']['object'] = dict([('pupil', None)])
+        iev['field']['image'] = dict([('height', None)])
+        iev['aperture']['image'] = dict([('f/#', None),
+                                         ('NA', None)])
 
         ifss = SpecSheet('infinite', imager=imager,
                          imager_inputs=imager_inputs,
