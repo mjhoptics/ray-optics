@@ -948,7 +948,7 @@ class ThinElement():
             self.medium_name = 'Thin Element'
 
         ro_version = ele_model.opt_model.ro_version
-        if version.parse(ro_version) < version.parse("0.7.0b"):
+        if version.parse(ro_version) < version.parse("0.7.0a"):
             ThinElement.serial_number += 1
             self.label = ThinElement.label_format.format(ThinElement.serial_number)
 
@@ -1147,7 +1147,7 @@ class AirGap():
             self.medium_name = self.gap.medium.name()
 
         ro_version = ele_model.opt_model.ro_version
-        if version.parse(ro_version) < version.parse("0.7.0b"):
+        if version.parse(ro_version) < version.parse("0.7.0a"):
             AirGap.serial_number += 1
             self.label = AirGap.label_format.format(AirGap.serial_number)
 

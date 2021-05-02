@@ -9,6 +9,7 @@
 """
 
 import json_tricks
+from packaging import version
 
 
 module_repl_050 = {
@@ -49,6 +50,15 @@ def preprocess_roa(file_name, str_replacements):
     return contents
 
 
+def postprocess_roa(opt_model):
+    """Force rebuild of ele_model for pre-0.7 models. """
+    if version.parse(opt_model.ro_version) < version.parse("0.7.0a"):
+        opt_model.ele_model.elements = []
+
+    opt_model.sync_to_restore()
+    return opt_model
+
+
 def open_roa(file_name, mapping=None):
     """ open a ray-optics file and populate an optical model with the data
 
@@ -59,11 +69,11 @@ def open_roa(file_name, mapping=None):
     Returns:
         if successful, an OpticalModel instance, otherwise, None
     """
-    opm = None
+    opt_model = None
     str_replacements = module_repl_050 if mapping is None else mapping
     contents = preprocess_roa(file_name, str_replacements)
     obj_dict = json_tricks.loads(contents)
     if 'optical_model' in obj_dict:
-        opm = obj_dict['optical_model']
-        opm.sync_to_restore()
-    return opm
+        opt_model = obj_dict['optical_model']
+        postprocess_roa(opt_model)
+    return opt_model
