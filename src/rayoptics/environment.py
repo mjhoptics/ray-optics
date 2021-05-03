@@ -32,6 +32,8 @@ import rayoptics.elem.surface as srf
 from rayoptics.seq.gap import Gap
 from rayoptics.elem import elements
 from rayoptics.oprops.thinlens import ThinLens
+from rayoptics.oprops import doe
+from rayoptics.oprops.doe import DiffractiveElement
 from rayoptics.elem.profiles import (Spherical, Conic, EvenPolynomial,
                                      RadialPolynomial)
 from rayoptics.raytr.opticalspec import (WvlSpec, FieldSpec, Field,
@@ -50,6 +52,8 @@ from rayoptics.raytr.trace import (RayPkg, RaySeg, list_ray,
                                    trace_astigmatism)
 import rayoptics.raytr.raytrace as rt
 from rayoptics.raytr import analyses
+from rayoptics.raytr.analyses import (Ray, RayFan, RayList, RayGrid)
+from rayoptics.raytr import sampler
 
 # paraxial design
 import rayoptics.optical.model_constants as mc

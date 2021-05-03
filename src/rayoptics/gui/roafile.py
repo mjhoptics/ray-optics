@@ -42,24 +42,30 @@ module_repl_050 = {
 
 
 def preprocess_roa(file_name, str_replacements):
-    """Replace any old module references with the v0.5 ones."""
+    """Read and preprocess raw roa text file, returning preprocessed text."""
+
+    # Replace any old module references with the v0.5 ones.
     with open(file_name, 'r') as f:
         contents = f.read()
     for old, new in str_replacements.items():
         contents = contents.replace(old, new)
+
     return contents
 
 
-def postprocess_roa(opt_model):
-    """Force rebuild of ele_model for pre-0.7 models. """
-    if version.parse(opt_model.ro_version) < version.parse("0.7.0a"):
+def postprocess_roa(opt_model, **kwargs):
+    """Post processing for raw optical_model, including sync_to_restore. """
+
+    # Force rebuild of ele_model for pre-0.7 models.
+    if (not hasattr(opt_model, 'ro_version') or
+        version.parse(opt_model.ro_version) < version.parse("0.7.0a")):
         opt_model.ele_model.elements = []
 
     opt_model.sync_to_restore()
     return opt_model
 
 
-def open_roa(file_name, mapping=None):
+def open_roa(file_name, mapping=None, **kwargs):
     """ open a ray-optics file and populate an optical model with the data
 
     Args:
@@ -75,5 +81,5 @@ def open_roa(file_name, mapping=None):
     obj_dict = json_tricks.loads(contents)
     if 'optical_model' in obj_dict:
         opt_model = obj_dict['optical_model']
-        postprocess_roa(opt_model)
+        postprocess_roa(opt_model, **kwargs)
     return opt_model
