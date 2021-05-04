@@ -102,7 +102,7 @@ class OpticalModel:
         self.ele_model = ElementModel(self, **kwargs)
         self.part_tree = PartTree(self, **kwargs)
 
-        self._submodels = self.map_submodels()
+        self.map_submodels()
 
         if self.specsheet:
             self.set_from_specsheet()
@@ -112,19 +112,31 @@ class OpticalModel:
             self.seq_model.update_model()
 
     def map_submodels(self):
+        """Setup machinery for model mapping api. """
         submodels = {}
-        submodels['ss'] = self.specsheet
-        submodels['sys'] = self.system_spec
-        submodels['sm'] = self.seq_model
-        submodels['osp'] = self.optical_spec
-        submodels['pm'] = self.parax_model
-        submodels['em'] = self.ele_model
-        submodels['pt'] = self.part_tree
-        return submodels
+        submodels['specsheet'] = self.specsheet
+        submodels['system_spec'] = self.system_spec
+        submodels['seq_model'] = self.seq_model
+        submodels['optical_spec'] = self.optical_spec
+        submodels['parax_model'] = self.parax_model
+        submodels['ele_model'] = self.ele_model
+        submodels['part_tree'] = self.part_tree
+        # Add a level of indirection to allow short and long aliases
+        submodel_aliases = {
+            'ss': 'specsheet', 'specsheet': 'specsheet',
+            'sys': 'system_spec', 'system_spec': 'system_spec',
+            'sm': 'seq_model', 'seq_model': 'seq_model',
+            'osp': 'optical_spec', 'optical_spec': 'optical_spec',
+            'pm': 'parax_model', 'parax_model': 'parax_model',
+            'em': 'ele_model', 'ele_model': 'ele_model',
+            'pt': 'part_tree', 'part_tree': 'part_tree',
+            }
+        self._submodels = submodels, submodel_aliases
 
     def __getitem__(self, key):
         """ Provide mapping interface to submodels. """
-        return self._submodels[key]
+        submodels, submodel_aliases = self._submodels
+        return submodels[submodel_aliases[key]]
 
     def name(self):
         return self.system_spec.title
@@ -135,8 +147,6 @@ class OpticalModel:
         self.radius_mode = rdm
 
     def __json_encode__(self):
-        # update version number prior to writing file.
-        self.ro_version = rayoptics.__version__
         attrs = dict(vars(self))
         if hasattr(self, 'app_manager'):
             del attrs['app_manager']
@@ -151,9 +161,13 @@ class OpticalModel:
         self.optical_spec.set_from_specsheet(specsheet)
         self.seq_model.set_from_specsheet(specsheet)
 
-    def save_model(self, file_name):
+    def save_model(self, file_name, version=None):
+        """Save the optical_model in a ray-optics JSON file."""
         file_extension = os.path.splitext(file_name)[1]
         filename = file_name if len(file_extension) > 0 else file_name+'.roa'
+        # update version number prior to writing file.
+        self.ro_version = rayoptics.__version__ if version is None else version
+
         fs_dict = {}
         fs_dict['optical_model'] = self
         with open(filename, 'w') as f:
@@ -184,7 +198,7 @@ class OpticalModel:
             self.part_tree = PartTree(self)
             self.part_tree.add_element_model_to_tree(self.ele_model)
 
-        self._submodels = self.map_submodels()
+        self.map_submodels()
 
         self.update_model()
 
@@ -196,7 +210,7 @@ class OpticalModel:
         self.part_tree.update_model()
         if self.specsheet is None:
             self.specsheet = create_specsheet_from_model(self)
-            self._submodels['ss'] = self.specsheet
+            self.map_submodels()
 
     def nm_to_sys_units(self, nm):
         """ convert nm to system units

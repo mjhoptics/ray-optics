@@ -60,6 +60,8 @@ def postprocess_roa(opt_model, **kwargs):
     if (not hasattr(opt_model, 'ro_version') or
         version.parse(opt_model.ro_version) < version.parse("0.7.0a")):
         opt_model.ele_model.elements = []
+        if hasattr(opt_model, 'part_tree'):
+            delattr(opt_model, 'part_tree')
 
     opt_model.sync_to_restore()
     return opt_model
