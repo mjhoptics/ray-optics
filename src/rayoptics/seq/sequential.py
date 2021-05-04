@@ -592,7 +592,7 @@ class SequentialModel:
         for i, sg in enumerate(self.path()):
             ifc, gap, lcl_tfrm, rndx, z_dir = sg
             s = self.list_surface_and_gap(ifc, gap)
-            s.append(self.z_dir[i])
+            s.append(z_dir)
             cvr, thi, med, imode, sd, z_dir = s
             if ifc.decenter is not None:
                 d = ifc.decenter

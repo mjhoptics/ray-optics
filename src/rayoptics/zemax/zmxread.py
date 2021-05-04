@@ -236,8 +236,8 @@ def post_process_input(opt_model, filename, **kwargs):
     sm.ifcs[-1].interact_mode = 'dummy'
     _track_contents['# surfs'] = len(sm.ifcs)
 
-    do_post_processing = False
-    if do_post_processing:
+    do_post_processing = kwargs.get('do_postprocess', False)
+    if do_post_processing:  # everything is on by default
         if kwargs.get('do_bend', True):
             zmx2ro.apply_fct_to_sm(opt_model, zmx2ro.convert_to_bend)
         if kwargs.get('do_dar', True):
