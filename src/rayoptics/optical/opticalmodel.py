@@ -162,7 +162,12 @@ class OpticalModel:
         self.seq_model.set_from_specsheet(specsheet)
 
     def save_model(self, file_name, version=None):
-        """Save the optical_model in a ray-optics JSON file."""
+        """Save the optical_model in a ray-optics JSON file.
+        
+        Args:
+            file_name: str or Path
+            version: optional override for rayoptics version number
+        """
         file_extension = os.path.splitext(file_name)[1]
         filename = file_name if len(file_extension) > 0 else file_name+'.roa'
         # update version number prior to writing file.
