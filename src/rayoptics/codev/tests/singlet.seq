@@ -3,6 +3,7 @@ dim m
 so 0. 100.
 s 0.1 1 nbk7_schott  ! first surf
 s -.05 15
+si 0 0
 fno 5.0
 wl 650 550 450 ! wavelengths 
 yim 0 1
