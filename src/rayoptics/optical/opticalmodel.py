@@ -20,7 +20,7 @@ import rayoptics.elem.elements as ele
 import rayoptics.optical.model_constants as mc
 
 from rayoptics.elem.elements import ElementModel
-from rayoptics.elem.parttree import PartTree
+from rayoptics.elem.parttree import (PartTree, elements_from_sequence)
 from rayoptics.parax.paraxialdesign import ParaxialModel
 from rayoptics.seq.sequential import SequentialModel
 from rayoptics.raytr.opticalspec import OpticalSpecs
@@ -110,6 +110,9 @@ class OpticalModel:
         if kwargs.get('do_init', True):
             # need to do this after OpticalSpec is initialized
             self.seq_model.update_model()
+            elements_from_sequence(self.ele_model,
+                                   self.seq_model,
+                                   self.part_tree)
 
     def map_submodels(self):
         """Setup machinery for model mapping api. """
@@ -255,31 +258,62 @@ class OpticalModel:
 
     def insert_ifc_gp_ele(self, *descriptor, **kwargs):
         """ insert interfaces and gaps into seq_model and eles into ele_model
+
+        Args:
+            descriptor: a tuple of additions for the sequential, element and
+                        part tree models
+            kwargs: keyword arguments including
+                idx: insertion point in the sequential model
+                insert: if True, insert the chunk, otherwise replace it
+                t: the thickness following a chuck when inserting
         """
+        sm = self['seq_model']
         seq, elm, e_node = descriptor
         if 'idx' in kwargs:
-            self.seq_model.cur_surface = kwargs['idx']
+            sm.cur_surface = kwargs['idx']
+        idx = sm.cur_surface
 
         e_node.parent = self.part_tree.root_node
 
         # distinguish between adding a new chunk, which requires splitting a
         #  gap in two, and replacing a node, which uses the existing gaps.
+        ins_prev_gap = False
         if 'insert' in kwargs:
-            t = kwargs['t'] if 't' in kwargs else 0.
-            g, ag, ag_node = ele.create_air_gap(t=t)
-            seq[-1][mc.Gap] = g
+            t_after = kwargs['t'] if 't' in kwargs else 0.
+            if sm.get_num_surfaces() == 2:
+                # only object space gap, add image space gap following this
+                gap_label = "Image space"
+                ins_prev_gap = False
+            else:
+                # we have both object and image space gaps; retain the image
+                # space gap by splitting and inserting the new gap before the
+                # inserted chunk.
+                gap_label = None
+                ins_prev_gap = True
+
+            if ins_prev_gap:
+                t_air, sm.gaps[idx].thi = sm.gaps[idx].thi, t_after
+            else:
+                t_air = t_after
+            g, ag, ag_node = ele.create_air_gap(t=t_air, label=gap_label)
+            if not ins_prev_gap:
+                seq[-1][mc.Gap] = g
             elm.append(ag)
             ag_node.parent = self.part_tree.root_node
         else:
             # replacing an existing node. need to hook new chunk final
             # interface to the existing gap and following (air gap) element
-            g = self.seq_model.gaps[self.seq_model.cur_surface+1]
+            g = sm.gaps[sm.cur_surface+1]
             seq[-1][mc.Gap] = g
             ag, ag_node = self.part_tree.parent_object(g, '#airgap')
             ag.idx = seq[-1][mc.Intfc]
 
         for sg in seq:
-            self.seq_model.insert(sg[mc.Intfc], sg[mc.Gap])
+            if ins_prev_gap:
+                gap, g = g, sg[mc.Gap]
+            else:
+                gap = sg[mc.Gap]
+            sm.insert(sg[mc.Intfc], gap, prev=ins_prev_gap)
 
         for e in elm:
             self.ele_model.add_element(e)

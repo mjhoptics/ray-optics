@@ -216,9 +216,9 @@ def create_dummy_plane(sd=1., **kwargs):
     return [[s, None, None, 1, +1]], [se], tree
 
 
-def create_air_gap(t=0.):
+def create_air_gap(t=0., **kwargs):
     g = Gap(t=t)
-    ag = AirGap(g)
+    ag = AirGap(g, **kwargs)
     tree = ag.tree()
     return g, ag, tree
 
@@ -282,8 +282,8 @@ class Element():
 
     def __init__(self, s1, s2, g, tfrm=None, idx=0, idx2=1, sd=1.,
                  label=None):
-        Element.serial_number += 1
         if label is None:
+            Element.serial_number += 1
             self.label = Element.label_format.format(Element.serial_number)
         else:
             self.label = label
@@ -519,8 +519,8 @@ class Mirror():
 
     def __init__(self, ifc, tfrm=None, idx=0, sd=1., thi=None, z_dir=1.0,
                  label=None):
-        Mirror.serial_number += 1
         if label is None:
+            Mirror.serial_number += 1
             self.label = Mirror.label_format.format(Mirror.serial_number)
         else:
             self.label = label
@@ -701,8 +701,8 @@ class CementedElement():
     serial_number = 0
 
     def __init__(self, ifc_list, label=None):
-        CementedElement.serial_number += 1
         if label is None:
+            CementedElement.serial_number += 1
             self.label = CementedElement.label_format.format(
                 CementedElement.serial_number)
         else:
@@ -899,8 +899,8 @@ class ThinElement():
     serial_number = 0
 
     def __init__(self, ifc, tfrm=None, idx=0, sd=None, label=None):
-        ThinElement.serial_number += 1
         if label is None:
+            ThinElement.serial_number += 1
             self.label = ThinElement.label_format.format(
                 ThinElement.serial_number)
         else:
@@ -992,8 +992,8 @@ class DummyInterface():
     serial_number = 0
 
     def __init__(self, ifc, idx=0, sd=None, tfrm=None, label=None):
-        DummyInterface.serial_number += 1
         if label is None:
+            DummyInterface.serial_number += 1
             self.label = DummyInterface.label_format.format(
                 DummyInterface.serial_number)
         else:
@@ -1107,8 +1107,8 @@ class AirGap():
     serial_number = 0
 
     def __init__(self, g, idx=0, tfrm=None, label=None):
-        AirGap.serial_number += 1
         if label is None:
+            AirGap.serial_number += 1
             self.label = AirGap.label_format.format(AirGap.serial_number)
         else:
             self.label = label
@@ -1299,11 +1299,10 @@ class ElementModel:
     def sequence_elements(self):
         """ Sort elements in order of reference interfaces in seq_model """
         seq_model = self.opt_model.seq_model
-        # sort by element reference z coord
-        self.elements.sort(key=lambda e: e.tfrm[1][2])
+
         # sort by element reference interface sequential index
-        # self.elements.sort(key=lambda e:
-        #                    seq_model.ifcs.index(e.reference_interface()))
+        self.elements.sort(key=lambda e: e.reference_idx())
+
         # Make sure z_dir matches the sequential model. Used to get
         # the correct substrate offset.
         if hasattr(seq_model, 'z_dir'):

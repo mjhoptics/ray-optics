@@ -65,7 +65,7 @@ def read_lens(filename, **kwargs):
                         level=logging.DEBUG)
     _reading_private_catalog = False
     _track_contents = util.Counter()
-    opt_model = opticalmodel.OpticalModel()
+    opt_model = opticalmodel.OpticalModel(do_init=False)
     _glass_handler = CVGlassHandler(filename)
     cmds = cvr.read_seq_file(filename)
     for i, c in enumerate(cmds):
@@ -76,6 +76,7 @@ def read_lens(filename, **kwargs):
         else:
             logging.info('Line %d: Command %s not supported', i+1, c[0])
 
+    post_process_input(opt_model, filename, **kwargs)
     _glass_handler.save_replacements()
     _track_contents.update(_glass_handler.track_contents)
 
@@ -146,6 +147,38 @@ def log_cmd(label, tla, qlist, dlist):
     logging.debug("%s: %s %s %s", label, tla, str(qlist), str(dlist))
 
 
+def post_process_input(opt_model, filename, **kwargs):
+    global _track_contents
+    sm = opt_model['seq_model']
+    osp = opt_model['optical_spec']
+
+    # retrieve image thickness and set defocus
+    gi = sm.gaps.pop()
+    osp['focus'].focus_shift = gi.thi
+
+    if opt_model.system_spec.title == '' and filename is not None:
+        fname_full = filename.resolve()
+        cat, fname = fname_full.parts[-2:]
+        title = "{:s}: {:s}".format(cat, fname)
+        opt_model.system_spec.title = title
+
+    conj_type = 'finite'
+    if math.isinf(sm.gaps[0].thi):
+        sm.gaps[0].thi = 1e10
+        conj_type = 'infinite'
+    _track_contents['conj type'] = conj_type
+
+    sm.ifcs[0].label = 'Obj'
+    sm.ifcs[0].interact_mode = 'dummy'
+    sm.ifcs[-1].label = 'Img'
+    sm.ifcs[-1].interact_mode = 'dummy'
+    _track_contents['# surfs'] = len(sm.ifcs)
+
+    _track_contents['# wvls'] = len(osp['wvls'].wavelengths)
+    _track_contents['fov'] = osp['fov'].key
+    _track_contents['# fields'] = len(osp['fov'].fields)
+
+
 def wvl_spec_data(optm, tla, qlist, dlist):
     osp = optm.optical_spec
     if tla == "WL":
@@ -201,7 +234,7 @@ def field_spec_data(optm, tla, qlist, dlist):
 
 def spec_data(optm, tla, qlist, dlist):
     if tla == "LEN":
-        optm.reset()
+        pass
     elif tla == "RDM":
         if len(dlist) == 0:
             optm.radius_mode = True
@@ -261,11 +294,7 @@ def surface_cmd(opt_model, tla, qlist, dlist):
 def update_surface_and_gap(opt_model, dlist, idx=None):
     global _glass_handler
     seq_model = opt_model.seq_model
-    if isinstance(idx, int):
-        s, g = seq_model.get_surface_and_gap(idx)
-        seq_model.set_cur_surface(idx)
-    else:
-        s, g = seq_model.insert_surface_and_gap()
+    s, g = seq_model.insert_surface_and_gap()
 
     if opt_model.radius_mode:
         if dlist[0] != 0.0:

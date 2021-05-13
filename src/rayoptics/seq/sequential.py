@@ -9,6 +9,8 @@
 import itertools
 import logging
 
+from anytree import Node
+
 from rayoptics.elem import surface
 from . import gap
 from . import medium as m
@@ -138,7 +140,13 @@ class SequentialModel:
             gap_start = start
 
         wl_idx = self.index_for_wavelength(wl)
-        rndx = [n[wl_idx] for n in self.rndx[start:stop:step]]
+        try:
+            rndx = [n[wl_idx] for n in self.rndx[start:stop:step]]
+        except IndexError:
+            self.wvlns = self.opt_model['osp']['wvls'].wavelengths
+            self.rndx = self.calc_ref_indices_for_spectrum(self.wvlns)
+            rndx = [n[wl_idx] for n in self.rndx[start:stop:step]]
+
         path = itertools.zip_longest(self.ifcs[start:stop:step],
                                      self.gaps[gap_start:stop:step],
                                      self.lcl_tfrms[start:stop:step],
@@ -238,7 +246,7 @@ class SequentialModel:
             self.ifcs.insert(len(self.ifcs)-1, node)
         return self
 
-    def insert(self, ifc, gap):
+    def insert(self, ifc, gap, prev=False):
         """ insert surf and gap at the cur_gap edge of the sequential model
             graph """
         if self.stop_surface is not None:
@@ -247,27 +255,28 @@ class SequentialModel:
                 if self.stop_surface > self.cur_surface and \
                    self.stop_surface < num_ifcs - 2:
                     self.stop_surface += 1
-        surf = self.cur_surface = (0 if self.cur_surface is None
+        idx = self.cur_surface = (0 if self.cur_surface is None
                                    else self.cur_surface+1)
-        self.ifcs.insert(surf, ifc)
+        self.ifcs.insert(idx, ifc)
         if gap is not None:
-            self.gaps.insert(surf, gap)
+            idx_g = idx-1 if prev else idx
+            self.gaps.insert(idx_g, gap)
         else:
-            gap = self.gaps[surf]
+            gap = self.gaps[idx]
 
         tfrm = np.identity(3), np.array([0., 0., 0.])
-        self.gbl_tfrms.insert(surf, tfrm)
-        self.lcl_tfrms.insert(surf, tfrm)
+        self.gbl_tfrms.insert(idx, tfrm)
+        self.lcl_tfrms.insert(idx, tfrm)
 
-        new_z_dir = self.z_dir[surf-1] if surf > 1 else 1
-        self.z_dir.insert(surf, new_z_dir)
+        new_z_dir = self.z_dir[idx-1] if idx > 1 else 1
+        self.z_dir.insert(idx, new_z_dir)
 
         wvls = self.opt_model.optical_spec.spectral_region.wavelengths
         rindex = [gap.medium.rindex(w) for w in wvls]
-        self.rndx.insert(surf, rindex)
+        self.rndx.insert(idx, rindex)
 
         if ifc.interact_mode == 'reflect':
-            self.update_reflections(start=surf)
+            self.update_reflections(start=idx)
 
     def remove(self, *args, prev=False):
         """Remove surf and gap at cur_surface or an input index argument.
@@ -341,6 +350,12 @@ class SequentialModel:
                                                 radius_mode=radius_mode,
                                                 **kwargs)
         self.insert(s, g)
+
+        root_node = self.opt_model['part_tree'].root_node
+        idx = self.cur_surface
+        Node(f'i{idx}', id=s, tag='#ifc', parent=root_node)
+        if gap is not None:
+            Node(f'g{idx}', id=(g, self.z_dir[idx]), tag='#gap', parent=root_node)
 
     def sync_to_restore(self, opt_model):
         self.opt_model = opt_model

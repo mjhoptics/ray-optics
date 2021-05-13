@@ -450,7 +450,7 @@ class LensLayout():
         seq_model = self.opt_model.seq_model
         ele_model = self.opt_model.ele_model
         part_tree = self.opt_model.part_tree
-        if len(ele_model.elements) == 0:
+        if len(part_tree.nodes_with_tag(tag='#element')) == 0:
             parttree.elements_from_sequence(ele_model, seq_model, part_tree)
 
     def sync_light_or_dark(self, is_dark):
