@@ -84,8 +84,10 @@ def open_model(file_name, info=False, post_process_imports=True, **kwargs):
         if post_process_imports:
             create_specsheet_from_model(opm)
             # create element model and part_tree
-            part_tree = opm.part_tree
-            pt.elements_from_sequence(opm.ele_model, opm.seq_model, part_tree)
+            opm.ele_model.reset_serial_numbers()
+            pt.elements_from_sequence(opm.ele_model,
+                                      opm.seq_model,
+                                      opm.part_tree)
         if info:
             return opm, import_info
     return opm

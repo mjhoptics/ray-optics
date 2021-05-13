@@ -287,9 +287,10 @@ class OpticalModel:
             else:
                 # we have both object and image space gaps; retain the image
                 # space gap by splitting and inserting the new gap before the
-                # inserted chunk.
+                # inserted chunk, unless we're inserting before idx=1.
                 gap_label = None
-                ins_prev_gap = True
+                if idx > 0:
+                    ins_prev_gap = True
 
             if ins_prev_gap:
                 t_air, sm.gaps[idx].thi = sm.gaps[idx].thi, t_after
