@@ -41,27 +41,23 @@ class OpticalSpecs:
 
     def __init__(self, opt_model, specsheet=None, **kwargs):
         self.opt_model = opt_model
-        self.spectral_region = WvlSpec(**kwargs)
-        self.pupil = PupilSpec(self)
-        self.field_of_view = FieldSpec(self)
-        self.defocus = FocusRange(0.0)
+        self._submodels = {}
+        self['wvls'] = WvlSpec(**kwargs)
+        self['pupil'] = PupilSpec(self)
+        self['fov'] = FieldSpec(self)
+        self['focus'] = FocusRange(0.0)
         self.parax_data = None
-        self._submodels = self.map_submodels()
         self.do_aiming = OpticalSpecs.do_aiming_default
         if specsheet:
             self.set_from_specsheet(specsheet)
-
-    def map_submodels(self):
-        submodels = {}
-        submodels['wvls'] = self.spectral_region
-        submodels['pupil'] = self.pupil
-        submodels['fov'] = self.field_of_view
-        submodels['focus'] = self.defocus
-        return submodels
         
     def __getitem__(self, key):
         """ Provide mapping interface to submodels. """
         return self._submodels[key]
+        
+    def __setitem__(self, key, value):
+        """ Provide mapping interface to submodels. """
+        self._submodels[key] = value
 
     def __json_encode__(self):
         attrs = dict(vars(self))
@@ -69,8 +65,56 @@ class OpticalSpecs:
         del attrs['_submodels']
         del attrs['parax_data']
         del attrs['do_aiming']
+
+        attrs['spectral_region'] = self['wvls']
+        attrs['pupil'] = self['pupil']
+        attrs['field_of_view'] = self['fov']
+        attrs['defocus'] = self['focus']
+
         return attrs
 
+    def __json_decode__(self, **attrs):
+        submodels = {}
+        submodels['wvls'] = attrs['spectral_region']
+        submodels['pupil'] = attrs['pupil']
+        submodels['fov'] = attrs['field_of_view']
+        submodels['focus'] = (attrs['defocus'] if 'defocus' in attrs
+                              else FocusRange(0.0))
+
+        self._submodels = submodels
+
+    @property
+    def spectral_region(self):
+        return self._submodels['wvls']
+
+    @spectral_region.setter
+    def spectral_region(self, sr):
+        self._submodels['wvls'] = sr
+
+    @property
+    def pupil(self):
+        return self._submodels['pupil']
+
+    @pupil.setter
+    def pupil(self, pup):
+        self._submodels['pupil'] = pup
+
+    @property
+    def field_of_view(self):
+        return self._submodels['fov']
+
+    @field_of_view.setter
+    def field_of_view(self, fov):
+        self._submodels['fov'] = fov
+
+    @property
+    def defocus(self):
+        return self._submodels['focus']
+
+    @defocus.setter
+    def defocus(self, foc):
+        self._submodels['focus'] = foc
+    
     def set_from_list(self, dl):
         self.spectral_region = dl[0]
         self.pupil = dl[1]
@@ -84,15 +128,12 @@ class OpticalSpecs:
 
     def sync_to_restore(self, opt_model):
         self.opt_model = opt_model
-        if not hasattr(self, 'defocus'):
-            self.defocus = FocusRange(0.0)
         if not hasattr(self, 'do_aiming'):
             self.do_aiming = OpticalSpecs.do_aiming_default
 
-        self._submodels = self.map_submodels()
-        self.spectral_region.sync_to_restore(self)
-        self.pupil.sync_to_restore(self)
-        self.field_of_view.sync_to_restore(self)
+        self['wvls'].sync_to_restore(self)
+        self['pupil'].sync_to_restore(self)
+        self['fov'].sync_to_restore(self)
 
     def update_model(self):
         self.spectral_region.update_model()
