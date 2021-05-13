@@ -25,16 +25,19 @@ class OpticalSpecs:
     """ Container class for optical usage information
 
     Contains optical usage information to specify the aperture, field of view,
-    spectrum and focal position.
+    spectrum and focal position. These can be accessed via the mapping
+    interface:
 
-    It maintains a repository of paraxial data.
+        - self['wvls']: instance of :class:`~.WvlSpec`
+        - self['pupil']: instance of :class:`~.PupilSpec`
+        - self['fov']: instance of :class:`~.FieldSpec`
+        - self['focus']: instance of :class:`~.FocusRange`
+
+    It also maintains a repository of paraxial data.
 
     Attributes:
-        spectral_region: instance of :class:`~.WvlSpec`
-        pupil: instance of :class:`~.PupilSpec`
-        field_of_view: instance of :class:`~.FieldSpec`
-        defocus: instance of :class:`~.FocusRange`
         parax_data: tuple of :obj:`~.firstorder.ParaxData`
+
     """
 
     do_aiming_default = True
