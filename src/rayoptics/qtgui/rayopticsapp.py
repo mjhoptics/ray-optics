@@ -63,6 +63,7 @@ class MainWindow(QMainWindow):
 
         file_menu = bar.addMenu("File")
         file_menu.addAction("New")
+        file_menu.addAction("New Spec Sheet")
         file_menu.addAction("New Console")
         file_menu.addAction("Open...")
         file_menu.addSeparator()
@@ -121,10 +122,11 @@ class MainWindow(QMainWindow):
         path = Path(rayoptics.__file__).parent
         self.cur_dir = path / "models"
 
-        if False:
+        if True:
             # create new model
             # self.new_model()
-            self.new_console_empty_model()
+            self.new_model_via_specsheet()
+            # self.new_console_empty_model()
 
         else:
             # restore a default model
@@ -232,6 +234,9 @@ class MainWindow(QMainWindow):
         if action == "New":
             self.new_model()
 
+        if action == "New Spec Sheet":
+            self.new_model_via_specsheet()
+
         if action == "New Console":
             self.new_console_empty_model()
 
@@ -269,10 +274,8 @@ class MainWindow(QMainWindow):
         if action == "Close":
             self.close_model()
 
-    def new_model(self):
-        # iid = cmds.create_new_ideal_imager(gui_parent=self,
-        #                                    conjugate_type='infinite')
-        opt_model = cmds.create_new_model()
+    def new_model(self, **kwargs):
+        opt_model = cmds.create_new_optical_system(**kwargs)
         self.app_manager.set_model(opt_model)
         self.refresh_gui()
 
@@ -283,6 +286,11 @@ class MainWindow(QMainWindow):
         self.refresh_gui()
         self.add_ipython_subwindow(opt_model)
         self.refresh_app_ui()
+
+    def new_model_via_specsheet(self):
+        cmds.create_new_ideal_imager_dialog(gui_parent=self,
+                                            conjugate_type='infinite')
+        self.new_console_empty_model()
 
     def new_console_empty_model(self):
         self.add_ipython_subwindow(None)
@@ -314,7 +322,8 @@ class MainWindow(QMainWindow):
         opt_model = self.app_manager.model
 
         if action == "Spec Sheet":
-            cmds.create_new_ideal_imager(opt_model=opt_model, gui_parent=self)
+            cmds.create_new_ideal_imager_dialog(opt_model=opt_model,
+                                                gui_parent=self)
 
         if action == "Optical Layout":
             cmds.create_live_layout_view(opt_model, gui_parent=self)

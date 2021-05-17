@@ -97,7 +97,7 @@ class OpticalModel:
         self.specsheet = specsheet
         self.system_spec = SystemSpec()
         self.seq_model = SequentialModel(self, **kwargs)
-        self.optical_spec = OpticalSpecs(self, **kwargs)
+        self.optical_spec = OpticalSpecs(self, specsheet=specsheet, **kwargs)
         self.parax_model = ParaxialModel(self, **kwargs)
         self.ele_model = ElementModel(self, **kwargs)
         self.part_tree = PartTree(self, **kwargs)
@@ -306,8 +306,7 @@ class OpticalModel:
             # interface to the existing gap and following (air gap) element
             g = sm.gaps[sm.cur_surface+1]
             seq[-1][mc.Gap] = g
-            ag, ag_node = self.part_tree.parent_object(g, '#airgap')
-            ag.idx = seq[-1][mc.Intfc]
+            ag, ag_node = self.part_tree.parent_object(g, '#airgap')            # ag.idx = seq[-1][mc.Intfc]
 
         for sg in seq:
             if ins_prev_gap:

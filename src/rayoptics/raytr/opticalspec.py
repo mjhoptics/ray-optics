@@ -374,6 +374,11 @@ class FieldSpec:
 
     def set_from_specsheet(self, ss):
         key, value = ss.get_etendue_inputs('field')
+        if value != 0 and len(self.fields) == 1:
+            # just one field, add a second one for max value
+            self.is_relative = True
+            self.fields.append(Field(x=0, y=1))
+
         if not self.is_relative:
             fld_scale = 1 if self.value == 0 else value/self.value
 

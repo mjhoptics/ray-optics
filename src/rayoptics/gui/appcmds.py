@@ -149,7 +149,7 @@ def update_specsheet(iid, opt_model):
     iid.update_values()
 
 
-def create_new_ideal_imager(**inputs):
+def create_new_ideal_imager_dialog(**inputs):
     specsheets = {}
     conj_type = (inputs['conjugate_type'] if 'conjugate_type' in inputs
                  else 'finite')
