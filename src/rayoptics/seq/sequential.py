@@ -338,8 +338,25 @@ class SequentialModel:
             del self.gbl_tfrms[idx]
 
     def add_surface(self, surf_data, **kwargs):
-        """ add a surface where surf is a list that contains:
-            [curvature, thickness, refractive_index, v-number] """
+        """ add a surface where `surf_data` is a list that contains:
+
+        [curvature, thickness, refractive_index, v-number, semi-diameter]
+
+        The `curvature` entry is interpreted as radius if `radius_mode` is **True**
+
+        The `thickness` is the signed thickness
+
+        The `refractive_index, v-number` entry can have several forms:
+
+            - **refractive_index, v-number**
+            - **refractive_index** only -> constant index model
+            - **'REFL'** -> set interact_mode to 'reflect'
+            - **glass_name, catalog_name** as 1 or 2 strings
+            - blank -> defaults to air
+
+        The `semi-diameter` entry is optional
+
+        """
         radius_mode = self.opt_model.radius_mode
         mat = None
         if len(surf_data) > 2:
@@ -912,8 +929,24 @@ def gen_sequence(surf_data_list, **kwargs):
 
 def create_surface_and_gap(surf_data, radius_mode=False, prev_medium=None,
                            wvl=550.0, **kwargs):
-    """ create a surface and gap where surf_data is a list that contains:
-        [curvature, thickness, refractive_index, v-number, semi-diameter] """
+    """ create a surface and gap where `surf_data` is a list that contains:
+
+    [curvature, thickness, refractive_index, v-number, semi-diameter]
+    
+    The `curvature` entry is interpreted as radius if `radius_mode` is **True**
+
+    The `thickness` is the signed thickness
+
+    The `refractive_index, v-number` entry can have several forms:
+        
+        - **refractive_index, v-number**
+        - **refractive_index** only -> constant index model
+        - **'REFL'** -> set interact_mode to 'reflect'
+        - **glass_name, catalog_name** as 1 or 2 strings
+        - blank -> defaults to air
+
+    The `semi-diameter` entry is optional
+    """
     s = surface.Surface()
 
     if radius_mode:
