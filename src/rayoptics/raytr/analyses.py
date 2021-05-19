@@ -223,6 +223,54 @@ def wave_abr_calc(fod, fld, wvl, foc, ray_pkg, chief_ray_pkg,
     return opd
 
 
+def trace_safe(opt_model, pupil, fld, wvl, ray_list,
+               output_filter, rayerr_filter, **kwargs):
+    """Wrapper for trace_base that handles exceptions.
+    
+    Args:
+        opt_model: :class:`~.OpticalModel` instance
+        pupil: 2d vector of relatice pupil coordinates
+        fld: :class:`~.Field` point for wave aberration calculation
+        wvl: wavelength of ray (nm)
+        ray_list: list to append the ray data
+        output_filter:
+
+                       - if None, append entire ray
+                       - if 'last', append the last ray segment only
+                       - else treat as callable and append the return value
+
+        rayerr_filter:
+
+                       - if None, on ray error append nothing
+                       - if 'summary', append the exception without ray data
+                       - if 'full', append the exception with ray data up to error
+                       - else append nothing
+
+    """
+    try:
+        ray_pkg = trace.trace_base(opt_model, pupil, fld, wvl,
+                                   **kwargs)
+    except terr.TraceError as rayerr:
+        if rayerr_filter is None:
+            pass
+        elif rayerr_filter == 'full':
+            ray_list.append([pupil[0], pupil[1], rayerr])
+        elif rayerr_filter == 'summary':
+            rayerr.ray = None
+            ray_list.append([pupil[0], pupil[1], rayerr])
+        else:
+            pass
+    else:
+        if output_filter is None:
+            ray_list.append([pupil[0], pupil[1], ray_pkg])
+        elif output_filter == 'last':
+            ray, op_delta, wvl = ray_pkg
+            final_seg_pkg = (ray[-1], op_delta, wvl)
+            ray_list.append([pupil[0], pupil[1], final_seg_pkg])
+        else:
+            ray_list.append([pupil[0], pupil[1], output_filter(ray_pkg)])
+
+
 # --- Single ray
 class Ray():
     """A ray at the given field and wavelength.
@@ -237,7 +285,7 @@ class Ray():
         srf_save:
 
             'single': save the ray data for surface srf_indx
-            'all': save all of the surface  by surface ray data
+            'all': save all of the surface by surface ray data
 
         srf_indx: for single surface retention, the surface index to save
     """
@@ -356,7 +404,8 @@ def smooth_plot_data(f_x, f_y, num_points=100):
     return x_sample, y_fit
 
 
-def trace_ray_fan(opt_model, fan_rng, fld, wvl, foc, **kwargs):
+def trace_ray_fan(opt_model, fan_rng, fld, wvl, foc,
+                  output_filter=None, rayerr_filter=None, **kwargs):
     """Trace a fan of rays, according to fan_rng. """
     start = np.array(fan_rng[0])
     stop = fan_rng[1]
@@ -365,8 +414,8 @@ def trace_ray_fan(opt_model, fan_rng, fld, wvl, foc, **kwargs):
     fan = []
     for r in range(num):
         pupil = np.array(start)
-        ray_pkg = trace.trace_base(opt_model, pupil, fld, wvl, **kwargs)
-        fan.append([pupil[0], pupil[1], ray_pkg])
+        trace_safe(opt_model, pupil, fld, wvl, fan,
+                   output_filter, rayerr_filter, **kwargs)
         start += step
     return fan
 
@@ -556,14 +605,16 @@ class RayList():
 
 
 def trace_ray_list(opt_model, pupil_coords, fld, wvl, foc,
-                   append_if_none=False, **kwargs):
+                   append_if_none=False,
+                   output_filter=None, rayerr_filter=None,
+                   **kwargs):
     """Trace a list of rays at fld and wvl and return ray_pkgs in a list."""
 
     ray_list = []
     for pupil in pupil_coords:
         if (pupil[0]**2 + pupil[1]**2) < 1.0:
-            ray_pkg = trace.trace_base(opt_model, pupil, fld, wvl, **kwargs)
-            ray_list.append([pupil[0], pupil[1], ray_pkg])
+            trace_safe(opt_model, pupil, fld, wvl, ray_list,
+                       output_filter, rayerr_filter, **kwargs)
         else:  # ray outside pupil
             if append_if_none:
                 ray_list.append([pupil[0], pupil[1], None])
@@ -571,7 +622,9 @@ def trace_ray_list(opt_model, pupil_coords, fld, wvl, foc,
     return ray_list
 
 
-def trace_list_of_rays(opt_model, rays, output_filter=None, **kwargs):
+def trace_list_of_rays(opt_model, rays,
+                       output_filter=None, rayerr_filter=None,
+                       **kwargs):
     """Trace a list of rays (pt, dir, wvl) and return ray_pkgs in a list.
 
     Args:
@@ -735,7 +788,7 @@ class RayGrid():
 
 
 def trace_ray_grid(opt_model, grid_rng, fld, wvl, foc, append_if_none=True,
-                   **kwargs):
+                   output_filter=None, rayerr_filter=None, **kwargs):
     """Trace a grid of rays at fld and wvl and return ray_pkgs in 2d list."""
     start = np.array(grid_rng[0])
     stop = grid_rng[1]
@@ -748,9 +801,8 @@ def trace_ray_grid(opt_model, grid_rng, fld, wvl, foc, append_if_none=True,
         for j in range(num):
             pupil = np.array(start)
             if (pupil[0]**2 + pupil[1]**2) < 1.0:
-                ray_pkg = trace.trace_base(opt_model, pupil, fld, wvl,
-                                           **kwargs)
-                grid_row.append([pupil[0], pupil[1], ray_pkg])
+                trace_safe(opt_model, pupil, fld, wvl, grid_row,
+                           output_filter, rayerr_filter, **kwargs)
             else:  # ray outside pupil
                 if append_if_none:
                     grid_row.append([pupil[0], pupil[1], None])
