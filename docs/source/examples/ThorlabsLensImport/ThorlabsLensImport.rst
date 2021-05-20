@@ -8,7 +8,6 @@ This notebook shows the steps to follow to open a Zemax zmx file of a ThorLabs a
 
 .. code:: ipython3
 
-    #%matplotlib widget
     %matplotlib inline
 
 .. code:: ipython3
@@ -54,18 +53,18 @@ info is a tuple of the following items:
 
     ({'VERS': '140124 258 36214',
       'pupil': ('aperture', 'object', 'pupil'),
-      'GCAT': ['LIGHTPATH', 'SCHOTT'],
       'FTYP': '0 0 1 1 0 0 0',
       'STANDARD': 5,
       'EVENASPH': 1,
-      'glass not found': 1,
       'CONI': 1,
-      'glass substituted': 1,
       'conj type': 'infinite',
       '# surfs': 6,
       '# wvls': 1,
       'fov': ('field', 'object', 'angle'),
       '# fields': 1,
+      'GCAT': ['LIGHTPATH', 'SCHOTT'],
+      'glass not found': 1,
+      'glass substituted': 1,
       'encoding': 'utf-16'},
      {'D-ZK3M': 1, 'BK7': "create_glass('N-BK7','Schott')"})
 
@@ -100,7 +99,6 @@ Open the model again.
 
     ({'VERS': '140124 258 36214',
       'pupil': ('aperture', 'object', 'pupil'),
-      'GCAT': ['LIGHTPATH', 'SCHOTT'],
       'FTYP': '0 0 1 1 0 0 0',
       'STANDARD': 5,
       'EVENASPH': 1,
@@ -110,6 +108,7 @@ Open the model again.
       '# wvls': 1,
       'fov': ('field', 'object', 'angle'),
       '# fields': 1,
+      'GCAT': ['LIGHTPATH', 'SCHOTT'],
       'encoding': 'utf-16'},
      {'BK7': "create_glass('N-BK7','Schott')",
       'D-ZK3M': "InterpolatedGlass('D-ZK3M', cat='LightPath', pairs=[(2352.4, 1.555),(1970.1, 1.561),(1529.6, 1.568),(1128.6, 1.573),(1014.0, 1.575),(852.1, 1.578),(706.5, 1.582),(656.3, 1.583),(643.8, 1.584),(632.8, 1.584),(589.3, 1.586),(587.6,1.586),(546.1, 1.589),(486.1, 1.593),(480.0, 1.594),(435.8, 1.598),(404.7, 1.602),(365.0, 1.610)])"})
@@ -122,13 +121,13 @@ Setup convenient aliases for using rayoptics functions
 
 .. code:: ipython3
 
-    sm = opm.seq_model
-    osp = opm.optical_spec
-    pm = opm.parax_model
+    sm = opm['seq_model']
+    osp = opm['optical_spec']
+    pm = opm['parax_model']
 
 .. code:: ipython3
 
-    osp.spectral_region.wavelengths
+    osp['wvls'].wavelengths
 
 
 
@@ -183,7 +182,7 @@ A convenience method in :class:`~.ParaxialModel`, :meth:`~.paraxialdesign.Paraxi
     bfl              0.2499
     ppk                1.24
     f/#              0.9933
-    m            -4.565e-05
+    m             -1.49e-10
     red          -6.712e+09
     obj_dist          1e+10
     obj_ang               1
@@ -191,7 +190,7 @@ A convenience method in :class:`~.ParaxialModel`, :meth:`~.paraxialdesign.Paraxi
     enp_radius         0.75
     na obj          7.5e-11
     n obj                 1
-    img_dist           0.25
+    img_dist         0.2499
     img_ht          0.02601
     exp_dist          -1.24
     exp_radius         0.75
@@ -235,12 +234,12 @@ The model from ThorLabs only had 1 wavelength defined. Use the :class:`~.optical
 
 .. code:: ipython3
 
-    osp.spectral_region.set_from_list([[1050., 1], [1550., 2], [1700., 1]])
-    osp.spectral_region.reference_wvl = 1
+    osp['wvls'].set_from_list([[1050., 1], [1550., 2], [1700., 1]])
+    osp['wvls'].reference_wvl = 1
 
 .. code:: ipython3
 
-    osp.spectral_region.wavelengths
+    osp['wvls'].wavelengths
 
 
 
@@ -510,5 +509,6 @@ Now refresh the aberration plot to see what the aberrations look like now. Notic
 
 
 .. image:: output_55_0.png
+
 
 

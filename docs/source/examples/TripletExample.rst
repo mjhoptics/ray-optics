@@ -31,9 +31,9 @@ Create a new :class:`~opticalmodel.OpticalModel` instance and set up some conven
 .. code:: ipython3
 
     opm = OpticalModel()
-    sm  = opm.seq_model
-    osp = opm.optical_spec
-    pm = opm.parax_model
+    sm  = opm['seq_model']
+    osp = opm['optical_spec']
+    pm = opm['parax_model']
 
 Define first order aperture and field for system
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -49,15 +49,16 @@ pupil diameter.
 
 .. code:: ipython3
 
-    osp.pupil = PupilSpec(osp, key=['object', 'pupil'], value=12.5)
+    osp['pupil'] = PupilSpec(osp, key=['object', 'pupil'], value=12.5)
 
 The FieldSpec can be defined in object or image space. The defining
 parameters can be ``height`` or ``angle``, where ``angle`` is given in
-degrees.
+degrees. The ``is_relative`` keyword argument may be used to specify
+fields as a fraction of the maximum ``value``
 
 .. code:: ipython3
 
-    osp.field_of_view = FieldSpec(osp, key=['object', 'angle'], flds=[0., 20.0])
+    osp['fov'] = FieldSpec(osp, key=['object', 'angle'], value=20.0, flds=[0., 0.707, 1.], is_relative=True)
 
 The WvlSpec defines the wavelengths and weights to use when evaluating
 the model. The wavelength values can be given in either nanometers or a
@@ -65,7 +66,7 @@ spectral line designation.
 
 .. code:: ipython3
 
-    osp.spectral_region = WvlSpec([('F', 0.5), (587.5618, 1.0), ('C', 0.5)], ref_wl=1)
+    osp['wvls'] = WvlSpec([('F', 0.5), (587.5618, 1.0), ('C', 0.5)], ref_wl=1)
 
 Define interface and gap data for the sequential model
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -78,7 +79,7 @@ Define interface and gap data for the sequential model
     
     sm.add_surface([23.713, 4.831, 'N-LAK9', 'Schott'])
     sm.add_surface([7331.288, 5.86])
-    sm.add_surface([-24.456, .975, 'N-SF5', 'Schott'])
+    sm.add_surface([-24.456, .975, 'N-SF5,Schott'])
     sm.set_stop()
     sm.add_surface([21.896, 4.822])
     sm.add_surface([86.759, 3.127, 'N-LAK9', 'Schott'])
@@ -97,8 +98,7 @@ Draw a lens picture
 
 .. code:: ipython3
 
-    layout_plt = plt.figure(FigureClass=InteractiveLayout, opt_model=opm, do_draw_rays=True, do_paraxial_layout=False,
-                            is_dark=isdark).plot()
+    layout_plt = plt.figure(FigureClass=InteractiveLayout, opt_model=opm, is_dark=isdark).plot()
 
 
 
@@ -112,13 +112,15 @@ Draw a lens picture
 
 .. parsed-literal::
 
-    0: E1 (Element): Element: Spherical(c=0.042170961076202926), Spherical(c=0.00013640168003221264), t=4.8310, sd=10.0087, glass: N-LAK9
-    1: AirGap E1-E2 (AirGap): Gap(t=5.86, medium=Air)
-    2: E2 (Element): Element: Spherical(c=-0.04088976120379457), Spherical(c=0.04567044208987943), t=0.9750, sd=4.7919, glass: N-SF5
-    3: AirGap E2-E3 (AirGap): Gap(t=4.822, medium=Air)
-    4: E3 (Element): Element: Spherical(c=0.011526181721781025), Spherical(c=-0.04879429301948844), t=3.1270, sd=8.3321, glass: N-LAK9
-    5: AirGap E3-Image (AirGap): Gap(t=41.2365, medium=Air)
-    6: Image (DummyInterface): Surface(lbl='Img', profile=Spherical(c=0.0), interact_mode=transmit)
+    0: Object (DummyInterface): Surface(lbl='Obj', profile=Spherical(c=0.0), interact_mode=dummy)
+    1: Object space (AirGap): Gap(t=10000000000.0, medium=Air())
+    2: Image (DummyInterface): Surface(lbl='Img', profile=Spherical(c=0.0), interact_mode=dummy)
+    3: E1 (Element): Element: Spherical(c=0.042170961076202926), Spherical(c=0.00013640168003221264), t=4.8310, sd=10.0087, glass: N-LAK9
+    4: AG1 (AirGap): Gap(t=5.86, medium=Air())
+    5: E2 (Element): Element: Spherical(c=-0.04088976120379457), Spherical(c=0.04567044208987943), t=0.9750, sd=4.7919, glass: N-SF5
+    6: AG2 (AirGap): Gap(t=4.822, medium=Air())
+    7: E3 (Element): Element: Spherical(c=0.011526181721781025), Spherical(c=-0.04879429301948844), t=3.1270, sd=8.3321, glass: N-LAK9
+    8: Image space (AirGap): Gap(t=41.2365, medium=Air())
 
 
 Draw a |ybar| diagram
@@ -174,7 +176,7 @@ List the optical specifications
     bfl               41.24
     ppk               8.763
     f/#                   4
-    m             2.298e-05
+    m                -5e-09
     red              -2e+08
     obj_dist          1e+10
     obj_ang              20
@@ -204,32 +206,32 @@ List the paraxial model
            ax_ray_ht    ax_ray_slp
      0:            0      6.25e-10
      1:         6.25     -0.182126
-     2:       5.7297     -0.181586
-     3:       4.6656    -0.0532508
-     4:       4.6346     0.0891357
-     5:       5.0644        0.0488
+     2:      5.72969     -0.181586
+     3:      4.66559    -0.0532508
+     4:      4.63455     0.0891357
+     5:      5.06436        0.0488
      6:       5.1546     -0.124998
-     7:   0.00014365     -0.124998
+     7:  0.000143648     -0.124998
     
            pr_ray_ht    pr_ray_slp
      0:  -3.6397e+09       0.36397
-     1:      -4.2509      0.487842
-     2:      -2.8572      0.487573
-     3:   3.5341e-07      0.487573
+     1:     -4.25088      0.487842
+     2:     -2.85718      0.487573
+     3:  3.53405e-07      0.487573
      4:       0.2842      0.496304
-     5:       2.6774       0.47498
-     6:       3.5557      0.355092
-     7:       18.198      0.355092
+     5:      2.67738       0.47498
+     6:      3.55571      0.355092
+     7:      18.1985      0.355092
     
                 power           tau        index    type
-     0:             0         1e+10      1.00000    transmit
+     0:             0         1e+10      1.00000    dummy
      1:    0.02914022        2.8569      1.69100    transmit
      2: -9.425384e-05          5.86      1.00000    transmit
      3:   -0.02750683       0.58289      1.67271    transmit
      4:   -0.03072283         4.822      1.00000    transmit
      5:   0.007964615        1.8492      1.69100    transmit
      6:    0.03371696        41.236      1.00000    transmit
-     7:             0             0      1.00000    transmit
+     7:             0             0      1.00000    dummy
 
 
 Third Order Seidel aberrations

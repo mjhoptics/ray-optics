@@ -25,7 +25,7 @@ Use the object oriented filesystem interface from Python 3
 Read CODE V seq file for Edmund part 32-327, Achromatic Lens
 ------------------------------------------------------------
 
-Use the :func:`~.gui.appcmds.open_model` function to read CODE V **.seq** files and the native rayoptics JSON files, **.roa**
+Use the :func:`~.gui.appcmds.open_model` function to read CODE V **.seq** files, Zemax **.zmx** files, and the native rayoptics JSON files, **.roa**
 
 It returns an instance of :class:`~.opticalmodel.OpticalModel` that contains all of the model data.
 
@@ -37,9 +37,9 @@ Setup convenient aliases for using rayoptics functions
 
 .. code:: ipython3
 
-    sm = opm.seq_model
-    osp = opm.optical_spec
-    pm = opm.parax_model
+    sm = opm['seq_model']
+    osp = opm['optical_spec']
+    pm = opm['parax_model']
 
 .. code:: ipython3
 
@@ -84,7 +84,7 @@ A convenience method in :class:`~.ParaxialModel`, :meth:`~.paraxialdesign.Paraxi
     bfl               95.95
     ppk               4.079
     f/#               4.001
-    m             4.441e-16
+    m                -1e-11
     red          -9.997e+10
     obj_dist          1e+13
     obj_ang               1
@@ -136,12 +136,12 @@ The model in the CODE V seq file only had 1 wavelength defined. Use the :class:`
 
 .. code:: ipython3
 
-    osp.spectral_region.set_from_list([['F', 1], ['d', 2], ['C', 1]])
-    osp.spectral_region.reference_wvl = 1
+    osp['wvls'].set_from_list([['F', 1], ['d', 2], ['C', 1]])
+    osp['wvls'].reference_wvl = 1
 
 .. code:: ipython3
 
-    osp.spectral_region.wavelengths
+    osp['wvls'].wavelengths
 
 
 
