@@ -22,7 +22,6 @@ from PyQt5.QtWidgets import (QApplication, QAction, QMainWindow, QMdiArea,
                              QVBoxLayout)
 from PyQt5.QtCore import pyqtSlot
 import qdarkstyle
-from qdarkstyle.palette import DarkPalette
 
 from traitlets.config.configurable import MultipleInstanceError
 
@@ -408,9 +407,9 @@ class MainWindow(QMainWindow):
             self.mdi_background = self.mdi.background()
 
         if is_dark:
-            self.qtapp.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
-            rgb = DarkPalette.color_palette()
-            self.mdi.setBackground(QColor(rgb['COLOR_BACKGROUND_NORMAL']))
+            self.qtapp.setStyleSheet(qdarkstyle.load_stylesheet(qt_api='pyqt5'))
+            colors = qdarkstyle.dark.palette.DarkPalette.to_dict()
+            self.mdi.setBackground(QColor(colors['COLOR_BACKGROUND_2']))
         else:
             self.qtapp.setStyleSheet('')
             self.mdi.setBackground(self.mdi_background)
