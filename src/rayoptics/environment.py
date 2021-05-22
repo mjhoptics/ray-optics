@@ -38,7 +38,6 @@ from rayoptics.elem.profiles import (Spherical, Conic, EvenPolynomial,
                                      RadialPolynomial)
 from rayoptics.raytr.opticalspec import (WvlSpec, FieldSpec, Field,
                                          PupilSpec, FocusRange)
-from rayoptics.optical.model_enums import (DimensionType, DecenterType)
 
 # ray-optics first and third order
 import rayoptics.parax.firstorder as fo

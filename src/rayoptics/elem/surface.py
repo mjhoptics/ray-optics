@@ -33,7 +33,7 @@ import numpy as np
 from rayoptics.seq import interface
 from . import profiles
 import transforms3d as t3d
-from rayoptics.optical.model_enums import DecenterType as dec
+from rayoptics.optical.model_enums import get_decenter_for_type
 from rayoptics.raytr.traceerror import TraceError
 
 
@@ -204,10 +204,10 @@ class Surface(interface.Interface):
 class DecenterData():
     """ Maintains data and actions for position and orientation changes.
 
-        - LOCAL: pos and orientation applied prior to surface
-        - REV:   pos and orientation applied following surface in reverse
-        - DAR:   pos and orientation applied prior to surface and then returned to initial frame
-        - BEND:  used for fold mirrors, orientation applied before and after surface
+        - 'decenter': pos and orientation applied prior to surface
+        - 'reverse': pos and orientation applied following surface in reverse
+        - 'dec and return': pos and orientation applied prior to surface and then returned to initial frame
+        - 'bend':  used for fold mirrors, orientation applied before and after surface
 
     """
 
@@ -221,9 +221,31 @@ class DecenterData():
         self.rot_pt = np.array([0., 0., 0.])
         self.rot_mat = None
 
+    def __json_decode__(self, **attrs):
+        for a_key, a_val in attrs.items():
+            if a_key == 'dtype':
+                self._dtype = (a_val if isinstance(a_val, str)
+                               else get_decenter_for_type(a_val))
+            else:
+                setattr(self, a_key, a_val)
+
     def __repr__(self):
-        return "%r: Decenter: %r, Tilt: %r" % (self.dtype.name, self.dec,
+        return "%r: Decenter: %r, Tilt: %r" % (self.dtype, self.dec,
                                                self.euler)
+
+    def listobj(self):
+        print(f"decenter type: {self.dtype}")
+        print(f"decenter: {self.dec}")
+        print(f"euler angles: {self.euler}")
+
+    @property
+    def dtype(self):
+        return self._dtype
+
+    @dtype.setter
+    def dtype(self, value):
+        self._dtype = (value if isinstance(value, str)
+                       else get_decenter_for_type(value))
 
     def update(self):
         def convertl2r(self):
@@ -238,18 +260,18 @@ class DecenterData():
         self.rot_pt *= scale_factor
 
     def tform_before_surf(self):
-        if self.dtype is not dec.REV:
+        if self.dtype != 'reverse':
             return self.rot_mat, self.dec
         else:
             return None, np.array([0., 0., 0.])
 
     def tform_after_surf(self):
-        if self.dtype is dec.REV or self.dtype is dec.DAR:
+        if self.dtype == 'reverse' or self.dtype == 'dec and return':
             rt = self.rot_mat
             if self.rot_mat is not None:
                 rt = self.rot_mat.transpose()
             return rt, -self.dec
-        elif self.dtype is dec.BEND:
+        elif self.dtype == 'bend':
             return self.rot_mat, np.array([0., 0., 0.])
         else:
             return None, np.array([0., 0., 0.])

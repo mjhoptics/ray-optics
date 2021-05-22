@@ -595,11 +595,11 @@ class SequentialModel:
             if ifc.decenter is not None:
                 d = ifc.decenter
                 if full:
-                    print(fmt1a.format(i, imode, d.dtype.name,
+                    print(fmt1a.format(i, imode, d.dtype,
                                        d.dec[0], d.dec[1],
                                        d.euler[0], d.euler[1], d.euler[2]))
                 else:
-                    print(fmt1b.format(i, imode, d.dtype.name,
+                    print(fmt1b.format(i, imode, d.dtype,
                                        d.dec[1], d.euler[0]))
             elif gap is None:  # final interface, just list interact_mode
                 print(fmt1c.format(i, imode))
@@ -634,7 +634,7 @@ class SequentialModel:
             cvr, thi, med, imode, sd, z_dir = s
             if ifc.decenter is not None:
                 d = ifc.decenter
-                print(fmt1.format(labels[i], cvr, imode, d.dtype.name,
+                print(fmt1.format(labels[i], cvr, imode, d.dtype,
                                   d.dec[1], d.euler[0]))
             else:
                 print(fmt2.format(labels[i], cvr, imode))

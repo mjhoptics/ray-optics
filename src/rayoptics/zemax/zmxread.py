@@ -12,8 +12,6 @@ import math
 import requests
 
 import rayoptics.optical.opticalmodel as opticalmodel
-from rayoptics.optical.model_enums import DimensionType as dt
-from rayoptics.optical.model_enums import DecenterType as dec
 from rayoptics.elem.surface import (DecenterData, Circular, Rectangular,
                                     Elliptical)
 from rayoptics.elem import profiles
@@ -126,9 +124,9 @@ def process_line(opt_model, line, line_no):
     if cmd == "UNIT":
         dim = inputs.split()[0]
         if dim == 'MM':
-            dim = dt.MM
+            dim = 'mm'
         elif dim == 'IN' or dim == 'INCH':
-            dim = dt.IN
+            dim = 'inches'
         opt_model.system_spec.dimensions = dim
     elif cmd == "NAME":
         opt_model.system_spec.title = inputs.strip("\"")
@@ -297,7 +295,7 @@ def handle_types_and_params(optm, cur, cmd, inputs):
                                                   'YToroid')
             ifc.profile = new_profile
         elif typ == 'COORDBRK':
-            ifc.decenter = DecenterData(dec.LOCAL)
+            ifc.decenter = DecenterData('decenter')
         elif typ == 'PARAXIAL':
             ifc = thinlens.ThinLens()
             ifc.z_type = typ
@@ -327,7 +325,7 @@ def handle_types_and_params(optm, cur, cmd, inputs):
                 ifc.decenter.euler[2] = param_val
             elif i == 6:
                 if param_val != 0:
-                    ifc.decenter.self.dtype = dec.REV
+                    ifc.decenter.self.dtype = 'reverse'
             ifc.decenter.update()
         elif ifc.z_type == 'EVENASPH':
             ifc.profile.coefs.append(param_val)

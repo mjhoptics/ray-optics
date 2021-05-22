@@ -9,10 +9,6 @@
 """
 import os.path
 import json_tricks
-from anytree import Node, RenderTree
-from anytree.exporter import DictExporter
-from anytree.importer import DictImporter
-from anytree.search import find_by_attr
 
 import rayoptics
 
@@ -25,7 +21,7 @@ from rayoptics.parax.paraxialdesign import ParaxialModel
 from rayoptics.seq.sequential import SequentialModel
 from rayoptics.raytr.opticalspec import OpticalSpecs
 from rayoptics.parax.specsheet import create_specsheet_from_model
-from rayoptics.optical.model_enums import DimensionType as dt
+from rayoptics.optical.model_enums import get_dimension_for_type
 
 
 class SystemSpec:
@@ -34,7 +30,7 @@ class SystemSpec:
     Attributes:
         title (str): a short description of the model
         initials (str): user initials or other id
-        dimensions: a DimensionType enum of the model linear units
+        dimensions (str): the model linear units
         temperature (float): model temperature in degrees Celsius
         pressure (float): model pressure in mm/Hg
     """
@@ -42,9 +38,26 @@ class SystemSpec:
     def __init__(self):
         self.title = ''
         self.initials = ''
-        self.dimensions = dt.MM
+        self.dimensions = 'mm'
         self.temperature = 20.0
         self.pressure = 760.0
+
+    def __json_decode__(self, **attrs):
+        for a_key, a_val in attrs.items():
+            if a_key == 'dimensions':
+                self._dimensions = (a_val if isinstance(a_val, str)
+                                    else get_dimension_for_type(a_val))
+            else:
+                setattr(self, a_key, a_val)
+
+    @property
+    def dimensions(self):
+        return self._dimensions
+
+    @dimensions.setter
+    def dimensions(self, value):
+        self._dimensions = (value if isinstance(value, str)
+                            else get_dimension_for_type(value))
 
     def nm_to_sys_units(self, nm):
         """ convert nm to system units
@@ -55,15 +68,15 @@ class SystemSpec:
         Returns:
             float: value converted to system units
         """
-        if self.dimensions == dt.M:
+        if self.dimensions == 'm':
             return 1e-9 * nm
-        elif self.dimensions == dt.CM:
+        elif self.dimensions == 'cm':
             return 1e-7 * nm
-        elif self.dimensions == dt.MM:
+        elif self.dimensions == 'mm':
             return 1e-6 * nm
-        elif self.dimensions == dt.IN:
+        elif self.dimensions == 'in':
             return 1e-6 * nm/25.4
-        elif self.dimensions == dt.FT:
+        elif self.dimensions == 'ft':
             return 1e-6 * nm/304.8
         else:
             return nm

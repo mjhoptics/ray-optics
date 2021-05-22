@@ -14,8 +14,6 @@ from . import tla
 from . import reader as cvr
 
 import rayoptics.optical.opticalmodel as opticalmodel
-from rayoptics.optical.model_enums import DimensionType as dt
-from rayoptics.optical.model_enums import DecenterType as dec
 from rayoptics.elem.surface import (DecenterData, Circular, Rectangular,
                                     Elliptical)
 from rayoptics.elem import profiles
@@ -246,12 +244,12 @@ def spec_data(optm, tla, qlist, dlist):
         optm.system_spec.initials = dlist[0]
     elif tla == "DIM":
         dim = dlist[0].upper()
-        if dim == 'M':
-            dim = dt.MM
-        elif dim == 'C':
-            dim = dt.CM
-        elif dim == 'I':
-            dim = dt.IN
+        if dim == 'M' or dim == 'MM':
+            dim = 'mm'
+        elif dim == 'C' or dim == 'CM':
+            dim = 'cm'
+        elif dim == 'I' or dim == 'IN':
+            dim = 'inches'
         optm.system_spec.dimensions = dim
     elif tla == "TEM":
         optm.system_spec.temperature = dlist[0]
@@ -505,7 +503,7 @@ def decenter_data(optm, tla, qlist, dlist):
     ifc = seq_model.ifcs[idx]
 
     if not ifc.decenter:
-        ifc.decenter = DecenterData(dec.LOCAL)
+        ifc.decenter = DecenterData('decenter')
 
     decenter = ifc.decenter
     if tla == 'XDE':
@@ -521,11 +519,11 @@ def decenter_data(optm, tla, qlist, dlist):
     elif tla == 'CDE':
         decenter.euler[2] = dlist[0]
     elif tla == 'DAR':
-        decenter.dtype = dec.DAR
+        decenter.dtype = 'dec and return'
     elif tla == 'BEN':
-        decenter.dtype = dec.BEND
+        decenter.dtype = 'bend'
     elif tla == 'REV':
-        decenter.dtype = dec.REV
+        decenter.dtype = 'reverse'
 
     decenter.update()
 

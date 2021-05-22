@@ -16,7 +16,6 @@ from PyQt5.QtWidgets import (QCheckBox, QComboBox, QAction, QLineEdit,
 
 from rayoptics.optical.model_enums import PupilType
 from rayoptics.optical.model_enums import FieldType
-from rayoptics.optical.model_enums import DimensionType
 
 
 PanelInfo = namedtuple('PanelInfo', ['dock', 'panel_widget', 'menu_action'])
@@ -113,7 +112,7 @@ class ModelBinding():
             return getattr(toget, self.field)
 
 
-class ChoiceWidget(ModelBinding):
+class EnumChoiceWidget(ModelBinding):
     def __init__(self, gui_app, get_parent, field, combo_items):
         super().__init__(gui_app, get_parent, field)
         w = QComboBox()
@@ -128,6 +127,25 @@ class ChoiceWidget(ModelBinding):
 
     def refresh(self):
         self.widget.setCurrentIndex(self.get())
+
+
+class ListChoiceWidget(ModelBinding):
+    def __init__(self, gui_app, get_parent, field, combo_items):
+        super().__init__(gui_app, get_parent, field)
+        w = QComboBox()
+        for item in combo_items:
+            w.addItem(item)
+        w.currentIndexChanged.connect(self.currentIndexChanged)
+        self.widget = w
+        self.combo_items = combo_items
+
+    def currentIndexChanged(self):
+        self.set(self.widget.currentIndex())
+        self.gui_app.refresh_gui()
+
+    def refresh(self):
+        idx = self.combo_items.index(self.get())
+        self.widget.setCurrentIndex(idx)
 
 
 class TextFieldWidget(ModelBinding):
@@ -206,7 +224,7 @@ class AperturePanel(QWidget):
         self.gui_app = gui_app
         apertureLayout = QFormLayout()
 
-        self.aperture_combo = ChoiceWidget(gui_app, self.root, None, self.comboItems)
+        self.aperture_combo = EnumChoiceWidget(gui_app, self.root, None, self.comboItems)
         self.aperture_combo.get = lambda: self.root().get_pupil_type()
         self.aperture_combo.set = lambda value: self.root().mutate_pupil_type(PupilType(value))
         apertureLayout.addRow('Type', self.aperture_combo.widget)
@@ -235,7 +253,7 @@ class FieldOfViewPanel(QWidget):
 
         fieldLayout = QFormLayout()
 
-        self.field_combo = ChoiceWidget(gui_app, self.root, None, self.comboItems)
+        self.field_combo = EnumChoiceWidget(gui_app, self.root, None, self.comboItems)
         self.field_combo.get = lambda: self.root().get_field_type()
         self.field_combo.set = lambda value: self.root().mutate_field_type(FieldType(value))
         fieldLayout.addRow('Type', self.field_combo.widget)
@@ -255,17 +273,22 @@ class FieldOfViewPanel(QWidget):
 
 
 class SystemSpecPanel(QWidget):
-    comboItems = ["mm", "cm", "m", "inches"]
-
     def __init__(self, gui_app, parent=None):
         super().__init__(parent)
+
+        self.dim_combo_items = ["mm", "cm", "meters", "inches", "feet"]
 
         self.gui_app = gui_app
 
         systemLayout = QFormLayout()
 
-        self.dimension_combo = ChoiceWidget(gui_app, lambda: self.root().dimensions, 'value', self.comboItems)
-        self.dimension_combo.set = lambda value: setattr(self.root(), 'dimensions', DimensionType(value))
+        self.dimension_combo = ListChoiceWidget(gui_app, lambda: self.root(),
+                                                'dimensions', self.dim_combo_items)
+
+        def combo_set(i):
+            setattr(self.root(), 'dimensions', self.dim_combo_items[i])
+        self.dimension_combo.set = combo_set
+        # self.dimension_combo.set = lambda value: setattr(self.root(), 'dimensions', value)
 
         systemLayout.addRow('system units', self.dimension_combo.widget)
 

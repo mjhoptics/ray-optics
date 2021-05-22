@@ -11,7 +11,6 @@ import numpy as np
 import rayoptics.seq.medium as mdm
 import rayoptics.elem.profiles as profiles
 import rayoptics.elem.surface as surface
-from rayoptics.optical.model_enums import DecenterType as dec
 
 
 def apply_fct_to_sm(opt_model, fct, start=None, stop=None, step=None):
@@ -37,7 +36,7 @@ def convert_to_bend(opt_model, cur):
         if (ifc_p.z_type == 'COORDBRK' and ifc_f.z_type == 'COORDBRK'):
             if np.array_equal(ifc_f.decenter.euler, ifc_p.decenter.euler):
                 ifc.decenter = ifc_p.decenter
-                ifc.decenter.dtype = dec.BEND
+                ifc.decenter.dtype = 'bend'
                 sm.remove(cur+1, prev=True)
                 sm.remove(cur-1)
                 return True
@@ -56,7 +55,7 @@ def convert_to_dar(opt_model, cur):
             acum_euler = ifc_f.decenter.euler + ifc_p.decenter.euler
             if np.all(acum_dec == 0) and np.all(acum_euler == 0):
                 ifc.decenter = ifc_p.decenter
-                ifc.decenter.dtype = dec.DAR
+                ifc.decenter.dtype = 'dec and return'
                 sm.remove(cur+1, prev=True)
                 sm.remove(cur-1)
                 return True
@@ -68,7 +67,7 @@ def collapse_coordbrk(opt_model, cur):
     sm = opt_model.seq_model
     ifc_cb = sm.ifcs[cur]
     if ifc_cb.z_type == 'COORDBRK':
-        if ifc_cb.decenter.dtype == dec.REV:
+        if ifc_cb.decenter.dtype == 'reverse':
             ifc = sm.ifcs[cur-1]
             prev = True
         else:

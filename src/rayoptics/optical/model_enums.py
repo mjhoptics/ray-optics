@@ -96,9 +96,35 @@ class DimensionType(Enum):
     FT = 4  #: feet
 
 
+def get_dimension_for_type(dimension_type):
+    if dimension_type == DimensionType.MM:
+        dimension_key = 'mm'
+    elif dimension_type == DimensionType.CM:
+        dimension_key = 'cm'
+    elif dimension_type == DimensionType.M:
+        dimension_key = 'meters'
+    elif dimension_type == DimensionType.IN:
+        dimension_key = 'inches'
+    elif dimension_type == DimensionType.FT:
+        dimension_key = 'feet'
+    return dimension_key
+
+
 class DecenterType(Enum):
     """ enum for different tilt and decenter types """
     LOCAL = 0  #: pos and orientation applied prior to surface
     REV = 1    #: pos and orientation applied following surface in reverse
     DAR = 2    #: pos and orientation applied prior to surface and then returned to initial frame
     BEND = 3   #: used for fold mirrors, orientation applied before and after surface
+
+
+def get_decenter_for_type(decenter_type):
+    if decenter_type == DecenterType.LOCAL:
+        decenter_key = 'decenter'
+    elif decenter_type == DecenterType.REV:
+        decenter_key = 'reverse'
+    elif decenter_type == DecenterType.DAR:
+        decenter_key = 'dec and return'
+    elif decenter_type == DecenterType.Bend:
+        decenter_key = 'bend'
+    return decenter_key
