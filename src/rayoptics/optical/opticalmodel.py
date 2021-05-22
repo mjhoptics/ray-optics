@@ -30,7 +30,6 @@ class SystemSpec:
     Attributes:
         title (str): a short description of the model
         initials (str): user initials or other id
-        dimensions (str): the model linear units
         temperature (float): model temperature in degrees Celsius
         pressure (float): model pressure in mm/Hg
     """
@@ -52,6 +51,7 @@ class SystemSpec:
 
     @property
     def dimensions(self):
+        """ the model linear units (str). """
         return self._dimensions
 
     @dimensions.setter

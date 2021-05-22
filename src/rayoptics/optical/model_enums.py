@@ -88,7 +88,7 @@ def get_fld_type_for_key(field_key):
 
 
 class DimensionType(Enum):
-    """ enum for different linear dimensions """
+    """ **DEPRECATED**: enum for different linear dimensions """
     MM = 0  #: millimeters
     CM = 1  #: centimeters
     M = 2   #: meters
@@ -111,7 +111,7 @@ def get_dimension_for_type(dimension_type):
 
 
 class DecenterType(Enum):
-    """ enum for different tilt and decenter types """
+    """ **DEPRECATED**: enum for different tilt and decenter types """
     LOCAL = 0  #: pos and orientation applied prior to surface
     REV = 1    #: pos and orientation applied following surface in reverse
     DAR = 2    #: pos and orientation applied prior to surface and then returned to initial frame
