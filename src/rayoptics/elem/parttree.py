@@ -97,6 +97,24 @@ class PartTree():
         """ Return the node paired with `obj`. """
         return find_by_attr(self.root_node, name='id', value=obj)
 
+
+    def trim_node(self, obj):
+        """ Remove the branch where `obj` is the sole leaf. """
+        leaf_node = self.node(obj)
+        parent_node = None
+        if leaf_node:
+            parent_node = leaf_node.parent
+        while parent_node is not None:
+            if len(parent_node.children) > 1:
+                # parent has more than one child, trim leaf_node
+                leaf_node.parent = None
+                break
+            else:
+                # trim leaf_node and continue up the branch
+                leaf_node = parent_node
+                parent_node = leaf_node.parent
+                leaf_node.parent = None
+
     def parent_node(self, obj, tag='#element#airgap#dummyifc'):
         """ Return the parent node for `obj`, filtered by `tag`. """
         tags = tag.split('#')[1:]

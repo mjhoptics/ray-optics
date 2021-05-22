@@ -308,14 +308,20 @@ class SequentialModel:
             if num_ifcs > 2:
                 if self.stop_surface > idx and self.stop_surface > 1:
                     self.stop_surface -= 1
+        
+        # remove the associated nodes
+        pt = self.opt_model['part_tree']
+        pt.trim_node(self.ifcs[idx])
 
         # interface related attribute lists
         del self.ifcs[idx]
         del self.gbl_tfrms[idx]
         del self.lcl_tfrms[idx]
 
-        # gap related attribute lists
+        # gap node and related attribute lists
         idx = idx-1 if prev else idx
+        pt.trim_node(self.gaps[idx])
+
         del self.gaps[idx]
         del self.z_dir[idx]
         del self.rndx[idx]

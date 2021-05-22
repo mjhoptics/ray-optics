@@ -1288,12 +1288,31 @@ class ElementModel:
         self.add_element(di)
 
     def update_model(self):
-        seq_model = self.opt_model.seq_model
+        seq_model = self.opt_model['seq_model']
         tfrms = seq_model.compute_global_coords(1)
-        for e in self.elements:
+
+        # dynamically build element list from part_tree
+        part_tree = self.opt_model['part_tree']
+        nodes = part_tree.nodes_with_tag(tag='#element#airgap#dummyifc')
+        elements = [n.id for n in nodes]
+
+        # hook or unhook elements from ele_model
+        cur_set = set(self.elements)
+        new_set = set(elements)
+        added_ele = list(new_set.difference(cur_set))
+        for e in added_ele:
+            e.parent = self
+        removed_ele = list(cur_set.difference(new_set))
+        for e in removed_ele:
+            e.parent = None
+
+        # update the elements
+        for e in elements:
             e.update_size()
             e.sync_to_update(seq_model)
             e.tfrm = tfrms[e.reference_idx()]
+
+        self.elements = elements
         self.sequence_elements()
 
     def sequence_elements(self):
