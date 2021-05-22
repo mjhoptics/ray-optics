@@ -245,6 +245,10 @@ class Spherical(SurfaceProfile):
     def __repr__(self):
         return "{!s}(c={})".format(type(self).__name__, self.cv)
 
+    def listobj(self):
+        print(f"profile: {type(self).__name__}")
+        print(f"c={self.cv},   r={self.r}")
+
     def copyFrom(self, other):
         dispatch[type(self), type(other)](self, other)
 
@@ -420,6 +424,10 @@ class Conic(SurfaceProfile):
     def __repr__(self):
         return "{!s}(c={}, cc={})".format(type(self).__name__,
                                           self.cv, self.cc)
+
+    def listobj(self):
+        print(f"profile: {type(self).__name__}")
+        print(f"c={self.cv},   r={self.r}   conic cnst={self.cc}")
 
     def copyFrom(self, other):
         dispatch[type(self), type(other)](self, other)
@@ -621,6 +629,11 @@ class EvenPolynomial(SurfaceProfile):
                 ', cc=' + repr(self.cc) +
                 ', coefs=' + repr(self.coefs) + ')')
 
+    def listobj(self):
+        print(f"profile: {type(self).__name__}")
+        print(f"c={self.cv},   r={self.r}   conic cnst={self.cc}")
+        print(f"coefficients: {self.coefs}")
+
     def copyFrom(self, other):
         dispatch[type(self), type(other)](self, other)
 
@@ -810,6 +823,11 @@ class RadialPolynomial(SurfaceProfile):
         return (type(self).__name__ + '(c=' + repr(self.cv) +
                 ', ec=' + repr(self.ec) +
                 ', coefs=' + repr(self.coefs) + ')')
+
+    def listobj(self):
+        print(f"profile: {type(self).__name__}")
+        print(f"c={self.cv},   r={self.r}   conic cnst={self.cc}")
+        print(f"coefficients: {self.coefs}")
 
     def copyFrom(self, other):
         dispatch[type(self), type(other)](self, other)
@@ -1012,6 +1030,12 @@ class YToroid(SurfaceProfile):
                 ', cR=' + repr(self.cR) +
                 ', cc=' + repr(self.cc) +
                 ', coefs=' + repr(self.coefs) + ')')
+
+    def listobj(self):
+        print(f"profile: {type(self).__name__}")
+        print(f"sweep radius: rR={self.rR}")
+        print(f"sweep profile: c={self.cv},   r={self.r}   conic cnst={self.cc}")
+        print(f"coefficients: {self.coefs}")
 
     def copyFrom(self, other):
         dispatch[type(self), type(other)](self, other)
