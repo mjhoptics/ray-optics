@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Copyright © 2018 Michael J. Hayford
-""" optical model enums
+""" **DEPRECATED**: optical model enums
+
+    The enums in this module are deprecated in favor of strings conveying the 
+    same information. The functions in this module are used to convert enums 
+    into the corresponding strings.
 
 .. Created on Tue Dec  4 11:32:57 2018
 
@@ -12,7 +16,7 @@ from enum import Enum
 
 
 class PupilType(Enum):
-    """ enum for different aperture specifications """
+    """ **DEPRECATED**: enum for different aperture specifications """
     EPD = 0  #: entrance pupil diameter
     NAO = 1  #: object space numerical aperture
     FNO = 2  #: image space f/#
@@ -51,7 +55,7 @@ def get_ape_type_for_key(aperture_key):
 
 
 class FieldType(Enum):
-    """ enum for different field specifications """
+    """ **DEPRECATED**: enum for different field specifications """
     OBJ_ANG = 0  #: object space angle in degrees
     OBJ_HT = 1   #: object height
     IMG_HT = 2   #: image height
