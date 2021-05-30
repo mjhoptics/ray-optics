@@ -364,5 +364,8 @@ class OpticalModel:
         # unhook node
         e_node.parent = None
 
-    def list_part_tree(self, *args, **kwargs):
-        self.part_tree.list_tree(*args, **kwargs)
+    def rebuild_from_seq(self):
+        """ Rebuild ele_model and part_tree from seq_model. """
+        self['em'].elements = []
+        self['pt'].root_node.children = []
+        elements_from_sequence(self['em'], self['sm'], self['pt'])
