@@ -8,6 +8,7 @@
 .. codeauthor: Michael J. Hayford
 """
 import json
+import difflib
 
 from scipy.interpolate import interp1d
 
@@ -15,10 +16,11 @@ from rayoptics.util.misc_math import isanumber
 
 from opticalglass import glass as cat_glass
 from opticalglass import glassfactory as gfact
+from opticalglass.glassfactory import create_glass
 from opticalglass import glasserror
 from opticalglass import util
 from opticalglass.spectral_lines import get_wavelength
-import opticalglass.buchdahl as buchdahl
+from opticalglass.buchdahl import Buchdahl, Buchdahl2
 
 
 def glass_encode(n, v):
@@ -84,7 +86,7 @@ class Glass(Medium):
         self._catalog_name = cat
         self.n = nd
         self.v = vd
-        self.bdhl_model = buchdahl.Buchdahl2(self.n, self.v)
+        self.bdhl_model = Buchdahl2(self.n, self.v)
 
     def __str__(self):
         return 'Glass ' + self.label + ': ' + glass_encode(self.n, self.v)
@@ -97,7 +99,7 @@ class Glass(Medium):
 
     def sync_to_restore(self):
         if not hasattr(self, 'bdhl_model'):
-            self.bdhl_model = buchdahl.Buchdahl2(self.n, self.v)
+            self.bdhl_model = Buchdahl2(self.n, self.v)
 
     def glass_code(self):
         return str(1000*round((self.n - 1), 3) + round(self.v/100, 3))
@@ -247,7 +249,7 @@ class GlassHandlerBase():
         try:
             if catalog is None or len(catalog) == 0:
                 catalog = gfact._cat_names
-            medium = gfact.create_glass(name, catalog)
+            medium = create_glass(name, catalog)
         except glasserror.GlassNotFoundError:
             pass
         else:
@@ -284,10 +286,12 @@ class GlassHandlerBase():
         """Try to find a similar glass to ``name``."""
 
         # create a list of catalogs
-        if len(self.glass_catalogs) > 0:
-            cat_names = self.glass_catalogs
-        else:
-            cat_names = gfact._cat_names
+        # the original lookup didn't find anything so
+        # look in all of our catalogs
+        cat_names = [gc.upper() for gc in self.glass_catalogs]
+        for gc in gfact._cat_names_uc:
+            if gc not in cat_names:
+                cat_names.append(gc)
 
         # create a glass list for the given catalogs
         glist = []
@@ -314,10 +318,15 @@ class GlassHandlerBase():
                 subs_glasses.append(g)
 
         if len(subs_glasses):
-            gn_decode, gn, gc = subs_glasses[0]
-            medium = gfact.create_glass(gn, gc)
-            eval_str = "create_glass('{:s}','{:s}')".format(gn, gc)
-            self.glasses_not_found[name] = eval_str
+            possibilities = [gn for gn_decode, gn, gc in subs_glasses]
+            matches = difflib.get_close_matches(name, possibilities)
+            if len(matches) > 0:
+                gn = matches[0]
+                gc = next((g[2] for g in subs_glasses if g[1] == gn), None)
+            else:
+                gn_decode, gn, gc = subs_glasses[0]
+            medium = create_glass(gn, gc)
+            self.glasses_not_found[name] = gn, gc
             return medium
         else:
             return None
@@ -325,22 +334,17 @@ class GlassHandlerBase():
     def handle_glass_not_found(self, name):
         """Record missing glasses or create new replacement glass instances."""
 
-        """Import all supported glass catalogs."""
-        from opticalglass.cdgm import CDGMGlass
-        from opticalglass.hikari import HikariGlass
-        from opticalglass.hoya import HoyaGlass
-        from opticalglass.ohara import OharaGlass
-        from opticalglass.schott import SchottGlass
-        from opticalglass.sumita import SumitaGlass
-        from opticalglass.buchdahl import Buchdahl
-        from opticalglass.glassfactory import create_glass
-
         if self.no_replacements:                # track the number of times
             self.glasses_not_found[name] += 1   # each missing glass is used
             return None
 
         else:  # create a new instance of the replacement glass
             if name in self.glasses_not_found:
-                return eval(self.glasses_not_found[name])
+                val = self.glasses_not_found[name]
+                if len(val) == 2:  # call create_glass with name and catalog
+                    gn, gc = val
+                    return create_glass(gn, gc)
+                else:  # eval code to create a new glass instance
+                    return eval(self.glasses_not_found[name])
             else:
                 return None
