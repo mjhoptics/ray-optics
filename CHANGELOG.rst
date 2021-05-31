@@ -6,7 +6,7 @@ Changelog
 
 Version 0.7.1
 ==============
-Switch to use of strings for :class:`~.optical.model_enums.DecenterType` and :class:`~.optical.model_enums.DimensionType`. Use of the types is now deprecated. Add listobj() methods to all :mod:`~.elem.profiles`classes that lists all of the data for each profile type. Completed the fix of `opticalglass` issue #5 by using `difflib` to find better matches; seems to almost eliminate need for .smx files. Provided an alternative replacement glass spec for .smx files that requires just the glass and catalog names. Miscellaneous other fixes.
+Switch to use of strings for :class:`~.optical.model_enums.DecenterType` and :class:`~.optical.model_enums.DimensionType`. Use of the types is now deprecated. Add listobj() methods to all :mod:`~.elem.profiles` classes that lists all of the data for each profile type. Completed the fix of `opticalglass` issue #5 by using `difflib` to find better matches; seems to almost eliminate need for .smx files. Provided an alternative replacement glass spec for .smx files that requires just the glass and catalog names. Miscellaneous other fixes.
 
 Version 0.7.0
 ==============

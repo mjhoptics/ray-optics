@@ -367,11 +367,13 @@ class Conic(SurfaceProfile):
     """ Conic surface profile parameterized by curvature and conic constant.
 
     Conics produced for conic constant values:
-        cc > 0.0: oblate spheroid
-        cc = 0.0: sphere
-        cc < 0.0 and > -1.0: ellipsoid
-        cc = -1.0: paraboloid
-        cc < -1.0: hyperboloid
+
+        + cc > 0.0: oblate spheroid
+        + cc = 0.0: sphere
+        + cc < 0.0 and > -1.0: ellipsoid
+        + cc = -1.0: paraboloid
+        + cc < -1.0: hyperboloid
+
     """
 
     def __init__(self, c=0.0, cc=0.0, r=None, ec=None):
