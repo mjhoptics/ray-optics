@@ -235,18 +235,20 @@ def trace_safe(opt_model, pupil, fld, wvl, ray_list,
         ray_list: list to append the ray data
         output_filter:
 
-                       - if None, append entire ray
-                       - if 'last', append the last ray segment only
-                       - else treat as callable and append the return value
+        - if None, append entire ray
+        - if 'last', append the last ray segment only
+        - else treat as callable and append the return value
 
         rayerr_filter:
 
-                       - if None, on ray error append nothing
-                       - if 'summary', append the exception without ray data
-                       - if 'full', append the exception with ray data up to error
-                       - else append nothing
+        - if None, on ray error append nothing
+        - if 'summary', append the exception without ray data
+        - if 'full', append the exception with ray data up to error
+        - else append nothing
 
     """
+    use_named_tuples = kwargs.get('use_named_tuples', False)
+
     try:
         ray_pkg = trace.trace_base(opt_model, pupil, fld, wvl,
                                    **kwargs)
@@ -254,13 +256,21 @@ def trace_safe(opt_model, pupil, fld, wvl, ray_list,
         if rayerr_filter is None:
             pass
         elif rayerr_filter == 'full':
+            ray, op_delta, wvl = rayerr.ray_pkg
+            ray = [trace.RaySeg(*rs) for rs in ray]
+            rayerr.ray_pkg = ray, op_delta, wvl
             ray_list.append([pupil[0], pupil[1], rayerr])
         elif rayerr_filter == 'summary':
-            rayerr.ray = None
+            rayerr.ray_pkg = None
             ray_list.append([pupil[0], pupil[1], rayerr])
         else:
             pass
     else:
+        if use_named_tuples:
+            ray, op_delta, wvl = ray_pkg
+            ray = [trace.RaySeg(*rs) for rs in ray]
+            ray_pkg = ray, op_delta, wvl
+
         if output_filter is None:
             ray_list.append([pupil[0], pupil[1], ray_pkg])
         elif output_filter == 'last':
@@ -269,6 +279,19 @@ def trace_safe(opt_model, pupil, fld, wvl, ray_list,
             ray_list.append([pupil[0], pupil[1], final_seg_pkg])
         else:
             ray_list.append([pupil[0], pupil[1], output_filter(ray_pkg)])
+
+
+def retrieve_ray(ray_list_item):
+    """ Retrieve the ray (the list of ray segs) from ray_list_item.
+    
+    This function handles the normal case where the ray traces successfully
+    and the case of a ray failure, which returns a TraceError instance.
+    """
+    px, py, ray_item = ray_list_item
+    if isinstance(ray_item, terr.TraceError):
+        return ray_item.ray_pkg
+    else:
+        return ray_item
 
 
 # --- Single ray
@@ -341,7 +364,8 @@ class RayFan():
     """
 
     def __init__(self, opt_model, f=0, wl=None, foc=None, image_pt_2d=None,
-                 num_rays=21, xyfan='y'):
+                 num_rays=21, xyfan='y', output_filter=None,
+                 rayerr_filter=None, **kwargs):
         self.opt_model = opt_model
         osp = opt_model.optical_spec
         self.fld = osp.field_of_view.fields[f] if isinstance(f, int) else f
@@ -360,6 +384,9 @@ class RayFan():
         else:
             self.xyfan = int(xyfan)
 
+        self.output_filter = output_filter
+        self.rayerr_filter = rayerr_filter
+
         self.update_data()
 
     def __json_encode__(self):
@@ -374,7 +401,9 @@ class RayFan():
         if build == 'rebuild':
             self.fan_pkg = trace_fan(
                 self.opt_model, self.fld, self.wvl, self.foc, self.xyfan,
-                image_pt_2d=self.image_pt_2d, num_rays=self.num_rays)
+                image_pt_2d=self.image_pt_2d, num_rays=self.num_rays,
+                output_filter=self.output_filter,
+                rayerr_filter=self.rayerr_filter)
 
         self.fan = focus_fan(self.opt_model, self.fan_pkg,
                              self.fld, self.wvl, self.foc,
@@ -414,14 +443,15 @@ def trace_ray_fan(opt_model, fan_rng, fld, wvl, foc,
     fan = []
     for r in range(num):
         pupil = np.array(start)
-        trace_safe(opt_model, pupil, fld, wvl, fan,
-                   output_filter, rayerr_filter, **kwargs)
+        trace_safe(opt_model, pupil, fld, wvl, fan, output_filter, 
+                   rayerr_filter, use_named_tuples=True, **kwargs)
         start += step
     return fan
 
 
 def eval_fan(opt_model, fld, wvl, foc, xy,
-             image_pt_2d=None, num_rays=21):
+             image_pt_2d=None, num_rays=21,
+             output_filter=None, rayerr_filter=None, **kwargs):
     """Trace a fan of rays and evaluate dx, dy, & OPD across the fan."""
     fod = opt_model.optical_spec.parax_data.fod
     cr_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
@@ -436,7 +466,9 @@ def eval_fan(opt_model, fld, wvl, foc, xy,
     fan_stop[xy] = 1.0
     fan_def = [fan_start, fan_stop, num_rays]
 
-    fan = trace_ray_fan(opt_model, fan_def, fld, wvl, foc)
+    fan = trace_ray_fan(opt_model, fan_def, fld, wvl, foc,
+                        output_filter=output_filter,
+                        rayerr_filter=rayerr_filter, **kwargs)
 
     central_wvl = opt_model.optical_spec.spectral_region.central_wvl
     convert_to_opd = 1/opt_model.nm_to_sys_units(central_wvl)
@@ -462,7 +494,8 @@ def eval_fan(opt_model, fld, wvl, foc, xy,
 
 
 def trace_fan(opt_model, fld, wvl, foc, xy,
-              image_pt_2d=None, num_rays=21):
+              image_pt_2d=None, num_rays=21,
+              output_filter=None, rayerr_filter=None, **kwargs):
     """Trace a fan of rays and precalculate data for rapid refocus later."""
     fod = opt_model.optical_spec.parax_data.fod
     cr_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
@@ -478,11 +511,13 @@ def trace_fan(opt_model, fld, wvl, foc, xy,
     fan_stop[xy] = 1.0
     fan_def = [fan_start, fan_stop, num_rays]
 
-    fan = trace_ray_fan(opt_model, fan_def, fld, wvl, foc)
+    fan = trace_ray_fan(opt_model, fan_def, fld, wvl, foc,
+                        output_filter=output_filter,
+                        rayerr_filter=rayerr_filter, **kwargs)
 
     def wpc(fi):
         pupil_x, pupil_y, ray_pkg = fi
-        if ray_pkg is not None:
+        if ray_pkg is not None and not isinstance(ray_pkg, terr.TraceError):
             pre_opd_pkg = wave_abr_pre_calc(fod, fld, wvl, foc,
                                             ray_pkg, cr_pkg)
             return pre_opd_pkg
@@ -494,7 +529,7 @@ def trace_fan(opt_model, fld, wvl, foc, xy,
     return fan, upd_fan
 
 
-def focus_fan(opt_model, fan_pkg, fld, wvl, foc, image_pt_2d=None):
+def focus_fan(opt_model, fan_pkg, fld, wvl, foc, image_pt_2d=None, **kwargs):
     """Refocus the fan of rays and return the tranverse abr. and OPD."""
     fod = opt_model.optical_spec.parax_data.fod
     fan, upd_fan = fan_pkg
@@ -506,7 +541,7 @@ def focus_fan(opt_model, fan_pkg, fld, wvl, foc, image_pt_2d=None):
 
     def rfc(fi, fiu):
         pupil_x, pupil_y, ray_pkg = fi
-        if ray_pkg is not None:
+        if ray_pkg is not None and not isinstance(ray_pkg, terr.TraceError):
             image_pt = ref_sphere[0]
             ray = ray_pkg[mc.ray]
             dist = foc / ray[-1][mc.d][2]
@@ -654,8 +689,16 @@ def trace_list_of_rays(opt_model, rays,
         pt0, dir0, wvl = ray
         try:
             ray_pkg = trace.trace(opt_model.seq_model, pt0, dir0, wvl, **kwargs)
-        except terr.TraceError:
-            ray_list.append(None)
+        except terr.TraceError as rayerr:
+            if rayerr_filter is None:
+                pass
+            elif rayerr_filter == 'full':
+                ray_list.append((ray, rayerr))
+            elif rayerr_filter == 'summary':
+                rayerr.ray_pkg = None
+                ray_list.append((ray, rayerr))
+            else:
+                pass
         else:
             if output_filter is None:
                 ray_list.append(ray_pkg)

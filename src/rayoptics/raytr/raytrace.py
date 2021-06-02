@@ -228,7 +228,7 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, **kwargs):
             ray_miss.surf = surf+1
             ray_miss.ifc = ifc
             ray_miss.prev_tfrm = before[Tfrm]
-            ray_miss.ray = ray
+            ray_miss.ray_pkg = ray, opl, wvl
             raise ray_miss
 
         except TraceTIRError as ray_tir:
@@ -236,7 +236,7 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, **kwargs):
             ray_tir.surf = surf+1
             ray_tir.ifc = ifc
             ray_tir.int_pt = inc_pt
-            ray_tir.ray = ray
+            ray_tir.ray_pkg = ray, opl, wvl
             raise ray_tir
 
         except TraceEvanescentRayError as ray_evn:
@@ -244,7 +244,7 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, **kwargs):
             ray_evn.surf = surf+1
             ray_evn.ifc = ifc
             ray_evn.int_pt = inc_pt
-            ray_evn.ray = ray
+            ray_evn.ray_pkg = ray, opl, wvl
             raise ray_evn
 
         except StopIteration:

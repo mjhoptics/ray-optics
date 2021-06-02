@@ -37,7 +37,7 @@ class RayTraceTestCase(unittest.TestCase):
         try:
             ray, op_delta, wvl = trace_raw(seq, self.p0, self.d0, wv)
         except TraceError as ray_error:
-            ray = ray_error.ray
+            ray, op_delta, wvl = ray_error.ray_pkg
 
         def rel_err(v, def_err):
             if v == 0.:

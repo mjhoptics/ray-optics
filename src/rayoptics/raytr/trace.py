@@ -262,8 +262,7 @@ def trace_boundary_rays_at_field(opt_model, fld, wvl, use_named_tuples=False):
         try:
             ray, op, wvl = trace_base(opt_model, p, fld, wvl)
         except TraceError as ray_error:
-            ray = ray_error.ray
-            op = 0.
+            ray, op, wvl = ray_error.ray_pkg
 
         if use_named_tuples:
             ray = [RaySeg(*rs) for rs in ray]

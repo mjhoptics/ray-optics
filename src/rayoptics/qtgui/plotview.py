@@ -374,13 +374,23 @@ def create_draw_rays_groupbox(app, pc):
     parax_checkBox.setChecked(fig.do_paraxial_layout)
     parax_checkBox.stateChanged.connect(
         lambda checked: attr_check(fig, 'do_paraxial_layout', checked))
+    beam_checkBox = QCheckBox("&beams")
+    beam_checkBox.setChecked(fig.do_draw_beams)
+    beam_checkBox.stateChanged.connect(
+        lambda checked: attr_check(fig, 'do_draw_beams', checked))
     edge_checkBox = QCheckBox("&edge rays")
-    edge_checkBox.setChecked(fig.do_draw_rays)
+    edge_checkBox.setChecked(fig.do_draw_edge_rays)
     edge_checkBox.stateChanged.connect(
-        lambda checked: attr_check(fig, 'do_draw_rays', checked))
+        lambda checked: attr_check(fig, 'do_draw_edge_rays', checked))
+    fan_checkBox = QCheckBox("&ray fans")
+    fan_checkBox.setChecked(fig.do_draw_ray_fans)
+    fan_checkBox.stateChanged.connect(
+        lambda checked: attr_check(fig, 'do_draw_ray_fans', checked))
 
     tb.addWidget(parax_checkBox)
+    tb.addWidget(beam_checkBox)
     tb.addWidget(edge_checkBox)
+    tb.addWidget(fan_checkBox)
 
     return tb
 

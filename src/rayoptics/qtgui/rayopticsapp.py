@@ -121,7 +121,7 @@ class MainWindow(QMainWindow):
         path = Path(rayoptics.__file__).parent
         self.cur_dir = path / "models"
 
-        if True:
+        if False:
             # create new model
             # self.new_model()
             self.new_model_via_specsheet()

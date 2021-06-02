@@ -50,6 +50,7 @@ from rayoptics.raytr.trace import (RayPkg, RaySeg, list_ray,
                                    trace, trace_base, trace_with_opd,
                                    trace_astigmatism)
 import rayoptics.raytr.raytrace as rt
+from rayoptics.raytr.traceerror import TraceError
 from rayoptics.raytr import analyses
 from rayoptics.raytr.analyses import (Ray, RayFan, RayList, RayGrid)
 from rayoptics.raytr import sampler

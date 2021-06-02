@@ -31,12 +31,25 @@ class InteractiveLayout(InteractiveFigure):
     def __init__(self, opt_model, refresh_gui=None,
                  offset_factor=0.05,
                  do_draw_rays=True,
+                 do_draw_beams=True,
+                 do_draw_edge_rays=True,
+                 do_draw_ray_fans=True,
+                 num_rays_in_fan=11,
                  do_paraxial_layout=False,
                  **kwargs):
         self.refresh_gui = refresh_gui
         is_dark = kwargs['is_dark'] if 'is_dark' in kwargs else False
         self.layout = LensLayout(opt_model, is_dark=is_dark)
-        self.do_draw_rays = do_draw_rays
+        if do_draw_rays:
+            self.do_draw_beams = do_draw_beams
+            self.do_draw_edge_rays = do_draw_rays
+        else:
+            self.do_draw_beams = False
+            self.do_draw_edge_rays = False
+            
+        self.do_draw_edge_rays = do_draw_edge_rays
+        self.do_draw_ray_fans = do_draw_ray_fans
+        self.num_rays_in_fan = num_rays_in_fan
         self.do_paraxial_layout = do_paraxial_layout
         self.offset_factor = offset_factor
 
@@ -51,20 +64,30 @@ class InteractiveLayout(InteractiveFigure):
         concat_bbox = []
         layout = self.layout
 
-        self.ele_shapes = layout.create_element_model(self)
+        self.ele_shapes = layout.create_element_entities(self)
         self.ele_bbox = self.update_patches(self.ele_shapes)
         concat_bbox.append(self.ele_bbox)
 
-        if self.do_draw_rays:
+        if self.do_draw_beams or self.do_draw_edge_rays or self.do_draw_ray_fans:
             sl_so = layout.system_length(self.ele_bbox,
                                          offset_factor=self.offset_factor)
             system_length, start_offset = sl_so
-            self.ray_shapes = layout.create_ray_model(self, start_offset)
+
+        if self.do_draw_beams or self.do_draw_edge_rays:
+            self.ray_shapes = layout.create_ray_entities(self, start_offset)
             self.ray_bbox = self.update_patches(self.ray_shapes)
             concat_bbox.append(self.ray_bbox)
 
+        if self.do_draw_ray_fans:
+            self.rayfan_shapes = layout.create_ray_fan_entities(
+                self, start_offset,
+                num_rays=self.num_rays_in_fan
+                )
+            self.rayfan_bbox = self.update_patches(self.rayfan_shapes)
+            concat_bbox.append(self.rayfan_bbox)
+
         if self.do_paraxial_layout:
-            self.parax_shapes = layout.create_paraxial_layout(self)
+            self.parax_shapes = layout.create_paraxial_ray_entities(self)
             self.parax_bbox = self.update_patches(self.parax_shapes)
             concat_bbox.append(self.parax_bbox)
 
