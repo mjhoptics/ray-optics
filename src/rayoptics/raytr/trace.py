@@ -179,11 +179,11 @@ def iterate_ray(opt_model, ifcx, xy_target, fld, wvl, **kwargs):
         try:
             ray, _, _ = rt.trace(seq_model, pt0, dir0, wvl)
         except TraceMissedSurfaceError as ray_miss:
-            ray = ray_miss.ray
+            ray = ray_miss.ray_pkg
             if ray_miss.surf <= ifcx:
                 raise ray_miss
         except TraceTIRError as ray_tir:
-            ray = ray_tir.ray
+            ray = ray_tir.ray_pkg
             if ray_tir.surf < ifcx:
                 raise ray_tir
         y_ray = ray[ifcx][mc.p][1]
