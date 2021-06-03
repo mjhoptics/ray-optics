@@ -28,7 +28,17 @@ from rayoptics.util.misc_math import normalize
 
 
 RayPkg = namedtuple('RayPkg', ['ray', 'op', 'wvl'])
+RayPkg.__doc__ = "Ray and optical path length, plus wavelength"
+RayPkg.ray.__doc__ = "list of RaySegs"
+RayPkg.op.__doc__ = "optical path length between pupils"
+RayPkg.wvl.__doc__ = "wavelength (in nm) that the ray was traced in"
+
 RaySeg = namedtuple('RaySeg', ['p', 'd', 'dst', 'nrml'])
+RaySeg.__doc__ = "ray intersection and transfer data"
+RaySeg.p.__doc__ = "the point of incidence"
+RaySeg.d.__doc__ = "ray direction cosine following the interface"
+RaySeg.dst.__doc__ = "geometric distance to next point of incidence"
+RaySeg.nrml.__doc__ = "surface normal vector at the point of incidence"
 
 
 def ray_pkg(ray_pkg):
