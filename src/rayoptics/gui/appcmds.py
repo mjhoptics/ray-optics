@@ -385,7 +385,7 @@ def create_lens_table_model(seq_model):
     colFormats = ['{:s}', '{:12.7g}', '{:12.5g}',
                   '{:s}', '{:s}', '{:12.5g}']
     drop_actions = [None]*len(colHeaders)
-    drop_actions[4] = replace_glass
+    drop_actions[3] = replace_glass
     return PyTableModel(seq_model, '', colEvalStr, rowHeaders,
                         colHeaders, colFormats, True,
                         get_num_rows=seq_model.get_num_surfaces,
