@@ -10,7 +10,6 @@
 from pathlib import Path
 
 from PyQt5.QtCore import Qt as qt
-from PyQt5.QtCore import QModelIndex
 from PyQt5.QtCore import QSize
 from PyQt5 import QtGui
 from PyQt5.QtWidgets import (QHBoxLayout, QVBoxLayout, QWidget, QLineEdit,
@@ -431,6 +430,14 @@ def create_diagram_controls_groupbox(app, pc):
     gap_btn.setChecked(diagram.bend_or_gap == 'gap')
     gap_btn.toggled.connect(lambda: on_bend_or_gap_toggled(diagram, 'gap'))
 
+    bending_btn = QRadioButton("interfaces")
+    bending_btn.setChecked(diagram.active_layer == 'ifcs')
+    bending_btn.toggled.connect(lambda:
+                                on_active_diagram_toggled(fig, 'ifcs'))
+    gap_btn = QRadioButton("elements")
+    gap_btn.setChecked(diagram.active_layer == 'eles')
+    gap_btn.toggled.connect(lambda: on_active_diagram_toggled(fig, 'eles'))
+
     tb.addWidget(slide_checkBox)
     tb.addWidget(barrel_checkBox)
     tb.addWidget(barrel_value_wdgt)
@@ -469,3 +476,9 @@ def on_barrel_constraint_changed(cntxt):
 
 def on_bend_or_gap_toggled(diagram, radio_btn_id):
     diagram.bend_or_gap = radio_btn_id
+
+
+def on_active_diagram_toggled(fig, layer_key):
+    fig.diagram.set_active_layer(layer_key)
+    fig.refresh(build='rebuild')
+    

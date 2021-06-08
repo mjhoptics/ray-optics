@@ -23,14 +23,23 @@ class InteractiveDiagram(InteractiveFigure):
 
     def __init__(self, opt_model, dgm_type, refresh_gui=None,
                  do_barrel_constraint=False, barrel_constraint=1.0,
-                 enable_slide=False, bend_or_gap='bend', **kwargs):
+                 enable_slide=False, bend_or_gap='bend',
+                 parax_model=None, parax_model_key='ifcs', **kwargs):
         self.refresh_gui = refresh_gui
-        self.parax_model = opt_model.parax_model
+        if parax_model is None:
+            self.parax_model = opt_model.parax_model
+            self.parax_model_key = 'ifcs'
+        else:
+            self.parax_model = parax_model
+            self.parax_model_key = kwargs.get('parax_model_key', 'root')
+
         is_dark = kwargs['is_dark'] if 'is_dark' in kwargs else False
-        self.diagram = Diagram(opt_model, dgm_type,
-                               do_barrel_constraint=do_barrel_constraint,
-                               barrel_constraint=barrel_constraint,
-                               bend_or_gap=bend_or_gap, is_dark=is_dark)
+        self.diagram = Diagram(
+            opt_model, self.parax_model, self.parax_model_key, dgm_type,
+            do_barrel_constraint=do_barrel_constraint,
+            barrel_constraint=barrel_constraint,
+            bend_or_gap=bend_or_gap, is_dark=is_dark
+            )
         self.setup_dgm_type(dgm_type)
         self.enable_slide = enable_slide
 

@@ -26,6 +26,7 @@ from rayoptics.util import misc_math
 from rayoptics.util import colors
 
 import rayoptics.elem.elements as ele
+from rayoptics.parax import paraxialdesign
 
 
 # --- color management
@@ -119,11 +120,12 @@ def create_parax_design_commands(fig):
 class Diagram():
     """ class for paraxial ray rendering/editing """
 
-    def __init__(self, opt_model, dgm_type, seq_start=1,
-                 do_barrel_constraint=False, barrel_constraint=1.0,
+    def __init__(self, opt_model, parax_model, parax_model_key, dgm_type,
+                 seq_start=1, do_barrel_constraint=False, barrel_constraint=1.0,
                  label='paraxial', bend_or_gap='bend', is_dark=True):
         self.label = label
         self.opt_model = opt_model
+        self.parax_model = parax_model
 
         self.dgm_rgb = light_or_dark(is_dark=is_dark)
 
@@ -135,8 +137,12 @@ class Diagram():
 
         self.bend_or_gap = bend_or_gap
 
+        self.parax_layers = {}
+        self.parax_layers[parax_model_key] = parax_model
+        self.active_layer = parax_model_key
+
     def setup_dgm_type(self, dgm_type):
-        parax_model = self.opt_model.parax_model
+        parax_model = self.parax_model
         if dgm_type == 'ht':
             self.type_sel = ht
             self._apply_data = parax_model.apply_ht_dgm_data
@@ -150,18 +156,33 @@ class Diagram():
     def sync_light_or_dark(self, is_dark):
         self.dgm_rgb = light_or_dark(is_dark)
 
+    def set_active_layer(self, layer_key):
+        if layer_key in self.parax_layers:
+            self.active_layer = layer_key
+            self.parax_model = self.parax_layers[layer_key]
+            return self
+
+        # layer_key hasn't been created yet, do it
+        prx_key, prx_model = paraxialdesign.create_diagram_for_key(
+            self.opt_model, layer_key
+            )
+        self.parax_layers[prx_key] = prx_model
+        # try again, should succeed by design
+        self.set_active_layer(prx_key)
+
     def update_data(self, fig, **kwargs):
-        parax_model = self.opt_model.parax_model
+        parax_model = self.parax_model
 
         self.shape = self.render_shape()
         self.shape_bbox = bbox_from_poly(self.shape)
-        if fig.build == 'update':
+        build = kwargs.get('build', fig.build)
+        if build == 'update':
             # just a change in node positions - handled above
             # self.shape = self.render_shape()
             pass
         else:
             # number of nodes have changed, rebuild everything
-            if fig.build == 'full_rebuild':
+            if build == 'full_rebuild':
                 # change from another non-parax_model source,
                 #  rebuild parax_model
                 parax_model.build_lens()
@@ -199,7 +220,7 @@ class Diagram():
         self.opt_model.parax_model.paraxial_lens_to_seq_model()
 
     def assign_object_to_node(self, node, factory, **kwargs):
-        parax_model = self.opt_model.parax_model
+        parax_model = self.parax_model
         inputs = parax_model.assign_object_to_node(node, factory, **kwargs)
         return inputs
 
@@ -240,7 +261,7 @@ class Diagram():
 
     def render_shape(self):
         """ render the diagram into a shape list """
-        parax_model = self.opt_model.parax_model
+        parax_model = self.parax_model
         shape = []
         for x, y in zip(parax_model.pr, parax_model.ax):
             shape.append([x[self.type_sel], y[self.type_sel]])
@@ -249,7 +270,7 @@ class Diagram():
 
     def update_diagram_from_shape(self, shape):
         ''' use the shape list to update the paraxial model '''
-        parax_model = self.opt_model.parax_model
+        parax_model = self.parax_model
         for x, y, shp in zip(parax_model.pr, parax_model.ax, shape):
             x[self.type_sel] = shp[0]
             y[self.type_sel] = shp[1]
@@ -317,7 +338,7 @@ class DiagramNode():
         self.actions = self.handle_actions()
 
     def update_shape(self, view):
-        sys = self.diagram.opt_model.parax_model.sys
+        sys = self.diagram.parax_model.sys
         shape = self.diagram.shape
         dgm_rgb = self.diagram.dgm_rgb
         hilite_kwargs = {
@@ -361,7 +382,7 @@ class DiagramNode():
         actions = {}
         actions['shape'] = EditNodeAction(self)
         slide_filter = None
-        sys = self.diagram.opt_model.parax_model.sys
+        sys = self.diagram.parax_model.sys
         slide_pts = compute_slide_line(self.diagram.shape, self.node,
                                        sys[self.node][rmd])
         if slide_pts is not None:
@@ -400,22 +421,23 @@ class DiagramEdge():
         return view.create_patches(self.handles)
 
     def render_color(self):
-        opt_model = self.diagram.opt_model
-        gap = opt_model.seq_model.gaps[self.node]
+        diagram = self.diagram
+        opt_model = diagram.opt_model
+        gap = diagram.parax_model.get_gap_for_node(self.node)
         e_node = opt_model.part_tree.parent_node(gap, '#element#airgap')
         e = e_node.id if e_node else None
 
         if e:
             if '#airgap' in e_node.tag:
                 # set alpha to 25% -> #40
-                bkgrnd_rbga = self.diagram.dgm_rgb['background1'] + '40'
+                bkgrnd_rbga = diagram.dgm_rgb['background1'] + '40'
                 return bkgrnd_rbga
             else:
                 return ele.calc_render_color_for_material(gap.medium)
         else:
             # single surface element, like mirror or thinlens, use airgap
             # set alpha to 25% -> #40
-            bkgrnd_rbga = self.diagram.dgm_rgb['background1'] + '40'
+            bkgrnd_rbga = diagram.dgm_rgb['background1'] + '40'
             return bkgrnd_rbga
 
     def get_label(self):
@@ -532,7 +554,7 @@ class ConjugateLine():
 
     def edit_conjugate_line_actions(self):
         dgm = self.diagram
-        pm = dgm.opt_model.parax_model
+        pm = dgm.parax_model
 
         def calculate_slope(x, y):
             ''' x=ybar, y=y  '''
@@ -829,7 +851,7 @@ class EditBendingAction():
 
     def __init__(self, dgm_edge):
         diagram = dgm_edge.diagram
-        pm = diagram.opt_model.parax_model
+        pm = diagram.parax_model
 
         self.node = None
         self.bundle = None
@@ -932,7 +954,7 @@ class AddReplaceElementAction():
 
     def __init__(self, diagram, **kwargs):
         seq_model = diagram.opt_model.seq_model
-        parax_model = diagram.opt_model.parax_model
+        parax_model = diagram.parax_model
         self.cur_node = None
         self.init_inputs = None
 
@@ -1032,7 +1054,7 @@ class GlassDropAction():
                 gap = sm.gaps[shape.node]
                 action = ReplaceGlassAction(gap, update=False)
                 action(fig, event)
-                pm = shape.diagram.opt_model.parax_model
+                pm = shape.diagram.parax_model
                 pm.update_rindex(shape.node)
                 pm.paraxial_lens_to_seq_model()
                 fig.refresh_gui()

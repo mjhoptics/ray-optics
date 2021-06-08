@@ -27,13 +27,14 @@ def bbox_from_poly(poly):
 
 
 class ParaxialModel():
-    def __init__(self, opt_model, **kwargs):
+    def __init__(self, opt_model, opt_inv=1.0, air_gap_list=None, **kwargs):
         self.opt_model = opt_model
         self.seq_model = opt_model.seq_model
-        self.sys = None
+        self.air_gap_list = air_gap_list
+        self.sys = []
         self.ax = []
         self.pr = []
-        self.opt_inv = 1.0
+        self.opt_inv = opt_inv
 
     def __json_encode__(self):
         attrs = dict(vars(self))
@@ -45,6 +46,8 @@ class ParaxialModel():
     def sync_to_restore(self, opt_model):
         self.opt_model = opt_model
         self.seq_model = opt_model.seq_model
+        if not hasattr(self, 'air_gap_list'):
+            self.air_gap_list = None
 
     def update_model(self):
         self.parax_data = self.opt_model.optical_spec.parax_data
@@ -64,6 +67,14 @@ class ParaxialModel():
             n = sys[i][indx]
             self.ax.append([ax_ray[i][ht], n*ax_ray[i][slp], n*ax_ray[i][aoi]])
             self.pr.append([pr_ray[i][ht], n*pr_ray[i][slp], n*pr_ray[i][aoi]])
+
+    def get_gap_for_node(self, node):
+        if self.air_gap_list is None:
+            # just return the node in the seq_model
+            gap_idx = node
+        else:  # use the air_gap_list to map to the seq_model
+            gap_idx = self.air_gap_list[node]
+        return self.seq_model.gaps[gap_idx]
 
     # --- add/delete points from diagram
     def add_node(self, node, new_vertex, type_sel, interact_mode):
@@ -477,3 +488,82 @@ class ParaxialModel():
 
         # print("min_vly:", min_vly, "min_vuy:", min_vuy)
         return min_vly, min_vuy
+
+
+def create_diagram_for_key(opm, key):
+    if key == 'eles':
+        return key, create_eles_diagram(opm)
+    else:
+        return 'ifcs', opm.parax_model
+    
+def create_eles_diagram(opm):
+    node_list, edge_list = nodes_and_edges_for_elements(opm)
+    nodes = gen_yybar(opm['pm'], edge_list)
+    prx_model = build_from_yybar(opm, nodes, edge_list)
+    return prx_model
+
+
+def nodes_and_edges_for_elements(opm):
+    sm = opm['sm']
+    pt = opm['pt']
+    node_list = []
+    air_gap_list = []
+
+    e_prev = None
+    idx_first = 0
+    idx_count = 0
+    for i, ifc in enumerate(sm.ifcs):
+        e, node = pt.parent_object(ifc)
+        if e is not None:
+            if e is e_prev:
+                idx_count += 1
+#                print(f'{i}: {idx_first} {idx_first+idx_count}')
+            else:
+    #            print(f'{i}: {idx_first} {idx_first+idx_count}')
+                if idx_first > 0:
+                    node_list.append((idx_first, idx_first+idx_count))
+                e_prev = e
+                idx_first = i
+                idx_count = 0
+        else:
+            if e_prev is not None:
+                node_list.append((idx_first, idx_first+idx_count))
+            node_list.append((i))
+
+    air_nodes = pt.nodes_with_tag(tag='#airgap')
+    air_gap_list = [n.id.reference_idx() for n in air_nodes]
+
+    return node_list, air_gap_list
+
+
+def gen_yybar(parax_model, air_gap_list):
+    ax = parax_model.ax
+    pr = parax_model.pr
+    nodes = []
+    l1_pt1 = [ax[0][ht], pr[0][ht]]
+    l1_pt2 = [ax[1][ht], pr[1][ht]]
+    nodes.append(l1_pt1)
+    for gap_idx in air_gap_list[1:]:
+        l2_pt1 = [ax[gap_idx][ht], pr[gap_idx][ht]]
+        l2_pt2 = [ax[gap_idx+1][ht], pr[gap_idx+1][ht]] 
+        new_node = get_intersect(l1_pt1, l1_pt2, l2_pt1, l2_pt2)
+        nodes.append(new_node)
+        l1_pt1, l1_pt2 = l2_pt1, l2_pt2
+    nodes.append(l2_pt2)
+    return nodes
+
+
+def build_from_yybar(opm, nodes, air_gap_list):
+    prx_model = ParaxialModel(opm, opt_inv=opm['pm'].opt_inv,
+                              air_gap_list=air_gap_list)
+    for vertex in nodes:
+        prx_model.ax.append([vertex[0], 0.0, 0.0])
+        prx_model.pr.append([vertex[1], 0.0, 0.0])
+        prx_model.sys.append([0.0, 0.0, 1, 'transmit'])
+    prx_model.sys[0][rmd] = 'dummy'
+    prx_model.sys[-1][rmd] = 'dummy'
+
+    for i in range(len(nodes)):
+        prx_model.apply_ht_dgm_data(i)
+    
+    return prx_model
