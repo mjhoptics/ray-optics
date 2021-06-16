@@ -94,9 +94,6 @@ def setup_exit_pupil_coords(opt_model, fld, wvl, foc,
     Returns:
         ref_sphere: tuple of image_pt, ref_dir, ref_sphere_radius
     """
-    osp = opt_model.optical_spec
-    fod = osp.parax_data.fod
-
     cr, cr_exp_seg = chief_ray_pkg
     # cr_exp_pt: E upper bar prime: pupil center for pencils from Q
     # cr_exp_pt, cr_b4_dir, cr_dst
@@ -105,12 +102,14 @@ def setup_exit_pupil_coords(opt_model, fld, wvl, foc,
     if image_pt_2d is None:
         # get distance along cr corresponding to a z shift of the defocus
         dist = foc / cr.ray[-1][mc.d][2]
-        image_pt = cr.ray[-1][mc.p] - dist*cr.ray[-1][mc.d]
+        image_pt = cr.ray[-1][mc.p] + dist*cr.ray[-1][mc.d]
     else:
         image_pt = np.array([image_pt_2d[0], image_pt_2d[1], foc])
 
+    # get the image point wrt the final surface
+    image_thi = opt_model['seq_model'].gaps[-1].thi
     img_pt = np.array(image_pt)
-    img_pt[2] += fod.img_dist
+    img_pt[2] += image_thi
 
     # R' radius of reference sphere for O'
     ref_sphere_vec = img_pt - cr_exp_seg[mc.p]
@@ -343,7 +342,7 @@ class Ray():
 
         ray_seg = self.ray_seg
         dist = self.foc / ray_seg[mc.d][2]
-        defocused_pt = ray_seg[mc.p] - dist*ray_seg[mc.d]
+        defocused_pt = ray_seg[mc.p] + dist*ray_seg[mc.d]
         self.t_abr = defocused_pt[:-1] - self.image_pt_2d
 
         return self
@@ -479,7 +478,7 @@ def eval_fan(opt_model, fld, wvl, foc, xy,
             image_pt = ref_sphere[0]
             ray = ray_pkg[mc.ray]
             dist = foc / ray[-1][mc.d][2]
-            defocused_pt = ray[-1][mc.p] - dist*ray[-1][mc.d]
+            defocused_pt = ray[-1][mc.p] + dist*ray[-1][mc.d]
             t_abr = defocused_pt - image_pt
 
             opdelta = wave_abr_full_calc(fod, fld, wvl, foc, ray_pkg,
@@ -545,7 +544,7 @@ def focus_fan(opt_model, fan_pkg, fld, wvl, foc, image_pt_2d=None, **kwargs):
             image_pt = ref_sphere[0]
             ray = ray_pkg[mc.ray]
             dist = foc / ray[-1][mc.d][2]
-            defocused_pt = ray[-1][mc.p] - dist*ray[-1][mc.d]
+            defocused_pt = ray[-1][mc.p] + dist*ray[-1][mc.d]
             t_abr = defocused_pt - image_pt
 
             opdelta = wave_abr_calc(fod, fld, wvl, foc,
@@ -733,7 +732,7 @@ def eval_pupil_coords(opt_model, fld, wvl, foc,
             image_pt = ref_sphere[0]
             ray = ray_pkg[mc.ray]
             dist = foc / ray[-1][mc.d][2]
-            defocused_pt = ray[-1][mc.p] - dist*ray[-1][mc.d]
+            defocused_pt = ray[-1][mc.p] + dist*ray[-1][mc.d]
             t_abr = defocused_pt - image_pt
             return t_abr[0], t_abr[1]
         else:
@@ -769,7 +768,7 @@ def focus_pupil_coords(opt_model, ray_list, fld, wvl, foc, image_pt_2d=None):
             image_pt = ref_sphere[0]
             ray = ray_pkg[mc.ray]
             dist = foc / ray[-1][mc.d][2]
-            defocused_pt = ray[-1][mc.p] - dist*ray[-1][mc.d]
+            defocused_pt = ray[-1][mc.p] + dist*ray[-1][mc.d]
             t_abr = defocused_pt - image_pt
             return t_abr[0], t_abr[1]
         else:
