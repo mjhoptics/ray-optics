@@ -33,7 +33,7 @@ class InteractiveLayout(InteractiveFigure):
                  do_draw_rays=True,
                  do_draw_beams=True,
                  do_draw_edge_rays=True,
-                 do_draw_ray_fans=True,
+                 do_draw_ray_fans=False,
                  num_rays_in_fan=11,
                  do_paraxial_layout=False,
                  **kwargs):

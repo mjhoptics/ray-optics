@@ -145,7 +145,8 @@ class Diagram():
         parax_model = self.parax_model
         if dgm_type == 'ht':
             self.type_sel = ht
-            self._apply_data = parax_model.apply_ht_dgm_data
+            # self._apply_data = parax_model.apply_ht_dgm_data
+            self._apply_data = parax_model.update_composite_node
         elif dgm_type == 'slp':
             self.type_sel = slp
             self._apply_data = parax_model.apply_slope_dgm_data
@@ -160,6 +161,7 @@ class Diagram():
         if layer_key in self.parax_layers:
             self.active_layer = layer_key
             self.parax_model = self.parax_layers[layer_key]
+            self._apply_data = self.parax_model.update_composite_node
             return self
 
         # layer_key hasn't been created yet, do it
@@ -423,8 +425,9 @@ class DiagramEdge():
     def render_color(self):
         diagram = self.diagram
         opt_model = diagram.opt_model
-        gap = diagram.parax_model.get_gap_for_node(self.node)
-        e_node = opt_model.part_tree.parent_node(gap, '#element#airgap')
+        gap, z_dir = diagram.parax_model.get_gap_for_node(self.node)
+        e_node = opt_model.part_tree.parent_node((gap, z_dir),
+                                                 '#element#airgap')
         e = e_node.id if e_node else None
 
         if e:

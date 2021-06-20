@@ -18,6 +18,7 @@ from rayoptics.seq.gap import Gap
 from rayoptics.elem.surface import Surface
 
 from rayoptics.util.line_intersection import get_intersect
+from numpy.linalg import norm
 
 
 def bbox_from_poly(poly):
@@ -27,10 +28,10 @@ def bbox_from_poly(poly):
 
 
 class ParaxialModel():
-    def __init__(self, opt_model, opt_inv=1.0, air_gap_list=None, **kwargs):
+    def __init__(self, opt_model, opt_inv=1.0, ifcs_mapping=None, **kwargs):
         self.opt_model = opt_model
         self.seq_model = opt_model.seq_model
-        self.air_gap_list = air_gap_list
+        self.ifcs_mapping = ifcs_mapping
         self.sys = []
         self.ax = []
         self.pr = []
@@ -46,8 +47,8 @@ class ParaxialModel():
     def sync_to_restore(self, opt_model):
         self.opt_model = opt_model
         self.seq_model = opt_model.seq_model
-        if not hasattr(self, 'air_gap_list'):
-            self.air_gap_list = None
+        if not hasattr(self, 'ifcs_mapping'):
+            self.ifcs_mapping = None
 
     def update_model(self):
         self.parax_data = self.opt_model.optical_spec.parax_data
@@ -68,13 +69,26 @@ class ParaxialModel():
             self.ax.append([ax_ray[i][ht], n*ax_ray[i][slp], n*ax_ray[i][aoi]])
             self.pr.append([pr_ray[i][ht], n*pr_ray[i][slp], n*pr_ray[i][aoi]])
 
+    def get_pt(self, idx):
+        return self.pr[idx][mc.ht], self.ax[idx][mc.ht]
+
+    def set_pt(self, idx, pt):
+        self.pr[idx][mc.ht] = pt[0]
+        self.ax[idx][mc.ht] = pt[1]
+
     def get_gap_for_node(self, node):
-        if self.air_gap_list is None:
+        if self.ifcs_mapping is None:
             # just return the node in the seq_model
             gap_idx = node
         else:  # use the air_gap_list to map to the seq_model
-            gap_idx = self.air_gap_list[node]
-        return self.seq_model.gaps[gap_idx]
+            air_gap_list, node_defs, map_to_ifcs = self.ifcs_mapping
+            kernel = node_defs[node]
+            if len(kernel) == 1:
+                gap_idx = kernel[0]
+            elif len(kernel) == 2:
+                prev_gap_idx, following_gap_idx = kernel
+                gap_idx = prev_gap_idx
+        return self.seq_model.gaps[gap_idx], self.seq_model.z_dir[gap_idx]
 
     # --- add/delete points from diagram
     def add_node(self, node, new_vertex, type_sel, interact_mode):
@@ -297,6 +311,18 @@ class ParaxialModel():
                 ax_ray[s][ht] = ax_ray[c][slp]*sys[c][tau] + ax_ray[c][ht]
                 pr_ray[s][ht] = pr_ray[c][slp]*sys[c][tau] + pr_ray[c][ht]
 
+    def update_composite_node(self, node, new_vertex=None):
+        self.apply_ht_dgm_data(node, new_vertex)
+        parax_model = self.opt_model['parax_model']
+        if self.ifcs_mapping is not None:
+            air_gap_list, node_defs, map_to_ifcs = self.ifcs_mapping
+            nodes = [self.get_pt(i) for i in range(len(self.ax))]
+            nodes_ifcs = calc_ifcs_nodes(map_to_ifcs, nodes)
+            for i, ifcs_node in enumerate(nodes_ifcs):
+            #     parax_model.set_pt(i, ifcs_node)
+            # for i in range(len(nodes)):
+                parax_model.apply_ht_dgm_data(i, ifcs_node)
+
     def update_rindex(self, surf):
         """Update the refractive index using the `gap` at *surf*."""
         gap = self.seq_model.gaps[surf]
@@ -492,73 +518,93 @@ class ParaxialModel():
 
 def create_diagram_for_key(opm, key):
     if key == 'eles':
-        return key, create_eles_diagram(opm)
+        air_gap_list = gen_air_gap_list(opm, '#airgap')
+    elif key == 'sys':
+        air_gap_list = [0, -1]
     else:
         return 'ifcs', opm.parax_model
-    
-def create_eles_diagram(opm):
-    node_list, edge_list = nodes_and_edges_for_elements(opm)
-    nodes = gen_yybar(opm['pm'], edge_list)
-    prx_model = build_from_yybar(opm, nodes, edge_list)
-    return prx_model
+
+    # nodes, node_def = gen_yybar(opm['parax_model'], air_gap_list)
+    node_defs = air_gaps_to_node_defs(air_gap_list)
+    nodes = nodes_from_node_defs(opm['parax_model'], node_defs)
+    map_to_ifcs = gen_ifcs_node_mapping(opm['parax_model'], node_defs, nodes)
+    ifcs_mapping = air_gap_list, node_defs, map_to_ifcs
+    prx_model = build_from_yybar(opm, nodes, ifcs_mapping)
+    return key, prx_model    
 
 
-def nodes_and_edges_for_elements(opm):
-    sm = opm['sm']
-    pt = opm['pt']
-    node_list = []
-    air_gap_list = []
-
-    e_prev = None
-    idx_first = 0
-    idx_count = 0
-    for i, ifc in enumerate(sm.ifcs):
-        e, node = pt.parent_object(ifc)
-        if e is not None:
-            if e is e_prev:
-                idx_count += 1
-#                print(f'{i}: {idx_first} {idx_first+idx_count}')
-            else:
-    #            print(f'{i}: {idx_first} {idx_first+idx_count}')
-                if idx_first > 0:
-                    node_list.append((idx_first, idx_first+idx_count))
-                e_prev = e
-                idx_first = i
-                idx_count = 0
-        else:
-            if e_prev is not None:
-                node_list.append((idx_first, idx_first+idx_count))
-            node_list.append((i))
-
-    air_nodes = pt.nodes_with_tag(tag='#airgap')
+def gen_air_gap_list(opm, tag):
+    air_nodes = opm['pt'].nodes_with_tag(tag)
     air_gap_list = [n.id.reference_idx() for n in air_nodes]
+    return air_gap_list
 
-    return node_list, air_gap_list
 
-
-def gen_yybar(parax_model, air_gap_list):
-    ax = parax_model.ax
-    pr = parax_model.pr
-    nodes = []
-    l1_pt1 = [ax[0][ht], pr[0][ht]]
-    l1_pt2 = [ax[1][ht], pr[1][ht]]
-    nodes.append(l1_pt1)
+def air_gaps_to_node_defs(air_gap_list):
+    prev_gap_idx = 0
+    node_defs = [(prev_gap_idx,)]
     for gap_idx in air_gap_list[1:]:
-        l2_pt1 = [ax[gap_idx][ht], pr[gap_idx][ht]]
-        l2_pt2 = [ax[gap_idx+1][ht], pr[gap_idx+1][ht]] 
-        new_node = get_intersect(l1_pt1, l1_pt2, l2_pt1, l2_pt2)
-        nodes.append(new_node)
-        l1_pt1, l1_pt2 = l2_pt1, l2_pt2
-    nodes.append(l2_pt2)
+        node_defs.append((prev_gap_idx, gap_idx))
+        prev_gap_idx = gap_idx
+    node_defs.append((gap_idx+1,))
+    return node_defs
+
+
+def nodes_from_node_defs(parax_model, node_defs):
+    nodes = []
+    for i, kernel in enumerate(node_defs):
+        if len(kernel) == 1:
+            nodes.append(parax_model.get_pt(kernel[0]))
+        elif len(kernel) == 2:
+            prev_gap_idx, gap_idx = kernel
+            l1_pt1 = parax_model.get_pt(prev_gap_idx)
+            l1_pt2 = parax_model.get_pt(prev_gap_idx+1)
+            l2_pt1 = parax_model.get_pt(gap_idx)
+            l2_pt2 = parax_model.get_pt(gap_idx+1)
+            new_node = get_intersect(l1_pt1, l1_pt2, l2_pt1, l2_pt2)
+            nodes.append(new_node)
     return nodes
 
 
-def build_from_yybar(opm, nodes, air_gap_list):
+def gen_ifcs_node_mapping(parax_model, node_defs, nodes):
+    """Create mapping between composite diagram and interface based diagram.
+    
+    I think this works only for singlets and mirrors.
+    """
+    map_to_ifcs = []
+    origin = np.array([0., 0.])
+    for i, kernel in enumerate(node_defs):
+        if len(kernel) == 1:
+            idx = kernel[0]
+            map_to_ifcs.append((idx, i, 0.))
+        elif len(kernel) == 2:
+            l1_pt1 = np.array(nodes[i-1])
+            l1_pt2 = np.array(nodes[i])
+            l2_pt1 = np.array(nodes[i])
+            l2_pt2 = np.array(nodes[i+1])
+            
+            prev_gap_idx, gap_idx = kernel
+            for k in range(prev_gap_idx+1, gap_idx+1):
+                pt_k = np.array(parax_model.get_pt(k))
+                new_node1 = np.array(get_intersect(l1_pt1, l1_pt2,
+                                                   origin, pt_k))
+                if np.allclose(new_node1, pt_k):
+                    t1 = norm(new_node1 - l1_pt1)/norm(l1_pt2 - l1_pt1)
+                    map_to_ifcs.append((k, i-1, t1))
+                else:
+                    new_node2 = np.array(get_intersect(origin, pt_k,
+                                                       l2_pt1, l2_pt2))
+                    if np.allclose(new_node2, pt_k):
+                        t2 = norm(new_node2 - l2_pt1)/norm(l2_pt2 - l2_pt1)
+                        map_to_ifcs.append((k, i, t2))
+    return map_to_ifcs
+
+
+def build_from_yybar(opm, nodes, ifcs_mapping):
     prx_model = ParaxialModel(opm, opt_inv=opm['pm'].opt_inv,
-                              air_gap_list=air_gap_list)
+                              ifcs_mapping=ifcs_mapping)
     for vertex in nodes:
-        prx_model.ax.append([vertex[0], 0.0, 0.0])
-        prx_model.pr.append([vertex[1], 0.0, 0.0])
+        prx_model.ax.append([vertex[1], 0.0, 0.0])
+        prx_model.pr.append([vertex[0], 0.0, 0.0])
         prx_model.sys.append([0.0, 0.0, 1, 'transmit'])
     prx_model.sys[0][rmd] = 'dummy'
     prx_model.sys[-1][rmd] = 'dummy'
@@ -567,3 +613,18 @@ def build_from_yybar(opm, nodes, air_gap_list):
         prx_model.apply_ht_dgm_data(i)
     
     return prx_model
+
+
+def calc_ifcs_nodes(map_to_ifcs, nodes):
+    """Given a composite diagram, calculate the interface based diagram. """
+    nodes_ifcs = []
+    for i, kernel in enumerate(map_to_ifcs):
+        idx, nidx, t = kernel
+        if t == 0:
+            new_node = np.array(nodes[nidx])
+        else:
+            l1_pt1 = np.array(nodes[nidx])
+            l1_pt2 = np.array(nodes[nidx+1])
+            new_node = t*(l1_pt2 - l1_pt1) + l1_pt1
+        nodes_ifcs.append(new_node)
+    return nodes_ifcs

@@ -213,7 +213,8 @@ def create_live_layout_view(opt_model, gui_parent=None):
                             do_draw_rays=True,
                             do_paraxial_layout=False,
                             is_dark=is_dark)
-    cmds = create_live_layout_commands(fig)
+    # cmds = create_live_layout_commands(fig)
+    cmds = None
     view_width = 880
     view_ht = 660
     title = "Optical Layout"
@@ -260,7 +261,8 @@ def create_paraxial_design_view_v2(opt_model, dgm_type, gui_parent=None):
     panel_fcts = [create_2d_figure_toolbar,
                   ]
     if dgm_type == 'ht':
-        cmds = diagram.create_parax_design_commands(fig)
+        # cmds = diagram.create_parax_design_commands(fig)
+        cmds = None
         panel_fcts.append(create_diagram_controls_groupbox)
     else:
         cmds = None
