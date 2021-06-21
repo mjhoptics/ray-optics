@@ -425,9 +425,13 @@ class Element():
     def render_shape(self):
         if self.s1.profile_cv < 0.0:
             self.flat1 = self.compute_flat(self.s1)
+        else:
+            self.flat1 = None
         poly = self.s1.full_profile(self.extent(), self.flat1)
         if self.s2.profile_cv > 0.0:
             self.flat2 = self.compute_flat(self.s2)
+        else:
+            self.flat2 = None
         poly2 = self.s2.full_profile(self.extent(), self.flat2, -1)
         for p in poly2:
             p[0] += self.gap.thi
@@ -845,8 +849,12 @@ class CementedElement():
     def render_shape(self):
         if self.ifcs[0].profile_cv < 0.0:
             self.flats[0] = self.compute_flat(self.ifcs[0])
+        else:
+            self.flats[0] = None
         if self.ifcs[-1].profile_cv > 0.0:
             self.flats[-1] = self.compute_flat(self.ifcs[-1])
+        else:
+            self.flats[-1] = None
 
         # generate the profile polylines
         self.profiles = []
