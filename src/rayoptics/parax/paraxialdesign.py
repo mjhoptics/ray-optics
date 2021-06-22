@@ -59,15 +59,16 @@ class ParaxialModel():
         self.sys = sys = self.seq_path_to_paraxial_lens(self.seq_model.path())
 
         # precalculate the reduced forms of the paraxial axial and chief rays
-        ax_ray, pr_ray, fod = self.parax_data
-        self.opt_inv = fod.opt_inv
-
-        self.ax = []
-        self.pr = []
-        for i in range(0, len(sys)):
-            n = sys[i][indx]
-            self.ax.append([ax_ray[i][ht], n*ax_ray[i][slp], n*ax_ray[i][aoi]])
-            self.pr.append([pr_ray[i][ht], n*pr_ray[i][slp], n*pr_ray[i][aoi]])
+        if self.parax_data is not None:
+            ax_ray, pr_ray, fod = self.parax_data
+            self.opt_inv = fod.opt_inv
+    
+            self.ax = []
+            self.pr = []
+            for i in range(0, len(sys)):
+                n = sys[i][indx]
+                self.ax.append([ax_ray[i][ht], n*ax_ray[i][slp], n*ax_ray[i][aoi]])
+                self.pr.append([pr_ray[i][ht], n*pr_ray[i][slp], n*pr_ray[i][aoi]])
 
     def get_pt(self, idx):
         return self.pr[idx][mc.ht], self.ax[idx][mc.ht]

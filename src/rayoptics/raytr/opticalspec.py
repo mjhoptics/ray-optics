@@ -145,11 +145,12 @@ class OpticalSpecs:
         stop = self.opt_model.seq_model.stop_surface
         wvl = self.spectral_region.central_wvl
 
-        self.parax_data = compute_first_order(self.opt_model, stop, wvl)
-        if self.do_aiming and self.opt_model.seq_model.get_num_surfaces() > 2:
-            for i, fld in enumerate(self.field_of_view.fields):
-                aim_pt = aim_chief_ray(self.opt_model, fld, wvl)
-                fld.aim_pt = aim_pt
+        if self.opt_model.seq_model.get_num_surfaces() > 2:
+            self.parax_data = compute_first_order(self.opt_model, stop, wvl)
+            if self.do_aiming:
+                for i, fld in enumerate(self.field_of_view.fields):
+                    aim_pt = aim_chief_ray(self.opt_model, fld, wvl)
+                    fld.aim_pt = aim_pt
 
     def lookup_fld_wvl_focus(self, fi, wl=None, fr=0.0):
         """ returns field, wavelength and defocus data

@@ -407,6 +407,8 @@ def specsheet_from_parax_data(opt_model, specsheet):
         return None
     seq_model = opt_model.seq_model
     optical_spec = opt_model.optical_spec
+    if optical_spec.parax_data is None:
+        return specsheet
     fod = optical_spec.parax_data.fod
     conj_type = 'finite'
     if seq_model.gaps[0].thi > 10e8:
