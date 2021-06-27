@@ -48,6 +48,8 @@ from rayoptics.qtgui.pytablemodel import PyTableModel
 from rayoptics.qtgui.plotview import (create_plot_scale_panel,
                                       create_draw_rays_groupbox,
                                       create_diagram_controls_groupbox,
+                                      create_diagram_edge_actions_groupbox,
+                                      create_diagram_layers_groupbox,
                                       create_2d_figure_toolbar)
 
 
@@ -264,6 +266,8 @@ def create_paraxial_design_view_v2(opt_model, dgm_type, gui_parent=None):
         # cmds = diagram.create_parax_design_commands(fig)
         cmds = None
         panel_fcts.append(create_diagram_controls_groupbox)
+        panel_fcts.append(create_diagram_edge_actions_groupbox)
+        panel_fcts.append(create_diagram_layers_groupbox)
     else:
         cmds = None
     view_width = 880

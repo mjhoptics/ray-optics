@@ -395,7 +395,7 @@ def create_draw_rays_groupbox(app, pc):
 
 
 def create_diagram_controls_groupbox(app, pc):
-    tb = QToolBar()
+    groupBox = QGroupBox("Controls", app)
 
     def attr_check(fig, attr, state):
         checked = state == qt.Checked
@@ -421,7 +421,22 @@ def create_diagram_controls_groupbox(app, pc):
     barrel_checkBox.stateChanged.connect(
         lambda checked: on_barrel_constraint_toggled(cntxt, checked))
 
+    vbox = QVBoxLayout()
+    vbox.addWidget(slide_checkBox)
+    vbox.addWidget(barrel_checkBox)
+    vbox.addWidget(barrel_value_wdgt)
+
+    groupBox.setLayout(vbox)
+
+    return groupBox
+
+def create_diagram_edge_actions_groupbox(app, pc):
+    fig = pc.figure
     diagram = fig.diagram
+
+    groupBox = QGroupBox("Edge Actions", app)
+    groupBox.setMaximumWidth(190)
+
     bending_btn = QRadioButton("Bend")
     bending_btn.setChecked(diagram.bend_or_gap == 'bend')
     bending_btn.toggled.connect(lambda:
@@ -429,6 +444,22 @@ def create_diagram_controls_groupbox(app, pc):
     gap_btn = QRadioButton("Gap")
     gap_btn.setChecked(diagram.bend_or_gap == 'gap')
     gap_btn.toggled.connect(lambda: on_bend_or_gap_toggled(diagram, 'gap'))
+
+    vbox = QVBoxLayout()
+    vbox.addWidget(bending_btn)
+    vbox.addWidget(gap_btn)
+
+    groupBox.setLayout(vbox)
+
+    return groupBox
+
+
+def create_diagram_layers_groupbox(app, pc):
+    fig = pc.figure
+    diagram = fig.diagram
+
+    groupBox = QGroupBox("Layers", app)
+    groupBox.setMaximumWidth(190)
 
     ifcs_btn = QRadioButton("interfaces")
     ifcs_btn.setChecked(diagram.active_layer == 'ifcs')
@@ -438,15 +469,13 @@ def create_diagram_controls_groupbox(app, pc):
     ele_btn.setChecked(diagram.active_layer == 'eles')
     ele_btn.toggled.connect(lambda: on_active_diagram_toggled(fig, 'eles'))
 
-    tb.addWidget(slide_checkBox)
-    tb.addWidget(barrel_checkBox)
-    tb.addWidget(barrel_value_wdgt)
-    tb.addWidget(bending_btn)
-    tb.addWidget(gap_btn)
-    tb.addWidget(ifcs_btn)
-    tb.addWidget(ele_btn)
+    vbox = QVBoxLayout()
+    vbox.addWidget(ifcs_btn)
+    vbox.addWidget(ele_btn)
 
-    return tb
+    groupBox.setLayout(vbox)
+
+    return groupBox
 
 
 def on_barrel_constraint_toggled(cntxt, state):

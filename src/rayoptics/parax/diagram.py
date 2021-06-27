@@ -145,7 +145,6 @@ class Diagram():
         parax_model = self.parax_model
         if dgm_type == 'ht':
             self.type_sel = ht
-            # self._apply_data = parax_model.apply_ht_dgm_data
             self._apply_data = parax_model.update_composite_node
         elif dgm_type == 'slp':
             self.type_sel = slp
