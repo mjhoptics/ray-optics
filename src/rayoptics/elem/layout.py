@@ -292,7 +292,7 @@ class RayBundle():
         return poly1, bbox
 
     def update_shape(self, view):
-        wvl = self.opt_model.optical_spec.spectral_region.central_wvl
+        wvl = self.opt_model['optical_spec']['wvls'].central_wvl
         self.wvl = wvl
         rayset = trace_boundary_rays_at_field(self.opt_model,
                                               self.fld, wvl,
@@ -528,9 +528,9 @@ class LensLayout():
 
         light_or_dark(is_dark=is_dark)
 
-        seq_model = self.opt_model.seq_model
-        ele_model = self.opt_model.ele_model
-        part_tree = self.opt_model.part_tree
+        seq_model = self.opt_model['seq_model']
+        ele_model = self.opt_model['ele_model']
+        part_tree = self.opt_model['part_tree']
         if len(part_tree.nodes_with_tag(tag='#element')) == 0:
             parttree.elements_from_sequence(ele_model, seq_model, part_tree)
 
@@ -540,9 +540,10 @@ class LensLayout():
 
     def system_length(self, ele_bbox, offset_factor=0.05):
         """ returns system length and ray start offset """
-        specsheet = self.opt_model.specsheet
-        fod = self.opt_model.optical_spec.parax_data[2]
+        specsheet = self.opt_model['specsheet']
+        fod = self.opt_model['optical_spec'].parax_data[2]
         ele_length = ele_bbox[1][0] - ele_bbox[0][0]
+        image_thi = abs(self.opt_model['seq_model'].gaps[-1].thi)
         if specsheet.imager_defined():
             if specsheet.conjugate_type == 'finite':
                 return specsheet.imager.tt, (2/3)*specsheet.imager.sp
@@ -550,15 +551,19 @@ class LensLayout():
                 if fod.efl == 0:
                     estimated_length = ele_length
                 else:
-                    img_dist = abs(fod.img_dist)
-                    estimated_length = ele_length + img_dist
+                    # img_dist = abs(fod.img_dist)
+                    # estimated_length = ele_length + img_dist
+                    estimated_length = ele_length + image_thi
                 return estimated_length, offset_factor*estimated_length
                 # return specsheet.imager.sp, offset_factor*specsheet.imager.sp
             elif specsheet.conjugate_type == 'afocal':
                 return ele_length, offset_factor*ele_length
         else:
-            img_dist = abs(fod.img_dist)
-            return ele_length+img_dist, offset_factor*img_dist
+            if fod.efl == 0:
+                estimated_length = ele_length
+            else:
+                estimated_length = ele_length + image_thi
+            return estimated_length, offset_factor*estimated_length
 
     def create_element_entities(self, view):
         opm = self.opt_model
@@ -574,8 +579,8 @@ class LensLayout():
 
     def create_ray_entities(self, view, start_offset):
         ray_bundles = []
-        fov = self.opt_model.optical_spec.field_of_view
-        wvl = self.opt_model.seq_model.central_wavelength()
+        fov = self.opt_model['optical_spec']['fov']
+        wvl = self.opt_model['seq_model'].central_wavelength()
         for i, fld in enumerate(fov.fields):
             fld_label = fov.index_labels[i]
             rb = RayBundle(self.opt_model, fld, fld_label, wvl, start_offset,
@@ -596,7 +601,7 @@ class LensLayout():
         return ray_fan_bundles
 
     def create_paraxial_ray_entities(self, view):
-        parax_model = self.opt_model.parax_model
+        parax_model = self.opt_model['parax_model']
 
         ax_poly = ParaxialRay(self.opt_model, parax_model.ax,
                               color=lo_rgb['ax_ray'],
