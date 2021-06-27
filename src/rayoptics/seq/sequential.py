@@ -570,13 +570,13 @@ class SequentialModel:
         Arguments:
             full: lists all values if True, else only y offset and alpha tilt
         """
-        fmt0a = ("             thi    medium/mode    type        x          y"
-                 "       alpha      beta       gamma")
-        fmt0b = ("             thi    medium/mode    type        y"
+        fmt0a = ("             thi    medium/mode       type             x"
+                 "          y       alpha      beta       gamma")
+        fmt0b = ("             thi    medium/mode       type             y"
                  "       alpha")
-        fmt1a = ("{:4n}:                {:>10s}  {:>6s} {:#10.5g} {:#10.5g}"
+        fmt1a = ("{:4n}:                {:>10s}  {:>14s} {:#10.5g} {:#10.5g}"
                  " {:#10.5g} {:#10.5g} {:#10.5g}")
-        fmt1b = ("{:4n}:                {:>10s}  {:>6s} {:#10.5g}"
+        fmt1b = ("{:4n}:                {:>10s}  {:>14s} {:#10.5g}"
                  " {:#10.5g}")
         fmt1c = "{:4n}:                {:>10s}"
         fmt2 = "{:4n}: {:#12.6g}    {:>9s}"
@@ -608,16 +608,12 @@ class SequentialModel:
                 print(fmt2.format(i, gap.thi, gap.medium.name()))
 
     def list_sg(self):
-        """List decenter data and gap separations.
-
-        Arguments:
-            full: lists all values if True, else only y offset and alpha tilt
-        """
+        """List decenter data and gap separations. """
         cvrd = 'r' if self.opt_model.radius_mode else 'c'
-        fmt0a = ("              {}               mode        type        y"
-                 "       alpha")
+        fmt0a = ("              {}               mode           type"
+                 "             y       alpha")
         fmt0b = ("                      t           medium")
-        fmt1 = ("{:>4s}: {:#12.6g}       {:>10s}     {:>6s} {:#10.5g}"
+        fmt1 = ("{:>4s}: {:#12.6g}       {:>10s}     {:>14s} {:#10.5g}"
                 " {:#10.5g}")
         fmt2 = ("{:>4s}: {:#12.6g}       {:>10s}")
         fmt3 = ("               {:#12.6g}    {:>9s}")
