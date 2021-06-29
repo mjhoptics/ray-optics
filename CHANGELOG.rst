@@ -4,6 +4,10 @@
 Changelog
 =========
 
+Version 0.7.3
+==============
+Miscellaneous bug fixes, see checkin comments.
+
 Version 0.7.2
 ==============
 Add RayFans to interactive layout. Add a multiple layer y-ybar diagram capability. Works well for thin lens systems. Systems with thick lenses (e.g. Double Gauss) don't work well. Fixes in the :mod:`~.raytr.analyses` module include getting the sign right for defocused transverse aberrations and using the image gap distance instead of parax img_dist for reference sphere definition. Miscellaneous fixes.
