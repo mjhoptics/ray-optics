@@ -120,6 +120,8 @@ class DiffractiveElement:
             srf_nrml: :class:`~.Interface` surface normal at pt
             z_dir: -1 if after an odd # of reflections, +1 otherwise
             wl: wavelength in nm for ray, defaults to ref_wl
+            n_in: refractive index preceding the interface
+            n_out: refractive index following the interface
 
         Returns:
             (**out_dir, dW**)

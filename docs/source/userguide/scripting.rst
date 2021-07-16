@@ -69,7 +69,7 @@ One can use the flow above in the iPython environment. If you want to import few
 Jupyter setup code
 ******************
 
-Depending on whether you are using Jupyter or JupyterLab, you may want to set a particular matplotlib backend for your session. If the "out of the box" default isn't working, you can try changing it *at the beginning of your session*:
+Depending on whether you are using Jupyter or JupyterLab, you may want to set a particular matplotlib back-end for your session. If the "out of the box" default isn't working, you can try changing it *at the beginning of your session*:
 
 .. code::
 

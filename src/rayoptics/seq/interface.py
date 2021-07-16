@@ -41,9 +41,9 @@ class Interface:
         - supports a basic idea of size, the max_aperture
 
     Attributes:
-        interact_mode: 'transmit' | 'reflect'
+        interact_mode: 'transmit' | 'reflect' | 'dummy'
         delta_n: refractive index difference across the interface
-        decenter: DecenterData for the interface, if specified
+        decenter: :class:`~rayoptics.elem.surface.DecenterData` for the interface, if specified
         max_aperture: the maximum aperture radius on the interface
     """
     def __init__(self, interact_mode='transmit', delta_n=0.0,
@@ -96,14 +96,29 @@ class Interface:
         """ max_ap is the max aperture radius """
         self.max_aperture = max_ap
 
-    def intersect(self, p0, d, eps=1.0e-12):
+    def intersect(self, p0, d, eps=1.0e-12, z_dir=1):
+        ''' Intersect an :class:`~.Interface`, starting from an arbitrary point.
+
+        Args:
+            p0:  start point of the ray in the interface's coordinate system
+            d:  direction cosine of the ray in the interface's coordinate system
+            z_dir: +1 if propagation positive direction, -1 if otherwise
+            eps: numeric tolerance for convergence of any iterative procedure
+
+        Returns:
+            tuple: distance to intersection point *s1*, intersection point *p*
+
+        Raises:
+            :exc:`~rayoptics.raytr.traceerror.TraceMissedSurfaceError`
+        '''
         pass
 
     def normal(self, p):
+        """Returns the unit normal of the interface at point *p*. """
         pass
 
-    def phase(self, pt, d_in, normal, z_dir, wl, n_in, n_out):
-        """Returns a diffracted ray and phase increment.
+    def phase(self, pt, in_dir, srf_nrml, z_dir, wl, n_in, n_out):
+        """Returns a diffracted ray direction and phase increment.
 
         Args:
             pt: point of incidence in :class:`~.Interface` coordinates
@@ -111,6 +126,8 @@ class Interface:
             srf_nrml: :class:`~.Interface` surface normal at pt
             z_dir: -1 if after an odd # of reflections, +1 otherwise
             wl: wavelength in nm for ray, defaults to ref_wl
+            n_in: refractive index preceding the interface
+            n_out: refractive index following the interface
 
         Returns:
             (**out_dir, dW**)
@@ -119,7 +136,7 @@ class Interface:
             - dW: phase added by diffractive interaction
         """
         if hasattr(self, 'phase_element'):
-            return self.phase_element.phase(pt, d_in, normal, z_dir, wl,
+            return self.phase_element.phase(pt, in_dir, srf_nrml, z_dir, wl,
                                             n_in, n_out)
 
     def apply_scale_factor(self, scale_factor):

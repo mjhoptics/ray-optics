@@ -13,7 +13,7 @@ Optical Model
 Overview
 ========
 
-   The |opm| serves as a top level container of model properties. Key aspects are built-in sequential surface, paraxial and element based repesentations of the optical model. Each representation can be used build and modify the optical model. 
+   The |opm| serves as a top level container of model properties. Key aspects are built-in sequential surface, paraxial and element based representations of the optical model. Each representation can be used build and modify the optical model. 
 
    For design and analysis of image forming systems, the sequential surface model is often the most direct method for specifying an optical system. The |sm| describes a sequence of Interfaces and Gaps that light propagates through to form an image. First order properties and ray tracing can be done directly with this representation. It is straightforward to produce an element based representation from the |sm| in many cases. Changes in the |sm| can be propagated to the peer models in the |opm| by calling :meth:`~optical.opticalmodel.OpticalModel.update_model` on |opm|. 
 
