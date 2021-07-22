@@ -560,10 +560,15 @@ class MainWindow(QMainWindow):
 
 
 def main():
-    logging.basicConfig(filename='rayoptics.log',
-                        filemode='w',
-                        level=logging.INFO)
-
+    try:
+        logging.basicConfig(filename='rayoptics.log',
+                            filemode='w',
+                            level=logging.INFO)
+    except:
+        logging.basicConfig(filename=Path.home().joinpath('rayoptics.log'),
+                            filemode='w',
+                            level=logging.INFO)
+        
     qtapp = QApplication(sys.argv)
     qtwnd = MainWindow(qtapp=qtapp)
 
