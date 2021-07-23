@@ -19,7 +19,7 @@ from PyQt5.QtCore import Qt as qt
 from PyQt5.QtWidgets import (QApplication, QDialog, QRadioButton, QWidget,
                              QStackedWidget, QGridLayout, QGroupBox,
                              QHBoxLayout, QLabel, QLineEdit, QCheckBox,
-                             QVBoxLayout, QDialogButtonBox)
+                             QVBoxLayout, QDialogButtonBox, QMessageBox)
 
 
 def value_to_text(value, fmt_str="{:> #.5f}"):
@@ -84,7 +84,12 @@ class IdealImagerDialog(QWidget):
             command = button.text()
             specsheet = self.specsheet_dict[self.conjugate_type]
             if cmd_fct:
-                cmd_fct(self, command, specsheet)
+                try:
+                    cmd_fct(self, command, specsheet)
+                except:
+                    QMessageBox.warning(self,
+                                        self.tr("Ray-Optics"), 
+                                        self.tr("Please provide correct inputs."));
             else:
                 print(button.text(), 'button pressed')
 
