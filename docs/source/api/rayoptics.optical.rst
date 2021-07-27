@@ -33,3 +33,11 @@ rayoptics.optical.opticalmodel module
    :undoc-members:
    :show-inheritance:
 
+rayoptics.optical.obench module
+-------------------------------
+
+.. automodule:: rayoptics.optical.obench
+   :members:
+   :undoc-members:
+   :show-inheritance:
+

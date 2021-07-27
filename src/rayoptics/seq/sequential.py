@@ -175,7 +175,7 @@ class SequentialModel:
                 rndx_start = start - 1
             else:
                 gap_start = start
-                rndx_start = -2
+                rndx_start = -1
         else:
             gap_start = start
     

@@ -89,7 +89,7 @@ def read_lens(filename, inpt, **kwargs):
     _track_contents = util.Counter()
     logging.basicConfig(filename='zmx_read_lens.log',
                         filemode='w',
-                        level=logging.DEBUG)
+                        level=logging.INFO)
 
     # create an empty optical model; all surfaces will come from .zmx file
     opt_model = opticalmodel.OpticalModel(do_init=False)
@@ -294,6 +294,11 @@ def handle_types_and_params(optm, cur, cmd, inputs):
             new_profile = profiles.mutate_profile(cur_profile,
                                                   'YToroid')
             ifc.profile = new_profile
+        elif typ == 'XOSPHERE':
+            cur_profile = ifc.profile
+            new_profile = profiles.mutate_profile(cur_profile,
+                                                  'RadialPolynomial')
+            ifc.profile = new_profile
         elif typ == 'COORDBRK':
             ifc.decenter = DecenterData('decenter')
         elif typ == 'PARAXIAL':
@@ -336,6 +341,21 @@ def handle_types_and_params(optm, cur, cmd, inputs):
             if i == 1:
                 ifc.profile.rR = param_val
             elif i > 1:
+                ifc.profile.coefs.append(param_val)
+    elif cmd == "XDAT":
+        ifc = optm.seq_model.ifcs[cur]
+        inputs = inputs.split()
+        i = int(inputs[0])
+        param_val = float(inputs[1])
+        if ifc.z_type == 'XOSPHERE':
+            if i == 1:
+                num_terms = param_val
+                ifc.profile.coefs = []
+            elif i == 2:
+                normalizing_radius = param_val
+                if normalizing_radius != 1.0:
+                    logging.info('Normalizing radius not supported on extended surfaces')
+            elif i >= 3:
                 ifc.profile.coefs.append(param_val)
     else:
         return False
