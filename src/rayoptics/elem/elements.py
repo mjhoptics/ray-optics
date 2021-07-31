@@ -20,6 +20,7 @@ import rayoptics
 
 import rayoptics.util.rgbtable as rgbt
 import rayoptics.oprops.thinlens as thinlens
+from rayoptics.elem import parttree
 from rayoptics.elem.profiles import Spherical, Conic
 from rayoptics.elem.surface import Surface
 from rayoptics.seq.gap import Gap
@@ -225,18 +226,26 @@ def create_air_gap(t=0., **kwargs):
 
 def create_from_file(filename, **kwargs):
     opm = cmds.open_model(filename)
-    sm = opm.seq_model
-    osp = opm.optical_spec
+    sm = opm['seq_model']
+    osp = opm['optical_spec']
+    em = opm['ele_model']
+    pt = opm['part_tree']
+    if len(pt.nodes_with_tag(tag='#element')) == 0:
+        parttree.elements_from_sequence(em, sm, pt)
     if 'power' in kwargs:
         desired_power = kwargs['power']
         cur_power = osp.parax_data.fod.power
-        scale_factor = desired_power/cur_power
+        # scale_factor is linear, power is 1/linear
+        #  so use reciprocal of power to compute scale_factor
+        scale_factor = cur_power/desired_power
         sm.apply_scale_factor(scale_factor)
     seq = [list(node) for node in sm.path(start=1, stop=-1)]
-    e_nodes = opm.part_tree.nodes_with_tag(tag='#element')
-    ele = [node.id for node in e_nodes]
-    root = Node('file', id=None, tag='#group', children=e_nodes)
-    return seq, ele, root
+    seq[-1][2] = None
+    sys_nodes = pt.nodes_with_tag(tag='#element#airgap',
+                                  not_tag='#object#image')
+    eles = [node.id for node in sys_nodes]
+    root = Node('file', id=None, tag='#group', children=sys_nodes)
+    return seq, eles, root
 
 
 def calc_render_color_for_material(matl):
