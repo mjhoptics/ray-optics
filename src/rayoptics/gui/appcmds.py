@@ -263,19 +263,17 @@ def create_paraxial_design_view_v2(opt_model, dgm_type, gui_parent=None):
     panel_fcts = [create_2d_figure_toolbar,
                   ]
     if dgm_type == 'ht':
-        # cmds = diagram.create_parax_design_commands(fig)
-        cmds = None
+        cmds = diagram.create_parax_design_commands(fig)
+
         panel_fcts.append(create_diagram_controls_groupbox)
         panel_fcts.append(create_diagram_edge_actions_groupbox)
         panel_fcts.append(create_diagram_layers_groupbox)
     else:
         cmds = None
+
     view_width = 880
     view_ht = 660
     title = "Paraxial Design View"
-    # panel_fcts = [create_2d_figure_toolbar,
-    #               create_diagram_controls_groupbox,
-    #               ]
     plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht,
                               add_panel_fcts=panel_fcts, commands=cmds,
                               drop_action=diagram.GlassDropAction())

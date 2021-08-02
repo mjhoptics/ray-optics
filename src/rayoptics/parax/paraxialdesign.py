@@ -32,6 +32,7 @@ class ParaxialModel():
         self.opt_model = opt_model
         self.seq_model = opt_model.seq_model
         self.ifcs_mapping = ifcs_mapping
+        self.layers = {'ifcs': self} if ifcs_mapping is None else None
         self.sys = []
         self.ax = []
         self.pr = []
@@ -42,6 +43,7 @@ class ParaxialModel():
         del attrs['opt_model']
         del attrs['seq_model']
         del attrs['parax_data']
+        del attrs['layers']
         return attrs
 
     def sync_to_restore(self, opt_model):
@@ -70,6 +72,29 @@ class ParaxialModel():
                 self.ax.append([ax_ray[i][ht], n*ax_ray[i][slp], n*ax_ray[i][aoi]])
                 self.pr.append([pr_ray[i][ht], n*pr_ray[i][slp], n*pr_ray[i][aoi]])
 
+    def init_from_yybar(self, nodes):
+        """Construct a diagram using `nodes`, a list of diagram vertices. """
+        self.ax = []
+        self.pr = []
+        self.sys = []
+        for vertex in nodes:
+            self.ax.append([vertex[1], 0.0, 0.0])
+            self.pr.append([vertex[0], 0.0, 0.0])
+            self.sys.append([0.0, 0.0, 1, 'transmit'])
+        self.sys[0][rmd] = 'dummy'
+        self.sys[-1][rmd] = 'dummy'
+    
+        for i in range(len(nodes)):
+            self.apply_ht_dgm_data(i)
+        
+        return self
+
+    def parax_to_yybar(self, type_sel=0):
+        """ render the diagram into a node list """
+        nodes = [[x[type_sel], y[type_sel]] for x, y in zip(self.pr, self.ax)]
+        nodes = np.array(nodes)
+        return nodes
+
     def get_pt(self, idx):
         return self.pr[idx][mc.ht], self.ax[idx][mc.ht]
 
@@ -82,7 +107,7 @@ class ParaxialModel():
             # just return the node in the seq_model
             gap_idx = node
         else:  # use the air_gap_list to map to the seq_model
-            air_gap_list, node_defs, map_to_ifcs = self.ifcs_mapping
+            node_defs, map_to_ifcs = self.ifcs_mapping
             kernel = node_defs[node]
             if len(kernel) == 1:
                 gap_idx = kernel[0]
@@ -314,9 +339,9 @@ class ParaxialModel():
 
     def update_composite_node(self, node, new_vertex=None):
         self.apply_ht_dgm_data(node, new_vertex)
-        parax_model = self.opt_model['parax_model']
         if self.ifcs_mapping is not None:
-            air_gap_list, node_defs, map_to_ifcs = self.ifcs_mapping
+            parax_model = self.opt_model['parax_model']
+            node_defs, map_to_ifcs = self.ifcs_mapping
             nodes = [self.get_pt(i) for i in range(len(self.ax))]
             nodes_ifcs = calc_ifcs_nodes(map_to_ifcs, nodes)
             for i, ifcs_node in enumerate(nodes_ifcs):
@@ -518,39 +543,80 @@ class ParaxialModel():
 
 
 def create_diagram_for_key(opm, key):
-    if key == 'eles':
-        air_gap_list = gen_air_gap_list(opm, '#airgap')
-    elif key == 'sys':
-        air_gap_list = [0, -1]
-    else:
-        return 'ifcs', opm.parax_model
-
-    # nodes, node_def = gen_yybar(opm['parax_model'], air_gap_list)
-    node_defs = air_gaps_to_node_defs(air_gap_list)
-    nodes = nodes_from_node_defs(opm['parax_model'], node_defs)
-    map_to_ifcs = gen_ifcs_node_mapping(opm['parax_model'], node_defs, nodes)
-    ifcs_mapping = air_gap_list, node_defs, map_to_ifcs
+    ifcs_mapping, nodes = generate_mapping_for_key(opm, key)
     prx_model = build_from_yybar(opm, nodes, ifcs_mapping)
     return key, prx_model    
 
 
-def gen_air_gap_list(opm, tag):
-    air_nodes = opm['pt'].nodes_with_tag(tag)
+def update_diagram_for_key(opm, key):
+    ifcs_mapping, nodes = generate_mapping_for_key(opm, key)
+    if key in opm['parax_model'].layers:
+        prx_model = opm['parax_model'].layers[key]
+        prx_model.ifcs_mapping = ifcs_mapping
+        prx_model.init_from_yybar(nodes)
+    else:
+        prx_model = build_from_yybar(opm, nodes, ifcs_mapping)
+        opm['parax_model'].layers[key] = prx_model
+    return key, prx_model    
+
+
+def generate_mapping_for_key(opm, key):
+    if key == 'eles':
+        node_defs = air_gaps_to_node_defs(opm)
+    elif key == 'sys':
+        num_nodes = len(opm['seq_model'].ifcs)
+        node_defs = [(0,), (0, num_nodes-2), (num_nodes-1,)]
+    else:
+        return None, opm['parax_model'].parax_to_yybar()
+
+    node_defs, nodes = get_valid_nodes(opm['parax_model'], node_defs)
+    map_to_ifcs = gen_ifcs_node_mapping(opm['parax_model'], node_defs, nodes)
+    ifcs_mapping = node_defs, map_to_ifcs
+    return ifcs_mapping, nodes
+
+
+def air_gaps_to_node_defs(opm):
+    """ generate the node defs for 'eles' layer, based on airgaps. """
+    air_nodes = opm['pt'].nodes_with_tag('#airgap')
     air_gap_list = [n.id.reference_idx() for n in air_nodes]
-    return air_gap_list
-
-
-def air_gaps_to_node_defs(air_gap_list):
     prev_gap_idx = 0
     node_defs = [(prev_gap_idx,)]
     for gap_idx in air_gap_list[1:]:
-        node_defs.append((prev_gap_idx, gap_idx))
+        if gap_idx - prev_gap_idx < 2:
+            node_defs.append((gap_idx,))
+        else:
+            node_defs.append((prev_gap_idx, gap_idx))
         prev_gap_idx = gap_idx
     node_defs.append((gap_idx+1,))
     return node_defs
 
 
+def get_valid_nodes(parax_model, node_defs_in):
+    """ given the input node defs, replace non-physical thin lenses as needed."""
+    node_defs = None
+    node_defs_new = node_defs_in
+    nodes_new = nodes_from_node_defs(parax_model, node_defs_new)
+    while node_defs != node_defs_new:
+        node_defs = node_defs_new
+        nodes = nodes_new
+        node_defs_new = scan_nodes(parax_model, node_defs, nodes)
+        nodes_new = nodes_from_node_defs(parax_model, node_defs_new)
+    return node_defs_new, nodes_new
+
+
 def nodes_from_node_defs(parax_model, node_defs):
+    """ produce a list of nodes given the parax_model and node_defs.
+
+    `node_defs` is a list of tuples, each with either one or two indices.
+    if there is a single index, it is to a node in `parax_model`.
+    if there are 2 indices, the first is to the gap preceding the element;
+    the second is to the gap following the element (also the last interface
+    of the element). The node is calculated from the intersection of the
+    diagram edges corresponding to these gaps.
+    
+    There is no guarentee that the nodes calculated here represent a physically
+    realizable system, i.e. there may be virtual airspaces.
+    """
     nodes = []
     for i, kernel in enumerate(node_defs):
         if len(kernel) == 1:
@@ -564,6 +630,29 @@ def nodes_from_node_defs(parax_model, node_defs):
             new_node = get_intersect(l1_pt1, l1_pt2, l2_pt1, l2_pt2)
             nodes.append(new_node)
     return nodes
+
+
+def scan_nodes(parax_model, node_defs, nodes):
+    """scan node defs for any invalid thin elements, replace the first found and return."""
+    new_node_defs = node_defs.copy()
+    xprods = np.cross(nodes[:-1], nodes[1:])
+    for i, kn in enumerate(zip(node_defs, nodes)):
+        kernel, node = kn
+        if len(kernel) == 2:
+            prev_gap_idx, gap_idx = kernel
+            prev = 1 if prev_gap_idx == 0 else prev_gap_idx
+            l1_pt1 = parax_model.get_pt(prev)
+            # l1_pt2 = parax_model.get_pt(prev_gap_idx+1)
+            l2_pt1 = parax_model.get_pt(gap_idx)
+            xprod1 = np.cross(l1_pt1, l2_pt1)
+            # xprodt = np.cross(l1_pt2, l2_pt1)
+            # print(f'{i}: {prev}-{gap_idx}: ifc: {xprod1}, t: {xprodt}, thin: {xprods[i-1]}')
+            if xprods[i-1] > 0 or (prev_gap_idx != 0 and
+                                   2*xprod1 > xprods[i-1]):
+                new_node_defs[i] = (prev_gap_idx+1,)
+                new_node_defs.insert(i+1, (gap_idx,))
+                break
+    return new_node_defs
 
 
 def gen_ifcs_node_mapping(parax_model, node_defs, nodes):
@@ -603,16 +692,7 @@ def gen_ifcs_node_mapping(parax_model, node_defs, nodes):
 def build_from_yybar(opm, nodes, ifcs_mapping):
     prx_model = ParaxialModel(opm, opt_inv=opm['pm'].opt_inv,
                               ifcs_mapping=ifcs_mapping)
-    for vertex in nodes:
-        prx_model.ax.append([vertex[1], 0.0, 0.0])
-        prx_model.pr.append([vertex[0], 0.0, 0.0])
-        prx_model.sys.append([0.0, 0.0, 1, 'transmit'])
-    prx_model.sys[0][rmd] = 'dummy'
-    prx_model.sys[-1][rmd] = 'dummy'
-
-    for i in range(len(nodes)):
-        prx_model.apply_ht_dgm_data(i)
-    
+    prx_model.init_from_yybar(nodes)
     return prx_model
 
 

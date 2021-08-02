@@ -137,8 +137,6 @@ class Diagram():
 
         self.bend_or_gap = bend_or_gap
 
-        self.parax_layers = {}
-        self.parax_layers[parax_model_key] = parax_model
         self.active_layer = parax_model_key
 
     def setup_dgm_type(self, dgm_type):
@@ -157,19 +155,13 @@ class Diagram():
         self.dgm_rgb = light_or_dark(is_dark)
 
     def set_active_layer(self, layer_key):
-        if layer_key in self.parax_layers:
-            self.active_layer = layer_key
-            self.parax_model = self.parax_layers[layer_key]
-            self._apply_data = self.parax_model.update_composite_node
-            return self
-
-        # layer_key hasn't been created yet, do it
-        prx_key, prx_model = paraxialdesign.create_diagram_for_key(
-            self.opt_model, layer_key
-            )
-        self.parax_layers[prx_key] = prx_model
-        # try again, should succeed by design
-        self.set_active_layer(prx_key)
+        opm = self.opt_model
+        prx_key, prx_model = paraxialdesign.update_diagram_for_key(opm,
+                                                                   layer_key)
+        self.active_layer = prx_key
+        self.parax_model = prx_model
+        self._apply_data = prx_model.update_composite_node
+        return self
 
     def update_data(self, fig, **kwargs):
         parax_model = self.parax_model
