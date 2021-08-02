@@ -51,6 +51,8 @@ class ParaxialModel():
         self.seq_model = opt_model.seq_model
         if not hasattr(self, 'ifcs_mapping'):
             self.ifcs_mapping = None
+        if not hasattr(self, 'layers'):
+            self.layers = {'ifcs': self}
 
     def update_model(self):
         self.parax_data = self.opt_model.optical_spec.parax_data
@@ -112,7 +114,7 @@ class ParaxialModel():
             if len(kernel) == 1:
                 gap_idx = kernel[0]
             elif len(kernel) == 2:
-                prev_gap_idx, following_gap_idx = kernel
+                prev_gap_idx, after_gap_idx = kernel
                 gap_idx = prev_gap_idx
         return self.seq_model.gaps[gap_idx], self.seq_model.z_dir[gap_idx]
 
@@ -622,11 +624,11 @@ def nodes_from_node_defs(parax_model, node_defs):
         if len(kernel) == 1:
             nodes.append(parax_model.get_pt(kernel[0]))
         elif len(kernel) == 2:
-            prev_gap_idx, gap_idx = kernel
+            prev_gap_idx, after_gap_idx = kernel
             l1_pt1 = parax_model.get_pt(prev_gap_idx)
             l1_pt2 = parax_model.get_pt(prev_gap_idx+1)
-            l2_pt1 = parax_model.get_pt(gap_idx)
-            l2_pt2 = parax_model.get_pt(gap_idx+1)
+            l2_pt1 = parax_model.get_pt(after_gap_idx)
+            l2_pt2 = parax_model.get_pt(after_gap_idx+1)
             new_node = get_intersect(l1_pt1, l1_pt2, l2_pt1, l2_pt2)
             nodes.append(new_node)
     return nodes
@@ -639,54 +641,20 @@ def scan_nodes(parax_model, node_defs, nodes):
     for i, kn in enumerate(zip(node_defs, nodes)):
         kernel, node = kn
         if len(kernel) == 2:
-            prev_gap_idx, gap_idx = kernel
+            prev_gap_idx, after_gap_idx = kernel
             prev = 1 if prev_gap_idx == 0 else prev_gap_idx
             l1_pt1 = parax_model.get_pt(prev)
             # l1_pt2 = parax_model.get_pt(prev_gap_idx+1)
-            l2_pt1 = parax_model.get_pt(gap_idx)
+            l2_pt1 = parax_model.get_pt(after_gap_idx)
             xprod1 = np.cross(l1_pt1, l2_pt1)
             # xprodt = np.cross(l1_pt2, l2_pt1)
-            # print(f'{i}: {prev}-{gap_idx}: ifc: {xprod1}, t: {xprodt}, thin: {xprods[i-1]}')
+            # print(f'{i}: {prev}-{after_gap_idx}: ifc: {xprod1}, t: {xprodt}, thin: {xprods[i-1]}')
             if xprods[i-1] > 0 or (prev_gap_idx != 0 and
                                    2*xprod1 > xprods[i-1]):
                 new_node_defs[i] = (prev_gap_idx+1,)
-                new_node_defs.insert(i+1, (gap_idx,))
+                new_node_defs.insert(i+1, (after_gap_idx,))
                 break
     return new_node_defs
-
-
-def gen_ifcs_node_mapping(parax_model, node_defs, nodes):
-    """Create mapping between composite diagram and interface based diagram.
-    
-    I think this works only for singlets and mirrors.
-    """
-    map_to_ifcs = []
-    origin = np.array([0., 0.])
-    for i, kernel in enumerate(node_defs):
-        if len(kernel) == 1:
-            idx = kernel[0]
-            map_to_ifcs.append((idx, i, 0.))
-        elif len(kernel) == 2:
-            l1_pt1 = np.array(nodes[i-1])
-            l1_pt2 = np.array(nodes[i])
-            l2_pt1 = np.array(nodes[i])
-            l2_pt2 = np.array(nodes[i+1])
-            
-            prev_gap_idx, gap_idx = kernel
-            for k in range(prev_gap_idx+1, gap_idx+1):
-                pt_k = np.array(parax_model.get_pt(k))
-                new_node1 = np.array(get_intersect(l1_pt1, l1_pt2,
-                                                   origin, pt_k))
-                if np.allclose(new_node1, pt_k):
-                    t1 = norm(new_node1 - l1_pt1)/norm(l1_pt2 - l1_pt1)
-                    map_to_ifcs.append((k, i-1, t1))
-                else:
-                    new_node2 = np.array(get_intersect(origin, pt_k,
-                                                       l2_pt1, l2_pt2))
-                    if np.allclose(new_node2, pt_k):
-                        t2 = norm(new_node2 - l2_pt1)/norm(l2_pt2 - l2_pt1)
-                        map_to_ifcs.append((k, i, t2))
-    return map_to_ifcs
 
 
 def build_from_yybar(opm, nodes, ifcs_mapping):
@@ -694,6 +662,38 @@ def build_from_yybar(opm, nodes, ifcs_mapping):
                               ifcs_mapping=ifcs_mapping)
     prx_model.init_from_yybar(nodes)
     return prx_model
+
+
+def gen_ifcs_node_mapping(parax_model, node_defs, nodes):
+    """Create mapping between composite diagram and interface based diagram. """
+    map_to_ifcs = []
+    origin = np.array([0., 0.])
+    for i, kernel in enumerate(node_defs):
+        if len(kernel) == 1:
+            idx = kernel[0]
+            map_to_ifcs.append((idx, i, 0.))
+        elif len(kernel) == 2:
+            # get the defining vertices from the composite diagram
+            l1_pt1 = np.array(nodes[i-1])
+            l1_pt2 = np.array(nodes[i])
+            l2_pt1 = np.array(nodes[i])
+            l2_pt2 = np.array(nodes[i+1])
+
+            prev_gap_idx, after_gap_idx = kernel
+            for k in range(prev_gap_idx+1, after_gap_idx+1):
+                pt_k = np.array(parax_model.get_pt(k))
+                xprod = np.cross(nodes[i], pt_k)
+                if xprod >= 0.0:
+                    new_node1 = np.array(get_intersect(l1_pt1, l1_pt2,
+                                                       origin, pt_k))
+                    t1 = norm(new_node1 - l1_pt1)/norm(l1_pt2 - l1_pt1)
+                    map_to_ifcs.append((k, i-1, t1))
+                else:
+                    new_node2 = np.array(get_intersect(origin, pt_k,
+                                                       l2_pt1, l2_pt2))
+                    t2 = norm(new_node2 - l2_pt1)/norm(l2_pt2 - l2_pt1)
+                    map_to_ifcs.append((k, i, t2))
+    return map_to_ifcs
 
 
 def calc_ifcs_nodes(map_to_ifcs, nodes):
