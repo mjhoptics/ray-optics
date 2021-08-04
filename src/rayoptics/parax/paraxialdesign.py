@@ -74,7 +74,7 @@ class ParaxialModel():
                 self.ax.append([ax_ray[i][ht], n*ax_ray[i][slp], n*ax_ray[i][aoi]])
                 self.pr.append([pr_ray[i][ht], n*pr_ray[i][slp], n*pr_ray[i][aoi]])
 
-    def init_from_yybar(self, nodes):
+    def init_from_nodes(self, nodes):
         """Construct a diagram using `nodes`, a list of diagram vertices. """
         self.ax = []
         self.pr = []
@@ -86,16 +86,25 @@ class ParaxialModel():
         self.sys[0][rmd] = 'dummy'
         self.sys[-1][rmd] = 'dummy'
     
-        for i in range(len(nodes)):
-            self.apply_ht_dgm_data(i)
+        self.nodes_to_parax(nodes)
         
         return self
 
-    def parax_to_yybar(self, type_sel=0):
-        """ render the diagram into a node list """
+    def parax_to_nodes(self, type_sel=mc.ht):
+        """ render the paraxial model into a node list """
         nodes = [[x[type_sel], y[type_sel]] for x, y in zip(self.pr, self.ax)]
         nodes = np.array(nodes)
         return nodes
+
+    def nodes_to_parax(self, nodes, type_sel=mc.ht):
+        """ Update the parax model from the node list, `nodes`. """
+        if type_sel == mc.ht:
+            for i, node in enumerate(nodes):
+                self.apply_ht_dgm_data(i, node)
+        elif type_sel == mc.slp:
+            for i, node in enumerate(nodes):
+                self.apply_slope_dgm_data(i, node)
+        return self
 
     def get_pt(self, idx):
         return self.pr[idx][mc.ht], self.ax[idx][mc.ht]
@@ -108,7 +117,7 @@ class ParaxialModel():
         if self.ifcs_mapping is None:
             # just return the node in the seq_model
             gap_idx = node
-        else:  # use the air_gap_list to map to the seq_model
+        else:  # use the node_defs to map to the seq_model
             node_defs, map_to_ifcs = self.ifcs_mapping
             kernel = node_defs[node]
             if len(kernel) == 1:
@@ -116,6 +125,9 @@ class ParaxialModel():
             elif len(kernel) == 2:
                 prev_gap_idx, after_gap_idx = kernel
                 gap_idx = prev_gap_idx
+            elif len(kernel) == 3:
+                idx, prev_gap_idx, after_gap_idx = kernel
+                gap_idx = idx if idx != after_gap_idx else after_gap_idx
         return self.seq_model.gaps[gap_idx], self.seq_model.z_dir[gap_idx]
 
     # --- add/delete points from diagram
@@ -340,16 +352,14 @@ class ParaxialModel():
                 pr_ray[s][ht] = pr_ray[c][slp]*sys[c][tau] + pr_ray[c][ht]
 
     def update_composite_node(self, node, new_vertex=None):
+        # print(f'update: {node}, {new_vertex}')
         self.apply_ht_dgm_data(node, new_vertex)
         if self.ifcs_mapping is not None:
-            parax_model = self.opt_model['parax_model']
             node_defs, map_to_ifcs = self.ifcs_mapping
-            nodes = [self.get_pt(i) for i in range(len(self.ax))]
+            nodes = self.parax_to_nodes()
             nodes_ifcs = calc_ifcs_nodes(map_to_ifcs, nodes)
-            for i, ifcs_node in enumerate(nodes_ifcs):
-            #     parax_model.set_pt(i, ifcs_node)
-            # for i in range(len(nodes)):
-                parax_model.apply_ht_dgm_data(i, ifcs_node)
+            # print(f'nodes_ifcs {nodes_ifcs}')
+            self.opt_model['parax_model'].nodes_to_parax(nodes_ifcs)
 
     def update_rindex(self, surf):
         """Update the refractive index using the `gap` at *surf*."""
@@ -555,7 +565,7 @@ def update_diagram_for_key(opm, key):
     if key in opm['parax_model'].layers:
         prx_model = opm['parax_model'].layers[key]
         prx_model.ifcs_mapping = ifcs_mapping
-        prx_model.init_from_yybar(nodes)
+        prx_model.init_from_nodes(nodes)
     else:
         prx_model = build_from_yybar(opm, nodes, ifcs_mapping)
         opm['parax_model'].layers[key] = prx_model
@@ -569,10 +579,13 @@ def generate_mapping_for_key(opm, key):
         num_nodes = len(opm['seq_model'].ifcs)
         node_defs = [(0,), (0, num_nodes-2), (num_nodes-1,)]
     else:
-        return None, opm['parax_model'].parax_to_yybar()
+        return None, opm['parax_model'].parax_to_nodes()
 
+    # print(f'{key}:\nnode_defs_orig {node_defs}')
     node_defs, nodes = get_valid_nodes(opm['parax_model'], node_defs)
+    # print(f'node_defs {node_defs}\nnodes {nodes}')
     map_to_ifcs = gen_ifcs_node_mapping(opm['parax_model'], node_defs, nodes)
+    # print(f'map_to_ifcs {map_to_ifcs}\n')
     ifcs_mapping = node_defs, map_to_ifcs
     return ifcs_mapping, nodes
 
@@ -631,11 +644,17 @@ def nodes_from_node_defs(parax_model, node_defs):
             l2_pt2 = parax_model.get_pt(after_gap_idx+1)
             new_node = get_intersect(l1_pt1, l1_pt2, l2_pt1, l2_pt2)
             nodes.append(new_node)
+        elif len(kernel) == 3:
+            idx, prev_gap_idx, after_gap_idx = kernel
+            nodes.append(parax_model.get_pt(idx))
     return nodes
 
 
 def scan_nodes(parax_model, node_defs, nodes):
-    """scan node defs for any invalid thin elements, replace the first found and return."""
+    """scan node defs for any invalid thin elements
+
+    replace the first found and return.
+    """
     new_node_defs = node_defs.copy()
     xprods = np.cross(nodes[:-1], nodes[1:])
     for i, kn in enumerate(zip(node_defs, nodes)):
@@ -651,8 +670,10 @@ def scan_nodes(parax_model, node_defs, nodes):
             # print(f'{i}: {prev}-{after_gap_idx}: ifc: {xprod1}, t: {xprodt}, thin: {xprods[i-1]}')
             if xprods[i-1] > 0 or (prev_gap_idx != 0 and
                                    2*xprod1 > xprods[i-1]):
-                new_node_defs[i] = (prev_gap_idx+1,)
-                new_node_defs.insert(i+1, (after_gap_idx,))
+                new_node_defs[i] = (prev_gap_idx+1,
+                                    prev_gap_idx, after_gap_idx)
+                new_node_defs.insert(i+1, (after_gap_idx,
+                                           prev_gap_idx, after_gap_idx))
                 break
     return new_node_defs
 
@@ -660,7 +681,7 @@ def scan_nodes(parax_model, node_defs, nodes):
 def build_from_yybar(opm, nodes, ifcs_mapping):
     prx_model = ParaxialModel(opm, opt_inv=opm['pm'].opt_inv,
                               ifcs_mapping=ifcs_mapping)
-    prx_model.init_from_yybar(nodes)
+    prx_model.init_from_nodes(nodes)
     return prx_model
 
 
@@ -669,10 +690,11 @@ def gen_ifcs_node_mapping(parax_model, node_defs, nodes):
     map_to_ifcs = []
     origin = np.array([0., 0.])
     for i, kernel in enumerate(node_defs):
-        if len(kernel) == 1:
+        if len(kernel) == 1:  # single node or mirror
             idx = kernel[0]
             map_to_ifcs.append((idx, i, 0.))
-        elif len(kernel) == 2:
+
+        elif len(kernel) == 2:  # thin element group
             # get the defining vertices from the composite diagram
             l1_pt1 = np.array(nodes[i-1])
             l1_pt2 = np.array(nodes[i])
@@ -693,6 +715,26 @@ def gen_ifcs_node_mapping(parax_model, node_defs, nodes):
                                                        l2_pt1, l2_pt2))
                     t2 = norm(new_node2 - l2_pt1)/norm(l2_pt2 - l2_pt1)
                     map_to_ifcs.append((k, i, t2))
+
+        elif len(kernel) == 3:  # thick element group
+            # A thick element group has 2 adjacent nodes. The first and last nodes
+            # of the thick element correspond to the first and last nodes in the
+            # interface diagram. Interface nodes between these are scaled along
+            # the edge separating the 2 thick nodes. 
+            map_to_ifcs.append((idx, i, 0.))
+
+            idx, prev_gap_idx, after_gap_idx = kernel
+            if idx != after_gap_idx:
+                # get the defining vertices from the composite diagram
+                thick_pt1 = np.array(nodes[i])
+                thick_pt2 = np.array(nodes[i+1])
+                for k in range(idx+1, after_gap_idx):
+                    pt_k = np.array(parax_model.get_pt(k))
+                    new_node1 = np.array(get_intersect(thick_pt1, thick_pt2,
+                                                       origin, pt_k))
+                    t1 = norm(new_node1 - thick_pt1)/norm(thick_pt2 - thick_pt1)
+                    map_to_ifcs.append((k, i, t1))
+
     return map_to_ifcs
 
 
