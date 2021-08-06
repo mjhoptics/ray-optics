@@ -563,32 +563,8 @@ class ConjugateLine():
 
         def apply_data(event_data):
             self.k, mat = calculate_slope(event_data[0], event_data[1])
-            # apply the shear transformation to the original shape
-            dgm.shape = self.shape_orig.dot(mat)
-
-            dgm.update_diagram_from_shape(dgm.shape)
-
-            # update slope values
-            for i in range(1, len(dgm.shape)):
-                pm.pr[i-1][slp] = ((pm.pr[i][ht] - pm.pr[i-1][ht]) /
-                                   self.sys_orig[i-1][tau])
-                pm.ax[i-1][slp] = ((pm.ax[i][ht] - pm.ax[i-1][ht]) /
-                                   self.sys_orig[i-1][tau])
-            pm.pr[-1][slp] = pm.pr[-2][slp]
-            pm.ax[-1][slp] = pm.ax[-2][slp]
-
-            if self.line_type == 'object_image':
-                # update object distance and object y and ybar
-                pm.sys[0][tau] = pm.ax[1][ht]/pm.ax[0][slp]
-                pm.ax[0][ht] = 0
-                pm.pr[0][ht] = pm.pr[1][ht] - pm.sys[0][tau]*pm.pr[0][slp]
-
-                # update image distance and image y and ybar
-                pm.sys[-2][tau] = -pm.ax[-2][ht]/pm.ax[-2][slp]
-                pm.ax[-1][ht] = 0
-                pm.pr[-1][ht] = pm.pr[-2][ht] + pm.sys[-2][tau]*pm.pr[-2][slp]
-
-            pm.paraxial_lens_to_seq_model()
+            pm.apply_conjugate_shift(self.shape_orig, self.k, mat,
+                                     self.line_type)
 
         def on_select(fig, event):
             self.sys_orig = deepcopy(pm.sys)

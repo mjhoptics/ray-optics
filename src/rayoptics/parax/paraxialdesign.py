@@ -74,15 +74,17 @@ class ParaxialModel():
                 self.ax.append([ax_ray[i][ht], n*ax_ray[i][slp], n*ax_ray[i][aoi]])
                 self.pr.append([pr_ray[i][ht], n*pr_ray[i][slp], n*pr_ray[i][aoi]])
 
-    def init_from_nodes(self, nodes):
+    def init_from_nodes(self, nodes, rndx_and_imode=None):
         """Construct a diagram using `nodes`, a list of diagram vertices. """
         self.ax = []
         self.pr = []
         self.sys = []
-        for vertex in nodes:
+        if rndx_and_imode is None:
+            rndx_and_imode = [(1., 'transmit')] * len(nodes)
+        for vertex, ni in zip(nodes, rndx_and_imode):
             self.ax.append([vertex[1], 0.0, 0.0])
             self.pr.append([vertex[0], 0.0, 0.0])
-            self.sys.append([0.0, 0.0, 1, 'transmit'])
+            self.sys.append([0.0, 0.0, *ni])
         self.sys[0][rmd] = 'dummy'
         self.sys[-1][rmd] = 'dummy'
     
@@ -530,6 +532,44 @@ class ParaxialModel():
                                               n_k=z_dir_k*n_k)
         return pp_info
 
+    def apply_conjugate_shift(self, nodes, k, mat, line_type):
+        sys = self.sys
+        ax = self.ax
+        pr = self.pr
+        
+        # apply the shear transformation to the original shape
+        # nodes = self.parax_to_nodes()
+        nodes_sheared = nodes.dot(mat)
+
+        pr[0][ht] = nodes_sheared[0][0]
+        ax[0][ht] = nodes_sheared[0][1]
+        # update slope values
+        for i, node in enumerate(nodes_sheared[1:], start=1):
+            pr[i][ht] = node[0]
+            ax[i][ht] = node[1]
+            pr[i-1][slp] = ((pr[i][ht] - pr[i-1][ht]) / sys[i-1][tau])
+            ax[i-1][slp] = ((ax[i][ht] - ax[i-1][ht]) / sys[i-1][tau])
+        pr[-1][slp] = pr[-2][slp]
+        ax[-1][slp] = ax[-2][slp]
+
+        if line_type == 'object_image':
+            # update object distance and object y and ybar
+            sys[0][tau] = ax[1][ht]/ax[0][slp]
+            ax[0][ht] = 0
+            pr[0][ht] = pr[1][ht] - sys[0][tau]*pr[0][slp]
+
+            # update image distance and image y and ybar
+            sys[-2][tau] = -ax[-2][ht]/ax[-2][slp]
+            ax[-1][ht] = 0
+            pr[-1][ht] = pr[-2][ht] + sys[-2][tau]*pr[-2][slp]
+
+        if self.ifcs_mapping is not None:
+            node_defs, map_to_ifcs = self.ifcs_mapping
+            nodes_ifcs = calc_ifcs_nodes(map_to_ifcs, nodes_sheared)
+            self.opt_model['parax_model'].nodes_to_parax(nodes_ifcs)
+
+        self.opt_model['parax_model'].paraxial_lens_to_seq_model()
+
     def paraxial_vignetting(self, rel_fov=1):
         """Calculate the vignetting factors using paraxial optics. """
         sm = self.seq_model
@@ -565,7 +605,10 @@ def update_diagram_for_key(opm, key):
     if key in opm['parax_model'].layers:
         prx_model = opm['parax_model'].layers[key]
         prx_model.ifcs_mapping = ifcs_mapping
-        prx_model.init_from_nodes(nodes)
+        rndx_and_imode = None
+        if key == 'ifcs':
+            rndx_and_imode = opm['seq_model'].get_rndx_and_imode()
+        prx_model.init_from_nodes(nodes, rndx_and_imode=rndx_and_imode)
     else:
         prx_model = build_from_yybar(opm, nodes, ifcs_mapping)
         opm['parax_model'].layers[key] = prx_model
@@ -681,7 +724,10 @@ def scan_nodes(parax_model, node_defs, nodes):
 def build_from_yybar(opm, nodes, ifcs_mapping):
     prx_model = ParaxialModel(opm, opt_inv=opm['pm'].opt_inv,
                               ifcs_mapping=ifcs_mapping)
-    prx_model.init_from_nodes(nodes)
+    rndx_and_imode = None
+    if ifcs_mapping is None:
+        rndx_and_imode = opm['seq_model'].get_rndx_and_imode()
+    prx_model.init_from_nodes(nodes, rndx_and_imode=rndx_and_imode)
     return prx_model
 
 
@@ -692,7 +738,7 @@ def gen_ifcs_node_mapping(parax_model, node_defs, nodes):
     for i, kernel in enumerate(node_defs):
         if len(kernel) == 1:  # single node or mirror
             idx = kernel[0]
-            map_to_ifcs.append((idx, i, 0.))
+            map_to_ifcs.append((idx, i, 0., 1.))
 
         elif len(kernel) == 2:  # thin element group
             # get the defining vertices from the composite diagram
@@ -709,19 +755,21 @@ def gen_ifcs_node_mapping(parax_model, node_defs, nodes):
                     new_node1 = np.array(get_intersect(l1_pt1, l1_pt2,
                                                        origin, pt_k))
                     t1 = norm(new_node1 - l1_pt1)/norm(l1_pt2 - l1_pt1)
-                    map_to_ifcs.append((k, i-1, t1))
+                    t2 = norm(pt_k)/norm(new_node1)
+                    map_to_ifcs.append((k, i-1, t1, t2))
                 else:
                     new_node2 = np.array(get_intersect(origin, pt_k,
                                                        l2_pt1, l2_pt2))
-                    t2 = norm(new_node2 - l2_pt1)/norm(l2_pt2 - l2_pt1)
-                    map_to_ifcs.append((k, i, t2))
+                    t1 = norm(new_node2 - l2_pt1)/norm(l2_pt2 - l2_pt1)
+                    t2 = norm(pt_k)/norm(new_node2)
+                    map_to_ifcs.append((k, i, t1, t2))
 
         elif len(kernel) == 3:  # thick element group
             # A thick element group has 2 adjacent nodes. The first and last nodes
             # of the thick element correspond to the first and last nodes in the
             # interface diagram. Interface nodes between these are scaled along
             # the edge separating the 2 thick nodes. 
-            map_to_ifcs.append((idx, i, 0.))
+            map_to_ifcs.append((idx, i, 0., 1.))
 
             idx, prev_gap_idx, after_gap_idx = kernel
             if idx != after_gap_idx:
@@ -733,7 +781,8 @@ def gen_ifcs_node_mapping(parax_model, node_defs, nodes):
                     new_node1 = np.array(get_intersect(thick_pt1, thick_pt2,
                                                        origin, pt_k))
                     t1 = norm(new_node1 - thick_pt1)/norm(thick_pt2 - thick_pt1)
-                    map_to_ifcs.append((k, i, t1))
+                    t2 = norm(pt_k)/norm(new_node1)
+                    map_to_ifcs.append((k, i, t1, t2))
 
     return map_to_ifcs
 
@@ -742,12 +791,12 @@ def calc_ifcs_nodes(map_to_ifcs, nodes):
     """Given a composite diagram, calculate the interface based diagram. """
     nodes_ifcs = []
     for i, kernel in enumerate(map_to_ifcs):
-        idx, nidx, t = kernel
-        if t == 0:
-            new_node = np.array(nodes[nidx])
+        idx, nidx, t1, t2 = kernel
+        if t1 == 0:
+            new_node = t2*np.array(nodes[nidx])
         else:
             l1_pt1 = np.array(nodes[nidx])
             l1_pt2 = np.array(nodes[nidx+1])
-            new_node = t*(l1_pt2 - l1_pt1) + l1_pt1
+            new_node = t2*(t1*(l1_pt2 - l1_pt1) + l1_pt1)
         nodes_ifcs.append(new_node)
     return nodes_ifcs

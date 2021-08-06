@@ -496,6 +496,18 @@ class SequentialModel:
                     g.apply_scale_factor(-1)
                     self.z_dir[i] = -z_dir
 
+    def get_rndx_and_imode(self):
+        """ get list of signed refractive index and interact mode for sequence. """
+        central_wvl = self.opt_model['osp']['wvls'].reference_wvl
+        rndx_and_imode = []
+        for i in range(len(self.rndx)):
+            rndx = self.rndx[i][central_wvl]
+            n = rndx if self.z_dir[i] > 0 else -rndx
+            imode = self.ifcs[i].interact_mode
+            rndx_and_imode += [(n, imode)]
+        rndx_and_imode += [(n, imode)]
+        return rndx_and_imode
+
     def surface_label_list(self):
         """ list of surface labels or surface number, if no label """
         labels = []
