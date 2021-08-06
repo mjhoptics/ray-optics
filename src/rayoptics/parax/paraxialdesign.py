@@ -732,9 +732,46 @@ def build_from_yybar(opm, nodes, ifcs_mapping):
 
 
 def gen_ifcs_node_mapping(parax_model, node_defs, nodes):
-    """Create mapping between composite diagram and interface based diagram. """
+    """Create mapping between composite diagram and interface based diagram. 
+    
+    Each node in the composite diagram is associated with one or a range of
+    nodes in parax_model.layer['ifcs']. `node_defs` and `nodes` define
+    the composite diagram. 
+    
+    `node_defs` is a list of tuples, one per composite node, of length 1, 2,
+    or 3. The number of entries is as follows::
+        
+        1: the composite node maps directly to node idx in the 'ifcs' layer
+        2: the composite node is generated from the previous and following gap 
+           indices
+        3: the composite node is part of a thick node
+    
+    A **thick** node is what is used when reducing a range of interfaces to a
+    single node requires virtual propagation distances. In this case, the first
+    and last nodes in the range are retained in the composite diagram; interior
+    nodes are scaled according to how the thick edge is stretched.
+    
+    Changes in the composite diagram are propagated to the underlying 'ifcs'
+    layer by applying a 2D stretch to the nodes in the 'ifcs' layer. The 'ifcs'
+    node is parameterized by the calculating the intersection of the composite
+    edge with the vector from the origin through the composite node. 
+    The scale factors are::
+        
+        t1: parametric distance of the intersection point along the composite
+            edge
+        t2: fractional distance of the composite node to the intersection point
+        
+    The map_to_ifcs list connects the edge in the composite diagram to the 
+    'ifcs' node and the scale factors needed to update the 'ifcs' node position
+    when the composite diagram changes.
+    """
+    def calc_scale_factors(pt1, pt2, pt_k):
+        new_node = np.array(get_intersect(pt1, pt2, np.array([0., 0.]), pt_k))
+        t1 = norm(new_node - pt1)/norm(pt2 - pt1)
+        t2 = norm(pt_k)/norm(new_node)
+        return t1, t2
+
     map_to_ifcs = []
-    origin = np.array([0., 0.])
     for i, kernel in enumerate(node_defs):
         if len(kernel) == 1:  # single node or mirror
             idx = kernel[0]
@@ -752,16 +789,10 @@ def gen_ifcs_node_mapping(parax_model, node_defs, nodes):
                 pt_k = np.array(parax_model.get_pt(k))
                 xprod = np.cross(nodes[i], pt_k)
                 if xprod >= 0.0:
-                    new_node1 = np.array(get_intersect(l1_pt1, l1_pt2,
-                                                       origin, pt_k))
-                    t1 = norm(new_node1 - l1_pt1)/norm(l1_pt2 - l1_pt1)
-                    t2 = norm(pt_k)/norm(new_node1)
+                    t1, t2 = calc_scale_factors(l1_pt1, l1_pt2, pt_k)
                     map_to_ifcs.append((k, i-1, t1, t2))
                 else:
-                    new_node2 = np.array(get_intersect(origin, pt_k,
-                                                       l2_pt1, l2_pt2))
-                    t1 = norm(new_node2 - l2_pt1)/norm(l2_pt2 - l2_pt1)
-                    t2 = norm(pt_k)/norm(new_node2)
+                    t1, t2 = calc_scale_factors(l2_pt1, l2_pt2, pt_k)
                     map_to_ifcs.append((k, i, t1, t2))
 
         elif len(kernel) == 3:  # thick element group
@@ -778,10 +809,7 @@ def gen_ifcs_node_mapping(parax_model, node_defs, nodes):
                 thick_pt2 = np.array(nodes[i+1])
                 for k in range(idx+1, after_gap_idx):
                     pt_k = np.array(parax_model.get_pt(k))
-                    new_node1 = np.array(get_intersect(thick_pt1, thick_pt2,
-                                                       origin, pt_k))
-                    t1 = norm(new_node1 - thick_pt1)/norm(thick_pt2 - thick_pt1)
-                    t2 = norm(pt_k)/norm(new_node1)
+                    t1, t2 = calc_scale_factors(thick_pt1, thick_pt2, pt_k)
                     map_to_ifcs.append((k, i, t1, t2))
 
     return map_to_ifcs
@@ -797,6 +825,7 @@ def calc_ifcs_nodes(map_to_ifcs, nodes):
         else:
             l1_pt1 = np.array(nodes[nidx])
             l1_pt2 = np.array(nodes[nidx+1])
-            new_node = t2*(t1*(l1_pt2 - l1_pt1) + l1_pt1)
+            new_intersection_pt = t1*(l1_pt2 - l1_pt1) + l1_pt1
+            new_node = t2*new_intersection_pt
         nodes_ifcs.append(new_node)
     return nodes_ifcs
