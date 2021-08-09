@@ -1304,7 +1304,7 @@ class ElementModel:
         self.opt_model.part_tree.add_element_to_tree(di, tag='#image')
         self.add_element(di)
 
-    def update_model(self):
+    def update_model(self, **kwargs):
         seq_model = self.opt_model['seq_model']
         tfrms = seq_model.compute_global_coords(1)
 

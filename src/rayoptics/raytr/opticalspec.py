@@ -138,10 +138,10 @@ class OpticalSpecs:
         self['pupil'].sync_to_restore(self)
         self['fov'].sync_to_restore(self)
 
-    def update_model(self):
-        self.spectral_region.update_model()
-        self.pupil.update_model()
-        self.field_of_view.update_model()
+    def update_model(self, **kwargs):
+        self.spectral_region.update_model(**kwargs)
+        self.pupil.update_model(**kwargs)
+        self.field_of_view.update_model(**kwargs)
         stop = self.opt_model.seq_model.stop_surface
         wvl = self.spectral_region.central_wvl
 
@@ -225,7 +225,7 @@ class WvlSpec:
     def set_from_specsheet(self, ss):
         pass
 
-    def update_model(self):
+    def update_model(self, **kwargs):
         self.calc_colors()
 
     def add(self, wl, wt):
@@ -299,7 +299,7 @@ class PupilSpec:
     def get_input_for_specsheet(self):
         return self.key, self.value
 
-    def update_model(self):
+    def update_model(self, **kwargs):
         if not hasattr(self, 'pupil_rays'):
             self.pupil_rays = PupilSpec.default_pupil_rays
             self.ray_labels = PupilSpec.default_ray_labels
@@ -392,7 +392,7 @@ class FieldSpec:
     def get_input_for_specsheet(self):
         return self.key, self.value
 
-    def update_model(self):
+    def update_model(self, **kwargs):
         for f in self.fields:
             f.update()
 

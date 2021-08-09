@@ -140,7 +140,7 @@ class AppManager:
     def refresh_gui(self, **kwargs):
         """ update the active model and refresh its dependent ui views """
         if self.model is not None:
-            self.model.update_model()
+            self.model.update_model(**kwargs)
         self.refresh_views(**kwargs)
         self.refresh_figures(**kwargs)
 

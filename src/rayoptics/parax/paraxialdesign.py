@@ -54,7 +54,7 @@ class ParaxialModel():
         if not hasattr(self, 'layers'):
             self.layers = {'ifcs': self}
 
-    def update_model(self):
+    def update_model(self, **kwargs):
         self.parax_data = self.opt_model.optical_spec.parax_data
         self.build_lens()
 
@@ -739,12 +739,11 @@ def gen_ifcs_node_mapping(parax_model, node_defs, nodes):
     the composite diagram. 
     
     `node_defs` is a list of tuples, one per composite node, of length 1, 2,
-    or 3. The number of entries is as follows::
+    or 3. The number of entries is as follows:
         
-        1: the composite node maps directly to node idx in the 'ifcs' layer
-        2: the composite node is generated from the previous and following gap 
-           indices
-        3: the composite node is part of a thick node
+    1) the composite node maps directly to node idx in the 'ifcs' layer
+    2) the composite node is generated from the previous and following gap indices
+    3) the composite node is part of a thick node
     
     A **thick** node is what is used when reducing a range of interfaces to a
     single node requires virtual propagation distances. In this case, the first
@@ -755,11 +754,10 @@ def gen_ifcs_node_mapping(parax_model, node_defs, nodes):
     layer by applying a 2D stretch to the nodes in the 'ifcs' layer. The 'ifcs'
     node is parameterized by the calculating the intersection of the composite
     edge with the vector from the origin through the composite node. 
-    The scale factors are::
+    The scale factors are:
         
-        t1: parametric distance of the intersection point along the composite
-            edge
-        t2: fractional distance of the composite node to the intersection point
+    * t1: parametric distance of the intersection point along the composite edge
+    * t2: fractional distance of the composite node to the intersection point
         
     The map_to_ifcs list connects the edge in the composite diagram to the 
     'ifcs' node and the scale factors needed to update the 'ifcs' node position

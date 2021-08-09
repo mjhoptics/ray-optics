@@ -43,7 +43,7 @@ class PartTree():
                                       self.opt_model.seq_model,
                                       self.root_node)
 
-    def update_model(self):
+    def update_model(self, **kwargs):
         sync_part_tree_on_update(self.opt_model.ele_model,
                                  self.opt_model.seq_model,
                                  self.root_node)

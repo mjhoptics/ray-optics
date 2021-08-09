@@ -408,7 +408,7 @@ class SequentialModel:
         if not hasattr(self, 'do_apertures'):
             self.do_apertures = True
 
-    def update_model(self):
+    def update_model(self, **kwargs):
         # delta n across each surface interface must be set to some
         #  reasonable default value. use the index at the central wavelength
         osp = self.opt_model.optical_spec
@@ -448,7 +448,7 @@ class SequentialModel:
 
         if self.do_apertures:
             if len(self.ifcs) > 2:
-                osp.update_model()
+                osp.update_model(**kwargs)
     
                 self.set_clear_apertures()
 

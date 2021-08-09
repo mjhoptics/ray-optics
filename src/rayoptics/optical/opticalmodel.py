@@ -223,12 +223,12 @@ class OpticalModel:
 
         self.update_model()
 
-    def update_model(self):
-        self.seq_model.update_model()
-        self.optical_spec.update_model()
-        self.parax_model.update_model()
-        self.ele_model.update_model()
-        self.part_tree.update_model()
+    def update_model(self, **kwargs):
+        self.seq_model.update_model(**kwargs)
+        self.optical_spec.update_model(**kwargs)
+        self.parax_model.update_model(**kwargs)
+        self.ele_model.update_model(**kwargs)
+        self.part_tree.update_model(**kwargs)
         if self.specsheet is None:
             self.specsheet = create_specsheet_from_model(self)
             self.map_submodels()
