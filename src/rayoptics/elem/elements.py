@@ -278,8 +278,9 @@ class Element():
         gap: element thickness and material :class:`~rayoptics.seq.gap.Gap`
         tfrm: global transform to element origin, (Rot3, trans3)
         medium_name: the material filling the gap
-        flat1: semi-diameter of flat if s1 is concave, or None
-        flat2: semi-diameter of flat if s2 is concave, or None
+        flat1, flat2: semi-diameter of flat or None. Setting to None will result in 
+                      re-evaluation of flat ID
+        do_flat1, do_flat2: 'if concave', 'always', 'never', 'if convex'
         handles: dict of graphical entities
         actions: dict of actions associated with the graphical handles
     """
@@ -310,6 +311,8 @@ class Element():
         self._sd = sd
         self.flat1 = None
         self.flat2 = None
+        self.do_flat1 = 'if concave'  # alternatives are 'never', 'always',
+        self.do_flat2 = 'if concave'  # or 'if convex'
         self.handles = {}
         self.actions = {}
 
@@ -349,6 +352,10 @@ class Element():
         self.s2 = surfs[self.s2_indx]
         if not hasattr(self, 'medium_name'):
             self.medium_name = self.gap.medium.name()
+        if not hasattr(self, 'do_flat1'):
+            self.do_flat1 = 'if concave'
+        if not hasattr(self, 'do_flat2'):
+            self.do_flat2 = 'if concave'
 
     def sync_to_update(self, seq_model):
         # when updating, we want to use the stored object instances to get the
@@ -432,16 +439,35 @@ class Element():
             return (-self.sd, self.sd)
 
     def render_shape(self):
-        if self.s1.profile_cv < 0.0:
-            self.flat1 = self.compute_flat(self.s1)
+        def use_flat(do_flat, is_concave):
+            if do_flat == 'always':
+                return True
+            elif do_flat == 'is concave' and is_concave:
+                return True
+            elif do_flat == 'is convex' and not is_concave:
+                return True
+            return False
+        is_concave_s1 = self.s1.profile_cv < 0.0
+        is_concave_s2 = self.s2.profile_cv > 0.0
+
+        if use_flat(self.do_flat1, is_concave_s1):
+            if self.flat1 is None:
+                flat1 = self.flat1 = self.compute_flat(self.s1)
+            else:
+                flat1 = self.flat1
         else:
-            self.flat1 = None
-        poly = self.s1.full_profile(self.extent(), self.flat1)
-        if self.s2.profile_cv > 0.0:
-            self.flat2 = self.compute_flat(self.s2)
+            flat1 = None
+        poly = self.s1.full_profile(self.extent(), flat1)
+
+        if use_flat(self.do_flat2, is_concave_s2):
+            if self.flat2 is None:
+                flat2 = self.flat2 = self.compute_flat(self.s2)
+            else:
+                flat2 = self.flat2
         else:
-            self.flat2 = None
-        poly2 = self.s2.full_profile(self.extent(), self.flat2, -1)
+            flat2 = None
+        poly2 = self.s2.full_profile(self.extent(), flat2, -1)
+
         for p in poly2:
             p[0] += self.gap.thi
         poly += poly2
