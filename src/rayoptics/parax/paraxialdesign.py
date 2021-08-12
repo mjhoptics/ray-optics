@@ -696,7 +696,12 @@ def nodes_from_node_defs(parax_model, node_defs):
 def scan_nodes(parax_model, node_defs, nodes):
     """scan node defs for any invalid thin elements
 
-    replace the first found and return.
+    Replace the first invalid thin element found with two 3 element tuples,
+    signifying a thick node. The first tuple element is the index to the node
+    in the `parax_model` and the last two elements are the range of indices
+    in the `parax_model` covered by the thick element.
+    
+    Return the updated node_def list.
     """
     new_node_defs = node_defs.copy()
     xprods = np.cross(nodes[:-1], nodes[1:])
