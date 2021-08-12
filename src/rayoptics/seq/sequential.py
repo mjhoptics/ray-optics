@@ -523,7 +523,7 @@ class SequentialModel:
 
     def list_model(self, path=None):
         cvr = 'r' if self.opt_model.radius_mode else 'c'
-        print("             {}            t        medium     mode   zdr"
+        print("              {}            t        medium     mode   zdr"
               "      sd".format(cvr))
         labels = self.surface_label_list()
         path = self.path() if path is None else path
@@ -534,7 +534,7 @@ class SequentialModel:
                 s.append(self.z_dir[i])
             else:
                 s.append(self.z_dir[-1])
-            fmt = "{0:>4s}: {1:12.6f} {2:#12.6g} {3:>9s} {4:>10s} {6:2n}"
+            fmt = "{0:>5s}: {1:12.6f} {2:#12.6g} {3:>9s} {4:>10s} {6:2n}"
             if s[4] is not None:  # if the sd is not None...
                 fmt += "  {5:#10.5g}"
             print(fmt.format(labels[i], *s))
@@ -582,16 +582,16 @@ class SequentialModel:
         Arguments:
             full: lists all values if True, else only y offset and alpha tilt
         """
-        fmt0a = ("             thi    medium/mode       type             x"
+        fmt0a = ("              thi    medium/mode          type          x"
                  "          y       alpha      beta       gamma")
-        fmt0b = ("             thi    medium/mode       type             y"
+        fmt0b = ("              thi    medium/mode          type          y"
                  "       alpha")
-        fmt1a = ("{:4n}:                {:>10s}  {:>14s} {:#10.5g} {:#10.5g}"
+        fmt1a = ("{:5n}:                {:>10s}  {:>14s} {:#10.5g} {:#10.5g}"
                  " {:#10.5g} {:#10.5g} {:#10.5g}")
-        fmt1b = ("{:4n}:                {:>10s}  {:>14s} {:#10.5g}"
+        fmt1b = ("{:5n}:                {:>10s}  {:>14s} {:#10.5g}"
                  " {:#10.5g}")
-        fmt1c = "{:4n}:                {:>10s}"
-        fmt2 = "{:4n}: {:#12.6g}    {:>9s}"
+        fmt1c = "{:5n}:                {:>10s}"
+        fmt2 = "{:5n}: {:#12.6g}    {:>9s}"
 
         # print header
         if full:
@@ -622,13 +622,13 @@ class SequentialModel:
     def list_sg(self):
         """List decenter data and gap separations. """
         cvrd = 'r' if self.opt_model.radius_mode else 'c'
-        fmt0a = ("              {}               mode           type"
-                 "             y       alpha")
-        fmt0b = ("                      t           medium")
-        fmt1 = ("{:>4s}: {:#12.6g}       {:>10s}     {:>14s} {:#10.5g}"
+        fmt0a = ("               {}               mode              type"
+                 "          y       alpha")
+        fmt0b = ("                       t           medium")
+        fmt1 = ("{:>5s}: {:#12.6g}       {:>10s}     {:>14s} {:#10.5g}"
                 " {:#10.5g}")
-        fmt2 = ("{:>4s}: {:#12.6g}       {:>10s}")
-        fmt3 = ("               {:#12.6g}    {:>9s}")
+        fmt2 = ("{:>5s}: {:#12.6g}       {:>10s}")
+        fmt3 = ("                {:#12.6g}    {:>9s}")
 
         # print header
         print(fmt0a.format(cvrd))

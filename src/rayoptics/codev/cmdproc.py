@@ -588,7 +588,7 @@ class CVGlassHandler(GlassHandlerBase):
                 return medium
             else:  # process as fictitious glass code
                 nd, vd = fictitious_glass_decode(float(glass_data))
-                medium = Glass(nd, vd, mat=glass_data)
+                medium = Glass(nd, vd)
                 self.track_contents['fictitious glass'] += 1
                 return medium
         else:  # look for glass name and optional catalog

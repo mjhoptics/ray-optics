@@ -24,7 +24,7 @@ from opticalglass.buchdahl import Buchdahl, Buchdahl2
 
 
 def glass_encode(n, v):
-    return str(1000*round((n - 1), 3) + round(v/100, 3))
+    return f'{int(1000*round((n - 1), 3)):3d}.{int(round(10*v, 3)):3d}'
 
 
 def glass_decode(gc):
@@ -81,7 +81,7 @@ class Air(Medium):
 class Glass(Medium):
     """ Optical medium defined by a glass code, i.e. index - V number pair """
 
-    def __init__(self, nd=1.5168, vd=64.17, mat='N-BK7', cat=''):
+    def __init__(self, nd=1.5168, vd=64.17, mat='', cat=''):
         self.label = mat
         self._catalog_name = cat
         self.n = nd

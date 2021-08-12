@@ -65,11 +65,11 @@ class Surface(interface.Interface):
 
     def __repr__(self):
         if len(self.label) > 0:
-            return "{!s}(lbl={!r}, profile={!r}, interact_mode={!s})" \
+            return "{!s}(lbl={!r}, profile={!r}, interact_mode='{!s}')" \
                    .format(type(self).__name__,
                            self.label, self.profile, self.interact_mode)
         else:
-            return "{!s}(profile={!r}, interact_mode={!s})" \
+            return "{!s}(profile={!r}, interact_mode='{!s}')" \
                    .format(type(self).__name__,
                            self.profile, self.interact_mode)
 

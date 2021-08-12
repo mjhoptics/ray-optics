@@ -32,9 +32,13 @@ class ThinLens(Interface):
 
     def __repr__(self):
         if len(self.label) > 0:
-            return "ThinLens(%r: power=%r)" % (self.label, self.optical_power)
+            return "{!s}(lbl={!r}, power={!r}, ref_index={!r})" \
+                   .format(type(self).__name__,
+                           self.label, self.optical_power, self.ref_index)
         else:
-            return "ThinLens(power=%r)" % (self.optical_power)
+            return "{!s}(power={!r}, ref_index={!r})" \
+                   .format(type(self).__name__,
+                           self.optical_power, self.ref_index)
 
     def update(self):
         super().update()
