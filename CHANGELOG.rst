@@ -4,13 +4,17 @@
 Changelog
 =========
 
+Version 0.7.4
+==============
+Pass 2 on the |ybar| diagram layer capability. Handle thick elements and include a top level 'sys' layer. Fix insertion of system from file. Add support for models from the `OpticalBenchHub <https://www.photonstophotos.net/GeneralTopics/Lenses/OpticalBench/OpticalBenchHub.htm>`_ portion of Bill Claff's `PhotonsToPhotos <https://www.photonstophotos.net/>`_ website. Support odd polynomial surfaces in Zemax import. Added additional control over the use of flats when drawing lens elements, see ray-optics notebook `Cell Phone lens <https://github.com/mjhoptics/ray-optics-notebooks/blob/master/Cell%20Phone%20lens.ipynb>`_ for an example. Thanks also to @wuffi for contributing 2 fixes to make the interactive ray-optics app more robust.
+
 Version 0.7.3
 ==============
 Miscellaneous bug fixes, see checkin comments.
 
 Version 0.7.2
 ==============
-Add RayFans to interactive layout. Add a multiple layer y-ybar diagram capability. Works well for thin lens systems. Systems with thick lenses (e.g. Double Gauss) don't work well. Fixes in the :mod:`~.raytr.analyses` module include getting the sign right for defocused transverse aberrations and using the image gap distance instead of parax img_dist for reference sphere definition. Miscellaneous fixes.
+Add RayFans to interactive layout. Add a multiple layer |ybar| diagram capability. Works well for thin lens systems. Systems with thick lenses (e.g. Double Gauss) don't work well. Fixes in the :mod:`~.raytr.analyses` module include getting the sign right for defocused transverse aberrations and using the image gap distance instead of parax img_dist for reference sphere definition. Miscellaneous fixes.
 
 Version 0.7.1
 ==============
@@ -94,7 +98,7 @@ option. Reorganize doc structure.
 Version 0.4.6
 =============
 
-Add SpecSheet capability. V2 of y-ybar diagram with more editing capability
+Add SpecSheet capability. V2 of |ybar| diagram with more editing capability
 
 Version 0.4.0
 =============
