@@ -23,9 +23,11 @@ class FieldCurveFigure(StyledFigure):
 
     def __init__(self, opt_model,
                  eval_fct=trace_astigmatism,
+                 user_scale_value=0.1,
                  **kwargs):
         self.opt_model = opt_model
         self.scale_type = Fit.All
+        self.user_scale_value = user_scale_value
         self.eval_fct = eval_fct
 
         super().__init__(**kwargs)
@@ -69,6 +71,12 @@ class FieldCurveFigure(StyledFigure):
         self.ax.set_xlabel('focus')
         self.ax.set_ylabel('field height')
 
+        if self.scale_type == Fit.All:
+            pass
+        if self.scale_type == Fit.User_Scale and self.user_scale_value is not None:
+            us = self.user_scale_value
+            self.ax.set_xlim(-us, us)
+
         self.ax.legend()
 
         self.canvas.draw()
@@ -78,10 +86,12 @@ class FieldCurveFigure(StyledFigure):
 
 class ThirdOrderBarChart(StyledFigure):
     def __init__(self, opt_model,
+                 user_scale_value=0.1,
                  **kwargs):
         super().__init__(**kwargs)
         self.opt_model = opt_model
         self.scale_type = Fit.All
+        self.user_scale_value = user_scale_value
 
         self.update_data()
 
@@ -102,6 +112,13 @@ class ThirdOrderBarChart(StyledFigure):
         self.ax.set_title('Surface by surface third order aberrations')
         self.to_pkg.plot.bar(ax=self.ax, rot=0)
         self.ax.grid(True)
+
+        if self.scale_type == Fit.All:
+            pass
+        if self.scale_type == Fit.User_Scale and self.user_scale_value is not None:
+            us = self.user_scale_value
+            self.ax.set_ylim(-us, us)
+
         self.tight_layout()
 
         self.canvas.draw()

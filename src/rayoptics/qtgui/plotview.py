@@ -234,6 +234,33 @@ def create_plot_scale_panel(app, pc):
     cntxt = pf, user_scale_wdgt
     user_scale_wdgt.editingFinished.connect(lambda:
                                             on_plot_scale_changed(cntxt))
+    fit_btn = QRadioButton("Fit")
+    fit_btn.setChecked(pf.scale_type == Fit.All)
+    fit_btn.toggled.connect(lambda:
+                                on_plot_scale_toggled(cntxt, Fit.All))
+    user_scale_btn = QRadioButton("User Scale")
+    user_scale_btn.setChecked(pf.scale_type == Fit.User_Scale)
+    user_scale_btn.toggled.connect(lambda: on_plot_scale_toggled(
+                                           cntxt, Fit.User_Scale))
+    box = QHBoxLayout()
+    box.addWidget(fit_btn)
+    box.addWidget(user_scale_btn)
+    box.addWidget(user_scale_wdgt)
+
+    groupBox.setLayout(box)
+
+    return groupBox
+
+
+def create_multi_plot_scale_panel(app, pc):
+    groupBox = QGroupBox("Plot Scale", app)
+
+    user_scale_wdgt = QLineEdit()
+    user_scale_wdgt.setReadOnly(True)
+    pf = pc.figure
+    cntxt = pf, user_scale_wdgt
+    user_scale_wdgt.editingFinished.connect(lambda:
+                                            on_plot_scale_changed(cntxt))
     fit_all_btn = QRadioButton("Fit All")
     fit_all_btn.setChecked(pf.scale_type == Fit.All)
     fit_all_btn.toggled.connect(lambda:

@@ -46,6 +46,7 @@ import rayoptics.qtgui.plotview as plotview
 from rayoptics.qtgui.idealimagerdialog import IdealImagerDialog
 from rayoptics.qtgui.pytablemodel import PyTableModel
 from rayoptics.qtgui.plotview import (create_plot_scale_panel,
+                                      create_multi_plot_scale_panel,
                                       create_draw_rays_groupbox,
                                       create_diagram_controls_groupbox,
                                       create_diagram_edge_actions_groupbox,
@@ -292,7 +293,7 @@ def create_ray_fan_view(opt_model, data_type, gui_parent=None):
         title = "OPD Fan View"
     else:
         title = "bad data_type argument"
-    panel_fcts = [create_plot_scale_panel]
+    panel_fcts = [create_multi_plot_scale_panel]
     plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht,
                               add_panel_fcts=panel_fcts)
 
@@ -307,7 +308,7 @@ def create_ray_grid_view(opt_model, gui_parent=None):
     view_width = view_box
     view_ht = num_flds * view_box
     title = "Spot Diagram"
-    panel_fcts = [create_plot_scale_panel]
+    panel_fcts = [create_multi_plot_scale_panel]
     plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht,
                               add_panel_fcts=panel_fcts)
 
@@ -324,7 +325,7 @@ def create_wavefront_view(opt_model, gui_parent=None):
     view_width = num_wvls * view_box
     view_ht = num_flds * view_box
     title = "Wavefront Map"
-    panel_fcts = [create_plot_scale_panel]
+    panel_fcts = [create_multi_plot_scale_panel]
     plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht,
                               add_panel_fcts=panel_fcts)
 
