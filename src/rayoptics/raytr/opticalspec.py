@@ -86,6 +86,13 @@ class OpticalSpecs:
 
         self._submodels = submodels
 
+    def listobj_str(self):
+        o_str = self["pupil"].listobj_str()
+        o_str += self["fov"].listobj_str()
+        o_str += self["wvls"].listobj_str()
+        o_str += self["focus"].listobj_str()
+        return o_str
+
     @property
     def spectral_region(self):
         return self._submodels['wvls']
@@ -203,6 +210,19 @@ class WvlSpec:
         self.reference_wvl = ref_wl
         self.coating_wvl = 550.0
 
+    def listobj_str(self):
+        wvls = self.wavelengths
+        ref_wvl = self.reference_wvl
+        o_str = f"central wavelength={wvls[ref_wvl]} nm\n"
+        o_str += f"wavelength (weight) ="
+        for i, wlwt in enumerate(zip(wvls, self.spectral_wts)):
+            wl, wt = wlwt
+            comma = "," if i > 0 else ""
+            ref_mark = "*" if i == ref_wvl else ""
+            o_str += comma + f"{wl:10.4f} ({wt:5.3f})" + ref_mark
+        o_str += "\n"
+        return o_str
+
     @property
     def central_wvl(self):
         return self.wavelengths[self.reference_wvl]
@@ -287,6 +307,11 @@ class PupilSpec:
         del attrs['optical_spec']
         return attrs
 
+    def listobj_str(self):
+        key = self.key
+        o_str = f"{key[0]}: {key[1]} {key[2]}; value={self.value}\n"
+        return o_str
+
     def sync_to_restore(self, optical_spec):
         if hasattr(self, 'pupil_type'):
             self.key = model_enums.get_ape_key_for_type(self.pupil_type)
@@ -353,6 +378,13 @@ class FieldSpec:
         attrs = dict(vars(self))
         del attrs['optical_spec']
         return attrs
+
+    def listobj_str(self):
+        key = self.key
+        o_str = f"{key[0]}: {key[1]} {key[2]}; value={self.value}\n"
+        for i, fld in enumerate(self.fields):
+            o_str += fld.listobj_str()
+        return o_str
 
     def sync_to_restore(self, optical_spec):
         if hasattr(self, 'field_type'):
@@ -524,6 +556,25 @@ class Field:
     def __repr__(self):
         return "Field(x={}, y={}, wt={})".format(self.x, self.y, self.wt)
 
+    def listobj_str(self):
+        if self.x != 0. and self.y != 0.:
+            o_str = (f"x={self.x}, y={self.y}"
+                     f" vlx={self.vlx:6.3f} vux={self.vux:6.3f}"
+                     f" vly={self.vly:6.3f} vuy={self.vuy:6.3f}\n")
+        elif self.x == 0. and self.y != 0.:
+            o_str = (f"y={self.y}"
+                     f" vly={self.vly:6.3f} vuy={self.vuy:6.3f}"
+                     f" vlx={self.vlx:6.3f} vux={self.vux:6.3f}\n")
+        elif self.x != 0. and self.y == 0.:
+            o_str = (f"x={self.x}"
+                     f" vlx={self.vlx:6.3f} vux={self.vux:6.3f}"
+                     f" vly={self.vly:6.3f} vuy={self.vuy:6.3f}\n")
+        else:
+            o_str = (f"x,y={self.y}"
+                     f" vlx={self.vlx:6.3f} vux={self.vux:6.3f}"
+                     f" vly={self.vly:6.3f} vuy={self.vuy:6.3f}\n")
+        return o_str
+
     def update(self):
         self.chief_ray = None
         self.ref_sphere = None
@@ -561,6 +612,12 @@ class FocusRange:
     def __repr__(self):
         return ("FocusRange(focus_shift={}, defocus_range={})"
                 .format(self.focus_shift, self.defocus_range))
+
+    def listobj_str(self):
+        o_str = f"focus shift={self.focus_shift}"
+        o_str += (f", defocus range={self.defocus_range}\n"
+                  if self.defocus_range != 0. else "\n")
+        return o_str
 
     def set_from_specsheet(self, ss):
         pass

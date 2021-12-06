@@ -49,6 +49,13 @@ class SystemSpec:
             else:
                 setattr(self, a_key, a_val)
 
+    def listobj_str(self):
+        vs = vars(self)
+        o_str = f"{type(self).__name__}:\n"
+        for k, v in vs.items():
+             o_str += f"{k}: {v}\n"
+        return o_str
+
     @property
     def dimensions(self):
         """ the model linear units (str). """
@@ -168,6 +175,13 @@ class OpticalModel:
             del attrs['app_manager']
         del attrs['_submodels']
         return attrs
+
+    def listobj_str(self):
+        vs = vars(self)
+        o_str = f"{type(self).__name__}:\n"
+        for k, v in vs.items():
+             o_str += f"{k}: {v}\n"
+        return o_str
 
     def set_from_specsheet(self, specsheet=None):
         if specsheet:

@@ -657,6 +657,12 @@ class SequentialModel:
                       self.ifcs[i+1].profile,
                       gp)
 
+    def listobj_str(self):
+        o_str = ""
+        for i, ifc in enumerate(self.ifcs):
+            o_str += f'{i}: ' + ifc.listobj_str()
+        return o_str
+
     def trace_fan(self, fct, fi, xy, num_rays=21, **kwargs):
         """ xy determines whether x (=0) or y (=1) fan """
         osp = self.opt_model.optical_spec

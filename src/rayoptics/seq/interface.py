@@ -55,6 +55,16 @@ class Interface:
         if phase_element is not None:
             self.phase_element = phase_element
 
+    def listobj_str(self):
+        o_str = (f"{self.interact_mode}   delta n={self.delta_n}   "
+                 f"max aperture={self.max_aperture}\n")
+        if hasattr(self, 'phase_element') and self.phase_element is not None:
+            o_str += self.phase_element.listobj_str()
+        if self.decenter is not None:
+            o_str += self.decenter.listobj_str()
+
+        return o_str
+
     def update(self):
         if self.decenter is not None:
             self.decenter.update()

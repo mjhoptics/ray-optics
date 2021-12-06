@@ -22,6 +22,8 @@ import pandas as pd
 
 # ray-optics
 import rayoptics
+from rayoptics import listobj
+
 from rayoptics.gui.appmanager import AppManager, ModelInfo
 from rayoptics.gui.appcmds import create_new_model, open_model
 

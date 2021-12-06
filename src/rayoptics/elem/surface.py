@@ -76,6 +76,24 @@ class Surface(interface.Interface):
     def interface_type(self):
         return type(self.profile).__name__
 
+    def listobj_str(self):
+        o_str = f"{self.label}: " if self.label != "" else ""
+        o_str += f"{self.interact_mode}\n"
+        if self.profile is not None:
+            o_str += self.profile.listobj_str()
+        if hasattr(self, 'phase_element') and self.phase_element is not None:
+            o_str += super().phase_element.listobj_str()
+        if hasattr(self, 'decenter') and self.decenter is not None:
+            o_str += super().decenter.listobj_str()
+
+        o_str += f"surface_od={self.surface_od()}\n"
+        for ca in self.clear_apertures:
+            o_str += ca.listobj_str()
+        for ea in self.edge_apertures:
+            o_str += ea.listobj_str()
+
+        return o_str
+
     def update(self):
         super().update()
         self.profile.update()
@@ -233,10 +251,11 @@ class DecenterData():
         return "%r: Decenter: %r, Tilt: %r" % (self.dtype, self.dec,
                                                self.euler)
 
-    def listobj(self):
-        print(f"decenter type: {self.dtype}")
-        print(f"decenter: {self.dec}")
-        print(f"euler angles: {self.euler}")
+    def listobj_str(self):
+        o_str = f"decenter type: {self.dtype}\n"
+        o_str += f"decenter: {self.dec}\n"
+        o_str += f"euler angles: {self.euler}\n"
+        return o_str
 
     @property
     def dtype(self):
@@ -291,6 +310,13 @@ class Aperture():
         if not hasattr(self, 'rotation'):
             self.rotation = 0.0
 
+    def listobj_str(self):
+        o_str = ""
+        if self.x_offset != 0. or self.x_offset != 0. or self.rotation != 0.:
+            o_str = (f"x_offset={self.x_offset}   y_offset={self.y_offset}"
+                     f"   rotation={self.rotation}\n")
+        return o_str
+
     def dimension(self):
         pass
 
@@ -324,6 +350,11 @@ class Circular(Aperture):
         super().__init__(**kwargs)
         self.radius = radius
 
+    def listobj_str(self):
+        o_str = f"radius={self.radius}/n"
+        o_str += super().listobj_str()
+        return o_str
+
     def dimension(self):
         return (self.radius, self.radius)
 
@@ -348,6 +379,12 @@ class Rectangular(Aperture):
         self.x_half_width = x_half_width
         self.y_half_width = y_half_width
 
+    def listobj_str(self):
+        o_str = (f"{type(self).__name__}: x_half_width={self.x_half_width}"
+                 f"   y_half_width={self.y_half_width}\n")
+        o_str += super().listobj_str()
+        return o_str
+
     def dimension(self):
         return (self.x_half_width, self.y_half_width)
 
@@ -370,6 +407,12 @@ class Elliptical(Aperture):
         super().__init__(**kwargs)
         self.x_half_width = x_half_width
         self.y_half_width = y_half_width
+
+    def listobj_str(self):
+        o_str = (f"{type(self).__name__}: x_half_width={self.x_half_width}"
+                 f"   y_half_width={self.y_half_width}\n")
+        o_str += super().listobj_str()
+        return o_str
 
     def dimension(self):
         return (self.x_half_width, self.y_half_width)

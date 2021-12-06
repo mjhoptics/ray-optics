@@ -245,9 +245,10 @@ class Spherical(SurfaceProfile):
     def __repr__(self):
         return "{!s}(c={})".format(type(self).__name__, self.cv)
 
-    def listobj(self):
-        print(f"profile: {type(self).__name__}")
-        print(f"c={self.cv},   r={self.r}")
+    def listobj_str(self):
+        o_str = f"profile: {type(self).__name__}\n"
+        o_str += f"c={self.cv},   r={self.r}\n"
+        return o_str
 
     def copyFrom(self, other):
         dispatch[type(self), type(other)](self, other)
@@ -427,9 +428,10 @@ class Conic(SurfaceProfile):
         return "{!s}(c={}, cc={})".format(type(self).__name__,
                                           self.cv, self.cc)
 
-    def listobj(self):
-        print(f"profile: {type(self).__name__}")
-        print(f"c={self.cv},   r={self.r}   conic cnst={self.cc}")
+    def listobj_str(self):
+        o_str = f"profile: {type(self).__name__}\n"
+        o_str += f"c={self.cv},   r={self.r}   conic cnst={self.cc}\n"
+        return o_str
 
     def copyFrom(self, other):
         dispatch[type(self), type(other)](self, other)
@@ -631,10 +633,11 @@ class EvenPolynomial(SurfaceProfile):
                 ', cc=' + repr(self.cc) +
                 ', coefs=' + repr(self.coefs) + ')')
 
-    def listobj(self):
-        print(f"profile: {type(self).__name__}")
-        print(f"c={self.cv},   r={self.r}   conic cnst={self.cc}")
-        print(f"coefficients: {self.coefs}")
+    def listobj_str(self):
+        o_str = f"profile: {type(self).__name__}\n"
+        o_str += f"c={self.cv},   r={self.r}   conic cnst={self.cc}\n"
+        o_str += f"coefficients: {self.coefs}\n"
+        return o_str
 
     def copyFrom(self, other):
         dispatch[type(self), type(other)](self, other)
@@ -826,10 +829,11 @@ class RadialPolynomial(SurfaceProfile):
                 ', ec=' + repr(self.ec) +
                 ', coefs=' + repr(self.coefs) + ')')
 
-    def listobj(self):
-        print(f"profile: {type(self).__name__}")
-        print(f"c={self.cv},   r={self.r}   conic cnst={self.cc}")
-        print(f"coefficients: {self.coefs}")
+    def listobj_str(self):
+        o_str = f"profile: {type(self).__name__}\n"
+        o_str += f"c={self.cv},   r={self.r}   conic cnst={self.cc}\n"
+        o_str += f"coefficients: {self.coefs}\n"
+        return o_str
 
     def copyFrom(self, other):
         dispatch[type(self), type(other)](self, other)
@@ -1033,11 +1037,13 @@ class YToroid(SurfaceProfile):
                 ', cc=' + repr(self.cc) +
                 ', coefs=' + repr(self.coefs) + ')')
 
-    def listobj(self):
-        print(f"profile: {type(self).__name__}")
-        print(f"sweep radius: rR={self.rR}")
-        print(f"sweep profile: c={self.cv},   r={self.r}   conic cnst={self.cc}")
-        print(f"coefficients: {self.coefs}")
+    def listobj_str(self):
+        o_str = f"profile: {type(self).__name__}\n"
+        o_str += f"sweep radius: rR={self.rR}\n"
+        o_str += (f"sweep profile: c={self.cv},"
+                  f"   r={self.r}   conic cnst={self.cc}\n")
+        o_str += f"coefficients: {self.coefs}\n"
+        return o_str
 
     def copyFrom(self, other):
         dispatch[type(self), type(other)](self, other)

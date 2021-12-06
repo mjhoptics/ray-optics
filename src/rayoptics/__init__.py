@@ -36,3 +36,11 @@ except:
 from ._version import get_versions
 __version__ = get_versions()['version']
 del get_versions
+
+
+def listobj(obj):
+    """ Print wrapper function for listobj_str() method of `obj`. """
+    try:
+        print(obj.listobj_str())
+    except AttributeError:
+        print(repr(obj))

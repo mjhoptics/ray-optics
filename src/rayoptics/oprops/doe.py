@@ -102,14 +102,15 @@ class DiffractiveElement:
         phase_fct = getattr(mod, fct_name)
         self.__init__(phase_fct=phase_fct, **attrs)
 
-    def listobj(self):
+    def listobj_str(self):
         if len(self.label) == 0:
             label = 'doe'
         else:
             label = self.label
-        print(f"{label}: {self.phase_fct.__name__}")
-        print(f"coefficients: {self.coefficients}")
-        print(f"ref wl: {self.ref_wl}nm  order: {self.order}")
+        o_str = f"{label}: {self.phase_fct.__name__}\n"
+        o_str += f"coefficients: {self.coefficients}\n"
+        o_str += f"ref wl: {self.ref_wl}nm  order: {self.order}\n"
+        return o_str
 
     def phase(self, pt, in_dir, srf_nrml, z_dir, wl, n_in, n_out):
         """Returns a diffracted ray and phase increment.
@@ -171,16 +172,17 @@ class HolographicElement:
         self.obj_virtual = False
         self.ref_wl = 550.0
 
-    def listobj(self):
+    def listobj_str(self):
         if len(self.label) == 0:
             label = 'hoe'
         else:
             label = self.label
-        print(f"{label}: ref wl: {self.ref_wl}nm")
-        print(f"ref_pt: {self.ref_pt[0]:12.5g} {self.ref_pt[1]:12.5g} "
-              f"{self.ref_pt[2]:12.5g}   virtual: {self.ref_virtual}")
-        print(f"obj_pt: {self.obj_pt[0]:12.5g} {self.obj_pt[1]:12.5g} "
-              f"{self.obj_pt[2]:12.5g}   virtual: {self.obj_virtual}")
+        o_str = f"{label}: ref wl: {self.ref_wl}nm\n"
+        o_str += (f"ref_pt: {self.ref_pt[0]:12.5g} {self.ref_pt[1]:12.5g} "
+                  f"{self.ref_pt[2]:12.5g}   virtual: {self.ref_virtual}\n")
+        o_str += (f"obj_pt: {self.obj_pt[0]:12.5g} {self.obj_pt[1]:12.5g} "
+                  f"{self.obj_pt[2]:12.5g}   virtual: {self.obj_virtual}\n")
+        return o_str
 
     def phase(self, pt, in_dir, srf_nrml, z_dir, wl, n_in, n_out):
         normal = normalize(srf_nrml)
