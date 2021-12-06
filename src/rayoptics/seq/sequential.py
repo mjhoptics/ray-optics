@@ -652,7 +652,7 @@ class SequentialModel:
 
     def list_elements(self):
         for i, gp in enumerate(self.gaps):
-            if gp.medium.label.lower() != 'air':
+            if gp.medium.name().lower() != 'air':
                 print(self.ifcs[i].profile,
                       self.ifcs[i+1].profile,
                       gp)
