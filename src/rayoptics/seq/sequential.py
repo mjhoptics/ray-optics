@@ -114,7 +114,7 @@ class SequentialModel:
         self.lcl_tfrms.append(tfrm)
 
     def reset(self):
-        self.__init__()
+        self.__init__(self.opt_model)
 
     def get_num_surfaces(self):
         return len(self.ifcs)
