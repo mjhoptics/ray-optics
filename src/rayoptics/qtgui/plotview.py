@@ -311,8 +311,13 @@ def on_plot_scale_changed(cntxt):
 def get_icon(fig, icon_filepath, icon_size=48):
     pm = QtGui.QPixmap(str(icon_filepath)).scaled(icon_size, icon_size)
     # pm = QtGui.QPixmap(str(icon_filepath))
+    # if hasattr(pm, 'setDevicePixelRatio'):
+    #     pm.setDevicePixelRatio(fig.canvas._dpi_ratio)
     if hasattr(pm, 'setDevicePixelRatio'):
-        pm.setDevicePixelRatio(fig.canvas._dpi_ratio)
+        try:  # older mpl < 3.5.0
+            pm.setDevicePixelRatio(fig.canvas._dpi_ratio)
+        except AttributeError:
+            pm.setDevicePixelRatio(fig.canvas.device_pixel_ratio)
     return QtGui.QIcon(pm)
 
 

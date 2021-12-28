@@ -4,6 +4,10 @@
 Changelog
 =========
 
+Version 0.7.5
+==============
+Implemented a formatted object output protocol, the listobj_str() method, that returns a formatted, descriptive string about the object's contents. This protocol was implemented in particular for profiles and parts of the optical specification. Added a console print function listobj(obj) that will work with objects that implement a listobj_str() method; the fallback is to invoke repr(obj).
+
 Version 0.7.4
 ==============
 Pass 2 on the |ybar| diagram layer capability. Handle thick elements and include a top level 'sys' layer. Fix insertion of system from file. Add support for models from the `OpticalBenchHub <https://www.photonstophotos.net/GeneralTopics/Lenses/OpticalBench/OpticalBenchHub.htm>`_ portion of Bill Claff's `PhotonsToPhotos <https://www.photonstophotos.net/>`_ website. Support odd polynomial surfaces in Zemax import. Added additional control over the use of flats when drawing lens elements, see ray-optics notebook `Cell Phone lens <https://github.com/mjhoptics/ray-optics-notebooks/blob/master/Cell%20Phone%20lens.ipynb>`_ for an example. Thanks also to @wuffi for contributing 2 fixes to make the interactive ray-optics app more robust.
