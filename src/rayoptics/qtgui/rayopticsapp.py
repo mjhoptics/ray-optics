@@ -14,7 +14,7 @@ import sys
 import logging
 from pathlib import Path
 
-from PyQt5.QtCore import Qt as qt
+from PyQt5.QtCore import Qt
 from PyQt5.QtCore import QEvent
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (QApplication, QAction, QMainWindow, QMdiArea,
@@ -196,6 +196,7 @@ class MainWindow(QMainWindow):
 
     def add_subwindow(self, widget, model_info):
         sub_wind = self.mdi.addSubWindow(widget)
+        sub_wind.installEventFilter(self)
         self.app_manager.add_view(sub_wind, widget, model_info)
         MainWindow.count += 1
         return sub_wind
@@ -443,7 +444,7 @@ class MainWindow(QMainWindow):
         model = cmds.create_lens_table_model(seq_model)
         view = self.create_table_view(model, "Surface Data Table")
         vheader = view.verticalHeader()
-        vheader.setContextMenuPolicy(qt.CustomContextMenu)
+        vheader.setContextMenuPolicy(Qt.CustomContextMenu)
         vheader.customContextMenuRequested.connect(handle_context_menu)
 
     def create_ray_table(self, opt_model):
@@ -484,8 +485,6 @@ class MainWindow(QMainWindow):
         lens_title = self.app_manager.model.name()
         sub.setWindowTitle(table_title + ': ' + lens_title)
 
-        sub.installEventFilter(self)
-
         table_view.setMinimumWidth(table_view.horizontalHeader().length() +
                                    table_view.horizontalHeader().height())
 #                                  The following line should work but returns 0
@@ -504,9 +503,10 @@ class MainWindow(QMainWindow):
         return table_view
 
     def eventFilter(self, obj, event):
-        """Used by table_view in response to installEventFilter."""
+        """Used by subwindows in response to installEventFilter."""
         if (event.type() == QEvent.Close):
-            print('close event received:', obj)
+            logging.debug(f"close event received: {obj}")
+            self.delete_subwindow(obj)
         return False
 
     def refresh_gui(self, **kwargs):
@@ -561,14 +561,15 @@ class MainWindow(QMainWindow):
 
 
 def main():
+    logging_level = logging.INFO
     try:
         logging.basicConfig(filename='rayoptics.log',
                             filemode='w',
-                            level=logging.INFO)
+                            level=logging_level)
     except:
         logging.basicConfig(filename=Path.home().joinpath('rayoptics.log'),
                             filemode='w',
-                            level=logging.INFO)
+                            level=logging_level)
         
     qtapp = QApplication(sys.argv)
     qtwnd = MainWindow(qtapp=qtapp)
