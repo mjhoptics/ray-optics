@@ -39,7 +39,17 @@ del get_versions
 
 
 def listobj(obj):
-    """ Print wrapper function for listobj_str() method of `obj`. """
+    """ Print wrapper function for listobj_str() method of `obj`. 
+    
+    listobj() is designed to be used in scripting environments where detailed, 
+    textual output is supported. It is a wrapper to a call of `listobj_str` on
+    `obj`. 
+    
+    Classes may implement the `listobj_str` method that returns a string 
+    containing a formatted description of the object. Multi-line strings are 
+    allowed; each line should end with a newline character. Examples include 
+    :meth:`.DecenterData.listobj_str` and :meth:`.EvenPolynomial.listobj_str`.
+    """
     try:
         print(obj.listobj_str())
     except AttributeError:

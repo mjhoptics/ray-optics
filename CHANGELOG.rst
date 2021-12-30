@@ -6,7 +6,7 @@ Changelog
 
 Version 0.7.5
 ==============
-Implemented a formatted object output protocol, the listobj_str() method, that returns a formatted, descriptive string about the object's contents. This protocol was implemented in particular for profiles and parts of the optical specification. Added a console print function listobj(obj) that will work with objects that implement a listobj_str() method; the fallback is to invoke repr(obj).
+Implemented a formatted object output protocol, the listobj_str() method, that returns a formatted, descriptive string about the object's contents. This supercedes the use of listobj as a per-class method (see 0.7.1 release notes). This protocol was implemented in particular for profiles and parts of the optical specification. Added a console print function :func:`~listobj` that will work with objects that implement a listobj_str() method; the fallback is to invoke repr(obj). Thanks to @asebian and @rlabs-oss for their issue reports and @dibyendumajumdar for continued discussions.
 
 Version 0.7.4
 ==============
