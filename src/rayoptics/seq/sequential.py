@@ -675,9 +675,9 @@ class SequentialModel:
         fld.chief_ray = cr_pkg
         fld.ref_sphere = rs_pkg
 
-        # Use the chief ray intersection point for the central wavelength
-        #  as the reference image point for wavefront error calculations
-        ref_img_pt = cr_pkg[0].ray[-1][0]
+        # Use the central wavelength reference image point for the 
+        #  wavefront error calculations
+        ref_img_pt = rs_pkg[0]
 
         wvls = osp.spectral_region
         fans_x = []

@@ -69,10 +69,8 @@ def get_chief_ray_pkg(opt_model, fld, wvl, foc):
     if fld.chief_ray is None:
         trace.aim_chief_ray(opt_model, fld, wvl=wvl)
         chief_ray_pkg = trace.trace_chief_ray(opt_model, fld, wvl, foc)
-        fld.chief_ray = chief_ray_pkg
     elif fld.chief_ray[0][2] != wvl:
         chief_ray_pkg = trace.trace_chief_ray(opt_model, fld, wvl, foc)
-        fld.chief_ray = chief_ray_pkg
     else:
         chief_ray_pkg = fld.chief_ray
     return chief_ray_pkg

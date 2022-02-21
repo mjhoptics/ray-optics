@@ -114,7 +114,7 @@ class RayFanFigure(AxisArrayFigure):
                 image_pt = fld.ref_sphere[0]
                 ray = ray_pkg[mc.ray]
                 dist = foc / ray[-1][mc.d][2]
-                defocused_pt = ray[-1][mc.p] - dist*ray[-1][mc.d]
+                defocused_pt = ray[-1][mc.p] + dist*ray[-1][mc.d]
                 t_abr = defocused_pt - image_pt
                 return t_abr[xy]
             else:
@@ -226,7 +226,7 @@ class SpotDiagramFigure(AxisArrayFigure):
                 image_pt = fld.ref_sphere[0]
                 ray = ray_pkg[mc.ray]
                 dist = foc / ray[-1][mc.d][2]
-                defocused_pt = ray[-1][mc.p] - dist*ray[-1][mc.d]
+                defocused_pt = ray[-1][mc.p] + dist*ray[-1][mc.d]
                 t_abr = defocused_pt - image_pt
                 return np.array([t_abr[0], t_abr[1]])
             else:
