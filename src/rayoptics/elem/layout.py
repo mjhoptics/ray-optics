@@ -62,59 +62,6 @@ lo_lw = {
     }
 
 
-def setup_shift_of_ray_bundle(seq_model, start_offset):
-    """ compute transformation for rays "start_offset" from 1st surface
-
-    Args:
-        seq_model: the sequential model
-        start_offset: z distance rays should start wrt first surface.
-                      positive if to left of first surface
-    Returns:
-        transformation rotation and translation::
-            (rot, t)
-    """
-
-    s1 = seq_model.ifcs[1]
-    s0 = seq_model.ifcs[0]
-    rot, t = transform.reverse_transform(s0, start_offset, s1)
-    return rot, t
-
-
-def shift_start_of_ray_bundle(start_bundle, ray_bundle, rot, t, cr_indx=0):
-    """ modify ray_bundle so that rays begin "start_offset" from 1st surface
-
-    Args:
-        ray_bundle: list of rays in a bundle, i.e. all for one field.
-                    ray_bundle[cr_indx] is the chief/central ray
-        start_offset: z distance rays should start wrt first surface.
-                      positive if to left of first surface
-        rot: transformation rotation
-        t: transformation translation
-        cr_indx: index of the central ray in the bundle
-    """
-
-    # For the chief ray, use the input offset.
-    ray, op_delta, wvl = ray_bundle[cr_indx]
-    pt1_t = rot.dot(ray[1].p) - t
-    dir0 = rot.dot(ray[0].d)
-    dst = -pt1_t[2]/dir0[2]
-    pt0 = pt1_t + dst*dir0
-    ray0 = RaySeg(pt0, dir0, dst, ray[0].nrml)
-    start_bundle[cr_indx] = ray0
-    
-    for ri, ray_pkg in enumerate(ray_bundle):
-        ray, op_delta, wvl = ray_pkg
-        b4_pt = rot.dot(ray[1].p) - t
-        b4_dir = rot.dot(ray[0].d)
-        if ri != cr_indx:
-            # Calculate distance along ray to plane perpendicular to
-            #  the chief ray.
-            dst = -(b4_pt - pt0).dot(dir0)/b4_dir.dot(dir0)
-            pt = b4_pt + dst*b4_dir
-            ray0 = RaySeg(pt, b4_dir, dst, ray[0].nrml)
-            start_bundle[ri] = ray0
-
-
 def create_optical_element(opt_model, e):
     # if isinstance(e, ele.CementedElement):
     #     e_list = []
@@ -268,22 +215,19 @@ class RayBundle():
     def get_label(self):
         return self.fld_label
 
-    def render_ray(self, ray, start_seg, tfrms):
+    def render_ray(self, ray, tfrms):
         poly = []
-        transform_ray_seg(poly, start_seg, tfrms[0])
-        for i, r in enumerate(ray[1:], 1):
+        for i, r in enumerate(ray):
             transform_ray_seg(poly, r, tfrms[i])
         return np.array(poly)
 
-    def render_shape(self, rayset, start_bundle, tfrms):
+    def render_shape(self, rayset, tfrms):
         poly1 = []
-        transform_ray_seg(poly1, start_bundle[3], tfrms[0])
-        for i, r in enumerate(rayset['+Y'].ray[1:], 1):
+        for i, r in enumerate(rayset['+Y'].ray):
             transform_ray_seg(poly1, r, tfrms[i])
 
         poly2 = []
-        transform_ray_seg(poly2, start_bundle[4], tfrms[0])
-        for i, r in enumerate(rayset['-Y'].ray[1:], 1):
+        for i, r in enumerate(rayset['-Y'].ray):
             transform_ray_seg(poly2, r, tfrms[i])
 
         poly2.reverse()
@@ -299,52 +243,34 @@ class RayBundle():
                                               use_named_tuples=True)
 
         self.rayset = boundary_ray_dict(self.opt_model, rayset)
-        # If the object distance (tfrms[0][1][2]) is greater than the
-        #  start_offset, then modify rayset start to match start_offset.
-        # Remember object transformation for resetting at the end.
+
         seq_model = self.opt_model.seq_model
-        tfrms = seq_model.gbl_tfrms
-        tfrtm0 = tfrms[0]
+        tfrms = seq_model.gbl_tfrms        #     shift_start_of_ray_bundle(start_bundle, ray_list, rot, t)
 
-        start_bundle = [r.ray[0] for r in self.rayset.values()]
-        ray_list = [r for r in self.rayset.values()]
-        if abs(tfrtm0[1][2]) > self.start_offset:
-            rot, t = setup_shift_of_ray_bundle(seq_model, self.start_offset)
-            tfrms[0] = (rot, t)
-            shift_start_of_ray_bundle(start_bundle, ray_list, rot, t)
+        if view.do_draw_beams:
+            poly, bbox = self.render_shape(self.rayset, tfrms)
 
-        try:
-            if view.do_draw_beams:
-                poly, bbox = self.render_shape(self.rayset,
-                                               start_bundle, tfrms)
+            p = view.create_polygon(poly, fill_color=lo_rgb['rayfan_fill'])
+            self.handles['shape'] = GUIHandle(p, bbox)
 
-                p = view.create_polygon(poly, fill_color=lo_rgb['rayfan_fill'])
-                self.handles['shape'] = GUIHandle(p, bbox)
-
-            if view.do_draw_edge_rays:
-                cr = self.render_ray(self.rayset['00'].ray,
-                                     start_bundle[0], tfrms)
-                upr = self.render_ray(self.rayset['+Y'].ray,
-                                      start_bundle[3], tfrms)
-                lwr = self.render_ray(self.rayset['-Y'].ray,
-                                      start_bundle[4], tfrms)
-                kwargs = {
-                    'linewidth': lo_lw['line'],
-                    'color': lo_rgb['ray'],
-                    'hilite_linewidth': lo_lw['hilite'],
-                    'hilite': lo_rgb['ray'],
-                    }
-                cr_poly = view.create_polyline(cr, **kwargs)
-                self.handles['00'] = GUIHandle(cr_poly, bbox_from_poly(cr))
-        
-                upr_poly = view.create_polyline(upr, **kwargs)
-                self.handles['+Y'] = GUIHandle(upr_poly, bbox_from_poly(upr))
-        
-                lwr_poly = view.create_polyline(lwr, **kwargs)
-                self.handles['-Y'] = GUIHandle(lwr_poly, bbox_from_poly(lwr))
-
-        finally:
-            tfrms[0] = tfrtm0
+        if view.do_draw_edge_rays:
+            cr = self.render_ray(self.rayset['00'].ray, tfrms)
+            upr = self.render_ray(self.rayset['+Y'].ray, tfrms)
+            lwr = self.render_ray(self.rayset['-Y'].ray, tfrms)
+            kwargs = {
+                'linewidth': lo_lw['line'],
+                'color': lo_rgb['ray'],
+                'hilite_linewidth': lo_lw['hilite'],
+                'hilite': lo_rgb['ray'],
+                }
+            cr_poly = view.create_polyline(cr, **kwargs)
+            self.handles['00'] = GUIHandle(cr_poly, bbox_from_poly(cr))
+    
+            upr_poly = view.create_polyline(upr, **kwargs)
+            self.handles['+Y'] = GUIHandle(upr_poly, bbox_from_poly(upr))
+    
+            lwr_poly = view.create_polyline(lwr, **kwargs)
+            self.handles['-Y'] = GUIHandle(lwr_poly, bbox_from_poly(lwr))
 
         return self.handles
 
@@ -379,11 +305,10 @@ class RayFanBundle():
     def get_label(self):
         return self.label
 
-    def render_ray(self, ray_pkg, start_seg, tfrms):
+    def render_ray(self, ray_pkg, tfrms):
         poly = []
         ray, op_delta, wvl = ray_pkg
-        transform_ray_seg(poly, start_seg, tfrms[0])
-        for i, r in enumerate(ray[1:], 1):
+        for i, r in enumerate(ray):
             transform_ray_seg(poly, r, tfrms[i])
         return np.array(poly)
 
@@ -391,28 +316,14 @@ class RayFanBundle():
         self.ray_fan.update_data()
         fan = self.ray_fan.fan_pkg[0]
 
-        # Remember object transformation for resetting at the end.
         seq_model = self.opt_model.seq_model
         tfrms = seq_model.gbl_tfrms
-        tfrtm0 = tfrms[0]
 
-        start_bundle = []
         ray_list = []
         for ray_item in fan:
             ray_pkg = retrieve_ray(ray_item)
-            ray = ray_pkg[0]
-            start_bundle.append(ray[0])
             ray_list.append(ray_pkg)
             
-        # If the object distance (tfrms[0][1][2]) is greater than the
-        #  start_offset, then modify rayset start to match start_offset.
-        if abs(tfrtm0[1][2]) > self.start_offset:
-            rot, t = setup_shift_of_ray_bundle(seq_model, self.start_offset)
-            tfrms[0] = (rot, t)
-            cr_index = len(ray_list)//2
-            shift_start_of_ray_bundle(start_bundle, ray_list, rot, t,
-                                      cr_indx=cr_index)
-
         kwargs = {
             'linewidth': lo_lw['line'],
             'color': lo_rgb['ray'],
@@ -420,13 +331,10 @@ class RayFanBundle():
             'hilite': lo_rgb['ray'],
             }
 
-        for i, rs in enumerate(zip(ray_list, start_bundle)):
-            ray_pkg, start_seg = rs
-            global_ray = self.render_ray(ray_pkg, start_seg, tfrms)
+        for i, ray_pkg in enumerate(ray_list):
+            global_ray = self.render_ray(ray_pkg, tfrms)
             ray_poly = view.create_polyline(global_ray, **kwargs)
             self.handles[i] = GUIHandle(ray_poly, bbox_from_poly(global_ray))
-            
-        tfrms[0] = tfrtm0
 
         return self.handles
 

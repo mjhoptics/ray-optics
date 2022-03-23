@@ -10,7 +10,7 @@
 
 import numpy as np
 
-from rayoptics.gui.util import bbox_from_poly
+from rayoptics.gui.util import bbox_from_poly, scale_bounds
 
 from rayoptics.mpl.interactivefigure import InteractiveFigure
 
@@ -76,7 +76,6 @@ class InteractiveLayout(InteractiveFigure):
         if self.do_draw_beams or self.do_draw_edge_rays:
             self.ray_shapes = layout.create_ray_entities(self, start_offset)
             self.ray_bbox = self.update_patches(self.ray_shapes)
-            concat_bbox.append(self.ray_bbox)
 
         if self.do_draw_ray_fans:
             self.rayfan_shapes = layout.create_ray_fan_entities(
@@ -84,15 +83,14 @@ class InteractiveLayout(InteractiveFigure):
                 num_rays=self.num_rays_in_fan
                 )
             self.rayfan_bbox = self.update_patches(self.rayfan_shapes)
-            concat_bbox.append(self.rayfan_bbox)
 
         if self.do_paraxial_layout:
             self.parax_shapes = layout.create_paraxial_ray_entities(self)
             self.parax_bbox = self.update_patches(self.parax_shapes)
-            concat_bbox.append(self.parax_bbox)
 
         sys_bbox = np.concatenate(concat_bbox)
-        self.sys_bbox = bbox_from_poly(sys_bbox)
+        self.sys_bbox = scale_bounds(bbox_from_poly(sys_bbox),
+                                     self.offset_factor)
 
         return self
 
