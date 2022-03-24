@@ -121,6 +121,7 @@ class OpticalModel:
         self.parax_model = ParaxialModel(self, **kwargs)
         self.ele_model = ElementModel(self, **kwargs)
         self.part_tree = PartTree(self, **kwargs)
+        self.analysis_results = {'parax_data': None}
 
         self.map_submodels()
 
@@ -144,6 +145,7 @@ class OpticalModel:
         submodels['parax_model'] = self.parax_model
         submodels['ele_model'] = self.ele_model
         submodels['part_tree'] = self.part_tree
+        submodels['analysis_results'] = self.analysis_results
         # Add a level of indirection to allow short and long aliases
         submodel_aliases = {
             'ss': 'specsheet', 'specsheet': 'specsheet',
@@ -153,6 +155,7 @@ class OpticalModel:
             'pm': 'parax_model', 'parax_model': 'parax_model',
             'em': 'ele_model', 'ele_model': 'ele_model',
             'pt': 'part_tree', 'part_tree': 'part_tree',
+            'ar': 'analysis_results', 'analysis_results': 'analysis_results',
             }
         self._submodels = submodels, submodel_aliases
 
@@ -173,6 +176,9 @@ class OpticalModel:
         attrs = dict(vars(self))
         if hasattr(self, 'app_manager'):
             del attrs['app_manager']
+        # not sure about saving analysis_results...
+        if hasattr(self, 'analysis_results'):
+            del attrs['analysis_results']
         del attrs['_submodels']
         return attrs
 
@@ -232,6 +238,9 @@ class OpticalModel:
         else:
             self.part_tree = PartTree(self)
             self.part_tree.add_element_model_to_tree(self.ele_model)
+
+        if not hasattr(self, 'analysis_results'):
+            self.analysis_results = {'parax_data': None}
 
         self.map_submodels()
 

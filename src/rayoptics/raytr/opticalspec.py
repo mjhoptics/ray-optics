@@ -479,7 +479,7 @@ class FieldSpec:
 
         field, obj_img_key, value_key = self.key
 
-        fod = self.optical_spec.parax_data.fod
+        fod = self.optical_spec.opt_model['ar']['parax_data'].fod
         if obj_img_key == 'object':
             if value_key == 'angle':
                 dir_tan = np.tan(np.deg2rad(fld_coord))

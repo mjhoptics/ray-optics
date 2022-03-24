@@ -18,7 +18,7 @@ def compute_third_order(opt_model):
     """ Compute Seidel aberration coefficents. """
     seq_model = opt_model.seq_model
     n_before = seq_model.central_rndx(0)
-    parax_data = opt_model.optical_spec.parax_data
+    parax_data = opt_model['analysis_results']['parax_data']
     ax_ray, pr_ray, fod = parax_data
     opt_inv = fod.opt_inv
     opt_inv_sqr = opt_inv*opt_inv

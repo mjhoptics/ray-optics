@@ -450,7 +450,7 @@ def eval_fan(opt_model, fld, wvl, foc, xy,
              image_pt_2d=None, num_rays=21,
              output_filter=None, rayerr_filter=None, **kwargs):
     """Trace a fan of rays and evaluate dx, dy, & OPD across the fan."""
-    fod = opt_model.optical_spec.parax_data.fod
+    fod = opt_model['analysis_results']['parax_data'].fod
     cr_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
     ref_sphere = setup_exit_pupil_coords(opt_model, fld, wvl, foc, cr_pkg,
                                          image_pt_2d=image_pt_2d)
@@ -494,7 +494,7 @@ def trace_fan(opt_model, fld, wvl, foc, xy,
               image_pt_2d=None, num_rays=21,
               output_filter=None, rayerr_filter=None, **kwargs):
     """Trace a fan of rays and precalculate data for rapid refocus later."""
-    fod = opt_model.optical_spec.parax_data.fod
+    fod = opt_model['analysis_results']['parax_data'].fod
     cr_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
     ref_sphere = setup_exit_pupil_coords(opt_model, fld, wvl, foc, cr_pkg,
                                          image_pt_2d=image_pt_2d)
@@ -528,7 +528,7 @@ def trace_fan(opt_model, fld, wvl, foc, xy,
 
 def focus_fan(opt_model, fan_pkg, fld, wvl, foc, image_pt_2d=None, **kwargs):
     """Refocus the fan of rays and return the tranverse abr. and OPD."""
-    fod = opt_model.optical_spec.parax_data.fod
+    fod = opt_model['analysis_results']['parax_data'].fod
     fan, upd_fan = fan_pkg
     cr_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
     ref_sphere = setup_exit_pupil_coords(opt_model, fld, wvl, foc, cr_pkg,
@@ -859,7 +859,7 @@ def trace_ray_grid(opt_model, grid_rng, fld, wvl, foc, append_if_none=True,
 def eval_wavefront(opt_model, fld, wvl, foc,
                    image_pt_2d=None, num_rays=21, value_if_none=np.NaN):
     """Trace a grid of rays and evaluate the OPD across the wavefront."""
-    fod = opt_model.optical_spec.parax_data.fod
+    fod = opt_model['analysis_results']['parax_data'].fod
     cr_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
     ref_sphere = setup_exit_pupil_coords(opt_model, fld, wvl, foc, cr_pkg,
                                          image_pt_2d=image_pt_2d)
@@ -892,7 +892,7 @@ def eval_wavefront(opt_model, fld, wvl, foc,
 def trace_wavefront(opt_model, fld, wvl, foc,
                     image_pt_2d=None, num_rays=21):
     """Trace a grid of rays and pre-calculate data needed for rapid refocus."""
-    fod = opt_model.optical_spec.parax_data.fod
+    fod = opt_model['analysis_results']['parax_data'].fod
     cr_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
     ref_sphere = setup_exit_pupil_coords(opt_model, fld, wvl, foc, cr_pkg,
                                          image_pt_2d=image_pt_2d)
@@ -921,7 +921,7 @@ def trace_wavefront(opt_model, fld, wvl, foc,
 def focus_wavefront(opt_model, grid_pkg, fld, wvl, foc, image_pt_2d=None,
                     value_if_none=np.NaN):
     """Given pre-traced rays and a ref. sphere, return the ray's OPD."""
-    fod = opt_model.optical_spec.parax_data.fod
+    fod = opt_model['analysis_results']['parax_data'].fod
     grid, upd_grid = grid_pkg
     cr_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
     ref_sphere = setup_exit_pupil_coords(opt_model, fld, wvl, foc, cr_pkg,
@@ -979,7 +979,7 @@ def calc_psf_scaling(pupil_grid, ndim, maxdim):
         delta_xp: The linear grid spacing on the image plane
     """
     opt_model = pupil_grid.opt_model
-    fod = opt_model.optical_spec.parax_data.fod
+    fod = opt_model['analysis_results']['parax_data'].fod
     wl = opt_model.nm_to_sys_units(pupil_grid.wvl)
 
     fill_factor = ndim/maxdim

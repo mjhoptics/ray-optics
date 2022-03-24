@@ -25,7 +25,7 @@ def setup(filename):
     osp = opm.optical_spec
     fld, wvl, foc = osp.lookup_fld_wvl_focus(1)
     vig_pupil = fld.apply_vignetting([0.5, 0.5])
-    fod = osp.parax_data.fod
+    fod = opm['analysis_results']['parax_data'].fod
     eprad = fod.enp_radius
     pt1 = np.array([eprad*vig_pupil[0], eprad*vig_pupil[1],
                     fod.obj_dist+fod.enp_dist])

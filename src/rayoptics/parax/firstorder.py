@@ -381,7 +381,7 @@ def compute_principle_points(path, n_0=1.0, n_k=1.0):
 def list_parax_trace(opt_model, reduced=False):
     """ list the paraxial axial and chief ray data """
     seq_model = opt_model.seq_model
-    ax_ray, pr_ray, fod = opt_model.optical_spec.parax_data
+    ax_ray, pr_ray, fod = opt_model['analysis_results']['parax_data']
     num_gaps = len(seq_model.gaps)
     print("stop surface:", seq_model.stop_surface)
     print("           y           u           n*i         ybar         ubar"
@@ -407,9 +407,9 @@ def specsheet_from_parax_data(opt_model, specsheet):
         return None
     seq_model = opt_model.seq_model
     optical_spec = opt_model.optical_spec
-    if optical_spec.parax_data is None:
+    if opt_model['analysis_results']['parax_data'] is None:
         return specsheet
-    fod = optical_spec.parax_data.fod
+    fod = opt_model['analysis_results']['parax_data'].fod
     conj_type = 'finite'
     if seq_model.gaps[0].thi > 10e8:
         conj_type = 'infinite'

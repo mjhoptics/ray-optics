@@ -42,7 +42,6 @@ class ParaxialModel():
         attrs = dict(vars(self))
         del attrs['opt_model']
         del attrs['seq_model']
-        del attrs['parax_data']
         del attrs['layers']
         return attrs
 
@@ -55,7 +54,6 @@ class ParaxialModel():
             self.layers = {'ifcs': self}
 
     def update_model(self, **kwargs):
-        self.parax_data = self.opt_model.optical_spec.parax_data
         self.build_lens()
 
     def build_lens(self):
@@ -63,8 +61,9 @@ class ParaxialModel():
         self.sys = sys = self.seq_path_to_paraxial_lens(self.seq_model.path())
 
         # precalculate the reduced forms of the paraxial axial and chief rays
-        if self.parax_data is not None:
-            ax_ray, pr_ray, fod = self.parax_data
+        parax_data = self.opt_model['analysis_results']['parax_data']
+        if parax_data is not None:
+            ax_ray, pr_ray, fod = parax_data
             self.opt_inv = fod.opt_inv
     
             self.ax = []
@@ -441,7 +440,7 @@ class ParaxialModel():
 
     def first_order_data(self):
         """List out the first order imaging properties of the model."""
-        self.opt_model.optical_spec.parax_data.fod.list_first_order_data()
+        self.opt_model['analysis_results']['parax_data'].fod.list_first_order_data()
 
     # --- convert to/from sequential model
     def seq_path_to_paraxial_lens(self, path):

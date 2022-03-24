@@ -449,7 +449,7 @@ class LensLayout():
     def system_length(self, ele_bbox, offset_factor=0.05):
         """ returns system length and ray start offset """
         specsheet = self.opt_model['specsheet']
-        fod = self.opt_model['optical_spec'].parax_data[2]
+        fod = self.opt_model['ar']['parax_data'].fod
         ele_length = ele_bbox[1][0] - ele_bbox[0][0]
         image_thi = abs(self.opt_model['seq_model'].gaps[-1].thi)
         if specsheet.imager_defined():

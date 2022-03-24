@@ -148,7 +148,7 @@ def trace_base(opt_model, pupil, fld, wvl, **kwargs):
     """
     vig_pupil = fld.apply_vignetting(pupil)
     osp = opt_model.optical_spec
-    fod = osp.parax_data.fod
+    fod = opt_model['analysis_results']['parax_data'].fod
     eprad = fod.enp_radius
     aim_pt = np.array([0., 0.])
     if hasattr(fld, 'aim_pt') and fld.aim_pt is not None:
@@ -204,7 +204,7 @@ def iterate_ray(opt_model, ifcx, xy_target, fld, wvl, **kwargs):
     seq_model = opt_model.seq_model
     osp = opt_model.optical_spec
 
-    fod = osp.parax_data.fod
+    fod = opt_model['analysis_results']['parax_data'].fod
     dist = fod.obj_dist + fod.enp_dist
 
     pt0 = osp.obj_coords(fld)
@@ -256,7 +256,7 @@ def trace_with_opd(opt_model, pupil, fld, wvl, foc, **kwargs):
     fld.chief_ray = chief_ray_pkg
     fld.ref_sphere = ref_sphere
 
-    fod = opt_model.optical_spec.parax_data.fod
+    fod = opt_model['analysis_results']['parax_data'].fod
     opd = wave_abr_full_calc(fod, fld, wvl, foc, ray_pkg,
                              chief_ray_pkg, ref_sphere)
     ray, ray_op, wvl = ray_pkg
@@ -335,7 +335,7 @@ def trace_all_fields(opt_model):
 def trace_chief_ray(opt_model, fld, wvl, foc):
     """Trace a chief ray for fld and wvl, returning the ray_pkg and exit pupil segment."""
     osp = opt_model.optical_spec
-    fod = osp.parax_data.fod
+    fod = opt_model['analysis_results']['parax_data'].fod
 
     ray, op, wvl = trace_base(opt_model, [0., 0.], fld, wvl)
     # op = rt.calc_optical_path(ray, opt_model.seq_model.path())
@@ -449,9 +449,9 @@ def setup_pupil_coords(opt_model, fld, wvl, foc, image_pt=None):
 
 
 def setup_canonical_coords(opt_model, fld, wvl, image_pt=None):
-    osp = opt_model.optical_spec
     seq_model = opt_model.seq_model
-    fod = osp.parax_data.fod
+    parax_data = opt_model['analysis_results']['parax_data']
+    fod = parax_data.fod
 
     if fld.chief_ray is None:
         ray, op, wvl = trace_base(opt_model, [0., 0.], fld, wvl)
@@ -486,7 +486,7 @@ def setup_canonical_coords(opt_model, fld, wvl, image_pt=None):
     wl = seq_model.index_for_wavelength(wvl)
     n_obj = seq_model.rndx[0][wl]
     n_img = seq_model.rndx[-1][wl]
-    ref_sphere_pkg = (ref_sphere, osp.parax_data, n_obj, n_img, z_dir)
+    ref_sphere_pkg = (ref_sphere, parax_data, n_obj, n_img, z_dir)
     fld.ref_sphere = ref_sphere_pkg
     return ref_sphere_pkg, cr
 

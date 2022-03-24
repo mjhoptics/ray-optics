@@ -463,10 +463,10 @@ class SequentialModel:
         self.lcl_tfrms = self.compute_local_transforms()
 
     def set_from_specsheet(self, specsheet):
-        if self.opt_model.optical_spec.parax_data is None:
+        if 'parax_data' not in self.opt_model['analysis_results']:
             return
         if len(specsheet.imager_inputs) == 2:
-            fod = self.opt_model.optical_spec.parax_data.fod
+            fod = self.opt_model['analysis_results']['parax_data'].fod
             f_old = fod.efl
             f_new = specsheet.imager.f
             scale_factor = f_new/f_old
@@ -748,7 +748,7 @@ class SequentialModel:
             x = p[0]
             y = p[1]
             if ray_pkg is not None:
-                fod = self.opt_model.optical_spec.parax_data.fod
+                fod = self.opt_model['analysis_results']['parax_data'].fod
                 opd = analyses.wave_abr_full_calc(fod, fld, wvl, foc, ray_pkg,
                                                   fld.chief_ray,
                                                   fld.ref_sphere)
@@ -791,7 +791,7 @@ class SequentialModel:
     #             s.set_max_aperture(max_ap)
 
     def set_clear_apertures_paraxial(self):
-        ax_ray, pr_ray, _ = self.opt_model.optical_spec.parax_data
+        ax_ray, pr_ray, _ = self.opt_model['analysis_results']['parax_data']
         for i, ifc in enumerate(self.ifcs):
             sd = abs(ax_ray[i][0]) + abs(pr_ray[i][0])
             ifc.set_max_aperture(sd)

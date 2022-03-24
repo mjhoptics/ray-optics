@@ -230,11 +230,12 @@ def create_from_file(filename, **kwargs):
     osp = opm['optical_spec']
     em = opm['ele_model']
     pt = opm['part_tree']
+    ar = opm['analysis_results']
     if len(pt.nodes_with_tag(tag='#element')) == 0:
         parttree.elements_from_sequence(em, sm, pt)
     if 'power' in kwargs:
         desired_power = kwargs['power']
-        cur_power = osp.parax_data.fod.power
+        cur_power = ar['parax_data'].fod.power
         # scale_factor is linear, power is 1/linear
         #  so use reciprocal of power to compute scale_factor
         scale_factor = cur_power/desired_power

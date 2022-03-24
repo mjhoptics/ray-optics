@@ -122,7 +122,7 @@ class RayFanFigure(AxisArrayFigure):
 
         def opd(p, xy, ray_pkg, fld, wvl, foc):
             if ray_pkg[mc.ray] is not None:
-                fod = opt_model.optical_spec.parax_data.fod
+                fod = opt_model['analysis_results']['parax_data'].fod
                 opd = wave_abr_full_calc(fod, fld, wvl, foc, ray_pkg,
                                          fld.chief_ray, fld.ref_sphere)
                 return convert_to_waves*opd
@@ -315,7 +315,7 @@ class WavefrontFigure(AxisArrayFigure):
             x = p[0]
             y = p[1]
             if ray_pkg is not None:
-                fod = opt_model.optical_spec.parax_data.fod
+                fod = opt_model['analysis_results']['parax_data'].fod
                 opd = wave_abr_full_calc(fod, fld, wvl, foc, ray_pkg,
                                          fld.chief_ray, fld.ref_sphere)
                 opd = convert_to_waves*opd

@@ -435,7 +435,7 @@ def create_ray_table_model(opt_model, ray):
 
 
 def create_parax_table_model(opt_model):
-    rootEvalStr = ".optical_spec.parax_data"
+    rootEvalStr = ".analysis_results['parax_data']"
     colEvalStr = ['[0][{}][0]', '[0][{}][1]', '[0][{}][2]',
                   '[1][{}][0]', '[1][{}][1]', '[1][{}][2]']
     seq_model = opt_model.seq_model
