@@ -269,6 +269,9 @@ def create_paraxial_design_view_v2(opt_model, dgm_type, gui_parent=None):
         panel_fcts.append(create_diagram_controls_groupbox)
         panel_fcts.append(create_diagram_edge_actions_groupbox)
         panel_fcts.append(create_diagram_layers_groupbox)
+    elif dgm_type == 'slp':
+        panel_fcts.append(create_diagram_layers_groupbox)
+        cmds = None        
     else:
         cmds = None
 

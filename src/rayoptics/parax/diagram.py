@@ -16,8 +16,7 @@ from pathlib import Path
 from rayoptics.gui.util import bbox_from_poly, fit_data_range
 from rayoptics.gui.actions import ReplaceGlassAction
 
-from rayoptics.optical.model_constants import ht, slp
-from rayoptics.optical.model_constants import pwr, tau, indx, rmd
+import rayoptics.optical.model_constants as mc
 from rayoptics.util.rgb2mpl import rgb2mpl
 from rayoptics.util.misc_math import (normalize, distance_sqr_2d,
                                       projected_point_on_radial_line)
@@ -39,6 +38,7 @@ dgm_lw = {
     'edge': 0.5,
     'node': 6,
     'node_hilite': 8,
+    'node_edge': 0.75,
     }
 
 
@@ -122,7 +122,8 @@ class Diagram():
 
     def __init__(self, opt_model, parax_model, parax_model_key, dgm_type,
                  seq_start=1, do_barrel_constraint=False, barrel_constraint=1.0,
-                 label='paraxial', bend_or_gap='bend', is_dark=True):
+                 label='paraxial', bend_or_gap='bend', do_node_annotation=False,
+                 is_dark=True):
         self.label = label
         self.opt_model = opt_model
         self.parax_model = parax_model
@@ -135,18 +136,20 @@ class Diagram():
         self.do_barrel_constraint = do_barrel_constraint
         self.barrel_constraint_radius = barrel_constraint
 
+        self.do_node_annotation = do_node_annotation
+
         self.bend_or_gap = bend_or_gap
 
         self.active_layer = parax_model_key
 
     def setup_dgm_type(self, dgm_type):
-        parax_model = self.parax_model
         if dgm_type == 'ht':
-            self.type_sel = ht
-            self._apply_data = parax_model.update_composite_node
+            self.type_sel = mc.ht
         elif dgm_type == 'slp':
-            self.type_sel = slp
-            self._apply_data = parax_model.apply_slope_dgm_data
+            self.type_sel = mc.slp
+
+        pm = self.parax_model
+        self._apply_data = pm.update_composite_node_fct(self.type_sel)
 
     def get_label(self):
         return self.label
@@ -156,11 +159,12 @@ class Diagram():
 
     def set_active_layer(self, layer_key):
         opm = self.opt_model
-        prx_key, prx_model = paraxialdesign.update_diagram_for_key(opm,
-                                                                   layer_key)
+        prx = paraxialdesign.update_diagram_for_key(opm, layer_key,
+                                                    self.type_sel)
+        prx_key, prx_model = prx
         self.active_layer = prx_key
         self.parax_model = prx_model
-        self._apply_data = prx_model.update_composite_node
+        self._apply_data = prx_model.update_composite_node_fct(self.type_sel)
         return self
 
     def update_data(self, fig, **kwargs):
@@ -175,17 +179,16 @@ class Diagram():
             pass
         else:
             # number of nodes have changed, rebuild everything
-            if build == 'full_rebuild':
-                # change from another non-parax_model source,
-                #  rebuild parax_model
-                parax_model.build_lens()
+            num_nodes = len(parax_model.sys)
+            if self.dgm_type == 'slp':
+                num_nodes -= 1
 
             self.node_list = []
-            for i in range(len(parax_model.sys)):
+            for i in range(num_nodes):
                 self.node_list.append(DiagramNode(self, i))
 
             self.edge_list = []
-            for i in range(len(parax_model.sys)-1):
+            for i in range(num_nodes-1):
                 self.edge_list.append(DiagramEdge(self, i))
 
             self.object_shift = ConjugateLine(self, 'object_image')
@@ -195,6 +198,9 @@ class Diagram():
 
             if self.do_barrel_constraint:
                 self.barrel_constraint = BarrelConstraint(self)
+                
+            if self.do_node_annotation:
+                pass
 
         self.node_bbox = fig.update_patches(self.node_list)
         self.edge_bbox = fig.update_patches(self.edge_list)
@@ -331,41 +337,72 @@ class DiagramNode():
         self.actions = self.handle_actions()
 
     def update_shape(self, view):
-        sys = self.diagram.parax_model.sys
-        shape = self.diagram.shape
-        dgm_rgb = self.diagram.dgm_rgb
-        hilite_kwargs = {
-            'color': dgm_rgb['node'],
-            'markersize': dgm_lw['node_hilite'],
-            }
-        self.handles['shape'] = (shape[self.node], 'vertex',
-                                 {'linestyle': '',
-                                  'linewidth': dgm_lw['data'],
-                                  'marker': 'o',
-                                  'markersize': dgm_lw['node'],
-                                  'pickradius': 6,
-                                  'color': dgm_rgb['node'],
-                                  'hilite': dgm_rgb['hilite'],
-                                  'zorder': 3.})
-        # define the "constant spacing" or "slide" constraint
-        if view.enable_slide:
-            slide_pts = compute_slide_line(shape, self.node,
-                                           sys[self.node][rmd])
-            if slide_pts is not None:
-                seg = [*slide_pts]
+        diagram = self.diagram
+        # set alpha to 25% -> #40
+        bkgrnd_rbga = diagram.dgm_rgb['background1'] + '40'
+        opt_model = diagram.opt_model
+        shape = diagram.shape
+        dgm_rgb = diagram.dgm_rgb
+        if self.diagram.dgm_type == 'ht':
+            hilite_kwargs = {
+                'color': dgm_rgb['node'],
+                'markersize': dgm_lw['node_hilite'],
+                }
+            self.handles['shape'] = (shape[self.node], 'vertex',
+                                     {'linestyle': '',
+                                      'linewidth': dgm_lw['data'],
+                                      'marker': 'o',
+                                      'markersize': dgm_lw['node'],
+                                      'pickradius': 6,
+                                      'color': dgm_rgb['node'],
+                                      'hilite': dgm_rgb['hilite'],
+                                      'zorder': 3.})
+    
+            # define the "constant spacing" or "slide" constraint
+            if view.enable_slide:
+                sys = self.diagram.parax_model.sys
+                slide_pts = compute_slide_line(shape, self.node,
+                                               sys[self.node][mc.rmd])
+                if slide_pts is not None:
+                    seg = [*slide_pts]
+    
+                    hilite_kwargs = {
+                        'color': dgm_rgb['slide'],
+                        'linewidth': dgm_lw['guide'],
+                        'linestyle': '-'
+                        }
+                    self.handles['slide'] = (seg, 'polyline',
+                                             {'linestyle': '--',
+                                              'linewidth': dgm_lw['guide'],
+                                              'pickradius': 6,
+                                              'color': dgm_rgb['slide'],
+                                              'hilite': hilite_kwargs,
+                                              'zorder': 2.5})
+        elif self.diagram.dgm_type == 'slp':
+            hilite_kwargs = {
+                'color': dgm_rgb['node'],
+                'markersize': dgm_lw['node_hilite'],
+                }
 
-                hilite_kwargs = {
-                    'color': dgm_rgb['slide'],
-                    'linewidth': dgm_lw['guide'],
-                    'linestyle': '-'
-                    }
-                self.handles['slide'] = (seg, 'polyline',
-                                         {'linestyle': '--',
-                                          'linewidth': dgm_lw['guide'],
-                                          'pickradius': 6,
-                                          'color': dgm_rgb['slide'],
-                                          'hilite': hilite_kwargs,
-                                          'zorder': 2.5})
+            gap, z_dir = diagram.parax_model.get_gap_for_node(self.node, 'slp')
+            e_node = opt_model.part_tree.parent_node((gap, z_dir),
+                                                     '#element#airgap')
+            e = e_node.id if e_node else None
+            marker_color = bkgrnd_rbga
+            if e and '#airgap' not in e_node.tag:
+                marker_color = ele.calc_render_color_for_material(gap.medium)
+                marker_color = rgb2mpl(marker_color)
+            self.handles['shape'] = (shape[self.node], 'vertex',
+                                     {'linestyle': '',
+                                      'linewidth': dgm_lw['data'],
+                                      'marker': 'o',
+                                      'markersize': dgm_lw['node'],
+                                      'markeredgewidth': dgm_lw['node_edge'],
+                                      'markeredgecolor': dgm_rgb['node'],
+                                      'pickradius': 6,
+                                      'markerfacecolor': marker_color,
+                                      'hilite': dgm_rgb['hilite'],
+                                      'zorder': 3.})
         return view.create_patches(self.handles)
 
     def get_label(self):
@@ -373,14 +410,17 @@ class DiagramNode():
 
     def handle_actions(self):
         actions = {}
-        actions['shape'] = EditNodeAction(self)
+        wedge_constraint = True if self.diagram.dgm_type == 'ht' else False
+        actions['shape'] = EditNodeAction(self,
+                                          constrain_to_wedge=wedge_constraint)
         slide_filter = None
         sys = self.diagram.parax_model.sys
         slide_pts = compute_slide_line(self.diagram.shape, self.node,
-                                       sys[self.node][rmd])
+                                       sys[self.node][mc.rmd])
         if slide_pts is not None:
             slide_filter = constrain_to_line_action(*slide_pts)
-        actions['slide'] = EditNodeAction(self, filter=slide_filter)
+        actions['slide'] = EditNodeAction(self, filter=slide_filter,
+                                          constrain_to_wedge=wedge_constraint)
         return actions
 
 
@@ -416,22 +456,23 @@ class DiagramEdge():
     def render_color(self):
         diagram = self.diagram
         opt_model = diagram.opt_model
-        gap, z_dir = diagram.parax_model.get_gap_for_node(self.node)
-        e_node = opt_model.part_tree.parent_node((gap, z_dir),
-                                                 '#element#airgap')
-        e = e_node.id if e_node else None
-
-        if e:
-            if '#airgap' in e_node.tag:
-                # set alpha to 25% -> #40
-                bkgrnd_rbga = diagram.dgm_rgb['background1'] + '40'
-                return bkgrnd_rbga
+        # set alpha to 25% -> #40
+        bkgrnd_rbga = diagram.dgm_rgb['background1'] + '40'
+        if diagram.dgm_type == 'ht':
+            gap, z_dir = diagram.parax_model.get_gap_for_node(self.node, 'ht')
+            e_node = opt_model.part_tree.parent_node((gap, z_dir),
+                                                     '#element#airgap')
+            e = e_node.id if e_node else None
+    
+            if e:
+                if '#airgap' in e_node.tag:
+                    return bkgrnd_rbga
+                else:
+                    return ele.calc_render_color_for_material(gap.medium)
             else:
-                return ele.calc_render_color_for_material(gap.medium)
-        else:
-            # single surface element, like mirror or thinlens, use airgap
-            # set alpha to 25% -> #40
-            bkgrnd_rbga = diagram.dgm_rgb['background1'] + '40'
+                # single surface element, like mirror or thinlens, use airgap
+                return bkgrnd_rbga
+        elif diagram.dgm_type == 'slp':
             return bkgrnd_rbga
 
     def get_label(self):
@@ -520,13 +561,13 @@ class ConjugateLine():
             if self.line_type == 'stop':
                 lwr, upr = view.ax.get_ybound()
                 ht = upr - lwr
-                conj_line.append([self.k*ht, -ht])
-                conj_line.append([-self.k*ht, ht])
+                conj_line.append([-self.k*ht, -ht])
+                conj_line.append([self.k*ht, ht])
             elif self.line_type == 'object_image':
                 lwr, upr = view.ax.get_xbound()
                 wid = upr - lwr
-                conj_line.append([-wid, self.k*wid])
-                conj_line.append([wid, -self.k*wid])
+                conj_line.append([-wid, -self.k*wid])
+                conj_line.append([wid, self.k*wid])
             self.handles['conj_line'] = (conj_line, 'polyline',
                                          {'color': dgm_rgb['conj_line'],
                                           'linewidth': dgm_lw['guide'],
@@ -553,12 +594,13 @@ class ConjugateLine():
         def calculate_slope(x, y):
             ''' x=ybar, y=y  '''
             if self.line_type == 'stop':
-                k = -x/y
-                return k, np.array([[1, 0], [k, 1]])
+                k = x/y
+                return k, np.array([[1, 0], [-k, 1]])
             elif self.line_type == 'object_image':
-                k = -y/x
-                return k, np.array([[1, k], [0, 1]])
+                k = y/x
+                return k, np.array([[1, -k], [0, 1]])
             else:
+                k = 0
                 return 0, np.array([[1, 0], [0, 1]])
 
         def apply_data(event_data):
@@ -575,14 +617,14 @@ class ConjugateLine():
                 event_data = np.array([event.xdata, event.ydata])
                 apply_data(event_data)
                 fig.build = 'update'
-                fig.refresh_gui(build='update')
+                fig.refresh_gui(build='update', src_model=pm)
 
         def on_release(fig, event):
             event_data = np.array([event.xdata, event.ydata])
             apply_data(event_data)
             self.sys_orig = []
             self.shape_orig = []
-            fig.refresh_gui(build='rebuild')
+            fig.refresh_gui(build='rebuild', src_model=pm)
 
         actions = {}
         actions['press'] = on_select
@@ -599,18 +641,20 @@ class ConjugateLine():
 class EditNodeAction():
     """ Action to move a diagram node, using an input pt """
 
-    def __init__(self, dgm_node, filter=None):
+    def __init__(self, dgm_node, filter=None, constrain_to_wedge=True):
         diagram = dgm_node.diagram
+        parax_model = diagram.parax_model
         self.cur_node = None
         self.pt0 = None
         self.pt2 = None
         self.filter = filter
+        self.constrain_to_wedge = constrain_to_wedge
 
         def point_on_line(pt1, pt2, t):
             d = pt2 - pt1
             return pt1 + t*d
 
-        def constrain_to_wedge(input_pt):
+        def do_constrain_to_wedge(input_pt):
             """ keep the input point inside the wedge of adjacent points """
 
             if self.pt0 is not None:
@@ -657,20 +701,22 @@ class EditNodeAction():
                 event_data = np.array([event.xdata, event.ydata])
                 if self.filter:
                     event_data = self.filter(event_data)
-                event_data = constrain_to_wedge(event_data)
+                if self.constrain_to_wedge:
+                    event_data = do_constrain_to_wedge(event_data)
                 diagram.apply_data(self.cur_node, event_data)
                 fig.build = 'update'
-                fig.refresh_gui(build='update')
+                fig.refresh_gui(build='update', src_model=parax_model)
 
         def on_release(fig, event):
             if event.xdata is not None and event.ydata is not None:
                 event_data = np.array([event.xdata, event.ydata])
                 if self.filter:
                     event_data = self.filter(event_data)
-                event_data = constrain_to_wedge(event_data)
+                if self.constrain_to_wedge:
+                    event_data = do_constrain_to_wedge(event_data)
                 diagram.apply_data(self.cur_node, event_data)
                 fig.build = 'rebuild'
-                fig.refresh_gui(build='rebuild')
+                fig.refresh_gui(build='rebuild', src_model=parax_model)
                 self.cur_node = None
 
         self.actions = {}
@@ -737,6 +783,7 @@ class EditThicknessAction():
 
     def __init__(self, dgm_edge):
         diagram = dgm_edge.diagram
+        parax_model = diagram.parax_model
         self.node = None
         self.bundle = None
 
@@ -793,13 +840,13 @@ class EditThicknessAction():
                                                  inpt, edge_pt))
                     diagram.apply_data(self.node+1, pt2)
                     fig.build = 'update'
-                    fig.refresh_gui(build='update')
+                    fig.refresh_gui(build='update', src_model=parax_model)
 
         def on_release(fig, event):
             if event.xdata is not None and event.ydata is not None:
                 event_data = np.array([event.xdata, event.ydata])
                 fig.build = 'rebuild'
-                fig.refresh_gui(build='rebuild')
+                fig.refresh_gui(build='rebuild', src_model=parax_model)
                 self.node = None
                 self.bundle = None
 
@@ -832,7 +879,7 @@ class EditBendingAction():
 
         def calc_coef_fct(vertex, iNode, dir_inpt, oNode, dir_out):
             nonlocal pm
-            tau_factor = pm.sys[self.node][tau]*pm.opt_inv
+            tau_factor = pm.sys[self.node][mc.tau]*pm.opt_inv
             constrain_to_line = constrain_to_line_action(vertex,
                                                          vertex+dir_inpt)
 
@@ -889,13 +936,13 @@ class EditBendingAction():
 
                     diagram.apply_data(inp[0], inp[1])
                     diagram.apply_data(out[0], out[1])
-                    fig.refresh_gui(build='update')
+                    fig.refresh_gui(build='update', src_model=pm)
 
         def on_release(fig, event):
             if event.xdata is not None and event.ydata is not None:
                 event_data = np.array([event.xdata, event.ydata])
                 fig.build = 'rebuild'
-                fig.refresh_gui(build='rebuild')
+                fig.refresh_gui(build='rebuild', src_model=pm)
                 self.node = None
                 self.bundle = None
                 self.filter = None
@@ -949,7 +996,7 @@ class AddReplaceElementAction():
                                             insert=True)
                     parax_model.paraxial_lens_to_seq_model()
                     fig.build = 'rebuild'
-                    fig.refresh_gui(build='rebuild')
+                    fig.refresh_gui(build='rebuild', src_model=parax_model)
             elif isinstance(shape, DiagramNode):
                 if 'factory' in diagram.command_inputs:
                     # replacing a node with a chunk only requires recording
@@ -963,7 +1010,7 @@ class AddReplaceElementAction():
                 event_data = np.array([event.xdata, event.ydata])
                 diagram.apply_data(self.cur_node, event_data)
                 fig.build = 'update'
-                fig.refresh_gui(build='update')
+                fig.refresh_gui(build='update', src_model=parax_model)
 
         def on_release_add_point(fig, event, shape):
             if self.cur_node is not None:
@@ -976,15 +1023,15 @@ class AddReplaceElementAction():
                     inputs = diagram.assign_object_to_node(self.cur_node,
                                                            factory)
                     idx = seq_model.ifcs.index(prev_ifc)
-                    n_after = parax_model.sys[idx-1][indx]
-                    thi = n_after*parax_model.sys[idx-1][tau]
+                    n_after = parax_model.sys[idx-1][mc.indx]
+                    thi = n_after*parax_model.sys[idx-1][mc.tau]
                     seq_model.gaps[idx-1].thi = thi
                     # remove the edit scaffolding or previous node from model
                     seq, eles, e_node = self.init_inputs[0]
                     diagram.opt_model.remove_node(e_node)
                     parax_model.paraxial_lens_to_seq_model()
                 fig.build = 'rebuild'
-                fig.refresh_gui(build='rebuild')
+                fig.refresh_gui(build='rebuild', src_model=parax_model)
             self.cur_node = None
 
         self.actions = {}

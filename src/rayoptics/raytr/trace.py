@@ -159,7 +159,12 @@ def trace_base(opt_model, pupil, fld, wvl, **kwargs):
     dir0 = pt1 - pt0
     length = norm(dir0)
     dir0 = dir0/length
-    return rt.trace(opt_model.seq_model, pt0, dir0, wvl, **kwargs)
+    sm = opt_model.seq_model
+    # To handle virtual object distances, always propagate from 
+    #  the object in a positive Z direction.
+    if dir0[2] * sm.z_dir[0] < 0:
+        dir0 = -dir0
+    return rt.trace(sm, pt0, dir0, wvl, **kwargs)
 
 
 def iterate_ray(opt_model, ifcx, xy_target, fld, wvl, **kwargs):

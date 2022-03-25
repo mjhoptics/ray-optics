@@ -497,6 +497,9 @@ def create_diagram_layers_groupbox(app, pc):
     ele_btn = QRadioButton("elements")
     ele_btn.setChecked(diagram.active_layer == 'eles')
     ele_btn.toggled.connect(lambda: on_active_diagram_toggled(fig, 'eles'))
+    asm_btn = QRadioButton("assembly")
+    asm_btn.setChecked(diagram.active_layer == 'asm')
+    asm_btn.toggled.connect(lambda: on_active_diagram_toggled(fig, 'asm'))
     sys_btn = QRadioButton("system")
     sys_btn.setChecked(diagram.active_layer == 'sys')
     sys_btn.toggled.connect(lambda: on_active_diagram_toggled(fig, 'sys'))
@@ -504,6 +507,7 @@ def create_diagram_layers_groupbox(app, pc):
     vbox = QVBoxLayout()
     vbox.addWidget(ifcs_btn)
     vbox.addWidget(ele_btn)
+    vbox.addWidget(asm_btn)
     vbox.addWidget(sys_btn)
 
     groupBox.setLayout(vbox)
