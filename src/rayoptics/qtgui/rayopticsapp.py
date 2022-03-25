@@ -35,6 +35,7 @@ from rayoptics.qtgui.pytableview import TableView
 
 from rayoptics.parax import firstorder
 from rayoptics.raytr import trace
+from rayoptics.raytr import traceerror as terr
 
 
 class MainWindow(QMainWindow):
@@ -453,14 +454,17 @@ class MainWindow(QMainWindow):
         fi = 0
         wl = osp.spectral_region.reference_wvl
         fld, wvl, foc = osp.lookup_fld_wvl_focus(fi, wl)
-        ray, ray_op, wvl = trace.trace_base(opt_model, pupil, fld, wvl)
+        try:
+            ray, ray_op, wvl = trace.trace_base(opt_model, pupil, fld, wvl)
+        except terr.TraceError as rayerr:
+            ray, op_delta, wvl = rayerr.ray_pkg
+        finally:
+            ray = [RaySeg(*rs) for rs in ray]
 #        ray, ray_op, wvl, opd = trace.trace_with_opd(opt_model, pupil,
 #                                                     fld, wvl, foc)
 
 #        cr = trace.RayPkg(ray, ray_op, wvl)
 #        s, t = trace.trace_coddington_fan(opt_model, cr, foc)
-
-        ray = [RaySeg(*rs) for rs in ray]
         model = cmds.create_ray_table_model(opt_model, ray)
         self.create_table_view(model, "Ray Table")
 

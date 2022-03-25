@@ -7,16 +7,16 @@ s 0 5
 s 0 -2.25 refl
 ade 60
 ben
-s -.67 -.25 nbk7_schott
+s -.67 -.3 nbk7_schott
 s 0. -0.05
-s 0. -.25 nbk7_schott
+s 0. -.2 nbk7_schott
 s -.77095 -2.25
 s 0 2.25 refl
 ade -60
 ben
-s -.67 0.25 nbk7_schott
+s -.67 0.2 nbk7_schott
 s 0. 0.05
-s 0 .25 nbk7_schott
+s 0 .3 nbk7_schott
 s -.59225 2.25
 s 0 -5 refl
 ade -45

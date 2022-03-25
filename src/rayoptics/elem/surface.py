@@ -94,12 +94,21 @@ class Surface(interface.Interface):
 
         return o_str
 
+    def __json_encode__(self):
+        attrs = dict(vars(self))
+        del attrs['profile']
+        attrs['profile_id'] = str(id(self.profile))
+        return attrs
+
     def update(self):
         super().update()
         self.profile.update()
 
     def sync_to_restore(self, opt_model):
         super().sync_to_restore(opt_model)
+        if not hasattr(self, 'profile'):
+            self.profile = opt_model.profile_dict[self.profile_id]
+            delattr(self, 'profile_id')
         for ca in self.clear_apertures:
             ca.sync_to_restore(opt_model)
         for ea in self.edge_apertures:
@@ -147,6 +156,9 @@ class Surface(interface.Interface):
         x, y = pt
         cv = 2*x / (x**2 + y**2)
         return cv
+
+    def flip(self):
+        self.profile.flip()
 
     def surface_od(self):
         od = 0

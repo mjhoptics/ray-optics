@@ -262,6 +262,9 @@ class Spherical(SurfaceProfile):
     def apply_scale_factor(self, scale_factor):
         self.cv /= scale_factor
 
+    def flip(self):
+        self.cv = -self.cv
+
     def intersect_tangent_plane(self, p, d, eps, z_dir):
         # Welford's intersection with a sphere, starting from the tangent plane
         # transfer p to tangent plane of surface
@@ -442,6 +445,9 @@ class Conic(SurfaceProfile):
 
     def apply_scale_factor(self, scale_factor):
         self.cv /= scale_factor
+
+    def flip(self):
+        self.cv = -self.cv
 
     def intersect_tangent_plane(self, p, d, eps, z_dir):
         # Welford's intersection with a conic, starting from the tangent plane
@@ -689,6 +695,11 @@ class EvenPolynomial(SurfaceProfile):
         self.coef18 *= sf_sqr**9
         self.coef20 *= sf_sqr**10
 
+    def flip(self):
+        self.cv = -self.cv
+        for i, c in enumerate(self.coefs):
+            self.coefs[i] = -c
+
     def update(self):
         self.gen_coef_list()
         return self
@@ -885,6 +896,11 @@ class RadialPolynomial(SurfaceProfile):
         self.coef8 *= scale_factor**8
         self.coef9 *= scale_factor**9
         self.coef10 *= scale_factor**10
+
+    def flip(self):
+        self.cv = -self.cv
+        for i, c in enumerate(self.coefs):
+            self.coefs[i] = -c
 
     def update(self):
         self.gen_coef_list()
@@ -1096,6 +1112,12 @@ class YToroid(SurfaceProfile):
         self.coef16 *= sf_sqr**8
         self.coef18 *= sf_sqr**9
         self.coef20 *= sf_sqr**10
+
+    def flip(self):
+        self.cv = -self.cv
+        self.cR = -self.cR
+        for i, c in enumerate(self.coefs):
+            self.coefs[i] = -c
 
     def update(self):
         self.gen_coef_list()

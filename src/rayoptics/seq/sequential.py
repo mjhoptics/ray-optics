@@ -68,16 +68,24 @@ class SequentialModel:
 
     def __init__(self, opt_model, do_init=True, **kwargs):
         self.opt_model = opt_model
+
         self.ifcs = []
         self.gaps = []
-        self.gbl_tfrms = []
-        self.lcl_tfrms = []
         self.z_dir = []
+
+        self.do_apertures = True
+        
         self.stop_surface = None
         self.cur_surface = None
-        self.wvlns = []
-        self.rndx = []
-        self.do_apertures = True
+
+        # derived attributes
+        self.gbl_tfrms = []
+        self.lcl_tfrms = []
+
+        # data for a wavelength vs index vs gap data arrays
+        self.wvlns = []  # sampling wavelengths in nm
+        self.rndx = []  # refractive index vs wv and gap
+
         if do_init:
             self._initialize_arrays()
 
@@ -86,7 +94,6 @@ class SequentialModel:
         del attrs['opt_model']
         del attrs['gbl_tfrms']
         del attrs['lcl_tfrms']
-        del attrs['z_dir']
         del attrs['wvlns']
         del attrs['rndx']
         return attrs
@@ -209,16 +216,19 @@ class SequentialModel:
 
     def central_wavelength(self):
         """ returns the central wavelength in nm of the model's ``WvlSpec`` """
-        return self.opt_model.optical_spec.spectral_region.central_wvl
+        spectral_region = self.opt_model['optical_spec'].spectral_region
+        return spectral_region.central_wvl
 
     def index_for_wavelength(self, wvl):
         """ returns index into rndx array for wavelength `wvl` in nm """
-        self.wvlns = self.opt_model.optical_spec.spectral_region.wavelengths
+        spectral_region = self.opt_model['optical_spec'].spectral_region
+        self.wvlns = spectral_region.wavelengths
         return self.wvlns.index(wvl)
 
     def central_rndx(self, i):
         """ returns the central refractive index of the model's ``WvlSpec`` """
-        central_wvl = self.opt_model.optical_spec.spectral_region.reference_wvl
+        spectral_region = self.opt_model['optical_spec'].spectral_region
+        central_wvl = spectral_region.reference_wvl
         return self.rndx[i][central_wvl]
 
     def get_surface_and_gap(self, srf=None):
@@ -246,7 +256,7 @@ class SequentialModel:
             self.ifcs.insert(len(self.ifcs)-1, node)
         return self
 
-    def insert(self, ifc, gap, prev=False):
+    def insert(self, ifc, gap, z_dir=1, prev=False):
         """ insert surf and gap at the cur_gap edge of the sequential model
             graph """
         if self.stop_surface is not None:
@@ -261,15 +271,15 @@ class SequentialModel:
         if gap is not None:
             idx_g = idx-1 if prev else idx
             self.gaps.insert(idx_g, gap)
+            z_dir = 1 if z_dir is None else z_dir
+            new_z_dir = z_dir*self.z_dir[idx_g-1] if idx > 1 else z_dir
+            self.z_dir.insert(idx_g, new_z_dir)
         else:
             gap = self.gaps[idx]
 
         tfrm = np.identity(3), np.array([0., 0., 0.])
         self.gbl_tfrms.insert(idx, tfrm)
         self.lcl_tfrms.insert(idx, tfrm)
-
-        new_z_dir = self.z_dir[idx-1] if idx > 1 else 1
-        self.z_dir.insert(idx, new_z_dir)
 
         wvls = self.opt_model.optical_spec.spectral_region.wavelengths
         rindex = [gap.medium.rindex(w) for w in wvls]
@@ -369,10 +379,11 @@ class SequentialModel:
             if not isanumber(surf_data[2]):
                 if surf_data[2].upper() == 'REFL':
                     mat = self.gaps[self.cur_surface].medium
-        s, g, rn, tfrm = create_surface_and_gap(surf_data, prev_medium=mat,
-                                                radius_mode=radius_mode,
-                                                **kwargs)
-        self.insert(s, g)
+        s, g, z_dir, rn, tfrm = create_surface_and_gap(surf_data,
+                                                       prev_medium=mat,
+                                                       radius_mode=radius_mode,
+                                                       **kwargs)
+        self.insert(s, g, z_dir=z_dir)
 
         root_node = self.opt_model['part_tree'].root_node
         idx = self.cur_surface
@@ -393,7 +404,7 @@ class SequentialModel:
         for sg in itertools.zip_longest(self.ifcs, self.gaps):
             ifc, g = sg
             if hasattr(ifc, 'sync_to_restore'):
-                ifc.sync_to_restore(self)
+                ifc.sync_to_restore(opt_model)
             if g:
                 if hasattr(g, 'sync_to_restore'):
                     g.sync_to_restore(self)
@@ -411,15 +422,14 @@ class SequentialModel:
     def update_model(self, **kwargs):
         # delta n across each surface interface must be set to some
         #  reasonable default value. use the index at the central wavelength
-        osp = self.opt_model.optical_spec
-        ref_wl = osp.spectral_region.reference_wvl
+        spectral_region = self.opt_model['optical_spec'].spectral_region
+        ref_wl = spectral_region.reference_wvl
 
-        self.wvlns = osp.spectral_region.wavelengths
+        self.wvlns = spectral_region.wavelengths
         self.rndx = self.calc_ref_indices_for_spectrum(self.wvlns)
         n_before = self.rndx[0][ref_wl]
 
-        self.z_dir = []
-        z_dir_before = 1
+        z_dir_before = self.z_dir[0]
 
         seq = itertools.zip_longest(self.ifcs, self.gaps)
 
@@ -438,7 +448,7 @@ class SequentialModel:
                 n_before = n_after
     
                 z_dir_before = z_dir_after
-                self.z_dir.append(z_dir_after)
+                self.z_dir[i] = z_dir_after
 
             # call update() on the surface interface
             ifc.update()
@@ -446,10 +456,9 @@ class SequentialModel:
         self.gbl_tfrms = self.compute_global_coords()
         self.lcl_tfrms = self.compute_local_transforms()
 
+    def update_optical_properties(self, **kwargs):
         if self.do_apertures:
             if len(self.ifcs) > 2:
-                osp.update_model(**kwargs)
-    
                 self.set_clear_apertures()
 
     def apply_scale_factor(self, scale_factor):
@@ -461,6 +470,30 @@ class SequentialModel:
 
         self.gbl_tfrms = self.compute_global_coords()
         self.lcl_tfrms = self.compute_local_transforms()
+
+    def flip(self, idx1: int, idx2: int) -> None:
+        """Flip interfaces and gaps from *idx1* thru *idx2*."""
+        def partial_reverse(list_, idx1: int, idx2: int):
+            for i in range(0, int((idx2 - idx1)/2)+1):
+                a, b = idx1+i, idx2-i
+                if a < b:
+                    (list_[a], list_[b]) = (list_[b], list_[a])
+
+        if idx2 < idx1:
+            idx1, idx2 = idx2, idx1
+        partial_reverse(self.ifcs, idx1, idx2)
+        partial_reverse(self.gaps, idx1, idx2-1)
+
+        for ifc in self.ifcs[idx1:idx2+1]:
+            ifc.flip()
+
+        if self.stop_surface is not None:
+            # if the stop surface is in the flip range, flip it too
+            stop_idx = self.stop_surface
+            if stop_idx >= idx1 and stop_idx <= idx2:
+                self.stop_surface = idx2 - (stop_idx - idx1)
+
+        self.update_model()
 
     def set_from_specsheet(self, specsheet):
         if 'parax_data' not in self.opt_model['analysis_results']:
@@ -675,8 +708,7 @@ class SequentialModel:
         fld.chief_ray = cr_pkg
         fld.ref_sphere = rs_pkg
 
-        # Use the central wavelength reference image point for the 
-        #  wavefront error calculations
+        # Use the central wavelength reference image point for the wavefront error calculations
         ref_img_pt = rs_pkg[0]
 
         wvls = osp.spectral_region
@@ -921,7 +953,7 @@ def gen_sequence(surf_data_list, **kwargs):
     z_dir = []
 
     for surf_data in surf_data_list:
-        s, g, rn, tfrm = create_surface_and_gap(surf_data, **kwargs)
+        s, g, z_dir, rn, tfrm = create_surface_and_gap(surf_data, **kwargs)
         ifcs.append(s)
         gaps.append(g)
         rndx.append(rn)
@@ -977,6 +1009,7 @@ def create_surface_and_gap(surf_data, radius_mode=False, prev_medium=None,
     else:
         s.profile.cv = surf_data[0]
 
+    z_dir = 1
     if len(surf_data) > 2:
         if isanumber(surf_data[2]):  # assume all args are numeric
             if len(surf_data) < 3:
@@ -994,6 +1027,7 @@ def create_surface_and_gap(surf_data, radius_mode=False, prev_medium=None,
             if surf_data[2].upper() == 'REFL':
                 s.interact_mode = 'reflect'
                 mat = prev_medium
+                z_dir = -1
             else:
                 num_str_args = 0
                 for tkn in surf_data[2:]:
@@ -1027,4 +1061,4 @@ def create_surface_and_gap(surf_data, radius_mode=False, prev_medium=None,
     rndx = mat.rindex(wvl)
     tfrm = np.identity(3), np.array([0., 0., thi])
 
-    return s, g, rndx, tfrm
+    return s, g, z_dir, rndx, tfrm

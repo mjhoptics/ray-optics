@@ -149,11 +149,13 @@ class OpticalSpecs:
         self.spectral_region.update_model(**kwargs)
         self.pupil.update_model(**kwargs)
         self.field_of_view.update_model(**kwargs)
-        stop = self.opt_model.seq_model.stop_surface
-        wvl = self.spectral_region.central_wvl
 
+    def update_optical_properties(self, **kwargs):
         if self.opt_model.seq_model.get_num_surfaces() > 2:
+            stop = self.opt_model.seq_model.stop_surface
+            wvl = self.spectral_region.central_wvl
             self.parax_data = compute_first_order(self.opt_model, stop, wvl)
+
             if self.do_aiming:
                 for i, fld in enumerate(self.field_of_view.fields):
                     aim_pt = aim_chief_ray(self.opt_model, fld, wvl)

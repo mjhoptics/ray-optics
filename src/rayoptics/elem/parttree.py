@@ -27,9 +27,16 @@ class PartTree():
         attrs = dict(vars(self))
         del attrs['opt_model']
 
-        exporter = DictExporter(attriter=lambda attrs_:
-                                [(k, v) for k, v in attrs_
-                                 if k == "name" or k == "tag"])
+        def node_attrs(attrs_):
+            attrs = []
+            for k, v in attrs_:
+                if k == "name" or k == "tag":
+                    attrs.append((k, v))
+                elif k == "id":
+                    attrs.append(("id_key", str(id(v))))
+            return attrs
+
+        exporter = DictExporter(attriter=node_attrs)
         attrs['root_node'] = exporter.export(self.root_node)
         return attrs
 
@@ -39,15 +46,23 @@ class PartTree():
             root_node_compressed = self.root_node
             importer = DictImporter()
             self.root_node = importer.import_(root_node_compressed)
-            sync_part_tree_on_restore(self.opt_model.ele_model,
-                                      self.opt_model.seq_model,
-                                      self.root_node)
+            self.root_node.id = self
+            if hasattr(self.root_node, 'id_key'):
+                sync_part_tree_on_restore_idkey(self.opt_model, 
+                                                self.opt_model.ele_model,
+                                                self.opt_model.seq_model,
+                                                self.root_node)
+            else:
+                sync_part_tree_on_restore(self.opt_model, 
+                                          self.opt_model.ele_model,
+                                          self.opt_model.seq_model,
+                                          self.root_node)
 
     def update_model(self, **kwargs):
         sync_part_tree_on_update(self.opt_model.ele_model,
                                  self.opt_model.seq_model,
                                  self.root_node)
-        self.sort_using_sequence(self.opt_model.seq_model)
+        self.sort_tree_using_sequence(self.opt_model.seq_model)
 
     def init_from_sequence(self, seq_model):
         """Initialize part tree using a *seq_model*. """
@@ -59,22 +74,43 @@ class PartTree():
             if gap is not None:
                 Node(f'g{i}', id=(gap, z_dir), tag='#gap', parent=root_node)
 
-    def sort_using_sequence(self, seq_model):
+    def sort_tree_using_sequence(self, seq_model):
         """Resequence part tree using a *seq_model*. """
-        e_node_list = []
-        for i, sgz in enumerate(zip_longest(seq_model.ifcs, seq_model.gaps,
-                                            seq_model.z_dir)):
-            ifc, gap, z_dir = sgz
-            e_node = self.parent_node(ifc)
-            if e_node is not None and e_node not in e_node_list:
-                e_node_list.append(e_node)
-            if gap is not None:
-                g_node = self.parent_node((gap, z_dir))
-                if g_node is not None and g_node not in e_node_list:
-                    e_node_list.append(g_node)
+        def parse_path(path2root, groups):
+            for i, node in enumerate(path2root[1:]):
+                parent_node = path2root[i]
+                if parent_node in groups:
+                    if node not in groups[parent_node]:
+                        groups[parent_node].append(node)
+                else:
+                    groups[parent_node] = [node]
 
-        if len(e_node_list) > 0:
-            self.root_node.children = e_node_list
+        groups = {}
+        for i, sgz in enumerate(zip_longest(seq_model.ifcs, 
+                                            seq_model.gaps, 
+                                            seq_model.z_dir)):        
+            ifc, gap, z_dir = sgz
+        
+            ifc_node = self.node(ifc)
+            if ifc_node is not None:
+                # path2root = ifc_node.path[:-2]
+                path2root = self.nodes_with_tag(
+                    node_list=ifc_node.path, 
+                    tag='#element#airgap#dummyifc#group')
+
+                parse_path(path2root, groups)
+        
+            if gap is not None:
+                gap_node = self.node((gap, z_dir))
+                if gap_node is not None:
+                    # path2root = gap_node.path[:-2]
+                    path2root = self.nodes_with_tag(
+                        node_list=gap_node.path, 
+                        tag='#element#airgap#dummyifc#group')
+                    parse_path(path2root, groups)
+
+        for group_node, child_list in groups.items():
+            group_node.children = child_list
 
     def add_element_model_to_tree(self, ele_model):
         for e in ele_model.elements:
@@ -97,6 +133,9 @@ class PartTree():
         """ Return the node paired with `obj`. """
         return find_by_attr(self.root_node, name='id', value=obj)
 
+    def obj_by_name(self, name):
+        """ Return the node paired with `obj`. """
+        return find_by_attr(self.root_node, name='name', value=name).id
 
     def trim_node(self, obj):
         """ Remove the branch where `obj` is the sole leaf. """
@@ -133,6 +172,13 @@ class PartTree():
         parent = parent_node.id if parent_node else None
         return parent, parent_node
 
+    def get_child_filter(self, tag='#element#assembly', not_tag=''):
+        """ Returns a fct that filters a list of nodes to satisfy the tags"""
+        def children_with_tag(children):
+            return self.nodes_with_tag(node_list=children, 
+                                       tag=tag, not_tag=not_tag)
+        return children_with_tag
+
     def list_tree(self, *args, **kwargs):
         """ Print a graphical console representation of the tree. 
 
@@ -143,13 +189,14 @@ class PartTree():
             - pt.list_tree(attrname='tag')
 
         """
-        print(RenderTree(self.root_node).by_attr(*args, **kwargs))
+        list_tree_from_node(self.root_node, *args, **kwargs)
 
     def list_tree_full(self):
         """ Print a graphical console representation of the tree with tags. """
         self.list_tree(lambda node: f"{node.name}: {node.tag}")
 
-    def nodes_with_tag(self, tag='#element', not_tag='', root=None):
+    def nodes_with_tag(self, tag='#element', not_tag='',
+                       root=None, node_list=None):
         """ Return a list of nodes that contain the requested `tag`. """
         def tag_filter(tags):
             def filter_tagged_node(node):
@@ -164,20 +211,24 @@ class PartTree():
 
         tags = tag.split('#')[1:]
         not_tags = not_tag.split('#')[1:]
-        root_node = self.root_node if root is None else root
-        nodes = [node for node in PreOrderIter(root_node,
-                                               filter_=tag_filter(tags))]
+        
+        if root is not None:
+            nodes = [node for node in PreOrderIter(root,
+                                                   filter_=tag_filter(tags))]
+        elif node_list is not None:
+            filter_node = tag_filter(tags)
+            nodes = [node for node in node_list if filter_node(node)]
+        else:
+            root_node = self.root_node
+            nodes = [node for node in PreOrderIter(root_node,
+                                                   filter_=tag_filter(tags))]
         return nodes
 
-    def list_model(self, tag='#element'):
-        nodes = self.nodes_with_tag(tag)
-        for i, node in enumerate(nodes):
-            ele = node.id
-            print("%d: %s (%s): %s" %
-                  (i, ele.label, type(ele).__name__, ele))
+    def list_model(self, tag='#element#assembly#dummyifc'):
+        self.list_tree(childiter=self.get_child_filter(tag=tag))
 
 
-def sync_part_tree_on_restore(ele_model, seq_model, root_node):
+def sync_part_tree_on_restore(opt_model, ele_model, seq_model, root_node):
     ele_dict = {e.label: e for e in ele_model.elements}
     for node in PreOrderIter(root_node):
         name = node.name
@@ -196,7 +247,7 @@ def sync_part_tree_on_restore(ele_model, seq_model, root_node):
                 idx = int(name[1:]) - 1
             except ValueError:
                 idx = 0
-            node.id = e.interface_list()[idx].profile
+            node.id = e.profile_list()[idx]
         elif name[:2] == 'tl':
             p_name = node.parent.name
             e = ele_dict[p_name]
@@ -210,6 +261,34 @@ def sync_part_tree_on_restore(ele_model, seq_model, root_node):
             p_name = node.parent.name
             e = ele_dict[p_name]
             node.id = e.ref_ifc
+
+
+def sync_part_tree_on_restore_idkey(opt_model, ele_model, seq_model, root_node):
+    for node in PreOrderIter(root_node):
+        name = node.name
+        if node.id_key in opt_model.parts_dict:
+            node.id = opt_model.parts_dict[node.id_key]
+        elif name[0] == 'i':
+            idx = int(name[1:])
+            node.id = seq_model.ifcs[idx]
+        elif name[0] == 'g':
+            idx = int(name[1:])
+            node.id = (seq_model.gaps[idx], seq_model.z_dir[idx])
+        elif name[0] == 'p':
+            node.id = opt_model.profile_dict[node.id_key]
+        elif name[:2] == 'tl':
+            e = opt_model.parts_dict[node.parent.id_key]
+            node.id = e.intrfc
+        elif name[0] == 't':
+            e = opt_model.parts_dict[node.parent.id_key]
+            idx = int(name[1:])-1 if len(name) > 1 else 0
+            node.id = e.gap_list()[idx]
+        elif name[:1] == 'di':
+            e = opt_model.parts_dict[node.parent.id_key]
+            node.id = e.ref_ifc
+
+    for node in PreOrderIter(root_node):
+        delattr(node, 'id_key')
 
 
 def sync_part_tree_on_update(ele_model, seq_model, root_node):
@@ -230,7 +309,9 @@ def sync_part_tree_on_update(ele_model, seq_model, root_node):
             p_name = node.parent.name
             e = ele_dict[p_name]
             idx = int(name[1:])-1 if len(name) > 1 else 0
-            node.id = e.interface_list()[idx].profile
+            num_idxs = len(e.idx_list())
+            idx = (num_idxs-idx-1) if e.is_flipped else idx
+            node.id = e.profile_list()[idx]
         elif name[:2] == 'tl':
             p_name = node.parent.name
             e = ele_dict[p_name]
@@ -245,8 +326,11 @@ def sync_part_tree_on_update(ele_model, seq_model, root_node):
         elif name == 'root':
             pass
         else:
-            if hasattr(node.id, 'label'):
-                node.name = node.id.label
+            if hasattr(node, 'id'):
+                if hasattr(node.id, 'label'):
+                    node.name = node.id.label
+            else:
+                print(f"sync_part_tree_on_update: No id attribute: {node.name}, {node.tag}")
 
 
 def elements_from_sequence(ele_model, seq_model, part_tree):
@@ -260,7 +344,7 @@ def elements_from_sequence(ele_model, seq_model, part_tree):
     eles = []
     path = seq_model.path()
     for i, seg in enumerate(path):
-        ifc, g, rindx, tfrm, z_dir = seg
+        ifc, g, tfrm, rindx, z_dir = seg
         if part_tree.parent_node(ifc) is None:
             g_tfrm = g_tfrms[i]
     
@@ -354,7 +438,8 @@ def elements_from_sequence(ele_model, seq_model, part_tree):
         node.tag += '#image'
 
     # sort the final tree by seq_model order
-    part_tree.sort_using_sequence(seq_model)
+    part_tree.sort_tree_using_sequence(seq_model)
+
 
 def process_airgap(ele_model, seq_model, part_tree, i, g, z_dir, s, g_tfrm,
                    add_ele=True):
@@ -406,3 +491,45 @@ def process_airgap(ele_model, seq_model, part_tree, i, g, z_dir, s, g_tfrm,
         ag_node = part_tree.add_element_to_tree(ag, z_dir=z_dir, tag=gap_tag)
         ag_node.leaves[0].id = (g, z_dir)
         ele_model.add_element(ag)
+
+
+def part_list_from_seq(opt_model, idx1, idx2):
+    """Using the part_tree, return the parts for the input sequence range. """
+    sm = opt_model['seq_model']
+    seq = zip_longest(sm.ifcs[idx1:idx2+1], 
+                      sm.gaps[idx1:idx2], 
+                      sm.z_dir[idx1:idx2])
+    part_tree = opt_model['part_tree']
+    node_set = set()
+    for ifc, gap, z_dir in seq:
+        ifc_node = part_tree.node(ifc)
+        parent_asm = ifc_node.ancestors[1]
+        node_set.add(parent_asm)
+        if gap is not None:
+            gap_node = part_tree.node((gap, z_dir))
+            parent_asm = gap_node.ancestors[1]
+            node_set.add(parent_asm)
+
+    node_list = sorted(node_set, key=lambda node: node.id.reference_idx())
+    part_list = [node.id for node in node_list]
+    return part_list, node_list
+
+
+def list_tree_all_from_node(node, **kwargs):
+    """ List the tree from `node` with full node output. """
+    tag_filter = kwargs.pop('childiter', list)
+    print(RenderTree(node, childiter=tag_filter))
+
+
+def list_tree_from_node(node, *args, **kwargs):
+    """ List the tree from `node` with attribute filtering. 
+
+    The optional arguments are passed through to the by_attr filter.
+    Useful examples or arguments include:
+
+        - pt.list_tree(lambda node: f"{node.name}: {node.tag}")
+        - pt.list_tree(attrname='tag')
+
+    """
+    tag_filter = kwargs.pop('childiter', list)
+    print(RenderTree(node, childiter=tag_filter).by_attr(*args, **kwargs))

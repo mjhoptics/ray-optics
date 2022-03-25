@@ -12,26 +12,33 @@ from collections import namedtuple
 import itertools
 from packaging import version
 
+from abc import abstractmethod
+from typing import Protocol, ClassVar, List, Dict, Any
+
 import numpy as np
 
-from anytree import Node
+from anytree import Node  # type: ignore
 
 import rayoptics
 
 import rayoptics.util.rgbtable as rgbt
 import rayoptics.oprops.thinlens as thinlens
 from rayoptics.elem import parttree
-from rayoptics.elem.profiles import Spherical, Conic
+from rayoptics.elem.profiles import SurfaceProfile, Spherical, Conic
 from rayoptics.elem.surface import Surface
 from rayoptics.seq.gap import Gap
 from rayoptics.seq.medium import Glass, glass_decode
+
+# from rayoptics.optical.opticalmodel import OpticalModel
+from rayoptics.seq.sequential import SequentialModel
+from rayoptics.seq.interface import Interface
 
 import rayoptics.gui.appcmds as cmds
 from rayoptics.gui.actions import (Action, AttrAction, SagAction, BendAction,
                                    ReplaceGlassAction)
 
-import opticalglass.glassfactory as gfact
-import opticalglass.glasspolygons as gp
+import opticalglass.glassfactory as gfact  # type: ignore
+import opticalglass.glasspolygons as gp  # type: ignore
 
 GraphicsHandle = namedtuple('GraphicsHandle', ['polydata', 'tfrm', 'polytype',
                                                'color'], defaults=(None,))
@@ -48,6 +55,9 @@ GraphicsHandle.color.__doc__ = "RGBA for the polydata or None for default"
         tfrm: global transformation for polydata
         polytype: 'polygon' (for filled) or 'polyline'
 """
+
+rot_around_x = np.array([[1, 0, 0], [0, -1, 0], [0, 0, -1]])
+rot_around_y = np.array([[-1, 0, 0], [0, 1, 0], [0, 0, -1]])
 
 
 # --- Factory functions
@@ -66,7 +76,7 @@ def create_mirror(c=0.0, r=None, cc=0.0, ec=None,
         c: vertex curvature
         r: vertex radius of curvature
         cc: conic constant
-        ec: 1 + cc
+        ec: = 1 + cc
         power:  optical power of the mirror
         sd:  semi-diameter
         profile: Spherical or Conic type, or a profile instance
@@ -95,6 +105,8 @@ def create_mirror(c=0.0, r=None, cc=0.0, ec=None,
             prf = Spherical(c=cv)
         else:
             prf = Conic(c=cv, cc=k)
+
+    sd = sd if sd is not None else 1
 
     m = Surface(profile=prf, interact_mode='reflect', max_ap=sd,
                 delta_n=delta_n, **kwargs)
@@ -129,12 +141,18 @@ def lens_from_power(power=0., bending=0., th=None, sd=1.,
     return cv1, cv2, th, rndx, sd
    
 
-def create_lens(power=0., bending=0., th=None, sd=1., med=None, **kwargs):
+def create_lens(power=0., bending=0., th=None, sd=1., med=None, 
+                lens=None, **kwargs):
     if med is None:
         med = Glass()
-    lens = lens_from_power(power=power, bending=bending, th=th, sd=sd,
-                           med=med)
-    cv1, cv2, th, rndx, sd = lens
+    if lens is None:
+        lens = lens_from_power(power=power, bending=bending, th=th, sd=sd,
+                               med=med)
+    else:
+        cv1, cv2, th, glass, sd = lens
+        med = gfact.create_glass(glass)
+        rndx = med.calc_rindex('d')
+        lens = cv1, cv2, th, rndx, sd
 
     s1 = Surface(profile=Spherical(c=cv1), max_ap=sd, delta_n=(rndx - 1))
     s2 = Surface(profile=Spherical(c=cv2), max_ap=sd, delta_n=(1 - rndx))
@@ -155,7 +173,7 @@ def achromat(power, Va, Vb):
 def create_cemented_doublet(power=0., bending=0., th=None, sd=1.,
                             glasses=('N-BK7,Schott', 'N-F2,Schott'),
                             **kwargs):
-    from opticalglass.spectral_lines import get_wavelength
+    from opticalglass.spectral_lines import get_wavelength  # type: ignore
     from opticalglass import glass
     wvls = np.array([get_wavelength(w) for w in ['d', 'F', 'C']])
     gla_a = gfact.create_glass(glasses[0])
@@ -220,12 +238,13 @@ def create_dummy_plane(sd=1., **kwargs):
 def create_air_gap(t=0., **kwargs):
     g = Gap(t=t)
     ag = AirGap(g, **kwargs)
-    tree = ag.tree()
+    kwargs.pop('label', None)
+    tree = ag.tree(**kwargs)
     return g, ag, tree
 
 
 def create_from_file(filename, **kwargs):
-    opm = cmds.open_model(filename)
+    opm = cmds.open_model(filename, post_process_imports=False)
     sm = opm['seq_model']
     osp = opm['optical_spec']
     em = opm['ele_model']
@@ -233,6 +252,7 @@ def create_from_file(filename, **kwargs):
     ar = opm['analysis_results']
     if len(pt.nodes_with_tag(tag='#element')) == 0:
         parttree.elements_from_sequence(em, sm, pt)
+
     if 'power' in kwargs:
         desired_power = kwargs['power']
         cur_power = ar['parax_data'].fod.power
@@ -240,13 +260,38 @@ def create_from_file(filename, **kwargs):
         #  so use reciprocal of power to compute scale_factor
         scale_factor = cur_power/desired_power
         sm.apply_scale_factor(scale_factor)
+
+    # extract the system definition, minus object and image
     seq = [list(node) for node in sm.path(start=1, stop=-1)]
-    seq[-1][2] = None
-    sys_nodes = pt.nodes_with_tag(tag='#element#airgap',
-                                  not_tag='#object#image')
-    eles = [node.id for node in sys_nodes]
-    root = Node('file', id=None, tag='#group', children=sys_nodes)
-    return seq, eles, root
+    seq[-1][1] = None
+    # get the top level nodes of the input system, minus object and image
+    part_nodes = pt.nodes_with_tag(tag='#element#airgap#assembly',
+                                   not_tag='#object#image',
+                                   node_list=pt.root_node.children)
+    parts = [part_node.id for part_node in part_nodes]
+
+    if (len(part_nodes) == 1 and '#assembly' in part_nodes[0].tag):
+        asm_node = part_nodes[0]
+        print("found root assembly node")
+    else:
+        # create an Assembly from the top level part list
+        label = kwargs.get('label', None)
+        tfrm = kwargs.get('tfrm', opm['seq_model'].gbl_tfrms[1])
+        asm = Assembly(parts, idx=1, label=label, tfrm=tfrm)
+        asm_node = asm.tree(part_tree=opm['part_tree'], tag='#file')
+    asm_node.parent = None
+
+    return seq, parts, part_nodes
+
+
+def create_assembly_from_seq(opt_model, idx1, idx2, **kwargs):
+    part_list, node_list = parttree.part_list_from_seq(opt_model, idx1, idx2)
+    label = kwargs.get('label', None)
+    tfrm = kwargs.get('tfrm', opt_model['seq_model'].gbl_tfrms[idx1])
+    asm = Assembly(part_list, idx=idx1, label=label, tfrm=tfrm)
+    asm_node = asm.tree(part_tree=opt_model['part_tree'])
+
+    return asm, asm_node
 
 
 def calc_render_color_for_material(matl):
@@ -263,17 +308,218 @@ def calc_render_color_for_material(matl):
             return [228, 237, 243, 64]  # ED designation
 #            rgb = Element.clut.get_color(vnbr)
         return rgb
+    
+
+def full_profile(profile, is_flipped, edge_extent,
+                 flat_id=None, hole_id=None, dir=1, steps=6):
+    do_orig = False
+    if do_orig:
+        return full_profile_orig(profile, is_flipped, edge_extent,
+                                 flat_id, dir, steps)
+    else:
+        return full_profile_new(profile, is_flipped, edge_extent,
+                                flat_id, hole_id, dir, steps)
+
+
+def full_profile_orig(profile, is_flipped, edge_extent,
+                      flat_id=None, dir=1, steps=6):
+    """Produce a 2d segmented approximation to the *profile*. 
+
+    profile: optical profile to be sampled
+    edge_extent: tuple with symmetric or asymetric bounds
+    flat_id: if not None, inside diameter of flat zone
+    dir: sampling direction, +1 for up, -1 for down
+    steps: number of profile curve samples
+    """
+    from rayoptics.raytr.traceerror import TraceError
+    if flat_id is None:
+        return profile.profile(edge_extent, dir, steps)
+    else:
+        if len(edge_extent) == 1:
+            sd_upr = edge_extent[0]
+            sd_lwr = -edge_extent[0]
+        else:
+            sd_upr = edge_extent[1]
+            sd_lwr = edge_extent[0]
+        if dir < 0:
+            sd_lwr, sd_upr = sd_upr, sd_lwr
+
+        prf = []
+        try:
+            sag = profile.sag(0, flat_id)
+        except TraceError:
+            sag = None
+        else:
+            prf.append([sag, sd_lwr])
+        prf += profile.profile((flat_id,), dir, steps)
+        if sag is not None:
+            prf.append([sag, sd_upr])
+        return prf
+
+
+def full_profile_new(profile, is_flipped, edge_extent,
+                     flat_id=None, hole_id=None, dir=1, steps=6):
+    """Produce a 2d segmented approximation to the *profile*. 
+
+    profile: optical profile to be sampled
+    edge_extent: tuple with symmetric or asymetric bounds
+    flat_id: if not None, inside diameter of flat zone
+    hole_id: if not None, inside diameter of centered surface hole
+    dir: sampling direction, +1 for up, -1 for down
+    steps: number of profile curve samples
+    """
+    from rayoptics.raytr.traceerror import TraceError
+    def process_edges(edge_extent, dir):
+        if len(edge_extent) == 1:
+            sd_upr = edge_extent[0]
+            sd_lwr = -edge_extent[0]
+        else:
+            sd_upr = edge_extent[1]
+            sd_lwr = edge_extent[0]
+        if dir < 0:
+            sd_lwr, sd_upr = sd_upr, sd_lwr
+        return sd_lwr, sd_upr
+
+    if flat_id is None:
+        if hole_id is None:
+            prf = profile.profile(edge_extent, dir, steps)
+        else:
+            sd_lwr, sd_upr = process_edges(edge_extent, dir)
+            prf = profile.profile((sd_upr, hole_id), dir, steps)
+            prf += profile.profile((-hole_id, sd_lwr), dir, steps)
+            
+    else:
+        sd_lwr, sd_upr = process_edges(edge_extent, dir)
+        prf = []
+
+        # compute top part of flat
+        try:
+            sag = profile.sag(0, flat_id)
+        except TraceError:
+            sag = None
+        else:
+            prf.append([sag, sd_lwr])
+
+        if hole_id is None:
+            prf += profile.profile((flat_id,), dir, steps)
+        else:
+            prf += profile.profile((flat_id, hole_id), dir, steps)
+            prf += profile.profile((-hole_id, -flat_id), dir, steps)
+
+        if sag is not None:
+            prf.append([sag, sd_upr])
+
+    if is_flipped:
+        prf = [[-pt[0], pt[1]] for pt in prf]
+    return prf
+
+
+def encode_obj_reference(obj, obj_attr_str, attrs):
+    attrs[obj_attr_str+'_id'] = str(id(getattr(obj, obj_attr_str)))
+    del attrs[obj_attr_str]
+
+
+def sync_obj_reference(obj, obj_attr_str, obj_dict, alt_attr_value):
+    if hasattr(obj, obj_attr_str+'_id'):
+        obj_id = getattr(obj, obj_attr_str+'_id')
+        setattr(obj, obj_attr_str, obj_dict[obj_id])
+        delattr(obj, obj_attr_str+'_id')
+    else:
+        setattr(obj, obj_attr_str, alt_attr_value)
 
 
 # --- Element definitions
-class Element():
+class Part(Protocol):
+    """Abstract base class for all types of elements. """
+    label_format: ClassVar[str]
+    label: str
+    parent: Any
+    is_flipped: bool = False
+
+    def flip(self):
+        """Called by opt_model.flip when a Part is flipped. """
+        self.do_flip()
+        self.is_flipped = not self.is_flipped
+
+    @abstractmethod
+    def do_flip(self):
+        """Subclass action when it is flipped. """
+        raise NotImplementedError
+
+    @abstractmethod
+    def sync_to_restore(self, ele_model, surfs, gaps, tfrms, 
+                        profile_dict, parts_dict):
+        raise NotImplementedError
+
+    @abstractmethod
+    def sync_to_seq(self, seq_model: SequentialModel):
+        raise NotImplementedError
+
+    @abstractmethod
+    def tree(self, **kwargs) -> Node:
+        raise NotImplementedError
+
+    @abstractmethod
+    def idx_list(self) -> List[int]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def reference_idx(self) -> int:
+        raise NotImplementedError
+
+    @abstractmethod
+    def reference_interface(self) -> Interface:
+        raise NotImplementedError
+
+    @abstractmethod
+    def profile_list(self) -> List[SurfaceProfile]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def gap_list(self) -> List[Gap]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def update_size(self) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def render_handles(self, opt_model) -> Dict[str, GraphicsHandle]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def handle_actions(self) -> Dict[str, Any]:
+        raise NotImplementedError
+
+
+def do_flip_with_part_list(part_list: List[Part], flip_pt_tfrm) -> None:
+    """Flip a list of parts around a flip_pt. """
+
+    r_asm, flip_pt = flip_pt_tfrm
+            
+    r_asm_new = np.matmul(r_asm, rot_around_y)
+    
+    for p in part_list:
+        r, t = p.tfrm
+        # get part into flip_pt_tfrm coordinate system
+        r_part = np.matmul(r_asm.T, r)
+        t_part = r_asm.T.dot(t - flip_pt)
+
+        # apply the 180 degree rotation to the part
+        r_part_new = np.matmul(r_asm_new, r_part)
+        t_part_new = flip_pt + r_asm_new.dot(t_part)
+
+        # set the new transform and flip the is_flipped bit
+        p.tfrm = r_part_new, t_part_new
+        p.is_flipped = not p.is_flipped
+
+
+class Element(Part):
     """Lens element domain model. Manage rendering and selection/editing.
 
     An Element consists of 2 Surfaces, 1 Gap, and edge_extent information.
 
     Attributes:
-        parent: the :class:`ElementModel`
-        label: string identifier
         s1: first/origin :class:`~rayoptics.seq.interface.Interface`
         s2: second/last :class:`~rayoptics.seq.interface.Interface`
         gap: element thickness and material :class:`~rayoptics.seq.gap.Gap`
@@ -298,15 +544,16 @@ class Element():
             self.label = Element.label_format.format(Element.serial_number)
         else:
             self.label = label
-
         if tfrm is not None:
             self.tfrm = tfrm
         else:
             self.tfrm = (np.identity(3), np.array([0., 0., 0.]))
         self.s1 = s1
+        self.profile1 = s1.profile
         self.s1_indx = idx
         self.s2 = s2
         self.s2_indx = idx2
+        self.profile2 = s2.profile
         self.gap = g
         self.medium_name = self.gap.medium.name()
         self._sd = sd
@@ -330,40 +577,54 @@ class Element():
     def __json_encode__(self):
         attrs = dict(vars(self))
         del attrs['parent']
-        del attrs['tfrm']
         del attrs['s1']
         del attrs['s2']
         del attrs['gap']
         del attrs['handles']
         del attrs['actions']
+        encode_obj_reference(self, 'profile1', attrs)
+        encode_obj_reference(self, 'profile2', attrs)
         return attrs
-
+        
     def __str__(self):
         fmt = 'Element: {!r}, {!r}, t={:.4f}, sd={:.4f}, glass: {}'
         return fmt.format(self.s1.profile, self.s2.profile, self.gap.thi,
                           self.sd, self.gap.medium.name())
 
-    def sync_to_restore(self, ele_model, surfs, gaps, tfrms):
+    def sync_to_restore(self, ele_model, surfs, gaps, tfrms, 
+                        profile_dict, parts_dict):
         # when restoring, we want to use the stored indices to look up the
         # new object instances
         self.parent = ele_model
-        self.tfrm = tfrms[self.s1_indx]
+        if not hasattr(self, 'tfrm'):
+            self.tfrm = tfrms[self.s1_indx]
         self.s1 = surfs[self.s1_indx]
-        self.gap = gaps[self.s1_indx]
+        sync_obj_reference(self, 'profile1', profile_dict, self.s1.profile)
+
+        if self.is_flipped:
+            self.gap = gaps[self.s2_indx]
+        else:
+            self.gap = gaps[self.s1_indx]
         self.s2 = surfs[self.s2_indx]
+        sync_obj_reference(self, 'profile2', profile_dict, self.s2.profile)
+
         if not hasattr(self, 'medium_name'):
             self.medium_name = self.gap.medium.name()
         if not hasattr(self, 'do_flat1'):
             self.do_flat1 = 'if concave'
         if not hasattr(self, 'do_flat2'):
             self.do_flat2 = 'if concave'
+        self.handles = {}
+        self.actions = {}
 
-    def sync_to_update(self, seq_model):
+    def sync_to_seq(self, seq_model):
         # when updating, we want to use the stored object instances to get the
         # current indices into the interface list (e.g. to handle insertion and
         # deletion of interfaces)
         self.s1_indx = seq_model.ifcs.index(self.s1)
         self.s2_indx = seq_model.ifcs.index(self.s2)
+        self.profile1 = self.s1.profile
+        self.profile2 = self.s2.profile
         self.medium_name = self.gap.medium.name()
 
     def tree(self, **kwargs):
@@ -374,8 +635,8 @@ class Element():
         zdir = kwargs.get('z_dir', 1)
 
         # Interface branch 1
-        e = Node('E', id=self, tag=tag)
-        p1 = Node('p1', id=self.s1.profile, tag='#profile', parent=e)
+        e = Node(self.label, id=self, tag=tag)
+        p1 = Node('p1', id=self.profile1, tag='#profile', parent=e)
         Node(f'i{self.s1_indx}', id=self.s1, tag='#ifc', parent=p1)
 
         # Gap branch
@@ -383,19 +644,25 @@ class Element():
         Node(f'g{self.s1_indx}', id=(self.gap, zdir), tag='#gap', parent=t)
 
         # Interface branch 2
-        p2 = Node('p2', id=self.s2.profile, tag='#profile', parent=e)
+        p2 = Node('p2', id=self.profile2, tag='#profile', parent=e)
         Node(f'i{self.s2_indx}', id=self.s2, tag='#ifc', parent=p2)
 
         return e
 
-    def reference_interface(self):
-        return self.s1
+    def idx_list(self):
+        seq_model = self.parent.opt_model['seq_model']
+        self.s1_indx = seq_model.ifcs.index(self.s1)
+        self.s2_indx = seq_model.ifcs.index(self.s2)
+        return [self.s1_indx, self.s2_indx]
 
     def reference_idx(self):
         return self.s1_indx
 
-    def interface_list(self):
-        return [self.s1, self.s2]
+    def reference_interface(self):
+        return self.s1
+
+    def profile_list(self):
+        return [self.profile1, self.profile2]
 
     def gap_list(self):
         return [self.gap]
@@ -417,6 +684,17 @@ class Element():
         cv1_new = bending*delta_cv - cv2_new
         self.s1.profile_cv = cv1_new
         self.s2.profile_cv = cv2_new
+
+    def do_flip(self):
+        r, t = self.tfrm
+        thi = self.gap.thi
+        if self.is_flipped:
+            r_new = np.matmul(rot_around_y, r).T
+            t_new = t - r_new.dot(np.array([0, 0, thi]))
+        else:
+            t_new = t + r.dot(np.array([0, 0, thi]))
+            r_new = np.matmul(r, rot_around_y)
+        self.tfrm = r_new, t_new
 
     def update_size(self):
         extents = np.union1d(self.s1.get_y_aperture_extent(),
@@ -458,7 +736,8 @@ class Element():
                 flat1 = self.flat1
         else:
             flat1 = None
-        poly = self.s1.full_profile(self.extent(), flat1)
+        poly = full_profile(self.profile1, self.is_flipped, self.extent(), 
+                            flat1)
 
         if use_flat(self.do_flat2, is_concave_s2):
             if self.flat2 is None:
@@ -467,7 +746,8 @@ class Element():
                 flat2 = self.flat2
         else:
             flat2 = None
-        poly2 = self.s2.full_profile(self.extent(), flat2, -1)
+        poly2 = full_profile(self.profile2, self.is_flipped, self.extent(),
+                             flat2, dir=-1)
 
         for p in poly2:
             p[0] += self.gap.thi
@@ -477,7 +757,7 @@ class Element():
 
     def render_handles(self, opt_model):
         self.handles = {}
-        ifcs_gbl_tfrms = opt_model.seq_model.gbl_tfrms
+        thi = self.gap.thi
 
         shape = self.render_shape()
         color = calc_render_color_for_material(self.gap.medium)
@@ -489,33 +769,36 @@ class Element():
             extent_s1 = self.flat1,
         else:
             extent_s1 = extent
-        poly_s1 = self.s1.full_profile(extent_s1, None)
-        gh1 = GraphicsHandle(poly_s1, ifcs_gbl_tfrms[self.s1_indx], 'polyline')
+        poly_s1 = full_profile(self.profile1, self.is_flipped, extent_s1)
+        gh1 = GraphicsHandle(poly_s1, self.tfrm, 'polyline')
         self.handles['s1_profile'] = gh1
 
         if self.flat2 is not None:
             extent_s2 = self.flat2,
         else:
             extent_s2 = extent
-        poly_s2 = self.s2.full_profile(extent_s2, None, -1)
-        gh2 = GraphicsHandle(poly_s2, ifcs_gbl_tfrms[self.s2_indx], 'polyline')
+        poly_s2 = full_profile(self.profile2, self.is_flipped, extent_s2, 
+                               dir=-1)
+        r, t = self.tfrm
+        t_new = t + np.matmul(r, np.array([0, 0, thi]))
+        gh2 = GraphicsHandle(poly_s2, (r, t_new), 'polyline')
         self.handles['s2_profile'] = gh2
 
         poly_sd_upr = []
         poly_sd_upr.append([poly_s1[-1][0], extent[1]])
-        poly_sd_upr.append([poly_s2[0][0]+self.gap.thi, extent[1]])
+        poly_sd_upr.append([poly_s2[0][0]+thi, extent[1]])
         self.handles['sd_upr'] = GraphicsHandle(poly_sd_upr, self.tfrm,
                                                 'polyline')
 
         poly_sd_lwr = []
-        poly_sd_lwr.append([poly_s2[-1][0]+self.gap.thi, extent[0]])
+        poly_sd_lwr.append([poly_s2[-1][0]+thi, extent[0]])
         poly_sd_lwr.append([poly_s1[0][0], extent[0]])
         self.handles['sd_lwr'] = GraphicsHandle(poly_sd_lwr, self.tfrm,
                                                 'polyline')
 
         poly_ct = []
         poly_ct.append([0., 0.])
-        poly_ct.append([self.gap.thi, 0.])
+        poly_ct.append([thi, 0.])
         self.handles['ct'] = GraphicsHandle(poly_ct, self.tfrm, 'polyline')
 
         return self.handles
@@ -552,7 +835,7 @@ class Element():
         return self.actions
 
 
-class Mirror():
+class Mirror(Part):
 
     label_format = 'M{}'
     serial_number = 0
@@ -572,6 +855,7 @@ class Mirror():
             self.tfrm = (np.identity(3), np.array([0., 0., 0.]))
         self.s = ifc
         self.s_indx = idx
+        self.profile = ifc.profile
         self.z_dir = z_dir
         self.sd = sd
         self.flat = None
@@ -589,33 +873,45 @@ class Mirror():
     def __json_encode__(self):
         attrs = dict(vars(self))
         del attrs['parent']
-        del attrs['tfrm']
         del attrs['s']
         del attrs['handles']
         del attrs['actions']
+        encode_obj_reference(self, 'profile', attrs)
         return attrs
 
     def __str__(self):
         thi = self.get_thi()
         fmt = 'Mirror: {!r}, t={:.4f}, sd={:.4f}'
-        return fmt.format(self.s.profile, thi, self.sd)
+        return fmt.format(self.profile, thi, self.sd)
 
-    def sync_to_restore(self, ele_model, surfs, gaps, tfrms):
+    def listobj_str(self):
+        o_str = f"part: {type(self).__name__}, "
+        o_str += self.profile.listobj_str()
+        o_str += f"t={self.get_thi():.4f}, sd={self.sd:.4f}\n"
+        return o_str
+
+    def sync_to_restore(self, ele_model, surfs, gaps, tfrms, 
+                        profile_dict, parts_dict):
         self.parent = ele_model
-        self.tfrm = tfrms[self.s_indx]
+        if not hasattr(self, 'tfrm'):
+            self.tfrm = tfrms[self.s_indx]
         self.s = surfs[self.s_indx]
+        sync_obj_reference(self, 'profile', profile_dict, self.s.profile)
         if not hasattr(self, 'medium_name'):
             self.medium_name = 'Mirror'
+        self.handles = {}
+        self.actions = {}
 
-    def sync_to_update(self, seq_model):
+    def sync_to_seq(self, seq_model):
         self.s_indx = seq_model.ifcs.index(self.s)
+        self.profile = self.s.profile
 
     def tree(self, **kwargs):
         default_tag = '#element#mirror'
         tag = default_tag + kwargs.get('tag', '')
         # Interface branch
         m = Node('M', id=self, tag=tag)
-        p = Node('p', id=self.s.profile, tag='#profile', parent=m)
+        p = Node('p', id=self.profile, tag='#profile', parent=m)
         Node(f'i{self.s_indx}', id=self.s, tag='#ifc', parent=p)
 
         # Gap branch = None
@@ -628,11 +924,24 @@ class Mirror():
     def reference_idx(self):
         return self.s_indx
 
-    def interface_list(self):
-        return [self.s]
+    def idx_list(self):
+        seq_model = self.parent.opt_model['seq_model']
+        self.s_indx = seq_model.ifcs.index(self.s)
+        return [self.s_indx]
+
+    def profile_list(self):
+        return [self.profile]
 
     def gap_list(self):
         return []
+
+    def do_flip(self):
+        r, t = self.tfrm
+        if self.is_flipped:
+            r_new = np.matmul(rot_around_y, r).T
+        else:
+            r_new = np.matmul(r, rot_around_y)
+        self.tfrm = r_new, t
 
     def update_size(self):
         self.edge_extent = self.s.get_y_aperture_extent()
@@ -655,8 +964,10 @@ class Mirror():
         return offset
 
     def render_shape(self):
-        poly = self.s.full_profile(self.extent(), self.flat)
-        poly2 = self.s.full_profile(self.extent(), self.flat, -1)
+        poly = full_profile(self.profile, self.is_flipped, self.extent(),
+                            self.flat)
+        poly2 = full_profile(self.profile, self.is_flipped, self.extent(),
+                             self.flat, dir=-1)
 
         offset = self.substrate_offset()
 
@@ -668,14 +979,14 @@ class Mirror():
 
     def render_handles(self, opt_model):
         self.handles = {}
-        ifcs_gbl_tfrms = opt_model.seq_model.gbl_tfrms
+        # ifcs_gbl_tfrms = opt_model.seq_model.gbl_tfrms
 
         self.handles['shape'] = GraphicsHandle(self.render_shape(), self.tfrm,
                                                'polygon', self.render_color)
 
-        poly = self.s.full_profile(self.extent(), None)
-        self.handles['s_profile'] = GraphicsHandle(poly,
-                                                   ifcs_gbl_tfrms[self.s_indx],
+        poly = full_profile(self.profile, self.is_flipped, self.extent())
+        self.handles['s_profile'] = GraphicsHandle(poly, self.tfrm,
+                                                   # ifcs_gbl_tfrms[self.s_indx],
                                                    'polyline')
 
         offset = self.substrate_offset()
@@ -716,16 +1027,14 @@ class Mirror():
         return self.actions
 
 
-class CementedElement():
+class CementedElement(Part):
     """Cemented element domain model. Manage rendering and selection/editing.
 
     A CementedElement consists of 3 or more Surfaces, 2 or more Gaps, and
     edge_extent information.
 
     Attributes:
-        parent: the :class:`ElementModel`
-        label: string identifier
-        idxs: list of seq_model interface indices
+        idxs: list of seq_model interface indices (depends on is_flipped)
         ifcs: list of :class:`~rayoptics.seq.interface.Interface`
         gaps: list of thickness and material :class:`~rayoptics.seq.gap.Gap`
         tfrm: global transform to element origin, (Rot3, trans3)
@@ -755,12 +1064,14 @@ class CementedElement():
             self.tfrm = (np.identity(3), np.array([0., 0., 0.]))
         self.idxs = []
         self.ifcs = []
+        self.profiles = []
         self.gaps = []
         self.medium_name = ''
         for interface in ifc_list:
             i, ifc, g, z_dir, g_tfrm = interface
             self.idxs.append(i)
             self.ifcs.append(ifc)
+            self.profiles.append(ifc.profile)
             if g is not None:
                 self.gaps.append(g)
                 if self.medium_name != '':
@@ -790,76 +1101,102 @@ class CementedElement():
     def __json_encode__(self):
         attrs = dict(vars(self))
         del attrs['parent']
-        del attrs['tfrm']
         del attrs['ifcs']
         del attrs['gaps']
         del attrs['flats']
+        del attrs['profile_polys']
         del attrs['handles']
         del attrs['actions']
+        attrs['profile_ids'] = [str(id(p)) for p in self.profiles]
+        del attrs['profiles']
+
         return attrs
 
     def __str__(self):
         fmt = 'CementedElement: {}'
         return fmt.format(self.idxs)
 
-    def sync_to_restore(self, ele_model, surfs, gaps, tfrms):
+    def sync_to_restore(self, ele_model, surfs, gaps, tfrms, 
+                        profile_dict, parts_dict):
         # when restoring, we want to use the stored indices to look up the
         # new object instances
         self.parent = ele_model
+        if not hasattr(self, 'tfrm'):
+            self.tfrm = tfrms[self.idxs[0]]
+            
         self.ifcs = [surfs[i] for i in self.idxs]
-        self.gaps = [gaps[i] for i in self.idxs[:-1]]
-        self.tfrm = tfrms[self.idxs[0]]
+        if hasattr(self, 'profile_ids'):
+            self.profiles = []
+            for p_id in self.profile_ids:
+                self.profiles.append(profile_dict[p_id])
+            delattr(self, 'profile_ids')
+        else:
+            self.profiles = [ifc.profile for ifc in self.ifcs]
+        if self.is_flipped:
+            self.gaps = [gaps[i] for i in self.idxs[1:]]
+        else:
+            self.gaps = [gaps[i] for i in self.idxs[:-1]]
         self.flats = [None]*len(self.ifcs)
         if not hasattr(self, 'medium_name'):
             self.medium_name = self.gap.medium.name()
+        self.handles = {}
+        self.actions = {}
 
-    def sync_to_update(self, seq_model):
+    def sync_to_seq(self, seq_model):
         # when updating, we want to use the stored object instances to get the
         # current indices into the interface list (e.g. to handle insertion and
         # deletion of interfaces)
         self.idxs = [seq_model.ifcs.index(ifc) for ifc in self.ifcs]
-
-    def element_list(self):
-        idxs = self.idxs
-        ifcs = self.ifcs
-        gaps = self.gaps
-        e_list = []
-        for i in range(len(gaps)):
-            e = Element(ifcs[i], ifcs[i+1], gaps[i],
-                        sd=self.sd, tfrm=self.tfrm,
-                        idx=idxs[i], idx2=idxs[i+1])
-            e_list.append(e)
+        self.profiles = [ifc.profile for ifc in self.ifcs]
 
     def tree(self, **kwargs):
         default_tag = '#element#cemented'
         tag = default_tag + kwargs.get('tag', '')
         zdir = kwargs.get('z_dir', 1)
-        ce = Node('CE', id=self, tag=tag)
-        for i, sg in enumerate(itertools.zip_longest(self.ifcs, self.gaps),
-                               start=1):
+        ce = Node(self.label, id=self, tag=tag)
+        for i, sg in enumerate(itertools.zip_longest(self.ifcs, self.gaps)):
+            i1 = i + 1
             ifc, gap = sg
-            pid = f'p{i}'.format(i)
-            p = Node(pid, id=ifc.profile, tag='#profile', parent=ce)
-            Node(f'i{self.idxs[i-1]}', id=ifc, tag='#ifc', parent=p)
+            pid = f'p{i1}'
+            p = Node(pid, id=self.profiles[i], tag='#profile', parent=ce)
+            Node(f'i{self.idxs[i]}', id=ifc, tag='#ifc', parent=p)
             # Gap branch
             if gap is not None:
-                t = Node(f't{i}', id=gap, tag='#thic', parent=ce)
-                Node(f'g{self.idxs[i-1]}', id=(gap, zdir),
+                t = Node(f't{i1}', id=gap, tag='#thic', parent=ce)
+                Node(f'g{self.idxs[i]}', id=(gap, zdir),
                      tag='#gap', parent=t)
 
         return ce
 
-    def reference_interface(self):
-        return self.ifcs[0]
+    def idx_list(self):
+        seq_model = self.parent.opt_model['seq_model']
+        self.idxs = [seq_model.ifcs.index(ifc) for ifc in self.ifcs]
+        return self.idxs
 
     def reference_idx(self):
         return self.idxs[0]
 
-    def interface_list(self):
-        return self.ifcs
+    def reference_interface(self):
+        return self.ifcs[0]
+
+    def profile_list(self):
+       return self.profiles
 
     def gap_list(self):
         return self.gaps
+
+    def do_flip(self):
+        r, t = self.tfrm
+        thi = 0
+        for g in self.gaps:
+            thi += g.thi
+        if self.is_flipped:
+            r_new = np.matmul(rot_around_y, r).T
+            t_new = t - r_new.dot(np.array([0, 0, thi]))
+        else:
+            t_new = t + r.dot(np.array([0, 0, thi]))
+            r_new = np.matmul(r, rot_around_y)
+        self.tfrm = r_new, t_new
 
     def update_size(self):
         extents = np.union1d(self.ifcs[0].get_y_aperture_extent(),
@@ -883,34 +1220,35 @@ class CementedElement():
             return (-self.sd, self.sd)
 
     def render_shape(self):
-        if self.ifcs[0].profile_cv < 0.0:
+        if self.profiles[0].cv < 0.0:
             self.flats[0] = self.compute_flat(self.ifcs[0])
         else:
             self.flats[0] = None
-        if self.ifcs[-1].profile_cv > 0.0:
+        if self.profiles[-1].cv > 0.0:
             self.flats[-1] = self.compute_flat(self.ifcs[-1])
         else:
             self.flats[-1] = None
 
         # generate the profile polylines
-        self.profiles = []
+        self.profile_polys = []
         sense = 1
-        for ifc, flat in zip(self.ifcs, self.flats):
-            poly = ifc.full_profile(self.extent(), flat, sense)
-            self.profiles.append(poly)
+        for profile, flat in zip(self.profiles, self.flats):
+            poly = full_profile(profile, self.is_flipped, self.extent(), 
+                                flat, dir=sense)
+            self.profile_polys.append(poly)
             sense = -sense
 
         # offset the profiles wrt the element origin
         thi = 0
-        for i, poly_profile in enumerate(self.profiles[1:]):
+        for i, poly_profile in enumerate(self.profile_polys[1:]):
             thi += self.gaps[i].thi
             for p in poly_profile:
                 p[0] += thi
 
         # just return outline
         poly_shape = []
-        poly_shape += self.profiles[0]
-        poly_shape += self.profiles[-1]
+        poly_shape += self.profile_polys[0]
+        poly_shape += self.profile_polys[-1]
         poly_shape.append(poly_shape[0])
 
         return poly_shape
@@ -923,9 +1261,9 @@ class CementedElement():
 
         for i, gap in enumerate(self.gaps):
             poly = []
-            poly += self.profiles[i]
-            poly += self.profiles[i+1]
-            poly.append(self.profiles[i][0])
+            poly += self.profile_polys[i]
+            poly += self.profile_polys[i+1]
+            poly.append(self.profile_polys[i][0])
             color = calc_render_color_for_material(gap.medium)
             self.handles['shape'+str(i+1)] = GraphicsHandle(poly, self.tfrm,
                                                             'polygon', color)
@@ -937,7 +1275,7 @@ class CementedElement():
         return self.actions
 
 
-class ThinElement():
+class ThinElement(Part):
 
     label_format = 'TL{}'
     serial_number = 0
@@ -968,7 +1306,6 @@ class ThinElement():
     def __json_encode__(self):
         attrs = dict(vars(self))
         del attrs['parent']
-        del attrs['tfrm']
         del attrs['intrfc']
         del attrs['handles']
         del attrs['actions']
@@ -984,19 +1321,23 @@ class ThinElement():
         Node('tl', id=self.intrfc, tag='#ifc', parent=tle)
         return tle
 
-    def sync_to_restore(self, ele_model, surfs, gaps, tfrms):
+    def sync_to_restore(self, ele_model, surfs, gaps, tfrms, 
+                        profile_dict, parts_dict):
         self.parent = ele_model
-        self.tfrm = tfrms[self.intrfc_indx]
+        if not hasattr(self, 'tfrm'):
+            self.tfrm = tfrms[self.intrfc_indx]
         self.intrfc = surfs[self.intrfc_indx]
         if not hasattr(self, 'medium_name'):
             self.medium_name = 'Thin Element'
+        self.handles = {}
+        self.actions = {}
 
         ro_version = ele_model.opt_model.ro_version
         if version.parse(ro_version) < version.parse("0.7.0a"):
             ThinElement.serial_number += 1
             self.label = ThinElement.label_format.format(ThinElement.serial_number)
 
-    def sync_to_update(self, seq_model):
+    def sync_to_seq(self, seq_model):
         self.intrfc_indx = seq_model.ifcs.index(self.intrfc)
 
     def reference_interface(self):
@@ -1005,11 +1346,24 @@ class ThinElement():
     def reference_idx(self):
         return self.intrfc_indx
 
-    def interface_list(self):
-        return [self.intrfc]
+    def profile_list(self):
+        return []
+
+    def idx_list(self):
+        seq_model = self.parent.opt_model['seq_model']
+        self.intrfc_indx = seq_model.ifcs.index(self.intrfc)
+        return [self.intrfc_indx]
 
     def gap_list(self):
         return []
+
+    def do_flip(self):
+        r, t = self.tfrm
+        if self.is_flipped:
+            r_new = np.matmul(rot_around_y, r).T
+        else:
+            r_new = np.matmul(r, rot_around_y)
+        self.tfrm = r_new, t
 
     def update_size(self):
         self.sd = self.intrfc.surface_od()
@@ -1030,7 +1384,7 @@ class ThinElement():
         self.actions = {}
         return self.actions
 
-class DummyInterface():
+class DummyInterface(Part):
 
     label_format = 'D{}'
     serial_number = 0
@@ -1050,6 +1404,7 @@ class DummyInterface():
             self.tfrm = (np.identity(3), np.array([0., 0., 0.]))
         self.ref_ifc = ifc
         self.idx = idx
+        self.profile = ifc.profile
         self.medium_name = 'Interface'
         if sd is not None:
             self.sd = sd
@@ -1061,30 +1416,36 @@ class DummyInterface():
     def __json_encode__(self):
         attrs = dict(vars(self))
         del attrs['parent']
-        del attrs['tfrm']
         del attrs['ref_ifc']
         del attrs['handles']
         del attrs['actions']
+        encode_obj_reference(self, 'profile', attrs)
         return attrs
 
     def __str__(self):
         return str(self.ref_ifc)
 
-    def sync_to_restore(self, ele_model, surfs, gaps, tfrms):
+    def sync_to_restore(self, ele_model, surfs, gaps, tfrms, 
+                        profile_dict, parts_dict):
         self.parent = ele_model
-        self.tfrm = tfrms[self.idx]
+        if not hasattr(self, 'tfrm'):
+            self.tfrm = tfrms[self.idx]
         self.ref_ifc = surfs[self.idx]
+        sync_obj_reference(self, 'profile', profile_dict, self.ref_ifc.profile)
         if not hasattr(self, 'medium_name'):
             self.medium_name = 'Interface'
+        self.handles = {}
+        self.actions = {}
 
-    def sync_to_update(self, seq_model):
+    def sync_to_seq(self, seq_model):
         self.idx = seq_model.ifcs.index(self.ref_ifc)
+        self.profile = self.ref_ifc.profile
 
     def tree(self, **kwargs):
         default_tag = '#dummyifc'
         tag = default_tag + kwargs.get('tag', '')
         di = Node('DI', id=self, tag=tag)
-        p = Node('p', id=self.ref_ifc.profile, tag='#profile', parent=di)
+        p = Node('p', id=self.profile, tag='#profile', parent=di)
         Node(f'i{self.idx}', id=self.ref_ifc, tag='#ifc', parent=p)
         return di
 
@@ -1097,15 +1458,31 @@ class DummyInterface():
     def interface_list(self):
         return [self.ref_ifc]
 
+    def profile_list(self):
+        return [self.profile]
+
+    def idx_list(self):
+        seq_model = self.parent.opt_model['seq_model']
+        self.idx = seq_model.ifcs.index(self.ref_ifc)
+        return [self.idx]
+
     def gap_list(self):
         return []
+
+    def do_flip(self):
+        r, t = self.tfrm
+        if self.is_flipped:
+            r_new = np.matmul(rot_around_y, r).T
+        else:
+            r_new = np.matmul(r, rot_around_y)
+        self.tfrm = r_new, t
 
     def update_size(self):
         self.sd = self.ref_ifc.surface_od()
         return self.sd
 
     def render_shape(self):
-        poly = self.ref_ifc.full_profile((-self.sd, self.sd))
+        poly = full_profile(self.profile, self.is_flipped, (-self.sd, self.sd))
         return poly
 
     def render_handles(self, opt_model):
@@ -1145,12 +1522,12 @@ class DummyInterface():
         return self.actions
 
 
-class AirGap():
+class AirGap(Part):
 
     label_format = 'AG{}'
     serial_number = 0
 
-    def __init__(self, g, idx=0, tfrm=None, label=None):
+    def __init__(self, g, idx=0, tfrm=None, label=None, z_dir=1, **kwargs):
         if label is None:
             AirGap.serial_number += 1
             self.label = AirGap.label_format.format(AirGap.serial_number)
@@ -1164,6 +1541,7 @@ class AirGap():
 
         self.render_color = (237, 243, 254, 64)  # light blue
         self.gap = g
+        self.z_dir = z_dir
         self.medium_name = self.gap.medium.name()
         self.idx = idx
         self.handles = {}
@@ -1172,7 +1550,6 @@ class AirGap():
     def __json_encode__(self):
         attrs = dict(vars(self))
         del attrs['parent']
-        del attrs['tfrm']
         del attrs['gap']
         del attrs['handles']
         del attrs['actions']
@@ -1181,29 +1558,34 @@ class AirGap():
     def __str__(self):
         return str(self.gap)
 
-    def sync_to_restore(self, ele_model, surfs, gaps, tfrms):
+    def sync_to_restore(self, ele_model, surfs, gaps, tfrms, 
+                        profile_dict, parts_dict):
         self.parent = ele_model
         self.gap = gaps[self.idx]
-        self.tfrm = tfrms[self.idx]
+        if not hasattr(self, 'tfrm'):
+            self.tfrm = tfrms[self.idx]
         if not hasattr(self, 'render_color'):
             self.render_color = (237, 243, 254, 64)  # light blue
         if not hasattr(self, 'medium_name'):
             self.medium_name = self.gap.medium.name()
+        self.handles = {}
+        self.actions = {}
 
         ro_version = ele_model.opt_model.ro_version
         if version.parse(ro_version) < version.parse("0.7.0a"):
             AirGap.serial_number += 1
             self.label = AirGap.label_format.format(AirGap.serial_number)
 
-    def sync_to_update(self, seq_model):
+    def sync_to_seq(self, seq_model):
         self.idx = seq_model.gaps.index(self.gap)
+        self.z_dir = seq_model.z_dir[self.idx]
 
     def tree(self, **kwargs):
         default_tag = '#airgap'
         tag = default_tag + kwargs.get('tag', '')
-        ag = Node('AG', id=self, tag=tag)
+        ag = Node(self.label, id=self, tag=tag)
         t = Node('t', id=self.gap, tag='#thic', parent=ag)
-        zdir = kwargs.get('z_dir', 1)
+        zdir = kwargs.get('z_dir', self.z_dir)
         Node(f'g{self.idx}', id=(self.gap, zdir), tag='#gap', parent=t)
         return ag
 
@@ -1213,11 +1595,25 @@ class AirGap():
     def reference_idx(self):
         return self.idx
 
-    def interface_list(self):
+    def profile_list(self):
+        return []
+
+    def idx_list(self):
         return []
 
     def gap_list(self):
         return [self.gap]
+
+    def do_flip(self):
+        r, t = self.tfrm
+        thi = self.gap.thi
+        if self.is_flipped:
+            r_new = np.matmul(rot_around_y, r).T
+            t_new = t - r_new.dot(np.array([0, 0, thi]))
+        else:
+            t_new = t + r.dot(np.array([0, 0, thi]))
+            r_new = np.matmul(r, rot_around_y)
+        self.tfrm = r_new, t_new
 
     def update_size(self):
         pass
@@ -1254,6 +1650,113 @@ class AirGap():
         return self.actions
 
 
+class Assembly(Part):
+
+    label_format = 'ASM{}'
+    serial_number = 0
+
+    def __init__(self, part_list, idx=0, tfrm=None, label=None):
+        if label is None:
+            Assembly.serial_number += 1
+            self.label = Assembly.label_format.format(Assembly.serial_number)
+        else:
+            self.label = label
+
+        if tfrm is not None:
+            self.tfrm = tfrm
+        else:
+            self.tfrm = (np.identity(3), np.array([0., 0., 0.]))
+
+        self.parts = part_list
+        self.idx = idx
+        self.handles = {}
+        self.actions = {}
+
+    def __json_encode__(self):
+        attrs = dict(vars(self))
+        del attrs['parent']
+        del attrs['parts']
+        del attrs['handles']
+        del attrs['actions']
+        part_ids = [str(id(p)) for p in self.parts]
+        attrs['part_ids'] = part_ids
+        return attrs
+
+    def __str__(self):
+        part_labels = [p.label for p in self.parts]
+        return f"{self.label}: {part_labels}"
+
+    def sync_to_restore(self, ele_model, surfs, gaps, tfrms, 
+                        profile_dict, parts_dict):
+        self.parent = ele_model
+        self.parts = [parts_dict[pid] for pid in self.part_ids]
+        delattr(self, 'part_ids')
+        self.handles = {}
+        self.actions = {}
+
+    def sync_to_seq(self, seq_model):
+        self.tfrm = seq_model.gbl_tfrms[self.reference_idx()]
+
+    def tree(self, **kwargs):
+        if 'part_tree' in kwargs:
+            part_tree = kwargs.get('part_tree')
+        else:
+            part_tree = self.parent.opt_model['part_tree']
+        default_tag = '#group#assembly'
+        tag = default_tag + kwargs.get('tag', '')
+        asm = Node('ASM', id=self, tag=tag)
+        child_nodes = [part_tree.node(p) for p in self.parts]
+        asm.children = child_nodes
+        return asm
+
+    def idx_list(self):
+        idxs = []
+        for p in self.parts:
+            idxs += p.idx_list()
+        return idxs
+
+    def reference_idx(self):
+        idxs = self.idx_list()
+        self.idx = idxs[0]
+        return self.idx
+
+    def reference_interface(self):
+        seq_model = self.parent.opt_model['seq_model']
+        ref_idx = self.reference_idx()
+        return seq_model.ifcs[ref_idx]
+
+    def profile_list(self):
+        profiles = []
+        for p in self.parts:
+            profiles += p.profile_list()
+        return profiles
+
+    def gap_list(self):
+        gaps = []
+        for p in self.parts:
+            gaps += p.gap_list()
+        return gaps
+
+    def do_flip(self):
+        sm = self.parent.opt_model['seq_model']
+        idxs = self.idx_list()
+        idx1, idx2 = idxs[0], idxs[-1]
+        flip_pt = 0.5*(sm.gbl_tfrms[idx2][1] + sm.gbl_tfrms[idx1][1])
+        flip_pt_tfrm = sm.gbl_tfrms[idx1][0], flip_pt
+        do_flip_with_part_list(self.parts, flip_pt_tfrm)
+
+    def update_size(self):
+        pass
+
+    def render_handles(self, opt_model):
+        self.handles = {}
+        return self.handles
+
+    def handle_actions(self):
+        self.actions = {}
+        return self.actions
+
+
 # --- Element model
 class ElementModel:
     """Maintain the element based representation of the optical model
@@ -1266,7 +1769,7 @@ class ElementModel:
 
     def __init__(self, opt_model, **kwargs):
         self.opt_model = opt_model
-        self.elements = []
+        self.elements: List[Part] = []
 
     def reset(self):
         self.__init__(self.opt_model)
@@ -1274,22 +1777,31 @@ class ElementModel:
     def __json_encode__(self):
         attrs = dict(vars(self))
         del attrs['opt_model']
+        del attrs['elements']
         return attrs
 
     def sync_to_restore(self, opt_model):
         self.opt_model = opt_model
+
+        profile_dict = {}
+        if hasattr(opt_model, 'profile_dict'):
+            profile_dict = opt_model.profile_dict
+
+        parts_dict = {}
+        if not hasattr(self, 'elements'):
+            if hasattr(opt_model, 'parts_dict'):
+                self.elements = [e for e in opt_model.parts_dict.values()]
+                parts_dict = opt_model.parts_dict
+
         seq_model = opt_model.seq_model
         surfs = seq_model.ifcs
         gaps = seq_model.gaps
         tfrms = seq_model.compute_global_coords(1)
 
-        # special processing for older models
-        # self.airgaps_from_sequence(seq_model, tfrms)
-        # self.add_dummy_interface_at_image(seq_model, tfrms)
-
         self.reset_serial_numbers()
         for i, e in enumerate(self.elements, start=1):
-            e.sync_to_restore(self, surfs, gaps, tfrms)
+            e.sync_to_restore(self, surfs, gaps, tfrms, 
+                              profile_dict, parts_dict)
             if not hasattr(e, 'label'):
                 e.label = e.label_format.format(i)
         self.sequence_elements()
@@ -1302,6 +1814,7 @@ class ElementModel:
         ThinElement.serial_number = 0
         DummyInterface.serial_number = 0
         AirGap.serial_number = 0
+        Assembly.serial_number = 0
 
     def airgaps_from_sequence(self, seq_model, tfrms):
         """ add airgaps and dummy interfaces to an older version model """
@@ -1332,12 +1845,10 @@ class ElementModel:
         self.add_element(di)
 
     def update_model(self, **kwargs):
-        seq_model = self.opt_model['seq_model']
-        tfrms = seq_model.compute_global_coords(1)
-
         # dynamically build element list from part_tree
         part_tree = self.opt_model['part_tree']
-        nodes = part_tree.nodes_with_tag(tag='#element#airgap#dummyifc')
+        part_tag = '#element#airgap#dummyifc#assembly'
+        nodes = part_tree.nodes_with_tag(tag=part_tag)
         elements = [n.id for n in nodes]
 
         # hook or unhook elements from ele_model
@@ -1350,14 +1861,23 @@ class ElementModel:
         for e in removed_ele:
             e.parent = None
 
-        # update the elements
-        for e in elements:
-            e.update_size()
-            e.sync_to_update(seq_model)
-            e.tfrm = tfrms[e.reference_idx()]
-
         self.elements = elements
         self.sequence_elements()
+
+        src_model = kwargs.get('src_model', None)
+        if src_model is not self:
+            self.sync_to_seq(self.opt_model['seq_model'])
+
+    def sync_to_seq(self, seq_model):
+        tfrms = seq_model.compute_global_coords(1)
+
+        # update the elements
+        for e in self.elements:
+            e.update_size()
+            e.sync_to_seq(seq_model)
+            r, t = tfrms[e.reference_idx()]
+            r_new = np.matmul(rot_around_y, r).T if e.is_flipped else r
+            e.tfrm = r_new, t
 
     def sequence_elements(self):
         """ Sort elements in order of reference interfaces in seq_model """
@@ -1380,11 +1900,11 @@ class ElementModel:
                 ea = self.elements[i+1].label
                 e.label = AirGap.label_format.format(eb + '-' + ea)
 
-    def add_element(self, e):
+    def add_element(self, e: Part):
         e.parent = self
         self.elements.append(e)
 
-    def remove_element(self, e):
+    def remove_element(self, e: Part):
         e.parent = None
         self.elements.remove(e)
 
@@ -1399,10 +1919,10 @@ class ElementModel:
     def get_num_elements(self):
         return len(self.elements)
 
-    def list_model(self, tag='#element#dummyifc'):
-        nodes = self.opt_model.part_tree.nodes_with_tag(tag=tag)
-        elements = [n.id for n in nodes]
-        for i, ele in enumerate(elements):
+    def list_model(self, tag: str = '#element#assembly#dummyifc'):
+        nodes = self.opt_model['part_tree'].nodes_with_tag(tag=tag)
+        for i, node in enumerate(nodes):
+            ele = node.id
             print("%d: %s (%s): %s" %
                   (i, ele.label, type(ele).__name__, ele))
 

@@ -151,6 +151,8 @@ def post_process_input(opt_model, filename, **kwargs):
     osp = opt_model['optical_spec']
 
     # retrieve image thickness and set defocus
+    sm.z_dir.pop()
+    sm.rndx.pop()
     gi = sm.gaps.pop()
     osp['focus'].focus_shift = gi.thi
 
