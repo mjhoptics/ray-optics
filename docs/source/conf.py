@@ -83,8 +83,8 @@ pygments_style = 'sphinx'
 rst_prolog = """
 .. |ybar| replace:: :math:`y-\overline{y}`
 .. |nubar| replace:: :math:`\omega-\overline{\omega}`
-.. |minimum_python_version| replace:: 3.7
-.. |minimum_numpy_version| replace:: 1.15.0
+.. |minimum_python_version| replace:: 3.8
+.. |minimum_numpy_version| replace:: 1.21.5
 .. |Series| replace:: :class:`pandas.Series`
 .. |DataFrame| replace:: :class:`pandas.DataFrame`
 """
