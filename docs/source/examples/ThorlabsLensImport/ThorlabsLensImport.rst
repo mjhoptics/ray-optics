@@ -63,10 +63,9 @@ info is a tuple of the following items:
       'fov': ('field', 'object', 'angle'),
       '# fields': 1,
       'GCAT': ['LIGHTPATH', 'SCHOTT'],
-      'glass not found': 1,
-      'glass substituted': 1,
       'encoding': 'utf-16'},
-     {'D-ZK3M': 1, 'BK7': "create_glass('N-BK7','Schott')"})
+     {'BK7': "create_glass('N-BK7','Schott')",
+      'D-ZK3M': "InterpolatedGlass('D-ZK3M', cat='LightPath', pairs=[(2352.4, 1.555),(1970.1, 1.561),(1529.6, 1.568),(1128.6, 1.573),(1014.0, 1.575),(852.1, 1.578),(706.5, 1.582),(656.3, 1.583),(643.8, 1.584),(632.8, 1.584),(589.3, 1.586),(587.6,1.586),(546.1, 1.589),(486.1, 1.593),(480.0, 1.594),(435.8, 1.598),(404.7, 1.602),(365.0, 1.610)])"})
 
 
 
@@ -121,9 +120,12 @@ Setup convenient aliases for using rayoptics functions
 
 .. code:: ipython3
 
-    sm = opm['seq_model']
+    sm  = opm['seq_model']
     osp = opm['optical_spec']
     pm = opm['parax_model']
+    em = opm['ele_model']
+    pt = opm['part_tree']
+    ar = opm['analysis_results']
 
 .. code:: ipython3
 
@@ -145,20 +147,20 @@ Setup convenient aliases for using rayoptics functions
 
 .. parsed-literal::
 
-                 c            t        medium     mode   zdr      sd
-     Obj:     0.000000  1.00000e+10       air             1      0.0000
-    Stop:     1.182174     0.862527    D-ZK3M             1     0.75000
-       2:     0.000000     0.523243       air             1     0.57417
-       3:     0.000000     0.250000     N-BK7             1     0.24917
-       4:     0.000000     0.249999       air             1     0.15527
-     Img:     0.000000      0.00000                       1  8.9134e-06
+                  c            t        medium     mode   zdr      sd
+      Obj:     0.000000  1.00000e+10       air             1      0.0000
+     Stop:     1.182174     0.862527    D-ZK3M             1     0.75000
+        2:     0.000000     0.523243       air             1     0.57417
+        3:     0.000000     0.250000     N-BK7             1     0.24917
+        4:     0.000000     0.249999       air             1     0.15527
+      Img:     0.000000      0.00000                       1  8.9134e-06
 
 
 Display first order properties of the model
 -------------------------------------------
 
 The calculated first order data is in the :class:`~.firstorder.FirstOrderData` class.
-An instance of :class:`~.FirstOrderData`, :attr:`~.opticalspec.OpticalSpecs.parax_data`, is managed by the :class:`~.opticalspec.OpticalSpecs` class.
+An instance of :class:`~.FirstOrderData` is maintained in `OpticalModel['analysis_results']` under the key `parax_data`.
 
 Other essential optical specification data is also managed by the :class:`~.opticalspec.OpticalSpecs` class:
 
@@ -279,13 +281,13 @@ List the model, and use an alternate model listing command, list_sg, for "list s
 
 .. parsed-literal::
 
-                 c            t        medium     mode   zdr      sd
-     Obj:     0.000000  1.00000e+10       air             1      0.0000
-    Stop:     1.182174     0.862527    D-ZK3M             1     0.75000
-       2:     0.000000     0.523243       air             1     0.57417
-       3:     0.000000     0.250000     N-BK7             1     0.24917
-       4:     0.000000     0.249999       air             1     0.15527
-     Img:     0.000000      0.00000                       1  8.9134e-06
+                  c            t        medium     mode   zdr      sd
+      Obj:     0.000000  1.00000e+10       air             1      0.0000
+     Stop:     1.182174     0.862527    D-ZK3M             1     0.75000
+        2:     0.000000     0.523243       air             1     0.57417
+        3:     0.000000     0.250000     N-BK7             1     0.24917
+        4:     0.000000     0.249999       air             1     0.15527
+      Img:     0.000000      0.00000                       1  8.9134e-06
 
 
 .. code:: ipython3
@@ -295,42 +297,45 @@ List the model, and use an alternate model listing command, list_sg, for "list s
 
 .. parsed-literal::
 
-                  c               mode        type        y       alpha
-                          t           medium
-     Obj:      0.00000                 
-                    1.00000e+10          air
-    Stop:      1.18217                 
-                       0.862527       D-ZK3M
-       2:      0.00000                 
-                       0.523243          air
-       3:      0.00000                 
-                       0.250000        N-BK7
-       4:      0.00000                 
-                       0.249999          air
-     Img:      0.00000                 
+                   c               mode              type          y       alpha
+                           t           medium
+      Obj:      0.00000                 
+                     1.00000e+10          air
+     Stop:      1.18217                 
+                        0.862527       D-ZK3M
+        2:      0.00000                 
+                        0.523243          air
+        3:      0.00000                 
+                        0.250000        N-BK7
+        4:      0.00000                 
+                        0.249999          air
+      Img:      0.00000                 
 
 
 So we just take a quick look at what the actual surface definition is. We see the first surface has an even polynomial: a sphere with a conic constant, and aspheric coefficients, up to 12th order, and it's a transmitting surface.
 
 .. code:: ipython3
 
-    repr(sm.ifcs[1])
-
-
+    listobj(sm.ifcs[1])
 
 
 .. parsed-literal::
 
-    'Surface(profile=EvenPolynomial(c=1.1821736792829385, cc=-0.4776343430417, coefs=[0.0, -0.006313587842251, -0.009394960901464, -0.01707674864971, 0.008070222726967, -0.02139444912229, 0.0, 0.0]), interact_mode=transmit)'
+    transmit
+    profile: EvenPolynomial
+    c=1.1821736792829385,   r=0.8458993949235631   conic cnst=-0.4776343430417
+    coefficients: [0.0, -0.006313587842251, -0.009394960901464, -0.01707674864971, 0.008070222726967, -0.02139444912229, 0.0, 0.0]
+    surface_od=0.75
+    radius=0.75
+    
 
 
-
-Now add decentered surfaces to both the first and the second surface of the lens element. These surfaces are defined as a local decenter type and a reverse decenter. A local decenter applies a translation first, and then a rotation, wheras the reverse decenter applies the reverse: the inverse of the rotation matrix, and then subtracting the translation. 
+Now add decentered surfaces to both the first and the second surface of the lens element. These surfaces are defined as a local decenter type and a reverse decenter. A local decenter applies a translation first, and then a rotation, whereas the reverse decenter applies the reverse: the inverse of the rotation matrix, and then subtracting the translation. 
 
 .. code:: ipython3
 
-    sm.ifcs[1].decenter = srf.DecenterData(DecenterType.LOCAL)
-    sm.ifcs[2].decenter = srf.DecenterData(DecenterType.REV)
+    sm.ifcs[1].decenter = srf.DecenterData('decenter')
+    sm.ifcs[2].decenter = srf.DecenterData('reverse')
 
 Listing the model shows the decentered parameters.
 
@@ -341,34 +346,40 @@ Listing the model shows the decentered parameters.
 
 .. parsed-literal::
 
-                  c               mode        type        y       alpha
-                          t           medium
-     Obj:      0.00000                 
-                    1.00000e+10          air
-    Stop:      1.18217                       LOCAL     0.0000     0.0000
-                       0.862527       D-ZK3M
-       2:      0.00000                         REV     0.0000     0.0000
-                       0.523243          air
-       3:      0.00000                 
-                       0.250000        N-BK7
-       4:      0.00000                 
-                       0.249999          air
-     Img:      0.00000                 
+                   c               mode              type          y       alpha
+                           t           medium
+      Obj:      0.00000                 
+                     1.00000e+10          air
+     Stop:      1.18217                            decenter     0.0000     0.0000
+                        0.862527       D-ZK3M
+        2:      0.00000                             reverse     0.0000     0.0000
+                        0.523243          air
+        3:      0.00000                 
+                        0.250000        N-BK7
+        4:      0.00000                 
+                        0.249999          air
+      Img:      0.00000                 
 
 
 The decenter is defined by a translation, the tilt is defined by alpha, beta, and gamma euler angles. The euler angles will be converted into a rotation matrix. So, this information gives you a translation and a rotation matrix.
 
 .. code:: ipython3
 
-    sm.ifcs[1].decenter
-
-
+    listobj(sm.ifcs[1])
 
 
 .. parsed-literal::
 
-    'LOCAL': Decenter: array([0., 0., 0.]), Tilt: array([0., 0., 0.])
-
+    transmit
+    profile: EvenPolynomial
+    c=1.1821736792829385,   r=0.8458993949235631   conic cnst=-0.4776343430417
+    coefficients: [0.0, -0.006313587842251, -0.009394960901464, -0.01707674864971, 0.008070222726967, -0.02139444912229, 0.0, 0.0]
+    decenter type: decenter
+    decenter: [0. 0. 0.]
+    euler angles: [0. 0. 0.]
+    surface_od=0.75
+    radius=0.75
+    
 
 
 To laterally offset the lens element in the y direction, say by 0.2 millimeters, set the second element of the translation vector of each of the surfaces to 0.2. And because the second surface is a reverse decenter we'll see that the optical axis comes back to the original position. So now we've decentered the surfaces we see that the y component value is 0.2. 
@@ -380,24 +391,43 @@ To laterally offset the lens element in the y direction, say by 0.2 millimeters,
 
 .. code:: ipython3
 
+    listobj(sm.ifcs[1])
+
+
+.. parsed-literal::
+
+    transmit
+    profile: EvenPolynomial
+    c=1.1821736792829385,   r=0.8458993949235631   conic cnst=-0.4776343430417
+    coefficients: [0.0, -0.006313587842251, -0.009394960901464, -0.01707674864971, 0.008070222726967, -0.02139444912229, 0.0, 0.0]
+    decenter type: decenter
+    decenter: [0.  0.2 0. ]
+    euler angles: [0. 0. 0.]
+    surface_od=0.75
+    radius=0.75
+    
+
+
+.. code:: ipython3
+
     sm.list_sg()
 
 
 .. parsed-literal::
 
-                  c               mode        type        y       alpha
-                          t           medium
-     Obj:      0.00000                 
-                    1.00000e+10          air
-    Stop:      1.18217                       LOCAL    0.20000     0.0000
-                       0.862527       D-ZK3M
-       2:      0.00000                         REV    0.20000     0.0000
-                       0.523243          air
-       3:      0.00000                 
-                       0.250000        N-BK7
-       4:      0.00000                 
-                       0.249999          air
-     Img:      0.00000                 
+                   c               mode              type          y       alpha
+                           t           medium
+      Obj:      0.00000                 
+                     1.00000e+10          air
+     Stop:      1.18217                            decenter    0.20000     0.0000
+                        0.862527       D-ZK3M
+        2:      0.00000                             reverse    0.20000     0.0000
+                        0.523243          air
+        3:      0.00000                 
+                        0.250000        N-BK7
+        4:      0.00000                 
+                        0.249999          air
+      Img:      0.00000                 
 
 
 When perturbing the lens position, we want the ray bundle to stay directed along the axis. So we want to separate the definition of the stop surface from the first surface, and put the stop on a dummy plane in front of the lens element. So when the lens element is laterally shifted, the stop plane, which is what the rays are aimed at, will stay the same.
@@ -415,21 +445,21 @@ Add a dummy plane, following the object surface. I'll list the model, and we see
 
 .. parsed-literal::
 
-                  c               mode        type        y       alpha
-                          t           medium
-     Obj:      0.00000                 
-                    1.00000e+10          air
-       1:      0.00000                 
-                        0.00000          air
-    Stop:      1.18217                       LOCAL    0.20000     0.0000
-                       0.862527       D-ZK3M
-       3:      0.00000                         REV    0.20000     0.0000
-                       0.523243          air
-       4:      0.00000                 
-                       0.250000        N-BK7
-       5:      0.00000                 
-                       0.249999          air
-     Img:      0.00000                 
+                   c               mode              type          y       alpha
+                           t           medium
+      Obj:      0.00000                 
+                     1.00000e+10          air
+        1:      0.00000                 
+                         0.00000          air
+     Stop:      1.18217                            decenter    0.20000     0.0000
+                        0.862527       D-ZK3M
+        3:      0.00000                             reverse    0.20000     0.0000
+                        0.523243          air
+        4:      0.00000                 
+                        0.250000        N-BK7
+        5:      0.00000                 
+                        0.249999          air
+      Img:      0.00000                 
 
 
 .. code:: ipython3
@@ -465,21 +495,40 @@ Add a dummy plane, following the object surface. I'll list the model, and we see
 
 .. parsed-literal::
 
-                  c               mode        type        y       alpha
-                          t           medium
-     Obj:      0.00000                 
-                    1.00000e+10          air
-    Stop:      0.00000                 
-                        0.00000          air
-       2:      1.18217                       LOCAL    0.20000     0.0000
-                       0.862527       D-ZK3M
-       3:      0.00000                         REV    0.20000     0.0000
-                       0.523243          air
-       4:      0.00000                 
-                       0.250000        N-BK7
-       5:      0.00000                 
-                       0.249999          air
-     Img:      0.00000                 
+                   c               mode              type          y       alpha
+                           t           medium
+      Obj:      0.00000                 
+                     1.00000e+10          air
+     Stop:      0.00000                 
+                         0.00000          air
+        2:      1.18217                            decenter    0.20000     0.0000
+                        0.862527       D-ZK3M
+        3:      0.00000                             reverse    0.20000     0.0000
+                        0.523243          air
+        4:      0.00000                 
+                        0.250000        N-BK7
+        5:      0.00000                 
+                        0.249999          air
+      Img:      0.00000                 
+
+
+.. code:: ipython3
+
+    sm.list_decenters(full=True)
+
+
+.. parsed-literal::
+
+                  thi    medium/mode          type          x          y       alpha      beta       gamma
+        0:  1.00000e+10          air
+        1:      0.00000          air
+        2:                                  decenter     0.0000    0.20000     0.0000     0.0000     0.0000
+        2:     0.862527       D-ZK3M
+        3:                                   reverse     0.0000    0.20000     0.0000     0.0000     0.0000
+        3:     0.523243          air
+        4:     0.250000        N-BK7
+        5:     0.249999          air
+        6:                     dummy
 
 
 Now update the model and redraw the layout. Note that the lens element has shifted upward by 0.2 millimeters. The original ray fan is is unperturbed in object space but note that it gets deflected off axis, and in fact the aberration is large enough that flare is visible, even on the lens layout.
@@ -495,7 +544,7 @@ Now update the model and redraw the layout. Note that the lens element has shift
 
 
 
-.. image:: output_53_0.png
+.. image:: output_55_0.png
 
 
 
@@ -508,7 +557,7 @@ Now refresh the aberration plot to see what the aberrations look like now. Notic
 
 
 
-.. image:: output_55_0.png
+.. image:: output_57_0.png
 
 
 

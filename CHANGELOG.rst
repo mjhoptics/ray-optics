@@ -4,6 +4,21 @@
 Changelog
 =========
 
+Version 0.8.0
+==============
+Add :meth:`~.optical.opticalmodel.OpticalModel.flip` function to :class:`~.optical.opticalmodel.OpticalModel`. Can flip a range of surfaces, flip an element or an assembly. 
+
+Added :class:`~.elem.elements.Part` as an ABC for elements, et al, and added an :class:`~.elem.elements.Assembly` class allow groups of `Parts`. Parts and Profiles are now saved and restored correctly. 
+
+Revise :meth:`~.optical.opticalmodel.OpticalModel.update_model` operation, including splitting out derived property calculations into a separate :meth:`~.optical.opticalmodel.OpticalModel.update_optical_properties` function. Added `src_model` keyword to update_model so that submodels can filter on who originated the update.
+
+Upgrade the |nubar| diagram to support the layer view control used in the |ybar| diagram. An `assembly` layer was added to the diagrams. The object/image conjugate shift on |ybar| diagram was fixed for the case of a virtual object.
+
+Add `analysis_results` dictionary to submodels maintained by the `OpticalModel`. Move first order data there under keyword `parax_data`. Going forward, this is the natural place to put results from the different evaluators in the :mod:`~.raytr.analyses` module.
+
+Removed convoluted ray offset calculation for `InteractiveLayout` and let the view bounds handle it.
+Included the effect of defocus in transverse aberration plots (fixes bug in implementation).
+
 Version 0.7.5
 ==============
 Implemented a formatted object output protocol, the listobj_str() method, that returns a formatted, descriptive string about the object's contents. This supercedes the use of listobj as a per-class method (see 0.7.1 release notes). This protocol was implemented in particular for profiles and parts of the optical specification. Added a console print function :func:`~listobj` that will work with objects that implement a listobj_str() method; the fallback is to invoke repr(obj). Thanks to @asebian and @rlabs-oss for their issue reports and @dibyendumajumdar for continued discussions.

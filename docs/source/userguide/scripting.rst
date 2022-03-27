@@ -38,10 +38,11 @@ Whether created new or restored from a file, setting up the following names make
 
 .. code::
 
-   > sm = opm.seq_model
-   > osp = opm.optical_spec
-   > pm = opm.parax_model
-   > em = opm.ele_model
+   > sm = opm['seq_model']
+   > osp = opm['optical_spec']
+   > pm = opm['parax_model']
+   > em = opm['ele_model']
+   > pt = opm['part_tree']
 
 ******************
 iPython setup code
@@ -61,9 +62,11 @@ One can use the flow above in the iPython environment. If you want to import few
 
    # or create a new OpticalModel
    #opm = OpticalModel()
-   sm = opm.seq_model
-   osp = opm.optical_spec
-   pm = opm.parax_model
+   sm = opm['seq_model']
+   osp = opm['optical_spec']
+   pm = opm['parax_model']
+   em = opm['ele_model']
+   pt = opm['part_tree']
 
 ******************
 Jupyter setup code
