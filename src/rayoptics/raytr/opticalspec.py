@@ -154,7 +154,8 @@ class OpticalSpecs:
         if self.opt_model.seq_model.get_num_surfaces() > 2:
             stop = self.opt_model.seq_model.stop_surface
             wvl = self.spectral_region.central_wvl
-            self.parax_data = compute_first_order(self.opt_model, stop, wvl)
+            self.opt_model['analysis_results']['parax_data'] = \
+                compute_first_order(self.opt_model, stop, wvl)
 
             if self.do_aiming:
                 for i, fld in enumerate(self.field_of_view.fields):

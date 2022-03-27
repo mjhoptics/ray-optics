@@ -518,7 +518,9 @@ def trace_coddington_fan(opt_model, ray_pkg, foc=None):
 
     before_rind = seq_model.rndx[0][wl]
     before_dir = None
+    s_before, t_before = None, None
     for r, ifc, after_rind, tfrm, z_dir in path:
+        after_rind = after_rind if after_rind is not None else before_rind
         pt, after_dir, after_dst, normal = r
         if before_dir is not None:
             normal_len = norm(normal)
