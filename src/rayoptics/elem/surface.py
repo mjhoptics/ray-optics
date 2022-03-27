@@ -82,9 +82,9 @@ class Surface(interface.Interface):
         if self.profile is not None:
             o_str += self.profile.listobj_str()
         if hasattr(self, 'phase_element') and self.phase_element is not None:
-            o_str += super().phase_element.listobj_str()
+            o_str += self.phase_element.listobj_str()
         if hasattr(self, 'decenter') and self.decenter is not None:
-            o_str += super().decenter.listobj_str()
+            o_str += self.decenter.listobj_str()
 
         o_str += f"surface_od={self.surface_od()}\n"
         for ca in self.clear_apertures:
@@ -363,7 +363,7 @@ class Circular(Aperture):
         self.radius = radius
 
     def listobj_str(self):
-        o_str = f"radius={self.radius}/n"
+        o_str = f"radius={self.radius}\n"
         o_str += super().listobj_str()
         return o_str
 
