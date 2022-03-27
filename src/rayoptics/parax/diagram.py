@@ -24,7 +24,14 @@ from rayoptics.util.line_intersection import get_intersect
 from rayoptics.util import misc_math
 from rayoptics.util import colors
 
-import rayoptics.elem.elements as ele
+from rayoptics.elem.elements import (
+    create_thinlens,
+    create_lens,
+    create_cemented_doublet,
+    create_mirror,
+    create_from_file,
+    calc_render_color_for_material,
+    )
 from rayoptics.parax import paraxialdesign
 
 
@@ -70,18 +77,18 @@ def create_parax_design_commands(fig):
     # Add thin lens
     cmds.append(('Add Thin Lens',
                  (dgm.register_add_replace_element, (),
-                  {'node_init': ele.create_thinlens,
-                   'factory': ele.create_thinlens,
+                  {'node_init': create_thinlens,
+                   'factory': create_thinlens,
                    'interact_mode': 'transmit'})))
     # Add lens
-    kwargs = {'node_init': ele.create_thinlens,
-              'factory': ele.create_lens,
+    kwargs = {'node_init': create_thinlens,
+              'factory': create_lens,
               'interact_mode': 'transmit'}
     cmds.append(('Add Lens', (dgm.register_add_replace_element, (), kwargs)))
 
     # Add doublet
-    kwargs = {'node_init': ele.create_thinlens,
-              'factory': ele.create_cemented_doublet,
+    kwargs = {'node_init': create_thinlens,
+              'factory': create_cemented_doublet,
               'interact_mode': 'transmit'}
     cmds.append(('Add Cemented Doublet', (dgm.register_add_replace_element, 
                                           (), kwargs)))
@@ -89,8 +96,8 @@ def create_parax_design_commands(fig):
     # Add mirror
     cmds.append(('Add Mirror',
                  (dgm.register_add_replace_element, (),
-                  {'node_init': ele.create_mirror,
-                   'factory': ele.create_mirror,
+                  {'node_init': create_mirror,
+                   'factory': create_mirror,
                    'interact_mode': 'reflect'})))
 
     # Replace with file
@@ -105,12 +112,12 @@ def create_parax_design_commands(fig):
         filepath = models_dir / 'Sasian Triplet.roa'
 
         def cff(**kwargs):
-            return ele.create_from_file(filepath, **kwargs)
+            return create_from_file(filepath, **kwargs)
 
         cmds.append(('Sasian Triplet',
                      (dgm.register_add_replace_element, (),
                       {'filename': filepath,
-                       'node_init': ele.create_thinlens,
+                       'node_init': create_thinlens,
                        'factory': cff,
                        'interact_mode': 'transmit'})))
     finally:
@@ -390,7 +397,7 @@ class DiagramNode():
             e = e_node.id if e_node else None
             marker_color = bkgrnd_rbga
             if e and '#airgap' not in e_node.tag:
-                marker_color = ele.calc_render_color_for_material(gap.medium)
+                marker_color = calc_render_color_for_material(gap.medium)
                 marker_color = rgb2mpl(marker_color)
             self.handles['shape'] = (shape[self.node], 'vertex',
                                      {'linestyle': '',
@@ -468,7 +475,7 @@ class DiagramEdge():
                 if '#airgap' in e_node.tag:
                     return bkgrnd_rbga
                 else:
-                    return ele.calc_render_color_for_material(gap.medium)
+                    return calc_render_color_for_material(gap.medium)
             else:
                 # single surface element, like mirror or thinlens, use airgap
                 return bkgrnd_rbga
