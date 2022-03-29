@@ -36,7 +36,7 @@ class OpticalSpecs:
     It also maintains a repository of paraxial data.
 
     Attributes:
-        parax_data: tuple of :obj:`~.firstorder.ParaxData`
+        do_aiming: if True, iterate chief rays to stop center, else entrance pupil
 
     """
 
@@ -49,7 +49,6 @@ class OpticalSpecs:
         self['pupil'] = PupilSpec(self)
         self['fov'] = FieldSpec(self)
         self['focus'] = FocusRange(0.0)
-        self.parax_data = None
         self.do_aiming = OpticalSpecs.do_aiming_default
         if specsheet:
             self.set_from_specsheet(specsheet)
@@ -66,7 +65,6 @@ class OpticalSpecs:
         attrs = dict(vars(self))
         del attrs['opt_model']
         del attrs['_submodels']
-        del attrs['parax_data']
         del attrs['do_aiming']
 
         attrs['spectral_region'] = self['wvls']
@@ -189,7 +187,7 @@ class OpticalSpecs:
         return self.field_of_view.obj_coords(fld)
 
     def list_first_order_data(self):
-        self.parax_data.fod.list_first_order_data()
+        self.opt_model['parax_model'].first_order_data()
 
     def list_parax_trace(self, **kwargs):
         list_parax_trace(self.opt_model, **kwargs)
@@ -460,19 +458,20 @@ class FieldSpec:
 
     def mutate_field_type(self, new_field_type):
         osp = self.optical_spec
+        parax_data = osp.opt_model['ar']['parax_data']
+        fod = parax_data.fod
+
         fld_key = model_enums.get_fld_key_for_type(new_field_type)
         field, obj_img_key, value_key = fld_key
-        if self.optical_spec is not None:
-            if osp.parax_data is not None:
-                fod = self.optical_spec.parax_data.fod
-                if obj_img_key == 'object':
-                    if value_key == 'height':
-                        self.value = osp.parax_data.pr_ray[0][mc.ht]
-                    elif value_key == 'angle':
-                        self.value = fod.obj_ang
-                elif obj_img_key == 'image':
-                    if value_key == 'height':
-                        self.value = fod.img_ht
+
+        if obj_img_key == 'object':
+            if value_key == 'height':
+                self.value = parax_data.pr_ray[0][mc.ht]
+            elif value_key == 'angle':
+                self.value = fod.obj_ang
+        elif obj_img_key == 'image':
+            if value_key == 'height':
+                self.value = fod.img_ht
         self.key = fld_key
 
     def obj_coords(self, fld):
