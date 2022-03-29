@@ -667,9 +667,15 @@ class ParaxialModel():
                     if ybar < 0:
                         if ratio < min_vly[0]:
                             min_vly = ratio, i
-                    else:
+                    elif ybar > 0:
                         if ratio < min_vuy[0]:
                             min_vuy = ratio, i
+                    else:  # ybar == 0
+                        if ratio < min_vly[0]:
+                            min_vly = ratio, i
+                        if ratio < min_vuy[0]:
+                            min_vuy = ratio, i
+                        
                 # print(f'{i:2d}: {ratio:8.3f} {ybar:8.3f} {y:8.3f} {max_ap:8.3f}')
 
         # print("min_vly:", min_vly, "min_vuy:", min_vuy)

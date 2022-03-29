@@ -433,7 +433,7 @@ def apply_paraxial_vignetting(opt_model):
     max_field, jth = fov.max_field()
     for j, fld in enumerate(fov.fields):
         rel_fov = math.sqrt(fld.x**2 + fld.y**2)
-        if not fov.is_relative:
+        if not fov.is_relative and max_field != 0:
             rel_fov = rel_fov/max_field
         min_vly, min_vuy = pm.paraxial_vignetting(rel_fov)
         if min_vly[1] is not None:
