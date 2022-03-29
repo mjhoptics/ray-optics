@@ -28,11 +28,7 @@ Subpackages
 Submodules
 ----------
 
-rayoptics.environment module
-----------------------------
+.. toctree::
+   :maxdepth: 4
 
-.. automodule:: rayoptics.environment
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
+   rayoptics.environment

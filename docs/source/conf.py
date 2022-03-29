@@ -99,8 +99,11 @@ modindex_common_prefix = ['rayoptics.']
 # a list of builtin themes.
 #
 #html_theme = 'alabaster'
-html_theme = 'sphinx_rtd_theme'
-
+#html_theme = 'classic'
+#html_theme = 'sphinx_rtd_theme'
+html_theme_options = {
+    'navigation_depth': 5,
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -113,9 +116,9 @@ python_version = '.'.join(map(str, sys.version_info[0:2]))
 intersphinx_mapping = {
     'sphinx': ('https://www.sphinx-doc.org/en/master', None),
     'python': ('https://docs.python.org/' + python_version, None),
-    'matplotlib': ('https://matplotlib.org', None),
+    'matplotlib': ('https://matplotlib.org/stable', None),
     'numpy': ('https://numpy.org/doc/stable', None),
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable', None),
-    'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
+    'scipy': ('https://docs.scipy.org/doc/scipy', None),
     'opticalglass': ('https://opticalglass.readthedocs.io/en/latest', None),
 }

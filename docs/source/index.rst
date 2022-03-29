@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-:tocdepth: 5
+:tocdepth: 6
 
 #######################
 RayOptics Documentation
@@ -45,7 +45,7 @@ RayOptics is a Python geometrical optics and image forming optics library. It pr
 .. _dev-guide:
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 5
    :caption: Developer Guide
 
    devguide/index

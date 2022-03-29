@@ -9,27 +9,9 @@ rayoptics.codev package
 Submodules
 ----------
 
-rayoptics.codev.cmdproc module
-------------------------------
+.. toctree::
+   :maxdepth: 4
 
-.. automodule:: rayoptics.codev.cmdproc
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-rayoptics.codev.reader module
------------------------------
-
-.. automodule:: rayoptics.codev.reader
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-rayoptics.codev.tla module
---------------------------
-
-.. automodule:: rayoptics.codev.tla
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
+   rayoptics.codev.cmdproc
+   rayoptics.codev.reader
+   rayoptics.codev.tla

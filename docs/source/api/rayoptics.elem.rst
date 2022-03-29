@@ -9,52 +9,12 @@ rayoptics.elem package
 Submodules
 ----------
 
-rayoptics.elem.elements module
-------------------------------
+.. toctree::
+   :maxdepth: 4
 
-.. automodule:: rayoptics.elem.elements
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-rayoptics.elem.layout module
-----------------------------
-
-.. automodule:: rayoptics.elem.layout
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-rayoptics.elem.parttree module
-------------------------------
-
-.. automodule:: rayoptics.elem.parttree
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-rayoptics.elem.profiles module
-------------------------------
-
-.. automodule:: rayoptics.elem.profiles
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-rayoptics.elem.surface module
------------------------------
-
-.. automodule:: rayoptics.elem.surface
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :exclude-members: InteractionMode
-
-rayoptics.elem.transform module
--------------------------------
-
-.. automodule:: rayoptics.elem.transform
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
+   rayoptics.elem.elements
+   rayoptics.elem.layout
+   rayoptics.elem.parttree
+   rayoptics.elem.profiles
+   rayoptics.elem.surface
+   rayoptics.elem.transform

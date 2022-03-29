@@ -9,35 +9,10 @@ rayoptics.optical package
 Submodules
 ----------
 
-rayoptics.optical.model\_constants module
------------------------------------------
+.. toctree::
+   :maxdepth: 4
 
-.. automodule:: rayoptics.optical.model_constants
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-rayoptics.optical.model\_enums module
--------------------------------------
-
-.. automodule:: rayoptics.optical.model_enums
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-rayoptics.optical.opticalmodel module
--------------------------------------
-
-.. automodule:: rayoptics.optical.opticalmodel
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-rayoptics.optical.obench module
--------------------------------
-
-.. automodule:: rayoptics.optical.obench
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
+   rayoptics.optical.model_constants
+   rayoptics.optical.model_enums
+   rayoptics.optical.obench
+   rayoptics.optical.opticalmodel

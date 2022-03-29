@@ -9,59 +9,13 @@ rayoptics.parax package
 Submodules
 ----------
 
-rayoptics.parax.diagram module
-------------------------------
+.. toctree::
+   :maxdepth: 4
 
-.. automodule:: rayoptics.parax.diagram
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-rayoptics.parax.etendue module
-------------------------------
-
-.. automodule:: rayoptics.parax.etendue
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-rayoptics.parax.firstorder module
----------------------------------
-
-.. automodule:: rayoptics.parax.firstorder
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-rayoptics.parax.idealimager module
-----------------------------------
-
-.. automodule:: rayoptics.parax.idealimager
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-rayoptics.parax.paraxialdesign module
--------------------------------------
-
-.. automodule:: rayoptics.parax.paraxialdesign
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-rayoptics.parax.specsheet module
---------------------------------
-
-.. automodule:: rayoptics.parax.specsheet
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-rayoptics.parax.thirdorder module
----------------------------------
-
-.. automodule:: rayoptics.parax.thirdorder
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
+   rayoptics.parax.diagram
+   rayoptics.parax.etendue
+   rayoptics.parax.firstorder
+   rayoptics.parax.idealimager
+   rayoptics.parax.paraxialdesign
+   rayoptics.parax.specsheet
+   rayoptics.parax.thirdorder

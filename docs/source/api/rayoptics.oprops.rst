@@ -9,19 +9,8 @@ rayoptics.oprops package
 Submodules
 ----------
 
-rayoptics.oprops.doe module
----------------------------
+.. toctree::
+   :maxdepth: 4
 
-.. automodule:: rayoptics.oprops.doe
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-rayoptics.oprops.thinlens module
---------------------------------
-
-.. automodule:: rayoptics.oprops.thinlens
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
+   rayoptics.oprops.doe
+   rayoptics.oprops.thinlens

@@ -9,44 +9,11 @@ rayoptics.seq package
 Submodules
 ----------
 
-rayoptics.seq.gap module
-------------------------
+.. toctree::
+   :maxdepth: 4
 
-.. automodule:: rayoptics.seq.gap
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-rayoptics.seq.interface module
-------------------------------
-
-.. automodule:: rayoptics.seq.interface
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :exclude-members: InteractionMode
-
-rayoptics.seq.medium module
----------------------------
-
-.. automodule:: rayoptics.seq.medium
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-rayoptics.seq.sequential module
--------------------------------
-
-.. automodule:: rayoptics.seq.sequential
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-rayoptics.seq.twoconicmirrors module
-------------------------------------
-
-.. automodule:: rayoptics.seq.twoconicmirrors
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
+   rayoptics.seq.gap
+   rayoptics.seq.interface
+   rayoptics.seq.medium
+   rayoptics.seq.sequential
+   rayoptics.seq.twoconicmirrors
