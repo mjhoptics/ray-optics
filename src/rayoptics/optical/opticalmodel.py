@@ -417,6 +417,7 @@ class OpticalModel:
         rot_around_x = np.array([[1, 0, 0], [0, -1, 0], [0, 0, -1]])
         rot_around_y = np.array([[-1, 0, 0], [0, 1, 0], [0, 0, -1]])
         sm = self['seq_model']
+        osp = self['optical_spec']
         em = self['ele_model']
         pt = self['part_tree']
 
@@ -457,6 +458,7 @@ class OpticalModel:
 
         # flip the range in the sequential model
         sm.flip(idx1, idx2)
+        osp.update_model()
         self.update_optical_properties()
 
         pt.update_model()
@@ -473,6 +475,7 @@ class OpticalModel:
                 t: the thickness following a chunk when inserting
         """
         sm = self['seq_model']
+        osp = self['optical_spec']
         em = self['ele_model']
         pt = self['part_tree']
         seq, elm, e_nodez = descriptor
@@ -532,6 +535,7 @@ class OpticalModel:
                 gap = sg[mc.Gap]
             sm.insert(sg[mc.Intfc], gap, z_dir=sg[mc.Zdir], prev=ins_prev_gap)
         sm.update_model()
+        osp.update_model()
         self.update_optical_properties()
 
         # add new elements into the ele_model and 
@@ -549,6 +553,7 @@ class OpticalModel:
         """ remove interfaces and gaps from seq_model and eles from ele_model
         """
         sm = self['seq_model']
+        osp = self['optical_spec']
         em = self['ele_model']
         pt = self['part_tree']
         seq, elm, e_nodez = descriptor
@@ -567,6 +572,8 @@ class OpticalModel:
             for i in range(idx+len(seq)-1, idx-1, -1):
                 sm.remove(i)
             sm.update_model()
+            osp.update_model()
+            self.update_optical_properties()
 
         for e in elm:
             em.remove_element(e)
