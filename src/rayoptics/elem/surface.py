@@ -184,6 +184,18 @@ class Surface(interface.Interface):
 
         return od
 
+    def point_inside(self, x, y):
+        is_inside = True
+        if len(self.clear_apertures) > 0:
+            for ca in self.clear_apertures:
+                is_inside = is_inside and ca.point_inside(x, y)
+                if not is_inside:
+                    return is_inside
+        else:
+            return super.point_inside(x, y)
+
+        return is_inside
+
     def get_y_aperture_extent(self):
         """ returns [y_min, y_max] for the union of apertures """
         od = [1.0e10, -1.0e10]

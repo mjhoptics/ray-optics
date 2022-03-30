@@ -102,6 +102,10 @@ class Interface:
     def surface_od(self):
         pass
 
+    def point_inside(self, x: float, y: float) -> bool:
+        """ Returns True if the point (x, y) is within the interface clear aperture. """
+        return (x*x + y*y) <= self.max_aperture**2
+
     def set_max_aperture(self, max_ap):
         """ max_ap is the max aperture radius """
         self.max_aperture = max_ap
