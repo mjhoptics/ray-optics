@@ -15,3 +15,11 @@ Alternatively, :mod:`rayoptics` can be installed from the conda-forge channel us
 .. code::
 
    > conda install rayoptics --channel conda-forge
+
+*****************
+Jupyter notebooks
+*****************
+
+.. _jupyter-notebooks:
+
+There is a repo of :mod:`rayoptics` Jupyter notebooks at `ray-optics-notebooks <https://github.com/mjhoptics/ray-optics-notebooks/>`_ .

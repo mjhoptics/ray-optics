@@ -29,7 +29,16 @@ RayOptics is a Python geometrical optics and image forming optics library. It pr
    install
    userguide/scripting
    userguide/qt_app
+
+.. _examples:
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Examples
+
    examples/SasianTriplet/SasianTriplet
+   examples/AddFromFileAndFlip/AddFromFileAndFlip
+   examples/Cell_Phone_lens/Cell_Phone_lens
    examples/ThorlabsLensImport/ThorlabsLensImport
    examples/EdmundLensImport/EdmundLensImport
 
@@ -45,7 +54,7 @@ RayOptics is a Python geometrical optics and image forming optics library. It pr
 .. _dev-guide:
 
 .. toctree::
-   :maxdepth: 5
+   :maxdepth: 3
    :caption: Developer Guide
 
    devguide/index

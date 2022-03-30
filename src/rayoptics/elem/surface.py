@@ -49,7 +49,14 @@ class InteractionMode(Enum):
 
 
 class Surface(interface.Interface):
-    """ Container of profile, extent, position and orientation. """
+    """ Container of profile, extent, position and orientation. 
+
+    Attributes:
+        label: optional label
+        profile: :class:`~.elem.profiles.SurfaceProfile`
+        clear_apertures: list of :class:`Aperture`
+        edge_apertures: list of :class:`Aperture`
+        """
 
     def __init__(self, lbl='', profile=None,
                  clear_apertures=None, edge_apertures=None,
