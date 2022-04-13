@@ -10,6 +10,8 @@
 from collections import namedtuple
 import numpy as np
 
+import opticalglass.glasspolygons as gp  # type: ignore
+
 GUIHandle = namedtuple('GUIHandle', ['poly', 'bbox'])
 GUIHandle.poly.__doc__ = "poly entity for underlying graphics system (e.g. mpl)"
 GUIHandle.bbox.__doc__ = "bounding box for poly"
@@ -93,3 +95,19 @@ def fit_data_range(x_data, margin=0.05, range_trunc=0.25, **kwargs):
     else:
         x_margin = 0.01
     return x_min-x_margin, x_max+x_margin
+
+
+def calc_render_color_for_material(matl):
+    """ get element color based on V-number of glass"""
+    try:
+        gc = float(matl.glass_code())
+    except AttributeError:
+        return (255, 255, 255, 64)  # white
+    else:
+        # set element color based on V-number
+        indx = round(1.0 + (int(gc)/1000), 3)
+        vnbr = round(100.0*(gc - int(gc)), 3)
+        dsg, rgb = gp.find_glass_designation(indx, vnbr)
+        if rgb is None:
+            return [228, 237, 243, 64]  # ED designation
+        return rgb

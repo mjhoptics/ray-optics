@@ -27,7 +27,7 @@ from rayoptics.elem import parttree
 from rayoptics.elem.profiles import SurfaceProfile, Spherical, Conic
 from rayoptics.elem.surface import Surface
 from rayoptics.seq.gap import Gap
-from rayoptics.seq.medium import Glass, glass_decode
+from rayoptics.seq.medium import Glass
 
 # from rayoptics.optical.opticalmodel import OpticalModel
 from rayoptics.seq.sequential import SequentialModel
@@ -36,9 +36,9 @@ from rayoptics.seq.interface import Interface
 import rayoptics.gui.appcmds as cmds
 from rayoptics.gui.actions import (Action, AttrAction, SagAction, BendAction,
                                    ReplaceGlassAction)
+from rayoptics.gui.util import calc_render_color_for_material
 
 import opticalglass.glassfactory as gfact  # type: ignore
-import opticalglass.glasspolygons as gp  # type: ignore
 
 GraphicsHandle = namedtuple('GraphicsHandle', ['polydata', 'tfrm', 'polytype',
                                                'color'], defaults=(None,))
@@ -292,22 +292,6 @@ def create_assembly_from_seq(opt_model, idx1, idx2, **kwargs):
     asm_node = asm.tree(part_tree=opt_model['part_tree'])
 
     return asm, asm_node
-
-
-def calc_render_color_for_material(matl):
-    """ get element color based on V-number of glass"""
-    try:
-        gc = float(matl.glass_code())
-    except AttributeError:
-        return (255, 255, 255, 64)  # white
-    else:
-        # set element color based on V-number
-        indx, vnbr = glass_decode(gc)
-        dsg, rgb = gp.find_glass_designation(indx, vnbr)
-        if rgb is None:
-            return [228, 237, 243, 64]  # ED designation
-#            rgb = Element.clut.get_color(vnbr)
-        return rgb
     
 
 def full_profile(profile, is_flipped, edge_extent,

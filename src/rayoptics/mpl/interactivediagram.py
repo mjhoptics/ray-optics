@@ -13,12 +13,18 @@ from rayoptics.mpl.interactivefigure import InteractiveFigure
 
 
 class InteractiveDiagram(InteractiveFigure):
-    """ Editable version of optical system layout, aka Live Layout
+    """ Editable version of |ybar| and |nubar| diagrams
 
     Attributes:
         opt_model: parent optical model
         refresh_gui: function to be called on refresh_gui event
         dgm_type: diagram type, 'ht' or 'slp'
+        do_barrel_constraint, bool: display the barrel diamond if True
+        barrel_constraint, float: the radius for the barrel constraint
+        enable_slide: Display the "bend" or "gap" constaint lines
+        bend_or_gap: "bend" | "gap"
+        parax_model: if None, 'ifcs' else parax_mode for layer parax_model_key
+        parax_model_key: "ifcs" | "eles" | "asm" | "sys"
     """
 
     def __init__(self, opt_model, dgm_type, refresh_gui=None,

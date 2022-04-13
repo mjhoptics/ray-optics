@@ -6,12 +6,9 @@
 
 .. codeauthor: Michael J. Hayford
 """
-import logging
-
 import math
 import numpy as np
 from copy import deepcopy
-from pathlib import Path
 
 from rayoptics.gui.util import bbox_from_poly, fit_data_range
 from rayoptics.gui.actions import ReplaceGlassAction
@@ -24,14 +21,8 @@ from rayoptics.util.line_intersection import get_intersect
 from rayoptics.util import misc_math
 from rayoptics.util import colors
 
-from rayoptics.elem.elements import (
-    create_thinlens,
-    create_lens,
-    create_cemented_doublet,
-    create_mirror,
-    create_from_file,
-    calc_render_color_for_material,
-    )
+from rayoptics.gui.util import calc_render_color_for_material
+
 from rayoptics.parax import paraxialdesign
 
 
@@ -65,63 +56,6 @@ def light_or_dark(is_dark=True):
         'barrel': accent['green'],
         }
     return {**rgb, **fb}
-
-
-def create_parax_design_commands(fig):
-    cmds = []
-    dgm = fig.diagram
-    # initialize dgm with a Select command
-    dgm.register_commands((), figure=fig)
-    # Select an existing point
-    cmds.append(('Select', (dgm.register_commands, (), {})))
-    # Add thin lens
-    cmds.append(('Add Thin Lens',
-                 (dgm.register_add_replace_element, (),
-                  {'node_init': create_thinlens,
-                   'factory': create_thinlens,
-                   'interact_mode': 'transmit'})))
-    # Add lens
-    kwargs = {'node_init': create_thinlens,
-              'factory': create_lens,
-              'interact_mode': 'transmit'}
-    cmds.append(('Add Lens', (dgm.register_add_replace_element, (), kwargs)))
-
-    # Add doublet
-    kwargs = {'node_init': create_thinlens,
-              'factory': create_cemented_doublet,
-              'interact_mode': 'transmit'}
-    cmds.append(('Add Cemented Doublet', (dgm.register_add_replace_element, 
-                                          (), kwargs)))
-
-    # Add mirror
-    cmds.append(('Add Mirror',
-                 (dgm.register_add_replace_element, (),
-                  {'node_init': create_mirror,
-                   'factory': create_mirror,
-                   'interact_mode': 'reflect'})))
-
-    # Replace with file
-    pth = Path(__file__).resolve()
-    try:
-        rayoptics_pos = pth.parts.index('rayoptics')
-    except ValueError:
-        logging.debug("Can't find rayoptics: path is %s", pth)
-    else:
-        # models_dir = rayoptics/models
-        models_dir = Path(*pth.parts[:rayoptics_pos+1]) / 'models'
-        filepath = models_dir / 'Sasian Triplet.roa'
-
-        def cff(**kwargs):
-            return create_from_file(filepath, **kwargs)
-
-        cmds.append(('Sasian Triplet',
-                     (dgm.register_add_replace_element, (),
-                      {'filename': filepath,
-                       'node_init': create_thinlens,
-                       'factory': cff,
-                       'interact_mode': 'transmit'})))
-    finally:
-        return cmds
 
 
 class Diagram():

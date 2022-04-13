@@ -162,6 +162,7 @@ class MainWindow(QMainWindow):
             # self.open_file(path / "models/collimator.roa")
             # self.open_file(path / "models/Dall-Kirkham.roa")
             # self.open_file(path / "models/HybridAchromat.roa")
+            # self.open_file(path / "models/Newtonian with diagonal.roa")
             # self.open_file(path / "models/petzval.roa")
             # self.open_file(path / "models/Ritchey_Chretien.roa")
             self.open_file(path / "models/Sasian Triplet.roa")

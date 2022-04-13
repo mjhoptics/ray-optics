@@ -8,6 +8,7 @@
 .. codeauthor: Michael J. Hayford
 """
 
+import logging
 import math
 import pathlib
 
@@ -264,7 +265,7 @@ def create_paraxial_design_view_v2(opt_model, dgm_type, gui_parent=None):
     panel_fcts = [create_2d_figure_toolbar,
                   ]
     if dgm_type == 'ht':
-        cmds = diagram.create_parax_design_commands(fig)
+        cmds = create_parax_design_commands(fig)
 
         panel_fcts.append(create_diagram_controls_groupbox)
         panel_fcts.append(create_diagram_edge_actions_groupbox)
@@ -281,6 +282,63 @@ def create_paraxial_design_view_v2(opt_model, dgm_type, gui_parent=None):
     plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht,
                               add_panel_fcts=panel_fcts, commands=cmds,
                               drop_action=diagram.GlassDropAction())
+
+
+def create_parax_design_commands(fig):
+    cmds = []
+    dgm = fig.diagram
+    # initialize dgm with a Select command
+    dgm.register_commands((), figure=fig)
+    # Select an existing point
+    cmds.append(('Select', (dgm.register_commands, (), {})))
+    # Add thin lens
+    cmds.append(('Add Thin Lens',
+                 (dgm.register_add_replace_element, (),
+                  {'node_init': ele.create_thinlens,
+                   'factory': ele.create_thinlens,
+                   'interact_mode': 'transmit'})))
+    # Add lens
+    kwargs = {'node_init': ele.create_thinlens,
+              'factory': ele.create_lens,
+              'interact_mode': 'transmit'}
+    cmds.append(('Add Lens', (dgm.register_add_replace_element, (), kwargs)))
+
+    # Add doublet
+    kwargs = {'node_init': ele.create_thinlens,
+              'factory': ele.create_cemented_doublet,
+              'interact_mode': 'transmit'}
+    cmds.append(('Add Cemented Doublet', (dgm.register_add_replace_element, 
+                                          (), kwargs)))
+
+    # Add mirror
+    cmds.append(('Add Mirror',
+                 (dgm.register_add_replace_element, (),
+                  {'node_init': ele.create_mirror,
+                   'factory': ele.create_mirror,
+                   'interact_mode': 'reflect'})))
+
+    # Replace with file
+    pth = pathlib.Path(__file__).resolve()
+    try:
+        rayoptics_pos = pth.parts.index('rayoptics')
+    except ValueError:
+        logging.debug("Can't find rayoptics: path is %s", pth)
+    else:
+        # models_dir = rayoptics/models
+        models_dir = pathlib.Path(*pth.parts[:rayoptics_pos+1]) / 'models'
+        filepath = models_dir / 'Sasian Triplet.roa'
+
+        def cff(**kwargs):
+            return ele.create_from_file(filepath, **kwargs)
+
+        cmds.append(('Sasian Triplet',
+                     (dgm.register_add_replace_element, (),
+                      {'filename': filepath,
+                       'node_init': ele.create_thinlens,
+                       'factory': cff,
+                       'interact_mode': 'transmit'})))
+    finally:
+        return cmds
 
 
 def create_ray_fan_view(opt_model, data_type, gui_parent=None):
