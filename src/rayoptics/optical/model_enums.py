@@ -129,6 +129,6 @@ def get_decenter_for_type(decenter_type):
         decenter_key = 'reverse'
     elif decenter_type == DecenterType.DAR:
         decenter_key = 'dec and return'
-    elif decenter_type == DecenterType.Bend:
+    elif decenter_type == DecenterType.BEND:
         decenter_key = 'bend'
     return decenter_key
