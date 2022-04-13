@@ -29,266 +29,17 @@
 
 .. codeauthor: Michael J. Hayford
 """
-from math import sqrt
 import numpy as np
 from numpy.fft import fftshift, fft2
 
 from scipy.interpolate import interp1d
-from rayoptics.util.misc_math import normalize
 
 import rayoptics.optical.model_constants as mc
 
 from rayoptics.raytr import sampler
-from rayoptics.raytr.raytrace import eic_distance
-from rayoptics.elem.transform import transform_after_surface
 from rayoptics.raytr import trace
 from rayoptics.raytr import traceerror as terr
-
-
-# --- Wavefront aberration
-def get_chief_ray_pkg(opt_model, fld, wvl, foc):
-    """Get the chief ray package at **fld**, computing it if necessary.
-
-    Args:
-        opt_model: :class:`~.OpticalModel` instance
-        fld: :class:`~.Field` point for wave aberration calculation
-        wvl: wavelength of ray (nm)
-        foc: defocus amount
-
-    Returns:
-        chief_ray_pkg: tuple of chief_ray, cr_exp_seg
-
-            - chief_ray: chief_ray, chief_ray_op, wvl
-            - cr_exp_seg: chief ray exit pupil segment (pt, dir, dist)
-
-                - pt: chief ray intersection with exit pupil plane
-                - dir: direction cosine of the chief ray in exit pupil space
-                - dist: distance from interface to the exit pupil point
-
-    """
-    if fld.chief_ray is None:
-        trace.aim_chief_ray(opt_model, fld, wvl=wvl)
-        chief_ray_pkg = trace.trace_chief_ray(opt_model, fld, wvl, foc)
-    elif fld.chief_ray[0][2] != wvl:
-        chief_ray_pkg = trace.trace_chief_ray(opt_model, fld, wvl, foc)
-    else:
-        chief_ray_pkg = fld.chief_ray
-    return chief_ray_pkg
-
-
-def setup_exit_pupil_coords(opt_model, fld, wvl, foc,
-                            chief_ray_pkg, image_pt_2d=None):
-    """Compute the reference sphere for a defocussed image point at **fld**.
-
-    Args:
-        opt_model: :class:`~.OpticalModel` instance
-        fld: :class:`~.Field` point for wave aberration calculation
-        wvl: wavelength of ray (nm)
-        foc: defocus amount
-        chief_ray_pkg: input tuple of chief_ray, cr_exp_seg
-        image_pt_2d: x, y image point in (defocussed) image plane, if None, use
-                     the chief ray coordinate.
-
-    Returns:
-        ref_sphere: tuple of image_pt, ref_dir, ref_sphere_radius
-    """
-    cr, cr_exp_seg = chief_ray_pkg
-    # cr_exp_pt: E upper bar prime: pupil center for pencils from Q
-    # cr_exp_pt, cr_b4_dir, cr_dst
-    # cr_exp_pt = cr_exp_seg[mc.p]
-
-    if image_pt_2d is None:
-        # get distance along cr corresponding to a z shift of the defocus
-        dist = foc / cr.ray[-1][mc.d][2]
-        image_pt = cr.ray[-1][mc.p] + dist*cr.ray[-1][mc.d]
-    else:
-        image_pt = np.array([image_pt_2d[0], image_pt_2d[1], foc])
-
-    # get the image point wrt the final surface
-    image_thi = opt_model['seq_model'].gaps[-1].thi
-    img_pt = np.array(image_pt)
-    img_pt[2] += image_thi
-
-    # R' radius of reference sphere for O'
-    ref_sphere_vec = img_pt - cr_exp_seg[mc.p]
-    ref_sphere_radius = np.linalg.norm(ref_sphere_vec)
-    ref_dir = normalize(ref_sphere_vec)
-
-    ref_sphere = (image_pt, ref_dir, ref_sphere_radius)
-
-    return ref_sphere
-
-
-def wave_abr_full_calc(fod, fld, wvl, foc, ray_pkg, chief_ray_pkg, ref_sphere):
-    """Given a ray, a chief ray and an image pt, evaluate the OPD.
-
-    The main references for the calculations are in the H. H. Hopkins paper
-    `Calculation of the Aberrations and Image Assessment for a General Optical
-    System <https://doi.org/10.1080/713820605>`_
-
-    Args:
-        fod: :class:`~.FirstOrderData` for object and image space refractive
-             indices
-        fld: :class:`~.Field` point for wave aberration calculation
-        wvl: wavelength of ray (nm)
-        foc: defocus amount
-        ray_pkg: input tuple of ray, ray_op, wvl
-        chief_ray_pkg: input tuple of chief_ray, cr_exp_seg
-        ref_sphere: input tuple of image_pt, ref_dir, ref_sphere_radius
-
-    Returns:
-        opd: OPD of ray wrt chief ray at **fld**
-    """
-    image_pt, ref_dir, ref_sphere_radius = ref_sphere
-    cr, cr_exp_seg = chief_ray_pkg
-    chief_ray, chief_ray_op, wvl = cr
-    cr_exp_pt, cr_exp_dir, cr_exp_dist, ifc, cr_b4_pt, cr_b4_dir = cr_exp_seg
-
-    ray, ray_op, wvl = ray_pkg
-
-    k = -2  # last interface in sequence
-
-    # eq 3.12
-    e1 = eic_distance((ray[1][mc.p], ray[0][mc.d]),
-                      (chief_ray[1][mc.p], chief_ray[0][mc.d]))
-    # eq 3.13
-    ekp = eic_distance((ray[k][mc.p], ray[k][mc.d]),
-                       (chief_ray[k][mc.p], chief_ray[k][mc.d]))
-
-    b4_pt, b4_dir = transform_after_surface(ifc, (ray[k][mc.p], ray[k][mc.d]))
-    dst = ekp - cr_exp_dist
-    eic_exp_pt = b4_pt - dst*b4_dir
-    p_coord = eic_exp_pt - cr_exp_pt
-
-    F = ref_dir.dot(b4_dir) - b4_dir.dot(p_coord)/ref_sphere_radius
-    J = p_coord.dot(p_coord)/ref_sphere_radius - 2.0*ref_dir.dot(p_coord)
-
-    sign_soln = -1 if ref_dir[2]*cr.ray[-1][mc.d][2] < 0 else 1
-    denom = F + sign_soln*sqrt(F**2 + J/ref_sphere_radius)
-    ep = 0 if denom == 0 else J/denom
-
-    n_obj = abs(fod.n_obj)
-    n_img = abs(fod.n_img)
-    opd = -n_obj*e1 - ray_op + n_img*ekp + chief_ray_op - n_img*ep
-
-    return opd
-
-
-def wave_abr_pre_calc(fod, fld, wvl, foc, ray_pkg, chief_ray_pkg):
-    """Pre-calculate the part of the OPD calc independent of focus."""
-    cr, cr_exp_seg = chief_ray_pkg
-    chief_ray, chief_ray_op, wvl = cr
-    cr_exp_pt, cr_exp_dir, cr_exp_dist, ifc, cr_b4_pt, cr_b4_dir = cr_exp_seg
-
-    ray, ray_op, wvl = ray_pkg
-
-    k = -2  # last interface in sequence
-
-    # eq 3.12
-    e1 = eic_distance((ray[1][mc.p], ray[0][mc.d]),
-                      (chief_ray[1][mc.p], chief_ray[0][mc.d]))
-    # eq 3.13
-    ekp = eic_distance((ray[k][mc.p], ray[k][mc.d]),
-                       (chief_ray[k][mc.p], chief_ray[k][mc.d]))
-
-    pre_opd = -abs(fod.n_obj)*e1 - ray_op + abs(fod.n_img)*ekp + chief_ray_op
-
-    b4_pt, b4_dir = transform_after_surface(ifc, (ray[k][mc.p], ray[k][mc.d]))
-    dst = ekp - cr_exp_dist
-    eic_exp_pt = b4_pt - dst*b4_dir
-    p_coord = eic_exp_pt - cr_exp_pt
-
-    return pre_opd, p_coord, b4_pt, b4_dir
-
-
-def wave_abr_calc(fod, fld, wvl, foc, ray_pkg, chief_ray_pkg,
-                  pre_opd_pkg, ref_sphere):
-    """Given pre-calculated info and a ref. sphere, return the ray's OPD."""
-    cr, cr_exp_seg = chief_ray_pkg
-    image_pt, ref_dir, ref_sphere_radius = ref_sphere
-    pre_opd, p_coord, b4_pt, b4_dir = pre_opd_pkg
-    ray, ray_op, wvl = ray_pkg
-
-    F = ref_dir.dot(b4_dir) - b4_dir.dot(p_coord)/ref_sphere_radius
-    J = p_coord.dot(p_coord)/ref_sphere_radius - 2.0*ref_dir.dot(p_coord)
-
-    sign_soln = -1 if ref_dir[2]*cr.ray[-1][mc.d][2] < 0 else 1
-    denom = F + sign_soln*sqrt(F**2 + J/ref_sphere_radius)
-    ep = 0 if denom == 0 else J/denom
-
-    opd = pre_opd - abs(fod.n_img)*ep
-    return opd
-
-
-def trace_safe(opt_model, pupil, fld, wvl, ray_list,
-               output_filter, rayerr_filter, **kwargs):
-    """Wrapper for trace_base that handles exceptions.
-    
-    Args:
-        opt_model: :class:`~.OpticalModel` instance
-        pupil: 2d vector of relatice pupil coordinates
-        fld: :class:`~.Field` point for wave aberration calculation
-        wvl: wavelength of ray (nm)
-        ray_list: list to append the ray data
-        output_filter:
-
-        - if None, append entire ray
-        - if 'last', append the last ray segment only
-        - else treat as callable and append the return value
-
-        rayerr_filter:
-
-        - if None, on ray error append nothing
-        - if 'summary', append the exception without ray data
-        - if 'full', append the exception with ray data up to error
-        - else append nothing
-
-    """
-    use_named_tuples = kwargs.get('use_named_tuples', False)
-
-    try:
-        ray_pkg = trace.trace_base(opt_model, pupil, fld, wvl,
-                                   **kwargs)
-    except terr.TraceError as rayerr:
-        if rayerr_filter is None:
-            pass
-        elif rayerr_filter == 'full':
-            ray, op_delta, wvl = rayerr.ray_pkg
-            ray = [trace.RaySeg(*rs) for rs in ray]
-            rayerr.ray_pkg = ray, op_delta, wvl
-            ray_list.append([pupil[0], pupil[1], rayerr])
-        elif rayerr_filter == 'summary':
-            rayerr.ray_pkg = None
-            ray_list.append([pupil[0], pupil[1], rayerr])
-        else:
-            pass
-    else:
-        if use_named_tuples:
-            ray, op_delta, wvl = ray_pkg
-            ray = [trace.RaySeg(*rs) for rs in ray]
-            ray_pkg = ray, op_delta, wvl
-
-        if output_filter is None:
-            ray_list.append([pupil[0], pupil[1], ray_pkg])
-        elif output_filter == 'last':
-            ray, op_delta, wvl = ray_pkg
-            final_seg_pkg = (ray[-1], op_delta, wvl)
-            ray_list.append([pupil[0], pupil[1], final_seg_pkg])
-        else:
-            ray_list.append([pupil[0], pupil[1], output_filter(ray_pkg)])
-
-
-def retrieve_ray(ray_list_item):
-    """ Retrieve the ray (the list of ray segs) from ray_list_item.
-    
-    This function handles the normal case where the ray traces successfully
-    and the case of a ray failure, which returns a TraceError instance.
-    """
-    px, py, ray_item = ray_list_item
-    if isinstance(ray_item, terr.TraceError):
-        return ray_item.ray_pkg
-    else:
-        return ray_item
+from rayoptics.raytr import waveabr
 
 
 # --- Single ray
@@ -440,8 +191,11 @@ def trace_ray_fan(opt_model, fan_rng, fld, wvl, foc,
     fan = []
     for r in range(num):
         pupil = np.array(start)
-        trace_safe(opt_model, pupil, fld, wvl, fan, output_filter, 
-                   rayerr_filter, use_named_tuples=True, **kwargs)
+        ray_result = trace.trace_safe(opt_model, pupil, fld, wvl, 
+                                      output_filter, rayerr_filter, 
+                                      use_named_tuples=True, **kwargs)
+        if ray_result is not None:
+            fan.append([pupil[0], pupil[1], ray_result])
         start += step
     return fan
 
@@ -451,9 +205,8 @@ def eval_fan(opt_model, fld, wvl, foc, xy,
              output_filter=None, rayerr_filter=None, **kwargs):
     """Trace a fan of rays and evaluate dx, dy, & OPD across the fan."""
     fod = opt_model['analysis_results']['parax_data'].fod
-    cr_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
-    ref_sphere = setup_exit_pupil_coords(opt_model, fld, wvl, foc, cr_pkg,
-                                         image_pt_2d=image_pt_2d)
+    ref_sphere, cr_pkg = trace.setup_pupil_coords(opt_model, fld, wvl, foc, 
+                                                    image_pt=image_pt_2d)
     fld.chief_ray = cr_pkg
     fld.ref_sphere = ref_sphere
 
@@ -479,8 +232,8 @@ def eval_fan(opt_model, fld, wvl, foc, xy,
             defocused_pt = ray[-1][mc.p] + dist*ray[-1][mc.d]
             t_abr = defocused_pt - image_pt
 
-            opdelta = wave_abr_full_calc(fod, fld, wvl, foc, ray_pkg,
-                                         cr_pkg, ref_sphere)
+            opdelta = waveabr.wave_abr_full_calc(fod, fld, wvl, foc, ray_pkg,
+                                                 cr_pkg, ref_sphere)
             opd = convert_to_opd*opdelta
             return (pupil_x, pupil_y), (t_abr[0], t_abr[1], opd)
         else:
@@ -495,9 +248,8 @@ def trace_fan(opt_model, fld, wvl, foc, xy,
               output_filter=None, rayerr_filter=None, **kwargs):
     """Trace a fan of rays and precalculate data for rapid refocus later."""
     fod = opt_model['analysis_results']['parax_data'].fod
-    cr_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
-    ref_sphere = setup_exit_pupil_coords(opt_model, fld, wvl, foc, cr_pkg,
-                                         image_pt_2d=image_pt_2d)
+    ref_sphere, cr_pkg = trace.setup_pupil_coords(opt_model, fld, wvl, foc, 
+                                                    image_pt=image_pt_2d)
     fld.chief_ray = cr_pkg
     fld.ref_sphere = ref_sphere
 
@@ -515,8 +267,8 @@ def trace_fan(opt_model, fld, wvl, foc, xy,
     def wpc(fi):
         pupil_x, pupil_y, ray_pkg = fi
         if ray_pkg is not None and not isinstance(ray_pkg, terr.TraceError):
-            pre_opd_pkg = wave_abr_pre_calc(fod, fld, wvl, foc,
-                                            ray_pkg, cr_pkg)
+            pre_opd_pkg = waveabr.wave_abr_pre_calc(fod, fld, wvl, foc,
+                                                    ray_pkg, cr_pkg)
             return pre_opd_pkg
         else:
             return None
@@ -530,9 +282,8 @@ def focus_fan(opt_model, fan_pkg, fld, wvl, foc, image_pt_2d=None, **kwargs):
     """Refocus the fan of rays and return the tranverse abr. and OPD."""
     fod = opt_model['analysis_results']['parax_data'].fod
     fan, upd_fan = fan_pkg
-    cr_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
-    ref_sphere = setup_exit_pupil_coords(opt_model, fld, wvl, foc, cr_pkg,
-                                         image_pt_2d=image_pt_2d)
+    ref_sphere, cr_pkg = trace.setup_pupil_coords(opt_model, fld, wvl, foc, 
+                                                    image_pt=image_pt_2d)
     central_wvl = opt_model.optical_spec.spectral_region.central_wvl
     convert_to_opd = 1/opt_model.nm_to_sys_units(central_wvl)
 
@@ -545,8 +296,8 @@ def focus_fan(opt_model, fan_pkg, fld, wvl, foc, image_pt_2d=None, **kwargs):
             defocused_pt = ray[-1][mc.p] + dist*ray[-1][mc.d]
             t_abr = defocused_pt - image_pt
 
-            opdelta = wave_abr_calc(fod, fld, wvl, foc,
-                                    ray_pkg, cr_pkg, fiu, ref_sphere)
+            opdelta = waveabr.wave_abr_calc(fod, fld, wvl, foc,
+                                            ray_pkg, cr_pkg, fiu, ref_sphere)
             opd = convert_to_opd*opdelta
             return (pupil_x, pupil_y), (t_abr[0], t_abr[1], opd)
         else:
@@ -645,8 +396,11 @@ def trace_ray_list(opt_model, pupil_coords, fld, wvl, foc,
     ray_list = []
     for pupil in pupil_coords:
         if (pupil[0]**2 + pupil[1]**2) < 1.0:
-            trace_safe(opt_model, pupil, fld, wvl, ray_list,
-                       output_filter, rayerr_filter, **kwargs)
+            ray_result = trace.trace_safe(opt_model, pupil, fld, wvl, 
+                                          output_filter, rayerr_filter, 
+                                          **kwargs)
+            if ray_result is not None:
+                ray_list.append([pupil[0], pupil[1], ray_result])
         else:  # ray outside pupil
             if append_if_none:
                 ray_list.append([pupil[0], pupil[1], None])
@@ -711,9 +465,8 @@ def trace_list_of_rays(opt_model, rays,
 def eval_pupil_coords(opt_model, fld, wvl, foc,
                       image_pt_2d=None, num_rays=21):
     """Trace a list of rays and return the transverse abr."""
-    cr_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
-    ref_sphere = setup_exit_pupil_coords(opt_model, fld, wvl, foc, cr_pkg,
-                                         image_pt_2d=image_pt_2d)
+    ref_sphere, cr_pkg = trace.setup_pupil_coords(opt_model, fld, wvl, foc, 
+                                                    image_pt=image_pt_2d)
     fld.chief_ray = cr_pkg
     fld.ref_sphere = ref_sphere
 
@@ -742,9 +495,8 @@ def eval_pupil_coords(opt_model, fld, wvl, foc,
 def trace_pupil_coords(opt_model, pupil_coords, fld, wvl, foc,
                        image_pt_2d=None):
     """Trace a list of rays and return data needed for rapid refocus."""
-    cr_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
-    ref_sphere = setup_exit_pupil_coords(opt_model, fld, wvl, foc, cr_pkg,
-                                         image_pt_2d=image_pt_2d)
+    ref_sphere, cr_pkg = trace.setup_pupil_coords(opt_model, fld, wvl, foc, 
+                                                    image_pt=image_pt_2d)
     fld.chief_ray = cr_pkg
     fld.ref_sphere = ref_sphere
 
@@ -756,9 +508,8 @@ def trace_pupil_coords(opt_model, pupil_coords, fld, wvl, foc,
 
 def focus_pupil_coords(opt_model, ray_list, fld, wvl, foc, image_pt_2d=None):
     """Given pre-traced rays and a ref. sphere, return the transverse abr."""
-    cr_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
-    ref_sphere = setup_exit_pupil_coords(opt_model, fld, wvl, foc, cr_pkg,
-                                         image_pt_2d=image_pt_2d)
+    ref_sphere, cr_pkg = trace.setup_pupil_coords(opt_model, fld, wvl, foc, 
+                                                    image_pt=image_pt_2d)
 
     def rfc(ri):
         pupil_x, pupil_y, ray_pkg = ri
@@ -841,8 +592,11 @@ def trace_ray_grid(opt_model, grid_rng, fld, wvl, foc, append_if_none=True,
         for j in range(num):
             pupil = np.array(start)
             if (pupil[0]**2 + pupil[1]**2) < 1.0:
-                trace_safe(opt_model, pupil, fld, wvl, grid_row,
-                           output_filter, rayerr_filter, **kwargs)
+                ray_result = trace.trace_safe(opt_model, pupil, fld, wvl,
+                                              output_filter, rayerr_filter, 
+                                              **kwargs)
+                if ray_result is not None:
+                    grid_row.append([pupil[0], pupil[1], ray_result])
             else:  # ray outside pupil
                 if append_if_none:
                     grid_row.append([pupil[0], pupil[1], None])
@@ -860,9 +614,8 @@ def eval_wavefront(opt_model, fld, wvl, foc,
                    image_pt_2d=None, num_rays=21, value_if_none=np.NaN):
     """Trace a grid of rays and evaluate the OPD across the wavefront."""
     fod = opt_model['analysis_results']['parax_data'].fod
-    cr_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
-    ref_sphere = setup_exit_pupil_coords(opt_model, fld, wvl, foc, cr_pkg,
-                                         image_pt_2d=image_pt_2d)
+    ref_sphere, cr_pkg = trace.setup_pupil_coords(opt_model, fld, wvl, foc, 
+                                                    image_pt=image_pt_2d)
     fld.chief_ray = cr_pkg
     fld.ref_sphere = ref_sphere
 
@@ -878,8 +631,8 @@ def eval_wavefront(opt_model, fld, wvl, foc,
     def rfc(gij):
         pupil_x, pupil_y, ray_pkg = gij
         if ray_pkg is not None:
-            opdelta = wave_abr_full_calc(fod, fld, wvl, foc, ray_pkg,
-                                         cr_pkg, ref_sphere)
+            opdelta = waveabr.wave_abr_full_calc(fod, fld, wvl, foc, ray_pkg,
+                                                 cr_pkg, ref_sphere)
             opd = convert_to_opd*opdelta
             return pupil_x, pupil_y, opd
         else:
@@ -893,9 +646,8 @@ def trace_wavefront(opt_model, fld, wvl, foc,
                     image_pt_2d=None, num_rays=21):
     """Trace a grid of rays and pre-calculate data needed for rapid refocus."""
     fod = opt_model['analysis_results']['parax_data'].fod
-    cr_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
-    ref_sphere = setup_exit_pupil_coords(opt_model, fld, wvl, foc, cr_pkg,
-                                         image_pt_2d=image_pt_2d)
+    ref_sphere, cr_pkg = trace.setup_pupil_coords(opt_model, fld, wvl, foc, 
+                                                    image_pt=image_pt_2d)
     fld.chief_ray = cr_pkg
     fld.ref_sphere = ref_sphere
 
@@ -908,8 +660,8 @@ def trace_wavefront(opt_model, fld, wvl, foc,
     def wpc(gij):
         pupil_x, pupil_y, ray_pkg = gij
         if ray_pkg is not None:
-            pre_opd_pkg = wave_abr_pre_calc(fod, fld, wvl, foc,
-                                            ray_pkg, cr_pkg)
+            pre_opd_pkg = waveabr.wave_abr_pre_calc(fod, fld, wvl, foc,
+                                                    ray_pkg, cr_pkg)
             return pre_opd_pkg
         else:
             return None
@@ -923,17 +675,16 @@ def focus_wavefront(opt_model, grid_pkg, fld, wvl, foc, image_pt_2d=None,
     """Given pre-traced rays and a ref. sphere, return the ray's OPD."""
     fod = opt_model['analysis_results']['parax_data'].fod
     grid, upd_grid = grid_pkg
-    cr_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
-    ref_sphere = setup_exit_pupil_coords(opt_model, fld, wvl, foc, cr_pkg,
-                                         image_pt_2d=image_pt_2d)
+    ref_sphere, cr_pkg = trace.setup_pupil_coords(opt_model, fld, wvl, foc, 
+                                                    image_pt=image_pt_2d)
     central_wvl = opt_model.optical_spec.spectral_region.central_wvl
     convert_to_opd = 1/opt_model.nm_to_sys_units(central_wvl)
 
     def rfc(gij, uij):
         pupil_x, pupil_y, ray_pkg = gij
         if ray_pkg is not None:
-            opdelta = wave_abr_calc(fod, fld, wvl, foc,
-                                    ray_pkg, cr_pkg, uij, ref_sphere)
+            opdelta = waveabr.wave_abr_calc(fod, fld, wvl, foc,
+                                            ray_pkg, cr_pkg, uij, ref_sphere)
             opd = convert_to_opd*opdelta
             return pupil_x, pupil_y, opd
         else:

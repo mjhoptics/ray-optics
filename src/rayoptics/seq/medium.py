@@ -30,6 +30,7 @@ def glass_encode(n, v):
 def glass_decode(gc):
     return round(1.0 + (int(gc)/1000), 3), round(100.0*(gc - int(gc)), 3)
 
+
 # --- material definitions
 class Medium:
     """ Constant refractive index medium. """

@@ -16,7 +16,7 @@ import numpy as np
 
 from rayoptics.mpl.styledfigure import StyledFigure
 
-from rayoptics.raytr.analyses import wave_abr_full_calc
+from rayoptics.raytr.waveabr import wave_abr_full_calc
 import rayoptics.optical.model_constants as mc
 
 

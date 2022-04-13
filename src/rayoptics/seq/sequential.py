@@ -16,7 +16,7 @@ from . import gap
 from . import medium as m
 from rayoptics.raytr import raytrace as rt
 from rayoptics.raytr import trace as trace
-from rayoptics.raytr import analyses
+from rayoptics.raytr import waveabr
 from rayoptics.elem import transform as trns
 from opticalglass import glassfactory as gfact
 from opticalglass import glasserror as ge
@@ -781,9 +781,9 @@ class SequentialModel:
             y = p[1]
             if ray_pkg is not None:
                 fod = self.opt_model['analysis_results']['parax_data'].fod
-                opd = analyses.wave_abr_full_calc(fod, fld, wvl, foc, ray_pkg,
-                                                  fld.chief_ray,
-                                                  fld.ref_sphere)
+                opd = waveabr.wave_abr_full_calc(fod, fld, wvl, foc, ray_pkg,
+                                                 fld.chief_ray,
+                                                 fld.ref_sphere)
                 opd = opd/self.opt_model.nm_to_sys_units(wvl)
             else:
                 opd = 0.0

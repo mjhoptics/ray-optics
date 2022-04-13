@@ -14,31 +14,14 @@ import math
 import numpy as np
 from numpy.linalg import norm
 from scipy.optimize import newton, fsolve
-from collections import namedtuple
 import pandas as pd
-import attr
 
 from . import raytrace as rt
-from .analyses import (wave_abr_full_calc,
-                       get_chief_ray_pkg,
-                       setup_exit_pupil_coords)
+from . import RayPkg, RaySeg
+from .waveabr import (wave_abr_full_calc, calculate_reference_sphere, 
+                      transfer_to_exit_pupil)
 from rayoptics.optical import model_constants as mc
 from .traceerror import TraceError, TraceMissedSurfaceError, TraceTIRError
-from rayoptics.util.misc_math import normalize
-
-
-RayPkg = namedtuple('RayPkg', ['ray', 'op', 'wvl'])
-RayPkg.__doc__ = "Ray and optical path length, plus wavelength"
-RayPkg.ray.__doc__ = "list of RaySegs"
-RayPkg.op.__doc__ = "optical path length between pupils"
-RayPkg.wvl.__doc__ = "wavelength (in nm) that the ray was traced in"
-
-RaySeg = namedtuple('RaySeg', ['p', 'd', 'dst', 'nrml'])
-RaySeg.__doc__ = "ray intersection and transfer data"
-RaySeg.p.__doc__ = "the point of incidence"
-RaySeg.d.__doc__ = "ray direction cosine following the interface"
-RaySeg.dst.__doc__ = "geometric distance to next point of incidence"
-RaySeg.nrml.__doc__ = "surface normal vector at the point of incidence"
 
 
 def ray_pkg(ray_pkg):
@@ -52,15 +35,6 @@ def ray_df(ray):
                                    'after_dst', 'normal'])
     r.index.names = ['intrfc']
     return r
-
-
-@attr.s
-class RSeg():
-    inc_pt = attr.ib()
-    after_dir = attr.ib()
-    after_dst = attr.ib()
-    normal = attr.ib()
-    phase = attr.ib(default=0.0)
 
 
 def list_ray(ray_obj, tfrms=None, start=0):
@@ -89,6 +63,83 @@ def list_ray(ray_obj, tfrms=None, start=0):
             d = rot.dot(r[mc.d])
             print(colFormats.format(i, p[0], p[1], p[2], d[0], d[1], d[2],
                                     r[mc.dst]))
+
+
+def trace_safe(opt_model, pupil, fld, wvl,
+               output_filter, rayerr_filter, **kwargs):
+    """Wrapper for trace_base that handles exceptions.
+    
+    Args:
+        opt_model: :class:`~.OpticalModel` instance
+        pupil: 2d vector of relatice pupil coordinates
+        fld: :class:`~.Field` point for wave aberration calculation
+        wvl: wavelength of ray (nm)
+        output_filter:
+
+        - if None, append entire ray
+        - if 'last', append the last ray segment only
+        - else treat as callable and append the return value
+
+        rayerr_filter:
+
+        - if None, on ray error append nothing
+        - if 'summary', append the exception without ray data
+        - if 'full', append the exception with ray data up to error
+        - else append nothing
+
+    Returns:
+        ray_result: see discussion of filters, above.
+
+    """
+    use_named_tuples = kwargs.get('use_named_tuples', False)
+
+    ray_result = None
+
+    try:
+        ray_pkg = trace_base(opt_model, pupil, fld, wvl,
+                                   **kwargs)
+    except TraceError as rayerr:
+        if rayerr_filter is None:
+            pass
+        elif rayerr_filter == 'full':
+            ray, op_delta, wvl = rayerr.ray_pkg
+            ray = [RaySeg(*rs) for rs in ray]
+            rayerr.ray_pkg = ray, op_delta, wvl
+            ray_result = rayerr
+        elif rayerr_filter == 'summary':
+            rayerr.ray_pkg = None
+            ray_result = rayerr
+        else:
+            pass
+    else:
+        if use_named_tuples:
+            ray, op_delta, wvl = ray_pkg
+            ray = [RaySeg(*rs) for rs in ray]
+            ray_pkg = ray, op_delta, wvl
+
+        if output_filter is None:
+            ray_result = ray_pkg
+        elif output_filter == 'last':
+            ray, op_delta, wvl = ray_pkg
+            final_seg_pkg = (ray[-1], op_delta, wvl)
+            ray_result = final_seg_pkg
+        else:
+            ray_result = output_filter(ray_pkg)
+
+    return ray_result
+
+
+def retrieve_ray(ray_result):
+    """ Retrieve the ray (the list of ray segs) from ray_result.
+    
+    This function handles the normal case where the ray traces successfully
+    and the case of a ray failure, which returns a TraceError instance.
+    """
+    px, py, ray_item = ray_result
+    if isinstance(ray_item, TraceError):
+        return ray_item.ray_pkg
+    else:
+        return ray_item
 
 
 def trace(seq_model, pt0, dir0, wvl, **kwargs):
@@ -250,9 +301,9 @@ def trace_with_opd(opt_model, pupil, fld, wvl, foc, **kwargs):
     """ returns (ray, ray_opl, wvl, opd) """
     chief_ray_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
     image_pt_2d = None if 'image_pt' not in kwargs else kwargs['image_pt'][:2]
-    ref_sphere = setup_exit_pupil_coords(opt_model, fld, wvl, foc,
-                                         chief_ray_pkg,
-                                         image_pt_2d=image_pt_2d)
+    ref_sphere = calculate_reference_sphere(opt_model, fld, wvl, foc,
+                                            chief_ray_pkg,
+                                            image_pt_2d=image_pt_2d)
 
     ray, op, wvl = trace_base(opt_model, pupil, fld, wvl, **kwargs)
     # opl = rt.calc_optical_path(ray, opt_model.seq_model.path())
@@ -339,7 +390,6 @@ def trace_all_fields(opt_model):
 
 def trace_chief_ray(opt_model, fld, wvl, foc):
     """Trace a chief ray for fld and wvl, returning the ray_pkg and exit pupil segment."""
-    osp = opt_model.optical_spec
     fod = opt_model['analysis_results']['parax_data'].fod
 
     ray, op, wvl = trace_base(opt_model, [0., 0.], fld, wvl)
@@ -348,9 +398,9 @@ def trace_chief_ray(opt_model, fld, wvl, foc):
 
     # cr_exp_pt: E upper bar prime: pupil center for pencils from Q
     # cr_exp_pt, cr_b4_dir, cr_exp_dist
-    cr_exp_seg = rt.transfer_to_exit_pupil(opt_model.seq_model.ifcs[-2],
-                                           (cr.ray[-2][mc.p],
-                                            cr.ray[-2][mc.d]), fod.exp_dist)
+    cr_exp_seg = transfer_to_exit_pupil(opt_model.seq_model.ifcs[-2],
+                                        (cr.ray[-2][mc.p],
+                                         cr.ray[-2][mc.d]), fod.exp_dist)
     return cr, cr_exp_seg
 
 
@@ -417,6 +467,15 @@ def trace_grid(opt_model, grid_rng, fld, wvl, foc, img_filter=None,
     return np.array(grid)
 
 
+def setup_pupil_coords(opt_model, fld, wvl, foc, image_pt=None):
+    chief_ray_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
+    image_pt_2d = None if image_pt is None else image_pt[:2]
+    ref_sphere = calculate_reference_sphere(opt_model, fld, wvl, foc,
+                                            chief_ray_pkg,
+                                            image_pt_2d=image_pt_2d)
+    return ref_sphere, chief_ray_pkg
+
+
 def aim_chief_ray(opt_model, fld, wvl=None):
     """ aim chief ray at center of stop surface and save results on **fld** """
     seq_model = opt_model.seq_model
@@ -442,59 +501,36 @@ def apply_paraxial_vignetting(opt_model):
             fld.vuy = 1 - min_vuy[0]
         # print("Field {:2d}: {:8.3f}, ly:{:8.3f} uy:{:8.3f}".format(
         #     j, rel_fov, fld.vly, fld.vuy))
+        
 
+def get_chief_ray_pkg(opt_model, fld, wvl, foc):
+    """Get the chief ray package at **fld**, computing it if necessary.
 
-def setup_pupil_coords(opt_model, fld, wvl, foc, image_pt=None):
-    chief_ray_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
-    image_pt_2d = None if image_pt is None else image_pt[:2]
-    ref_sphere = setup_exit_pupil_coords(opt_model, fld, wvl, foc,
-                                         chief_ray_pkg,
-                                         image_pt_2d=image_pt_2d)
-    return ref_sphere, chief_ray_pkg
+    Args:
+        opt_model: :class:`~.OpticalModel` instance
+        fld: :class:`~.Field` point for wave aberration calculation
+        wvl: wavelength of ray (nm)
+        foc: defocus amount
 
+    Returns:
+        chief_ray_pkg: tuple of chief_ray, cr_exp_seg
 
-def setup_canonical_coords(opt_model, fld, wvl, image_pt=None):
-    seq_model = opt_model.seq_model
-    parax_data = opt_model['analysis_results']['parax_data']
-    fod = parax_data.fod
+            - chief_ray: chief_ray, chief_ray_op, wvl
+            - cr_exp_seg: chief ray exit pupil segment (pt, dir, dist)
 
+                - pt: chief ray intersection with exit pupil plane
+                - dir: direction cosine of the chief ray in exit pupil space
+                - dist: distance from interface to the exit pupil point
+
+    """
     if fld.chief_ray is None:
-        ray, op, wvl = trace_base(opt_model, [0., 0.], fld, wvl)
-        fld.chief_ray = RayPkg(ray, op, wvl)
-    cr = fld.chief_ray
-
-    if image_pt is None:
-        image_pt = cr.ray[-1][mc.p]
-
-    # cr_exp_pt: E upper bar prime: pupil center for pencils from Q
-    # cr_exp_pt, cr_b4_dir, cr_dst
-    cr_exp_seg = rt.transfer_to_exit_pupil(seq_model.ifcs[-2],
-                                           (cr.ray[-2][mc.p],
-                                            cr.ray[-2][mc.d]),
-                                           fod.exp_dist)
-    cr_exp_pt = cr_exp_seg[mc.p]
-    cr_exp_dist = cr_exp_seg[mc.dst]
-
-    img_dist = seq_model.gaps[-1].thi
-    img_pt = np.array(image_pt)
-    img_pt[2] += img_dist
-
-    # R' radius of reference sphere for O'
-    ref_sphere_vec = img_pt - cr_exp_pt
-    ref_sphere_radius = np.linalg.norm(ref_sphere_vec)
-    ref_dir = normalize(ref_sphere_vec)
-
-    ref_sphere = (image_pt, cr_exp_pt, cr_exp_dist,
-                  ref_dir, ref_sphere_radius)
-
-    z_dir = seq_model.z_dir[-1]
-    wl = seq_model.index_for_wavelength(wvl)
-    n_obj = seq_model.rndx[0][wl]
-    n_img = seq_model.rndx[-1][wl]
-    ref_sphere_pkg = (ref_sphere, parax_data, n_obj, n_img, z_dir)
-    fld.ref_sphere = ref_sphere_pkg
-    return ref_sphere_pkg, cr
-
+        aim_chief_ray(opt_model, fld, wvl=wvl)
+        chief_ray_pkg = trace_chief_ray(opt_model, fld, wvl, foc)
+    elif fld.chief_ray[0][2] != wvl:
+        chief_ray_pkg = trace_chief_ray(opt_model, fld, wvl, foc)
+    else:
+        chief_ray_pkg = fld.chief_ray
+    return chief_ray_pkg
 
 def trace_astigmatism_coddington_fan(opt_model, fld, wvl, foc):
     """ calculate astigmatism by Coddington trace at **fld** """
