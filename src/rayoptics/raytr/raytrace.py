@@ -164,7 +164,7 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, check_apertures=False, **kwargs
 
             normal = ifc.normal(inc_pt)
 
-            if check_apertures:
+            if check_apertures and in_surface_range(surf):
                 if not ifc.point_inside(inc_pt[0], inc_pt[1]):
                     raise TraceRayBlockedError(ifc, inc_pt)
 

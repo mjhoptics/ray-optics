@@ -343,6 +343,7 @@ def create_parax_design_commands(fig):
 
 
 def set_vignetting(opt_model, gui_parent=None):
+    """ From existing fields and clear apertures, calculate vignetting. """
     vigcalc.set_vig(opt_model)
     if gui_parent is None:
         opt_model.update_model(src_model=opt_model['seq_model'])
@@ -351,6 +352,7 @@ def set_vignetting(opt_model, gui_parent=None):
 
 
 def set_apertures(opt_model, gui_parent=None):
+    """ From existing fields and vignetting, calculate clear apertures. """
     vigcalc.set_ape(opt_model)
     if gui_parent is None:
         opt_model.update_model(src_model=opt_model['seq_model'])

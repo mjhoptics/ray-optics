@@ -103,7 +103,14 @@ class Interface:
         pass
 
     def point_inside(self, x: float, y: float, fuzz: float = 1e-5) -> bool:
-        """ Returns True if the point (x, y) is within the interface clear aperture. """
+        """ Returns True if the point (x, y) is inside the clear aperture. 
+        
+        Args:
+            x: x coodinate of the test point
+            y: y coodinate of the test point
+            fuzz: tolerance on test pt/aperture comparison, 
+                  i.e. pt fuzzy <= surface_od
+        """
         return sqrt(x*x + y*y) <= self.max_aperture + fuzz
 
     def set_max_aperture(self, max_ap):

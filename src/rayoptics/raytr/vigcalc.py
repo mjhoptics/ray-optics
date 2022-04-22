@@ -18,6 +18,9 @@ import rayoptics.optical.model_constants as mc
 from rayoptics.raytr import trace
 from rayoptics.raytr import traceerror as terr
 
+# label for coordinate chooser
+xy_str = 'xy'
+
 
 def set_ape(opm):
     """ From existing fields and vignetting, calculate clear apertures. 
@@ -58,6 +61,7 @@ def set_vig(opm):
     osp = opm['osp']
     for fi in range(len(osp['fov'].fields)):
         fld, wvl, foc = osp.lookup_fld_wvl_focus(fi)
+        # print(f"field {fi}:")
         calc_vignetting_for_field(opm, fld, wvl)
 
 
@@ -69,10 +73,9 @@ def calc_vignetting_for_field(opm, fld, wvl):
         xy = i//2
         start = pupil_starts[i]
         vig, last_indx, ray_pkg = calc_vignetted_ray(opm, xy, start, fld, wvl)
-        if vig > vig_factors[i]:
-            # xy_str = ['x', 'y']
-            # print(f"fld: {xy_str[start[0]]} {start[1]:2.0f} {vig_factors[i]:8.4f} -> {vig:8.4f} ({last_indx})")
-            vig_factors[i] = vig
+        # print(f"ray: ({start[0]:2.0f}, {start[1]:2.0f}), vig={vig:8.4f}, "
+        #       f"limited at ifcs[{last_indx}]")
+        vig_factors[i] = vig
 
     # update the field's vignetting factors
     fld.vux = vig_factors[0]
@@ -116,7 +119,7 @@ def calc_vignetted_ray(opm, xy, start_dir, fld, wvl, max_iter_count=10):
         except terr.TraceError as te:
             indx = te.surf
             ray_pkg = te.ray_pkg
-            # print(f"{rel_p1[xy]:10.6f}: blocked at {indx}")
+            # print(f"{xy_str[xy]} = {rel_p1[xy]:10.6f}: blocked at {indx}")
             if indx == last_indx:
                 still_iterating = False
             else:
@@ -126,7 +129,7 @@ def calc_vignetted_ray(opm, xy, start_dir, fld, wvl, max_iter_count=10):
                 still_iterating = True
                 last_indx = indx
         else:  # ray successfully traced.
-            # print(f"{rel_p1}: passed")
+            # print(f"{xy_str[xy]} = {rel_p1[xy]:10.6f}: passed")
             if last_indx is not None:
                 # fall through and exit
                 still_iterating = False
