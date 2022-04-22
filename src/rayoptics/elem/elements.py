@@ -1088,11 +1088,12 @@ class CementedElement(Part):
         del attrs['ifcs']
         del attrs['gaps']
         del attrs['flats']
-        del attrs['profile_polys']
         del attrs['handles']
         del attrs['actions']
         attrs['profile_ids'] = [str(id(p)) for p in self.profiles]
         del attrs['profiles']
+        if hasattr(attrs, 'profile_polys'):
+            del attrs['profile_polys']
 
         return attrs
 
