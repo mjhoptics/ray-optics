@@ -126,7 +126,7 @@ class RayFanPlot():
 
     def init_axis(self, ax):
         ax.grid(True)
-        ax.set_xlim(-1., 1.)
+
         ax.axvline(0, c=ax.figure._rgb['foreground'], lw=1)
         ax.axhline(0, c=ax.figure._rgb['foreground'], lw=1)
         ax.tick_params(labelbottom=False)
@@ -159,6 +159,9 @@ class RayFanPlot():
 
             ax.plot(*fan_plot, **kws)  # x_data, y_data = fan_plot
 
+        rho_data = fan_plot[0]
+        max_rho = max(np.nanmax(rho_data), -np.nanmin(rho_data))
+        ax.set_xlim(-max_rho, max_rho)
         if self.scale_type == 'fit':
             y_data = fan_plot[1]
             max_value = max(np.nanmax(y_data), -np.nanmin(y_data))

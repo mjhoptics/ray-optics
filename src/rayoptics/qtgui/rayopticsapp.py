@@ -157,6 +157,7 @@ class MainWindow(QMainWindow):
             # self.open_file(path / "optical/tests/achroMangin.roa")
             # self.open_file(path / "optical/tests/cell_phone_camera.roa")
             # self.open_file(path / "optical/tests/singlet_f3.roa")
+            # self.open_file(path / "optical/tests/Nikon Nikkor Z 14-30mm f-4 S.roa")
 
             self.cur_dir = path / "models"
             # self.open_file(path / "models/Cassegrain.roa")

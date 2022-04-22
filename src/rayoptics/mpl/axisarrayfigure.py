@@ -182,6 +182,7 @@ class RayFanFigure(AxisArrayFigure):
         n = self.num_cols - 1
         self.ax_arr = self.construct_plot_array(self.num_rows, self.num_cols)
 
+        self.max_rho_all = 0.0
         self.max_value_all = 0.0
         for i in reversed(range(self.num_rows)):
             for j in reversed(range(self.num_cols)):
@@ -193,9 +194,14 @@ class RayFanFigure(AxisArrayFigure):
                     else:
                         ax.plot(x_data[k], y_data[k])
 
-                if max_value > self.max_value_all:
-                    self.max_value_all = max_value
+                max_rho_val, max_y_val = max_value
+                if max_rho_val > self.max_rho_all:
+                    self.max_rho_all = max_rho_val
+                if max_y_val > self.max_value_all:
+                    self.max_value_all = max_y_val
 
+        rv = self.max_rho_all
+        [[ax.set_xlim(-rv, rv) for ax in r] for r in self.ax_arr]
         if self.scale_type == Fit.All:
             pass
 #            print("Fit.All", self.max_value_all)

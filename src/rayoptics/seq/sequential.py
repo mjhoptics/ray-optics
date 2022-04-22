@@ -719,6 +719,7 @@ class SequentialModel:
         fan_start[xy] = -1.0
         fan_stop[xy] = 1.0
         fan_def = [fan_start, fan_stop, num_rays]
+        max_rho_val = 0.0
         max_y_val = 0.0
         rc = []
         for wi, wvl in enumerate(wvls.wavelengths):
@@ -737,13 +738,15 @@ class SequentialModel:
             for p, y_val in fan:
                 f_x.append(p[xy])
                 f_y.append(y_val)
+                if abs(p[xy]) > max_rho_val:
+                    max_rho_val = abs(p[xy])
                 if abs(y_val) > max_y_val:
                     max_y_val = abs(y_val)
             fans_x.append(f_x)
             fans_y.append(f_y)
         fans_x = np.array(fans_x)
         fans_y = np.array(fans_y)
-        return fans_x, fans_y, max_y_val, rc
+        return fans_x, fans_y, (max_rho_val, max_y_val), rc
 
     def trace_grid(self, fct, fi, wl=None, num_rays=21, form='grid',
                    append_if_none=True, **kwargs):
