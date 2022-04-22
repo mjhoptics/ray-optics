@@ -8,7 +8,7 @@
 .. codeauthor: Michael J. Hayford
 """
 
-
+from numpy import sqrt
 from enum import Enum, auto
 
 
@@ -102,9 +102,9 @@ class Interface:
     def surface_od(self):
         pass
 
-    def point_inside(self, x: float, y: float) -> bool:
+    def point_inside(self, x: float, y: float, fuzz: float = 1e-5) -> bool:
         """ Returns True if the point (x, y) is within the interface clear aperture. """
-        return (x*x + y*y) <= self.max_aperture**2
+        return sqrt(x*x + y*y) <= self.max_aperture + fuzz
 
     def set_max_aperture(self, max_ap):
         """ max_ap is the max aperture radius """

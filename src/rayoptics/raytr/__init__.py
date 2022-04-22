@@ -7,6 +7,8 @@
           :mod:`~.trace`
         - Specification of aperture, field, wavelength and defocus,
           :mod:`~.opticalspec`
+        - Functions setting vignetting and clear apertures and support for 
+          pupil exploration, :mod:`~.vigcalc`
         - Calculation of wavefront aberration, :mod:`~.waveabr`
         - Tracing of fans, lists and grids of rays, including refocusing of OPD
           values, :mod:`~.analyses`

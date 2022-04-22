@@ -76,16 +76,16 @@ def trace_safe(opt_model, pupil, fld, wvl,
         wvl: wavelength of ray (nm)
         output_filter:
 
-        - if None, append entire ray
-        - if 'last', append the last ray segment only
-        - else treat as callable and append the return value
+            - if None, append entire ray
+            - if 'last', append the last ray segment only
+            - else treat as callable and append the return value
 
         rayerr_filter:
 
-        - if None, on ray error append nothing
-        - if 'summary', append the exception without ray data
-        - if 'full', append the exception with ray data up to error
-        - else append nothing
+            - if None, on ray error append nothing
+            - if 'summary', append the exception without ray data
+            - if 'full', append the exception with ray data up to error
+            - else append nothing
 
     Returns:
         ray_result: see discussion of filters, above.
@@ -171,7 +171,7 @@ def trace(seq_model, pt0, dir0, wvl, **kwargs):
     return rt.trace(seq_model, pt0, dir0, wvl, **kwargs)
 
 
-def trace_base(opt_model, pupil, fld, wvl, **kwargs):
+def trace_base(opt_model, pupil, fld, wvl, apply_vignetting=True, **kwargs):
     """Trace ray specified by relative aperture and field point.
 
     Args:
@@ -197,7 +197,7 @@ def trace_base(opt_model, pupil, fld, wvl, **kwargs):
           optical axis
         - **wvl** - wavelength (in nm) that the ray was traced in
     """
-    vig_pupil = fld.apply_vignetting(pupil)
+    vig_pupil = fld.apply_vignetting(pupil) if apply_vignetting else pupil
     osp = opt_model.optical_spec
     fod = opt_model['analysis_results']['parax_data'].fod
     eprad = fod.enp_radius
@@ -276,7 +276,7 @@ def iterate_ray(opt_model, ifcx, xy_target, fld, wvl, **kwargs):
                                           disp=False, full_output=True)
             except RuntimeError as rte:
                 # if we come here, start_y is a RuntimeResults object
-                print(rte)
+                # print(rte)
                 start_y = results.root
             except TraceError:
                 start_y = 0.0

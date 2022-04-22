@@ -15,7 +15,7 @@ import pathlib
 from opticalglass import glassmap as gm
 from opticalglass import glassfactory as gfact
 
-import rayoptics.codev.cmdproc as cvp
+from rayoptics.codev import cmdproc
 from rayoptics.zemax import zmxread
 
 import rayoptics.optical.opticalmodel as opticalmodel
@@ -30,6 +30,7 @@ from rayoptics.parax.etendue import create_etendue_dict
 from rayoptics.parax.specsheet import (conjugate_types, SpecSheet,
                                        create_specsheet, create_specsheets,
                                        create_specsheet_from_model)
+from rayoptics.raytr import vigcalc
 import rayoptics.seq.medium as medium
 
 from rayoptics.gui.appmanager import ModelInfo
@@ -80,7 +81,7 @@ def open_model(file_name, info=False, post_process_imports=True, **kwargs):
     else:
         # if we're importing another program's file, collect import info
         if file_extension == '.seq':
-            opm, import_info = cvp.read_lens(file_name, **kwargs)
+            opm, import_info = cmdproc.read_lens(file_name, **kwargs)
         elif file_extension == '.zmx':
             opm, import_info = zmxread.read_lens_file(file_name, **kwargs)
         # At this point we have seq_model, opticalspec and sys_model.
@@ -339,6 +340,22 @@ def create_parax_design_commands(fig):
                        'interact_mode': 'transmit'})))
     finally:
         return cmds
+
+
+def set_vignetting(opt_model, gui_parent=None):
+    vigcalc.set_vig(opt_model)
+    if gui_parent is None:
+        opt_model.update_model(src_model=opt_model['seq_model'])
+    else:
+        gui_parent.refresh_gui(src_model=opt_model['seq_model'])
+
+
+def set_apertures(opt_model, gui_parent=None):
+    vigcalc.set_ape(opt_model)
+    if gui_parent is None:
+        opt_model.update_model(src_model=opt_model['seq_model'])
+    else:
+        gui_parent.refresh_gui(src_model=opt_model['seq_model'])
 
 
 def create_ray_fan_view(opt_model, data_type, gui_parent=None):

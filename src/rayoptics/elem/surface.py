@@ -192,7 +192,7 @@ class Surface(interface.Interface):
                 if not is_inside:
                     return is_inside
         else:
-            return super.point_inside(x, y)
+            return super().point_inside(x, y)
 
         return is_inside
 

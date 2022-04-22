@@ -18,4 +18,5 @@ Submodules
    rayoptics.raytr.sampler
    rayoptics.raytr.trace
    rayoptics.raytr.traceerror
+   rayoptics.raytr.vigcalc
    rayoptics.raytr.waveabr

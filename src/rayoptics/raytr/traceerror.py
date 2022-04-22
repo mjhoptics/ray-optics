@@ -44,9 +44,6 @@ class TraceEvanescentRayError(TraceError):
 
 class TraceRayBlockedError(TraceError):
     """ Exception raised when ray is blocked by an aperture on a surface """
-    def __init__(self, ifc, int_pt, inc_dir, prev_indx, follow_indx):
+    def __init__(self, ifc, int_pt):
         self.ifc = ifc
         self.int_pt = int_pt
-        self.inc_dir = inc_dir
-        self.prev_indx = prev_indx
-        self.follow_indx = follow_indx

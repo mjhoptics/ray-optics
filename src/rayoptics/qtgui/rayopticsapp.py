@@ -99,7 +99,8 @@ class MainWindow(QMainWindow):
         analysis_menu.triggered[QAction].connect(self.do_view_action)
 
         tools_menu = bar.addMenu("Tools")
-        tools_menu.addAction("Paraxial Vignetting")
+        tools_menu.addAction("Set Vignetting")
+        tools_menu.addAction("Set Apertures")
         tools_menu.triggered[QAction].connect(self.do_view_action)
 
         wnd_menu = bar.addMenu("Window")
@@ -378,9 +379,11 @@ class MainWindow(QMainWindow):
         if action == "Ray Table":
             self.create_ray_table(opt_model)
 
-        if action == "Paraxial Vignetting":
-            trace.apply_paraxial_vignetting(opt_model)
-            self.refresh_gui()
+        if action == "Set Vignetting":
+            cmds.set_vignetting(opt_model, gui_parent=self)
+
+        if action == "Set Apertures":
+            cmds.set_apertures(opt_model, gui_parent=self)
 
     def do_window_action(self, q):
         self.window_action(q.text())

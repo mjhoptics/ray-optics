@@ -14,7 +14,7 @@ from math import sqrt, copysign
 
 import rayoptics.optical.model_constants as mc
 from .traceerror import (TraceMissedSurfaceError, TraceTIRError,
-                         TraceEvanescentRayError)
+                         TraceRayBlockedError, TraceEvanescentRayError)
 
 def bend(d_in, normal, n_in, n_out):
     """ refract incoming direction, d_in, about normal """
@@ -80,7 +80,7 @@ def trace(seq_model, pt0, dir0, wvl, **kwargs):
     return trace_raw(path, pt0, dir0, wvl, **kwargs)
 
 
-def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, **kwargs):
+def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, check_apertures=False, **kwargs):
     """ fundamental raytrace function
 
     Args:
@@ -91,6 +91,8 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, **kwargs):
         dir0: starting direction cosines in coords of first interface
         wvl: wavelength in nm
         eps: accuracy tolerance for surface intersection calculation
+        check_apertures: if True, do point_inside() test on inc_pt
+
 
     Returns:
         (**ray**, **op_delta**, **wvl**)
@@ -162,6 +164,10 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, **kwargs):
 
             normal = ifc.normal(inc_pt)
 
+            if check_apertures:
+                if not ifc.point_inside(inc_pt[0], inc_pt[1]):
+                    raise TraceRayBlockedError(ifc, inc_pt)
+
             # if the interface has a phase element, process that first
             if hasattr(ifc, 'phase_element'):
                 doe_dir, phs = phase(ifc, inc_pt, b4_dir, normal, z_dir_before,
@@ -201,16 +207,18 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, **kwargs):
         except TraceTIRError as ray_tir:
             ray.append([inc_pt, before_dir, 0.0, normal])
             ray_tir.surf = surf+1
-            ray_tir.ifc = ifc
-            ray_tir.int_pt = inc_pt
             ray_tir.ray_pkg = ray, opl, wvl
             raise ray_tir
 
+        except TraceRayBlockedError as ray_blocked:
+            ray.append([inc_pt, before_dir, 0.0, normal])
+            ray_blocked.surf = surf+1
+            ray_blocked.ray_pkg = ray, opl, wvl
+            raise ray_blocked
+            
         except TraceEvanescentRayError as ray_evn:
             ray.append([inc_pt, before_dir, 0.0, normal])
             ray_evn.surf = surf+1
-            ray_evn.ifc = ifc
-            ray_evn.int_pt = inc_pt
             ray_evn.ray_pkg = ray, opl, wvl
             raise ray_evn
 
