@@ -705,9 +705,9 @@ class Element(Part):
         def use_flat(do_flat, is_concave):
             if do_flat == 'always':
                 return True
-            elif do_flat == 'is concave' and is_concave:
+            elif do_flat == 'if concave' and is_concave:
                 return True
-            elif do_flat == 'is convex' and not is_concave:
+            elif do_flat == 'if convex' and not is_concave:
                 return True
             return False
         is_concave_s1 = self.s1.profile_cv < 0.0
