@@ -43,6 +43,7 @@ Whether created new or restored from a file, setting up the following names make
    > pm = opm['parax_model']
    > em = opm['ele_model']
    > pt = opm['part_tree']
+   > ar = opm['analysis_results']
 
 ******************
 iPython setup code
@@ -67,6 +68,7 @@ One can use the flow above in the iPython environment. If you want to import few
    pm = opm['parax_model']
    em = opm['ele_model']
    pt = opm['part_tree']
+   ar = opm['analysis_results']
 
 ******************
 Jupyter setup code

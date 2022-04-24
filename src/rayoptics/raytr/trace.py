@@ -71,7 +71,7 @@ def trace_safe(opt_model, pupil, fld, wvl,
     
     Args:
         opt_model: :class:`~.OpticalModel` instance
-        pupil: 2d vector of relatice pupil coordinates
+        pupil: 2d vector of relative pupil coordinates
         fld: :class:`~.Field` point for wave aberration calculation
         wvl: wavelength of ray (nm)
         output_filter:
