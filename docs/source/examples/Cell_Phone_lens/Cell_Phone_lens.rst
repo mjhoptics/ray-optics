@@ -11,7 +11,7 @@ From U.S. Patent 7,535,658
 
 .. code:: ipython3
 
-    isdark = True
+    isdark = False
 
 .. code:: ipython3
 
@@ -112,6 +112,12 @@ Update the model
 
     opm.update_model()
 
+Turn off automatically resizing apertures based on sequential model ray trace.
+
+.. code:: ipython3
+
+    sm.do_apertures = False
+
 List the sequential model and the first order properties
 --------------------------------------------------------
 
@@ -186,38 +192,69 @@ List the sequential model and the first order properties
     └── Image
 
 
+.. code:: ipython3
+
+    layout_plt0 = plt.figure(FigureClass=InteractiveLayout, opt_model=opm,
+                            do_draw_rays=True, do_paraxial_layout=False,
+                            is_dark=isdark).plot()
+
+
+
+.. image:: output_20_0.png
+
+
+
+
 Set semi-diameters and flats for manufacturing and mounting
 -----------------------------------------------------------
 
-Generate a list of lens elements from the part tree.
+Note that in the lens layout above, the very aspheric surface shapes lead to extreme lens element shapes. The default logic used by **ray-optics** to apply flat bevels to concave surfaces is defeated by the aspherics that switch concavity between vertex and edge. How **ray-optics** renders flats can be controlled on a surface by surface basis.
+
+First, generate a list of lens elements from the part tree.
 
 .. code:: ipython3
 
     elmn = [node.id for node in pt.nodes_with_tag(tag='#element')]
 
+Lens elements have two surfaces, each of which can be specified with or without a flat.
+
+.. code:: ipython3
+
+    elmn[1].do_flat1 = 'always'
+    elmn[1].do_flat2 = 'always'
+    elmn[2].do_flat1 = 'always'
+    elmn[2].do_flat2 = 'always'
+    elmn[3].do_flat1 = 'always'
+    elmn[3].do_flat2 = 'always'
+
+.. code:: ipython3
+
+    layout_plt1 = plt.figure(FigureClass=InteractiveLayout, opt_model=opm,
+                            do_draw_rays=True, do_paraxial_layout=False,
+                            is_dark=isdark).plot()
+
+
+
+.. image:: output_26_0.png
+
+
+By default, the inside diameters of a flat are set to the clear aperture of the interface in the sequential model. This can be overriden for each surface. The semi-diameter :meth:`~.elem.elements.Element.sd` of the lens element may also be set explicitly.
+
 .. code:: ipython3
 
     elmn[0].sd = 1.25
+    
     elmn[1].sd = 1.75
     elmn[1].flat1 = 1.25
     elmn[1].flat2 = 1.645
-    elmn[1].do_flat1 = 'always'
-    elmn[1].do_flat2 = 'always'
+    
     elmn[2].sd = 2.5
     elmn[2].flat1 = 2.1
-    elmn[2].do_flat1 = 'always'
-    elmn[2].do_flat2 = 'always'
+    
     elmn[3].sd = 3.0
     elmn[3].flat1 = 2.6
-    elmn[3].do_flat1 = 'always'
-    elmn[3].do_flat2 = 'always'
+    
     elmn[4].sd = 3.5
-
-Turn off automatically resizing apertures based on sequential model ray trace.
-
-.. code:: ipython3
-
-    sm.do_apertures = False
 
 Draw a lens layout to verify the model
 --------------------------------------
@@ -226,11 +263,11 @@ Draw a lens layout to verify the model
 
     layout_plt = plt.figure(FigureClass=InteractiveLayout, opt_model=opm,
                             do_draw_rays=True, do_paraxial_layout=False,
-                            offset_factor=0.1, is_dark=isdark).plot()
+                            is_dark=isdark).plot()
 
 
 
-.. image:: output_24_0.png
+.. image:: output_30_0.png
 
 
 Plot a Spot Diagram
@@ -238,11 +275,12 @@ Plot a Spot Diagram
 
 .. code:: ipython3
 
-    spot_plt = plt.figure(FigureClass=SpotDiagramFigure, opt_model=opm, scale_type=Fit.All_Same, dpi=100, is_dark=isdark).plot()
+    spot_plt = plt.figure(FigureClass=SpotDiagramFigure, opt_model=opm, 
+                          scale_type=Fit.All_Same, dpi=200, is_dark=isdark).plot()
 
 
 
-.. image:: output_26_0.png
+.. image:: output_32_0.png
 
 
 Save the model
@@ -251,30 +289,6 @@ Save the model
 .. code:: ipython3
 
     opm.save_model("cell_phone_camera")
-
-.. code:: ipython3
-
-    em.list_elements()
-
-
-.. parsed-literal::
-
-    0: Object (DummyInterface): Surface(lbl='Obj', profile=Spherical(c=0.0), interact_mode='dummy')
-    1: Object space (AirGap): Gap(t=10000000000.0, medium=Air())
-    2: Stop (DummyInterface): Surface(profile=Spherical(c=0.0), interact_mode='transmit')
-    3: AG1 (AirGap): Gap(t=0.0, medium=Air())
-    4: Image (DummyInterface): Surface(lbl='Img', profile=Spherical(c=0.0), interact_mode='dummy')
-    5: E1 (Element): Element: RadialPolynomial(c=0.509683995922528, ec=2.153, coefs=[0.0, 0.0, -0.01895, 0.02426, -0.05123, 0.0008371, 0.00785, 0.004091, -0.007732, -0.004265]), RadialPolynomial(c=0.029941912689382594, ec=40.18, coefs=[0.0, 0.0, -0.004966, -0.01434, -0.006139, -9.284e-05, 0.006438, -0.00572, -0.02385, 0.01108]), t=1.1900, sd=1.2500, glass: 471.766
-    6: AG2 (AirGap): Gap(t=0.93, medium=Air())
-    7: E2 (Element): Element: RadialPolynomial(c=-0.4582951420714941, ec=2.105, coefs=[0.0, 0.0, -0.04388, -0.02555, 0.0516, -0.04307, -0.02831, 0.03162, 0.0463, -0.04877]), RadialPolynomial(c=-0.1570598397989634, ec=3.382, coefs=[0.0, 0.0, -0.1131, -0.07863, 0.1094, 0.006228, -0.02216, -0.00589, 0.004123, 0.001041]), t=0.7500, sd=1.7500, glass: 603.275
-    8: AG3 (AirGap): Gap(t=0.1, medium=Air())
-    9: E3 (Element): Element: RadialPolynomial(c=0.17562346329469616, ec=-221.1, coefs=[0.0, 0.0, -0.07876, 0.0702, 0.001575, -0.009958, -0.007322, 0.0006914, 0.00254, -0.000765]), RadialPolynomial(c=0.10879025239338555, ec=0.9331, coefs=[0.0, 0.0, 0.009694, -0.002516, -0.003606, -0.0002497, -0.000684, -0.0001414, 0.0002932, -7.284e-05]), t=0.8900, sd=2.5000, glass: 510.562
-    10: AG4 (AirGap): Gap(t=0.16, medium=Air())
-    11: E4 (Element): Element: RadialPolynomial(c=0.5973715651135006, ec=-7.617, coefs=[0.0, 0.0, 0.07429, -0.06933, -0.005811, 0.002396, 0.0021, -0.0003119, -5.552e-05, 7.969e-06]), RadialPolynomial(c=0.6626905235255136, ec=-2.707, coefs=[0.0, 0.0, 0.001767, -0.04652, 0.01625, -0.003522, -0.0007106, 0.0003825, 6.271e-05, -2.631e-05]), t=0.8500, sd=3.0000, glass: 510.562
-    12: AG5 (AirGap): Gap(t=0.7, medium=Air())
-    13: E5 (Element): Element: Spherical(c=0.0), Spherical(c=0.0), t=0.4000, sd=3.5000, glass: 516.641
-    14: Image space (AirGap): Gap(t=0.64, medium=Air())
-
 
 Trace axial marginal ray
 ------------------------

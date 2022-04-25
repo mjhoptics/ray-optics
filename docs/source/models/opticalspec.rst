@@ -15,8 +15,6 @@ Optical Specification Overview
 
    The :class:`~opticalspec.OpticalSpecs` class holds the optical usage definition of the model. Aperture, field of view, wavelength, and focal position are all aspects of the :class:`~opticalspec.OpticalSpecs`.
 
-   The first order properties are calculated and maintained by :class:`~opticalspec.OpticalSpecs` in the :attr:`~opticalspec.OpticalSpecs.parax_data` variable. This is an instance of :class:`~rayoptics.parax.firstorder.ParaxData` that includes the paraxial axial and chief rays, and the :class:`~rayoptics.parax.firstorder.FirstOrderData` that contains first order properties.
-
    The optical configuration is broken into four parts::
 
       * aperture
@@ -40,7 +38,7 @@ Optical Specification Overview
 
        osp.field_of_view = FieldSpec(osp, key=['object', 'angle'], flds=[0., 20.0])
 
-   The |FieldSpec| maintains a list of |Field| instances. Each |Field| contains an absolute field specification of the type specified in |FieldSpec|. It can also have attributes set for the chief ray data at the field (:attr:`~opticalspec.Field.chief_ray`) as well as the definition of the reference sphere for OPD calculations (:attr:`~opticalspec.Field.ref_sphere`). These are calculated by :func:`analyses.get_chief_ray_pkg` and :func:`analyses.setup_exit_pupil_coords` respectively.
+   The |FieldSpec| maintains a list of |Field| instances. Each |Field| contains an absolute field specification of the type specified in |FieldSpec|. It can also have attributes set for the chief ray data at the field (:attr:`~opticalspec.Field.chief_ray`) as well as the definition of the reference sphere for OPD calculations (:attr:`~opticalspec.Field.ref_sphere`). These are calculated by :func:`trace.get_chief_ray_pkg` and :func:`trace.setup_pupil_coords` respectively.
 
    The |Wvl| defines the wavelengths and weights to use when evaluating the model. The wavelength values can be given in either nanometers or a spectral line designation.
 
