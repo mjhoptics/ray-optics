@@ -30,7 +30,7 @@ Overview
 
    It should also be possible in the future to ray trace the |em| to generate a |sm| corresponding to a ray's path through the elements.
 
-   The |osp| class holds the optical usage definition of the model. Aperture, field of view, wavelength, and focal position are all aspects of the |osp|. The first order properties are in `opm['analysis_results']['parax_data']`.  The usage specification of the optical model is given by the |specsheet| class in combination with the |osp| class. 
+   The |osp| class holds the optical usage definition of the model. Aperture, field of view, wavelength, and focal position are all aspects of the |osp|. The first order properties are in ``opm['analysis_results']['parax_data']``.  The usage specification of the optical model is given by the |specsheet| class in combination with the |osp| class. 
 
    Paraxial layout operations are handled via the |pm|. This enables model manipulation via the |ybar| or |nubar| diagrams. The goal is to smoothly integrate the information in the |specsheet| with constraints on movement in the |ybar| diagram or changes to the paraxial rays in the Optical Layout.
 

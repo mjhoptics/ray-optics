@@ -66,7 +66,7 @@ Constituents
 
     The medium in the |gap| is provided via classes that implement :meth:`~.medium.Medium.rindex`. For simple modeling, the :mod:`~.medium` provides constant refractive index classes for :class:`~seq.medium.Air` and :class:`~seq.medium.Glass`. 
 
-    If you have a list of refractive indices and their corresponding wavelengths (in nm), you can use the :class:`~seq.medium.InterpolatedGlass` class. This uses the scipy routine interp1d to interpolate the data.
+    If you have a list of refractive indices and their corresponding wavelengths (in nm), you can use the :class:`~seq.medium.InterpolatedGlass` class. This uses the **scipy** routine :class:`scipy.interpolate.interp1d` to interpolate the data.
 
     Commercial optical glasses are supported by the `opticalglass <https://opticalglass.readthedocs.io>`_ package.
 
