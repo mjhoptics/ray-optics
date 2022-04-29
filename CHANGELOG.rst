@@ -4,8 +4,20 @@
 Changelog
 =========
 
+Version 0.8.1
+=============
+Major review and cleanup of the :mod:`~.raytr` package. Moved wave aberration calculations and support to new module :mod:`~.raytr.waveabr`.  
+
+Integrate :meth:`~.seq.interface.Interface.point_inside` query into the raytrace and add a new raytrace exception, :class:`~.raytr.traceerror.TraceRayBlockedError`. Use this to implement a pupil ray-based vignetting calculation and provide :func:`~.gui.appcmds.set_vignetting` to set the vignetted pupil rays for each field point and the companion function, :func:`~.gui.appcmds.set_apertures`, to set clear apertures based on the vignetted pupils at each field. to clear aperture. These new calculations are in the :mod:`~.raytr.vigcalc` module.
+
+The addition of the ``set_vignetting`` function uncovered a bug in the ray plots; they didn't handle the case of needing to overfill the paraxial entrance pupil in wide angle lenses. The ray plots, :class:`~.mpl.axisarrayfigure.RayFanFigure` and :class:`~.mpl.analysisfigure.RayFanPlot`, were updated to correctly display overfilled pupils, and an example lens was added to demonstrate the issue.
+
+A bug affecting the display of flats on concave surfaces was fixed. The cell phone lens example was updated to explain some of the controls added for greater control over lens element display.
+
+Numerous updates to the documentation.
+
 Version 0.8.0
-==============
+=============
 Add :meth:`~.optical.opticalmodel.OpticalModel.flip` function to :class:`~.optical.opticalmodel.OpticalModel`. Can flip a range of surfaces, flip an element or an assembly. 
 
 Added :class:`~.elem.elements.Part` as an ABC for elements, et al, and added an :class:`~.elem.elements.Assembly` class allow groups of `Parts`. Parts and Profiles are now saved and restored correctly. 
@@ -20,32 +32,32 @@ Removed convoluted ray offset calculation for `InteractiveLayout` and let the vi
 Included the effect of defocus in transverse aberration plots (fixes bug in implementation).
 
 Version 0.7.5
-==============
+=============
 Implemented a formatted object output protocol, the listobj_str() method, that returns a formatted, descriptive string about the object's contents. This supercedes the use of listobj as a per-class method (see 0.7.1 release notes). This protocol was implemented in particular for profiles and parts of the optical specification. Added a console print function :func:`~listobj` that will work with objects that implement a listobj_str() method; the fallback is to invoke repr(obj). Thanks to @asebian and @rlabs-oss for their issue reports and @dibyendumajumdar for continued discussions.
 
 Version 0.7.4
-==============
+=============
 Pass 2 on the |ybar| diagram layer capability. Handle thick elements and include a top level 'sys' layer. Fix insertion of system from file. Add support for models from the `OpticalBenchHub <https://www.photonstophotos.net/GeneralTopics/Lenses/OpticalBench/OpticalBenchHub.htm>`_ portion of Bill Claff's `PhotonsToPhotos <https://www.photonstophotos.net/>`_ website. Support odd polynomial surfaces in Zemax import. Added additional control over the use of flats when drawing lens elements, see ray-optics notebook `Cell Phone lens <https://github.com/mjhoptics/ray-optics-notebooks/blob/master/Cell%20Phone%20lens.ipynb>`_ for an example. Thanks also to @wuffi for contributing 2 fixes to make the interactive ray-optics app more robust.
 
 Version 0.7.3
-==============
+=============
 Miscellaneous bug fixes, see checkin comments.
 
 Version 0.7.2
-==============
+=============
 Add RayFans to interactive layout. Add a multiple layer |ybar| diagram capability. Works well for thin lens systems. Systems with thick lenses (e.g. Double Gauss) don't work well. Fixes in the :mod:`~.raytr.analyses` module include getting the sign right for defocused transverse aberrations and using the image gap distance instead of parax img_dist for reference sphere definition. Miscellaneous fixes.
 
 Version 0.7.1
-==============
+=============
 Switch to use of strings for :class:`~.optical.model_enums.DecenterType` and :class:`~.optical.model_enums.DimensionType`. Use of the types is now deprecated. Add listobj() methods to all :mod:`~.elem.profiles` classes that lists all of the data for each profile type. Completed the fix of `opticalglass` issue #5 by using `difflib` to find better matches; seems to almost eliminate need for .smx files. Provided an alternative replacement glass spec for .smx files that requires just the glass and catalog names. Miscellaneous other fixes.
 
 Version 0.7.0
-==============
+=============
 
 Add :class:`~.elem.parttree.PartTree` to :class:`~.optical.opticalmodel.OpticalModel`. Many changes to get SequentialModel, ElementModel and PartTree to work in sync. Add :class:`~.elem.elements.CementedElement` element to :mod:`~.elem.elements` module. Fix paraxial image distance calculation. Fix DOE implementation for DOE on exiting side of element. Add fractional field height specification to :class:`~.raytr.opticalspec.FieldSpec`. Add a mapping interface to :class:`~.optical.opticalmodel.OpticalModel` and :class:`~.raytr.opticalspec.OpticalSpecs`; allows submodel access like opm['sm'] and opm['osp]['fov']. Add :meth:`~.seq.sequential.SequentialModel.reverse_path` method to facilitate reverse ray tracing through the model. Add semi-diameter to list of items in :meth:`~.seq.sequential.SequentialModel.add_surface` method. Add exception handling for ray trace errors in :mod:`~.raytr.analyses` module. Many miscellaneous fixes and improvements.
 
 Version 0.6.5
-==============
+=============
 
 Fixes for ray normal calculation in Even and Radial polynomial profiles, the ray trace was incorrect for these surfaces. Add do_aperture flag to :class:`~.seq.sequential.SequentialModel` to control aperture setting by :meth:`~.seq.sequential.SequentialModel.update_model`. Miscellaneous other fixes and enhancements.
 

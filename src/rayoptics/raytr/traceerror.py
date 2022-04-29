@@ -14,14 +14,14 @@ class TraceError(Exception):
 
 
 class TraceMissedSurfaceError(TraceError):
-    """ Exception raised when ray misses a surface """
+    """ Exception raised when ray misses an interface """
     def __init__(self, ifc=None, prev_seg=None):
         self.ifc = ifc
         self.prev_seg = prev_seg
 
 
 class TraceTIRError(TraceError):
-    """ Exception raised when ray TIRs on a surface """
+    """ Exception raised when ray TIRs at an interface """
     def __init__(self, inc_dir, normal, prev_indx, follow_indx):
         self.ifc = None
         self.int_pt = None
@@ -32,7 +32,7 @@ class TraceTIRError(TraceError):
 
 
 class TraceEvanescentRayError(TraceError):
-    """ Exception raised when ray diffracts evanescently at a surface """
+    """ Exception raised when ray diffracts evanescently at an interface """
     def __init__(self, ifc, int_pt, inc_dir, normal, prev_indx, follow_indx):
         self.ifc = ifc
         self.int_pt = int_pt
@@ -43,7 +43,7 @@ class TraceEvanescentRayError(TraceError):
 
 
 class TraceRayBlockedError(TraceError):
-    """ Exception raised when ray is blocked by an aperture on a surface """
+    """ Exception raised when ray is blocked by an aperture on an interface """
     def __init__(self, ifc, int_pt):
         self.ifc = ifc
         self.int_pt = int_pt

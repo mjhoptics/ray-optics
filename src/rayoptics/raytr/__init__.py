@@ -3,15 +3,17 @@
     The :mod:`~.raytr` subpackage provides core classes and functions
     for optical ray tracing and analyses. These include:
 
-        - Primitive and higher level ray tracing, :mod:`~.raytrace`,
-          :mod:`~.trace`
+        - Base level ray tracing, :mod:`~.raytrace`
+        - Calculation of wavefront aberration, :mod:`~.waveabr`
         - Specification of aperture, field, wavelength and defocus,
           :mod:`~.opticalspec`
+        - Higher level ray tracing, in terms of aperture, field and wavelength,
+          :mod:`~.trace`
         - Functions setting vignetting and clear apertures and support for 
           pupil exploration, :mod:`~.vigcalc`
-        - Calculation of wavefront aberration, :mod:`~.waveabr`
         - Tracing of fans, lists and grids of rays, including refocusing of OPD
           values, :mod:`~.analyses`
+        - Exception classes for reporting ray trace errors, :mod:`~.traceerror`
         - Sample generation for ray grids, :mod:`~.sampler`
 
     The overall optical model is managed by the :class:`~.OpticalModel` class
