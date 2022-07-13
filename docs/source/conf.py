@@ -78,7 +78,10 @@ add_module_names = False
 autodoc_member_order = 'bysource'
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+#pygments_style = 'sphinx'
+pygments_style = 'friendly'
+# pygments_style = 'xcode'
+# pygments_style = 'solarize-light'
 
 rst_prolog = """
 .. |ybar| replace:: :math:`y-\overline{y}`
