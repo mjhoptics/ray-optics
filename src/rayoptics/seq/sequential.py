@@ -692,8 +692,21 @@ class SequentialModel:
 
     def listobj_str(self):
         o_str = ""
-        for i, ifc in enumerate(self.ifcs):
-            o_str += f'{i}: ' + ifc.listobj_str()
+        stop_idx = self.stop_surface
+        for i, sg in enumerate(self.path()):
+            ifc, gap, lcl_tfrm, rndx, z_dir = sg
+            if stop_idx is not None and i == stop_idx:
+                o_str += f'{i} (stop): ' + ifc.listobj_str()
+            else:
+                o_str += f'{i}: ' + ifc.listobj_str()
+            if gap is not None:
+                gap_str = gap.listobj_str()
+                semicolon_indx = gap_str.find(';')
+                o_str += (gap_str[:semicolon_indx] +
+                          f" ({int(z_dir):+})" +
+                          gap_str[semicolon_indx:] + '\n')
+        
+        o_str += f'\ndo apertures: {self.do_apertures}'
         return o_str
 
     def trace_fan(self, fct, fi, xy, num_rays=21, **kwargs):

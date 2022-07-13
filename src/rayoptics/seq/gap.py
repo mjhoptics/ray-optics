@@ -36,6 +36,21 @@ class Gap:
     def __repr__(self):
         return "Gap(t=%r, medium=%r)" % (self.thi, self.medium)
 
+    def listobj_str(self):
+        o_str = f"t={self.thi}"
+        if self.medium is not None:
+            o_str += ";    "
+            name = self.medium.name()
+            catalog = self.medium.catalog_name()
+            if len(catalog) > 0:
+                o_str += f"medium: {name}, {catalog}\n"
+            else:
+                o_str += f"medium: {name}\n"
+        else:
+            o_str += "\n"
+
+        return o_str
+
     def sync_to_restore(self, seq_model):
         if hasattr(self.medium, 'sync_to_restore'):
             self.medium.sync_to_restore()
