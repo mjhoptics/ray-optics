@@ -39,19 +39,21 @@ def read_obench_url(url, **kwargs):
     apparent_encoding = r.apparent_encoding
     r.encoding = r.apparent_encoding
     inpt = r.text
+
     lines = inpt.splitlines()
     inpt = [l.split('\t') for l in lines]
-    inpt_dict = {}
+    obench_dict = {}
     for line in inpt:
         if line[0][0] == '[':
             # process new section header, initialize input list
             key = line[0][1:-1]
-            inpt_dict[key] = []
+            obench_dict[key] = []
         else:
             # add input to the currect section's list of inputs
-            inpt_dict[key].append(line)
+            obench_dict[key].append(line)
 
-    opt_model = read_lens(inpt_dict, **kwargs)
+    opt_model = read_lens(obench_dict, **kwargs)
+    _track_contents['obench db'] = obench_dict
     _track_contents['encoding'] = apparent_encoding
 
     return opt_model, _track_contents

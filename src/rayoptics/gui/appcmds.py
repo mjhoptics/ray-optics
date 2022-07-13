@@ -16,6 +16,7 @@ from opticalglass import glassmap as gm
 from opticalglass import glassfactory as gfact
 
 from rayoptics.codev import cmdproc
+from rayoptics.optical import obench
 from rayoptics.zemax import zmxread
 
 import rayoptics.optical.opticalmodel as opticalmodel
@@ -56,11 +57,11 @@ from rayoptics.qtgui.plotview import (create_plot_scale_panel,
                                       create_2d_figure_toolbar)
 
 
-def open_model(file_name, info=False, post_process_imports=True, **kwargs):
-    """ open a file and populate an optical model with the data
+def open_model(file_url, info=False, post_process_imports=True, **kwargs):
+    """ open a file or url and populate an optical model with the data
 
     Args:
-        file_name (str): a filename of a supported file type
+        file_url (str): a filename or url of a supported file type
 
             - .roa - a rayoptics JSON encoded file
             - .seq - a CODE V (TM) sequence file
@@ -72,18 +73,20 @@ def open_model(file_name, info=False, post_process_imports=True, **kwargs):
     Returns:
         if successful, an OpticalModel instance, otherwise, None
     """
-    file_name = pathlib.Path(file_name)
-    file_extension = file_name.suffix.lower()
+    file_url_pth = pathlib.Path(file_url)
+    file_extension = file_url_pth.suffix.lower()
     opm = None
     if file_extension == '.roa':
         # if we have a rayoptics file, we just read it
-        opm = open_roa(file_name, **kwargs)
+        opm = open_roa(file_url_pth, **kwargs)
     else:
         # if we're importing another program's file, collect import info
+        if file_url_pth.parts[1] == 'www.photonstophotos.net':
+            opm, import_info = obench.read_obench_url(file_url, **kwargs)
         if file_extension == '.seq':
-            opm, import_info = cmdproc.read_lens(file_name, **kwargs)
+            opm, import_info = cmdproc.read_lens(file_url_pth, **kwargs)
         elif file_extension == '.zmx':
-            opm, import_info = zmxread.read_lens_file(file_name, **kwargs)
+            opm, import_info = zmxread.read_lens_file(file_url_pth, **kwargs)
         # At this point we have seq_model, opticalspec and sys_model.
         # Generate the remaining databases and relations unless declined.
         if post_process_imports:
