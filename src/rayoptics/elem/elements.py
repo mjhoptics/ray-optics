@@ -15,6 +15,7 @@ from packaging import version
 from abc import abstractmethod
 from typing import Protocol, ClassVar, List, Dict, Any
 
+from math import sqrt
 import numpy as np
 
 from anytree import Node  # type: ignore
@@ -398,6 +399,25 @@ def full_profile_new(profile, is_flipped, edge_extent,
     return prf
 
 
+def use_flat(do_flat, is_concave):
+    if do_flat == 'always':
+        return True
+    elif do_flat == 'if concave' and is_concave:
+        return True
+    elif do_flat == 'if convex' and not is_concave:
+        return True
+    return False
+
+
+def compute_flat(ifc, sd, under_fract=0.05):
+    ca = ifc.surface_od()
+    if (1.0 - ca/sd) >= under_fract:
+        flat = ca
+    else:
+        flat = None
+    return flat
+
+
 def encode_obj_reference(obj, obj_attr_str, attrs):
     attrs[obj_attr_str+'_id'] = str(id(getattr(obj, obj_attr_str)))
     del attrs[obj_attr_str]
@@ -465,6 +485,11 @@ class Part(Protocol):
 
     @abstractmethod
     def update_size(self) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def render_shape(self) -> List[GraphicsHandle]:
+        '''return a polyline that is representative of the cemented element. '''
         raise NotImplementedError
 
     @abstractmethod
@@ -687,14 +712,6 @@ class Element(Part):
         self.sd = max(self.s1.surface_od(), self.s2.surface_od())
         return self.sd
 
-    def compute_flat(self, s):
-        ca = s.surface_od()
-        if (1.0 - ca/self.sd) >= 0.05:
-            flat = ca
-        else:
-            flat = None
-        return flat
-
     def extent(self):
         if hasattr(self, 'edge_extent'):
             return self.edge_extent
@@ -702,20 +719,12 @@ class Element(Part):
             return (-self.sd, self.sd)
 
     def render_shape(self):
-        def use_flat(do_flat, is_concave):
-            if do_flat == 'always':
-                return True
-            elif do_flat == 'if concave' and is_concave:
-                return True
-            elif do_flat == 'if convex' and not is_concave:
-                return True
-            return False
         is_concave_s1 = self.s1.profile_cv < 0.0
         is_concave_s2 = self.s2.profile_cv > 0.0
 
         if use_flat(self.do_flat1, is_concave_s1):
             if self.flat1 is None:
-                flat1 = self.flat1 = self.compute_flat(self.s1)
+                flat1 = self.flat1 = compute_flat(self.s1, self.sd)
             else:
                 flat1 = self.flat1
         else:
@@ -725,7 +734,7 @@ class Element(Part):
 
         if use_flat(self.do_flat2, is_concave_s2):
             if self.flat2 is None:
-                flat2 = self.flat2 = self.compute_flat(self.s2)
+                flat2 = self.flat2 = compute_flat(self.s2, self.sd)
             else:
                 flat2 = self.flat2
         else:
@@ -1068,6 +1077,8 @@ class CementedElement(Part):
 
         self._sd = self.update_size()
         self.flats = [None]*len(self.ifcs)
+        self.do_flat_0 = 'if concave'  # alternatives are 'never', 'always',
+        self.do_flat_k = 'if concave'  # or 'if convex'
 
         self.handles = {}
         self.actions = {}
@@ -1122,6 +1133,10 @@ class CementedElement(Part):
         else:
             self.gaps = [gaps[i] for i in self.idxs[:-1]]
         self.flats = [None]*len(self.ifcs)
+        if not hasattr(self, 'do_flat_0'):
+            self.do_flat_0 = 'if concave'
+        if not hasattr(self, 'do_flat_k'):
+            self.do_flat_k = 'if concave'
         if not hasattr(self, 'medium_name'):
             self.medium_name = self.gap.medium.name()
         self.handles = {}
@@ -1190,13 +1205,54 @@ class CementedElement(Part):
         self.sd = max([ifc.surface_od() for ifc in self.ifcs])
         return self.sd
 
-    def compute_flat(self, s):
-        ca = s.surface_od()
-        if (1.0 - ca/self.sd) >= 0.05:
-            flat = ca
-        else:
-            flat = None
-        return flat
+    def compute_inner_flat(self, idx, sd):
+        ''' compute flats, if needed, for the inner cemented surfaces. 
+
+        Args:
+            idx: index of inner surface in profile list
+            sd: the semi-diameter of the cemented element
+        
+        This function is needed to handle the cases where one of the outer
+        surfaces has a flat and the inner surface would intersect this flat.
+        All inner cemented surfaces are assumed to be spherical.
+        See model US007277232_Example04P.roa
+        '''
+        def sphere_sag_to_zone(sag, c):
+            if c == 0.:
+                return sd
+            else:
+                R = 1/c
+                try:
+                    zone = sqrt(2*sag*R - sag**2)
+                except ValueError:
+                    zone = R
+            return zone
+
+        p = self.profiles[idx]
+        
+        flat_0 = self.flats[0]
+        sag0 = self.profiles[0].sag(0., flat_0) if flat_0 else 0.0
+        flat_k = self.flats[-1]
+        sagk = self.profiles[-1].sag(0., flat_k) if flat_k else 0.0
+        
+        thi_b4 = thi_aftr = 0.
+        for i in range(idx):
+            thi_b4 += self.gaps[i].thi
+        for i in range(idx, len(self.gaps)):
+            thi_aftr += self.gaps[i].thi
+
+        flat_i = None
+        if p.cv < 0.0:
+            if self.flats[0] is not None:
+                flat_i = sphere_sag_to_zone(sag0 + thi_b4, p.cv)
+        elif p.cv > 0.0:
+            if self.flats[-1] is not None:
+                flat_i = sphere_sag_to_zone(sagk + thi_aftr, p.cv)
+
+        if flat_i is not None and flat_i > sd:
+            flat_i = sd
+
+        return flat_i
 
     def extent(self):
         if hasattr(self, 'edge_extent'):
@@ -1205,15 +1261,27 @@ class CementedElement(Part):
             return (-self.sd, self.sd)
 
     def render_shape(self):
-        if self.profiles[0].cv < 0.0:
-            self.flats[0] = self.compute_flat(self.ifcs[0])
+        '''return a polyline that is representative of the cemented element. '''
+        # examine all profiles for possible (or required) flats.
+        # only consider first profile for a flat if it is concave
+        is_concave_0 = self.profiles[0].cv < 0.0
+
+        if use_flat(self.do_flat_0, is_concave_0):
+            self.flats[0] = compute_flat(self.ifcs[0], self.sd)
         else:
             self.flats[0] = None
-        if self.profiles[-1].cv > 0.0:
-            self.flats[-1] = self.compute_flat(self.ifcs[-1])
+
+        # only consider last profile for a flat if it is concave
+        is_concave_k = self.profiles[-1].cv > 0.0
+        if use_flat(self.do_flat_k, is_concave_k):
+            self.flats[-1] = compute_flat(self.ifcs[-1], self.sd)
         else:
             self.flats[-1] = None
 
+        # compute flats for inner profiles that intersect outer flats
+        for i, p in enumerate(self.profiles[1:-1], start=1):
+            self.flats[i] = self.compute_inner_flat(i, self.sd)
+                    
         # generate the profile polylines
         self.profile_polys = []
         sense = 1
@@ -1233,7 +1301,10 @@ class CementedElement(Part):
         # just return outline
         poly_shape = []
         poly_shape += self.profile_polys[0]
-        poly_shape += self.profile_polys[-1]
+        if sense == -1:
+            poly_shape += self.profile_polys[-1][-1::-1]
+        else:
+            poly_shape += self.profile_polys[-1]
         poly_shape.append(poly_shape[0])
 
         return poly_shape
@@ -1242,7 +1313,7 @@ class CementedElement(Part):
         self.handles = {}
 
         shape = self.render_shape()
-        # self.handles['shape'] = GraphicsHandle(shape, self.tfrm, 'polygon')
+        self.handles['shape'] = GraphicsHandle(shape, self.tfrm, 'polyline')
 
         for i, gap in enumerate(self.gaps):
             poly = []
@@ -1603,6 +1674,9 @@ class AirGap(Part):
     def update_size(self):
         pass
 
+    def render_shape(self):
+        pass
+
     def render_handles(self, opt_model):
         self.handles = {}
 
@@ -1731,6 +1805,9 @@ class Assembly(Part):
         do_flip_with_part_list(self.parts, flip_pt_tfrm)
 
     def update_size(self):
+        pass
+
+    def render_shape(self):
         pass
 
     def render_handles(self, opt_model):
