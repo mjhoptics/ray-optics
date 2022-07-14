@@ -6,7 +6,7 @@ Changelog
 
 Version 0.8.2
 =============
-Fixes to drawing cemented element flats when the inner surfaces intersect the outer flats. Accept URLs from the OpticalBench database as marguments to :func:`~.gui.appcmds.open_model`. Enhance :func:`~listobj` output for :class:`~.seq.sequential.SequentialModel` and :class:`~.seq.gap.Gap`. Bump pyqt5 compatability to v5.15.
+Fixes to drawing cemented element flats when the inner surfaces intersect the outer flats. Accept URLs from the OpticalBench database as arguments to :func:`~.gui.appcmds.open_model`. Enhance :func:`~listobj` output for :class:`~.seq.sequential.SequentialModel` and :class:`~.seq.gap.Gap`. Bump pyqt5 compatability to v5.15.
 
 Version 0.8.1
 =============

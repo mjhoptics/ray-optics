@@ -66,6 +66,7 @@ def open_model(file_url, info=False, post_process_imports=True, **kwargs):
             - .roa - a rayoptics JSON encoded file
             - .seq - a CODE V (TM) sequence file
             - .zmx - a Zemax (TM) lens file
+            - a URL from the www.photonstophotos.net OpticalBench database
         info (bool): if true, return an info tuple with import statistics
         post_process_imports (bool): for lens design program file import,
         kwargs (dict): keyword args passed to the reader functions
