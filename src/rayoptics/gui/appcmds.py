@@ -84,7 +84,7 @@ def open_model(file_url, info=False, post_process_imports=True, **kwargs):
         # if we're importing another program's file, collect import info
         if file_url_pth.parts[1] == 'www.photonstophotos.net':
             opm, import_info = obench.read_obench_url(file_url, **kwargs)
-        if file_extension == '.seq':
+        elif file_extension == '.seq':
             opm, import_info = cmdproc.read_lens(file_url_pth, **kwargs)
         elif file_extension == '.zmx':
             opm, import_info = zmxread.read_lens_file(file_url_pth, **kwargs)
