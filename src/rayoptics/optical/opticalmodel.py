@@ -16,7 +16,7 @@ import rayoptics
 import rayoptics.elem.elements as ele
 import rayoptics.optical.model_constants as mc
 
-from rayoptics.elem.elements import (ElementModel, do_flip_with_part_list)
+from rayoptics.elem import elements
 from rayoptics.elem import parttree
 from rayoptics.elem.parttree import (PartTree, elements_from_sequence)
 from rayoptics.parax.paraxialdesign import ParaxialModel
@@ -36,12 +36,19 @@ class SystemSpec:
         pressure (float): model pressure in mm/Hg
     """
 
-    def __init__(self):
+    def __init__(self, opt_model, **kwargs):
+        self.opt_model = opt_model
         self.title = ''
         self.initials = ''
         self.dimensions = 'mm'
         self.temperature = 20.0
         self.pressure = 760.0
+
+    def __json_encode__(self):
+        attrs = dict(vars(self))
+        if hasattr(self, 'opt_model'):
+            del attrs['opt_model']
+        return attrs
 
     def __json_decode__(self, **attrs):
         for a_key, a_val in attrs.items():
@@ -115,17 +122,8 @@ class OpticalModel:
     def __init__(self, radius_mode=False, specsheet=None, **kwargs):
         self.ro_version = rayoptics.__version__
         self.radius_mode = radius_mode
-        
-        self.specsheet = specsheet
-        self.system_spec = SystemSpec()
-        self.seq_model = SequentialModel(self, **kwargs)
-        self.optical_spec = OpticalSpecs(self, specsheet=specsheet, **kwargs)
-        self.parax_model = ParaxialModel(self, **kwargs)
-        self.ele_model = ElementModel(self, **kwargs)
-        self.part_tree = PartTree(self, **kwargs)
-        self.analysis_results = {'parax_data': None}
 
-        self.map_submodels()
+        self.map_submodels(specsheet=specsheet, **kwargs)
 
         if self.specsheet:
             self.set_from_specsheet()
@@ -137,17 +135,52 @@ class OpticalModel:
                                    self.seq_model,
                                    self.part_tree)
 
-    def map_submodels(self):
-        """Setup machinery for model mapping api. """
+    def map_submodels(self, **kwargs):
+        """Setup machinery for model mapping api. 
+        
+        This function performs two tasks:
+            
+            - populating the submodel `dict` either with attributes or creating 
+            a new instance as needed.
+            - populate a submodel alias `dict` with short versions of the wordy
+            defining names
+            
+        The first task must handle these use cases:
+            
+            - opt_model populated by importing a .roa file
+            - an opt_model created interactively
+            - an opt_model initialized by a lens file importer
+        """
         submodels = {}
-        submodels['specsheet'] = self.specsheet
-        submodels['system_spec'] = self.system_spec
-        submodels['seq_model'] = self.seq_model
-        submodels['optical_spec'] = self.optical_spec
-        submodels['parax_model'] = self.parax_model
-        submodels['ele_model'] = self.ele_model
-        submodels['part_tree'] = self.part_tree
-        submodels['analysis_results'] = self.analysis_results
+        specsheet = kwargs.pop('specsheet', None)
+        submodels['specsheet'] = self.specsheet = (self.specsheet
+                                  if hasattr(self, 'specsheet')
+                                  else specsheet)
+        submodels['system_spec'] = self.system_spec = (self.system_spec
+                                  if hasattr(self, 'system_spec')
+                                  else SystemSpec(self, **kwargs))
+        submodels['seq_model'] = self.seq_model = (self.seq_model
+                                  if hasattr(self, 'seq_model')
+                                  else SequentialModel(self, **kwargs))
+        submodels['optical_spec'] = self.optical_spec = (self.optical_spec
+                                  if hasattr(self, 'optical_spec')
+                                  else OpticalSpecs(self, 
+                                                    specsheet=specsheet, 
+                                                    **kwargs))
+        submodels['parax_model'] = self.parax_model = (self.parax_model
+                                    if hasattr(self, 'parax_model')
+                                    else ParaxialModel(self, **kwargs))
+        submodels['ele_model'] = self.ele_model = (self.ele_model
+                                  if hasattr(self, 'ele_model')
+                                  else elements.ElementModel(self, **kwargs))
+        submodels['part_tree'] = self.part_tree = (self.part_tree
+                                  if hasattr(self, 'part_tree')
+                                  else PartTree(self, **kwargs))
+        submodels['analysis_results'] = self.analysis_results = \
+            (self.analysis_results 
+             if hasattr(self, 'analysis_results') 
+             else {'parax_data': None})
+
         # Add a level of indirection to allow short and long aliases
         submodel_aliases = {
             'ss': 'specsheet', 'specsheet': 'specsheet',
@@ -246,30 +279,22 @@ class OpticalModel:
                              else {})
         self.parts_dict = (self.parts_dict if hasattr(self, 'parts_dict')
                              else {})
+
+        self.map_submodels()
+
         self.seq_model.sync_to_restore(self)
         self.ele_model.sync_to_restore(self)
         self.optical_spec.sync_to_restore(self)
 
-        if hasattr(self, 'parax_model'):
-            self.parax_model.sync_to_restore(self)
-        else:
-            self.parax_model = ParaxialModel(self)
+        self.parax_model.sync_to_restore(self)
 
-        if hasattr(self, 'specsheet'):
+        if self.specsheet is not None:
             self.specsheet.sync_to_restore(self)
-        else:
-            self.specsheet = None
 
-        if hasattr(self, 'part_tree'):
-            self.part_tree.sync_to_restore(self)
-        else:
-            self.part_tree = PartTree(self)
+        if self.part_tree.is_empty():
             self.part_tree.add_element_model_to_tree(self.ele_model)
-
-        if not hasattr(self, 'analysis_results'):
-            self.analysis_results = {'parax_data': None}
-
-        self.map_submodels()
+        else:
+            self.part_tree.sync_to_restore(self)
 
         self.update_model()
 
@@ -434,7 +459,7 @@ class OpticalModel:
                                                                idx1, idx2)
             flip_pt = 0.5*(sm.gbl_tfrms[idx2][1] + sm.gbl_tfrms[idx1][1])
             flip_pt_tfrm = sm.gbl_tfrms[idx1][0], flip_pt
-            do_flip_with_part_list(part_list, flip_pt_tfrm)
+            elements.do_flip_with_part_list(part_list, flip_pt_tfrm)
 
         elif isinstance(args[0], list):
             # flip a list of parts
@@ -446,7 +471,7 @@ class OpticalModel:
 
             flip_pt = 0.5*(sm.gbl_tfrms[idx2][1] + sm.gbl_tfrms[idx1][1])
             flip_pt_tfrm = sm.gbl_tfrms[idx1][0], flip_pt
-            do_flip_with_part_list(part_list, flip_pt_tfrm)
+            elements.do_flip_with_part_list(part_list, flip_pt_tfrm)
 
         elif isinstance(args[0], ele.Part):
             # flip a Part, any subtype

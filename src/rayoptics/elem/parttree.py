@@ -64,6 +64,13 @@ class PartTree():
                                  self.root_node)
         self.sort_tree_using_sequence(self.opt_model.seq_model)
 
+    def is_empty(self):
+        if (isinstance(self.root_node, Node) and 
+            len(self.root_node.children) == 0):
+            return True
+        else:
+            return False
+
     def init_from_sequence(self, seq_model):
         """Initialize part tree using a *seq_model*. """
         root_node = self.root_node

@@ -198,6 +198,7 @@ class MainWindow(QMainWindow):
             # self.open_file(path / "zemax/models/PhotoPrime/US07190532-1.ZMX")
             # self.open_file(path / "zemax/models/PhotoPrime/US04331391-1.zmx")
             # self.open_file(path / "zemax/models/PhotoPrime/US05331467-1.zmx")
+            # self.open_file(path / "zemax/models/PhotoPrime/US05331467-1_asm.roa")
 
     def add_subwindow(self, widget, model_info):
         sub_wind = self.mdi.addSubWindow(widget)
