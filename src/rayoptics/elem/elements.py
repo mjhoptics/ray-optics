@@ -354,27 +354,23 @@ def full_profile_new(profile, is_flipped, edge_extent,
     steps: number of profile curve samples
     """
     from rayoptics.raytr.traceerror import TraceError
-    def process_edges(edge_extent, dir):
-        if len(edge_extent) == 1:
-            sd_upr = edge_extent[0]
-            sd_lwr = -edge_extent[0]
-        else:
-            sd_upr = edge_extent[1]
-            sd_lwr = edge_extent[0]
-        if dir < 0:
-            sd_lwr, sd_upr = sd_upr, sd_lwr
-        return sd_lwr, sd_upr
+
+    if len(edge_extent) == 1:
+        sd_upr = edge_extent[0]
+        sd_lwr = -edge_extent[0]
+    else:
+        sd_upr = edge_extent[1]
+        sd_lwr = edge_extent[0]
 
     if flat_id is None:
         if hole_id is None:
-            prf = profile.profile(edge_extent, dir, steps)
+            prf = profile.profile((sd_lwr, sd_upr), dir, steps)
         else:
-            sd_lwr, sd_upr = process_edges(edge_extent, dir)
-            prf = profile.profile((sd_upr, hole_id), dir, steps)
-            prf += profile.profile((-hole_id, sd_lwr), dir, steps)
-            
+            prf_lwr = profile.profile((sd_lwr, -hole_id), dir, steps)
+            prf_upr = profile.profile((hole_id, sd_upr), dir, steps)
+            prf = prf_lwr, prf_upr
+
     else:
-        sd_lwr, sd_upr = process_edges(edge_extent, dir)
         prf = []
 
         # compute top part of flat
@@ -383,19 +379,31 @@ def full_profile_new(profile, is_flipped, edge_extent,
         except TraceError:
             sag = None
         else:
-            prf.append([sag, sd_lwr])
+            if dir > 0:
+                sd_lwr_pt = [sag, sd_lwr]
+                sd_upr_pt = [sag, sd_upr]
+            else:
+                sd_lwr_pt = [sag, sd_upr]
+                sd_upr_pt = [sag, sd_lwr]
 
         if hole_id is None:
+            prf = [sd_lwr_pt]
             prf += profile.profile((flat_id,), dir, steps)
+            if sag is not None:
+                prf.append(sd_upr_pt)
         else:
-            prf += profile.profile((flat_id, hole_id), dir, steps)
-            prf += profile.profile((-hole_id, -flat_id), dir, steps)
-
-        if sag is not None:
-            prf.append([sag, sd_upr])
+            prf_lwr = [sd_lwr_pt]
+            prf_lwr += profile.profile((-flat_id, -hole_id), dir, steps)
+            prf_upr = profile.profile((hole_id, flat_id), dir, steps)
+            if sag is not None:
+                prf_upr.append(sd_upr_pt)
+            prf = prf_lwr, prf_upr
 
     if is_flipped:
-        prf = [[-pt[0], pt[1]] for pt in prf]
+        if len(prf) > 1:
+            prf = ([[-pt[0], pt[1]] for pt in p] for p in prf)
+        else:
+            prf = [[-pt[0], pt[1]] for pt in prf]
     return prf
 
 
@@ -566,6 +574,7 @@ class Element(Part):
         self.gap = g
         self.medium_name = self.gap.medium.name()
         self._sd = sd
+        self.hole_sd = None
         self.flat1 = None
         self.flat2 = None
         self.do_flat1 = 'if concave'  # alternatives are 'never', 'always',
@@ -593,6 +602,8 @@ class Element(Part):
         del attrs['actions']
         encode_obj_reference(self, 'profile1', attrs)
         encode_obj_reference(self, 'profile2', attrs)
+        if hasattr(attrs, 'profile_polys'):
+            del attrs['profile_polys']
         return attrs
         
     def __str__(self):
@@ -721,6 +732,8 @@ class Element(Part):
     def render_shape(self):
         is_concave_s1 = self.s1.profile_cv < 0.0
         is_concave_s2 = self.s2.profile_cv > 0.0
+        
+        self.profile_polys = []
 
         if use_flat(self.do_flat1, is_concave_s1):
             if self.flat1 is None:
@@ -729,8 +742,9 @@ class Element(Part):
                 flat1 = self.flat1
         else:
             flat1 = None
-        poly = full_profile(self.profile1, self.is_flipped, self.extent(), 
-                            flat1)
+        poly1 = full_profile(self.profile1, self.is_flipped, self.extent(), 
+                            flat1, hole_id=self.hole_sd)
+        self.profile_polys.append(poly1)
 
         if use_flat(self.do_flat2, is_concave_s2):
             if self.flat2 is None:
@@ -740,12 +754,25 @@ class Element(Part):
         else:
             flat2 = None
         poly2 = full_profile(self.profile2, self.is_flipped, self.extent(),
-                             flat2, dir=-1)
+                             flat2, hole_id=self.hole_sd, dir=-1)
+        self.profile_polys.append(poly2)
 
-        for p in poly2:
-            p[0] += self.gap.thi
-        poly += poly2
-        poly.append(poly[0])
+        if self.hole_sd is None:
+            for p in poly2:
+                p[0] += self.gap.thi
+            poly1 += poly2
+            poly1.append(poly1[0])
+            poly = poly1
+        else:
+            poly = []
+            for p1, p2 in zip(poly1, poly2):
+                for p in p2:
+                    p[0] += self.gap.thi
+                p1 += p2
+                p1.append(p1[0])
+                poly.append(p1)
+            poly = tuple(poly)
+
         return poly
 
     def render_handles(self, opt_model):
@@ -758,37 +785,40 @@ class Element(Part):
                                                color)
 
         extent = self.extent()
-        if self.flat1 is not None:
-            extent_s1 = self.flat1,
-        else:
-            extent_s1 = extent
-        poly_s1 = full_profile(self.profile1, self.is_flipped, extent_s1)
+
+        poly_s1 = self.profile_polys[0]
         gh1 = GraphicsHandle(poly_s1, self.tfrm, 'polyline')
         self.handles['s1_profile'] = gh1
 
-        if self.flat2 is not None:
-            extent_s2 = self.flat2,
-        else:
-            extent_s2 = extent
-        poly_s2 = full_profile(self.profile2, self.is_flipped, extent_s2, 
-                               dir=-1)
-        r, t = self.tfrm
-        t_new = t + np.matmul(r, np.array([0, 0, thi]))
-        gh2 = GraphicsHandle(poly_s2, (r, t_new), 'polyline')
+        poly_s2 = self.profile_polys[1]
+        gh2 = GraphicsHandle(poly_s2, self.tfrm, 'polyline')
         self.handles['s2_profile'] = gh2
 
-        poly_sd_upr = []
-        poly_sd_upr.append([poly_s1[-1][0], extent[1]])
-        poly_sd_upr.append([poly_s2[0][0]+thi, extent[1]])
-        self.handles['sd_upr'] = GraphicsHandle(poly_sd_upr, self.tfrm,
-                                                'polyline')
-
-        poly_sd_lwr = []
-        poly_sd_lwr.append([poly_s2[-1][0]+thi, extent[0]])
-        poly_sd_lwr.append([poly_s1[0][0], extent[0]])
-        self.handles['sd_lwr'] = GraphicsHandle(poly_sd_lwr, self.tfrm,
-                                                'polyline')
-
+        if self.hole_sd is None:
+            poly_sd_upr = []
+            poly_sd_upr.append([poly_s1[-1][0], extent[1]])
+            poly_sd_upr.append([poly_s2[0][0], extent[1]])
+            self.handles['sd_upr'] = GraphicsHandle(poly_sd_upr, self.tfrm,
+                                                    'polyline')
+            poly_sd_lwr = []
+            poly_sd_lwr.append([poly_s2[-1][0], extent[0]])
+            poly_sd_lwr.append([poly_s1[0][0], extent[0]])
+            self.handles['sd_lwr'] = GraphicsHandle(poly_sd_lwr, self.tfrm,
+                                                    'polyline')
+        else:
+            poly_s1_lwr, poly_s1_upr = poly_s1
+            poly_s2_lwr, poly_s2_upr = poly_s2
+            poly_sd_upr = []
+            poly_sd_upr.append([poly_s1_upr[-1][0], extent[1]])
+            poly_sd_upr.append([poly_s2_upr[0][0], extent[1]])
+            self.handles['sd_upr'] = GraphicsHandle(poly_sd_upr, self.tfrm,
+                                                    'polyline')
+            poly_sd_lwr = []
+            poly_sd_lwr.append([poly_s2_lwr[-1][0], extent[0]])
+            poly_sd_lwr.append([poly_s1_lwr[0][0], extent[0]])
+            self.handles['sd_lwr'] = GraphicsHandle(poly_sd_lwr, self.tfrm,
+                                                    'polyline')
+            
         poly_ct = []
         poly_ct.append([0., 0.])
         poly_ct.append([thi, 0.])

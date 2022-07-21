@@ -15,6 +15,8 @@ import numpy as np
 from matplotlib import lines
 from matplotlib import patches
 from matplotlib import widgets
+from matplotlib.path import Path
+from matplotlib.patches import PathPatch
 
 from rayoptics.mpl.styledfigure import StyledFigure
 
@@ -198,7 +200,13 @@ class InteractiveFigure(StyledFigure):
         gui_handles = {}
         for key, graphics_handle in handles.items():
             poly_data, poly_type, kwargs = graphics_handle
-            poly = np.array(poly_data)
+            if isinstance(poly_data, tuple):
+                poly = []
+                for poly_seg in poly_data:
+                    poly.append(np.array(poly_seg))
+                poly = tuple(poly)
+            else:
+                poly = np.array(poly_data)
             if poly_type == 'vertex':
                 p = self.create_vertex(poly, **kwargs)
             elif poly_type == 'polyline':
@@ -240,10 +248,27 @@ class InteractiveFigure(StyledFigure):
                                 self._rgb['background1'] + '40')  # 25%
         if not isinstance(fill_color, str):
             fill_color = rgb2mpl.rgb2mpl(fill_color)
-        p = patches.Polygon(poly, closed=True,
-                            facecolor=fill_color,
-                            edgecolor=self._rgb['foreground'],
-                            **kwargs)
+
+        if isinstance(poly, tuple):
+            poly_pts = poly_seg = poly[0]
+            codes = np.full(len(poly_seg), Path.LINETO)
+            codes[0] = Path.MOVETO
+            codes[len(poly_seg)-1] = Path.CLOSEPOLY
+            for poly_seg in poly[1:]:
+                poly_pts = np.concatenate((poly_pts, poly_seg))
+                code_seg = np.full(len(poly_seg), Path.LINETO)
+                code_seg[0] = Path.MOVETO
+                code_seg[len(poly_seg)-1] = Path.CLOSEPOLY
+                codes = np.concatenate((codes, code_seg))
+            path = Path(poly_pts, codes)
+            p = PathPatch(path, facecolor=fill_color, 
+                          edgecolor=self._rgb['foreground'], 
+                          **kwargs)
+        else:
+            p = patches.Polygon(poly, closed=True,
+                                facecolor=fill_color,
+                                edgecolor=self._rgb['foreground'],
+                                **kwargs)
         p.highlight = highlight
         p.unhighlight = unhighlight
         return p
@@ -279,9 +304,21 @@ class InteractiveFigure(StyledFigure):
             hilite_kwargs['color'] = self._rgb['hilite']
 
         kwargs['linewidth'] = linewidth
-        x = poly.T[0]
-        y = poly.T[1]
-        p = lines.Line2D(x, y, **kwargs)
+        if isinstance(poly, tuple):
+            poly_pts = poly_seg = poly[0]
+            codes = np.full(len(poly_seg), Path.LINETO)
+            codes[0] = Path.MOVETO
+            for poly_seg in poly[1:]:
+                poly_pts = np.concatenate((poly_pts, poly_seg))
+                code_seg = np.full(len(poly_seg), Path.LINETO)
+                code_seg[0] = Path.MOVETO
+                codes = np.concatenate((codes, code_seg))
+            path = Path(poly_pts, codes)
+            p = PathPatch(path, **kwargs)
+        else:
+            x = poly.T[0]
+            y = poly.T[1]
+            p = lines.Line2D(x, y, **kwargs)
 
         p.highlight = highlight
         p.unhighlight = unhighlight

@@ -8,7 +8,7 @@
 .. codeauthor: Michael J. Hayford
 """
 import numpy as np
-from math import sqrt, copysign, sin, atan2
+from math import sqrt, copysign, sin, asin, atan2
 from scipy import optimize
 
 from rayoptics.util.misc_math import normalize
@@ -324,34 +324,50 @@ class Spherical(SurfaceProfile):
             return 0
 
     def profile(self, sd, dir=1, steps=6):
+        '''Generate a profile curve for the segment sd.
+        '''
         prf = []
         if len(sd) == 1:
-            sd_lwr = -sd[0]
-            sd_upr = sd[0]
+            sd_start = -sd[0]
+            sd_end = sd[0]
         else:
-            sd_lwr = sd[0]
-            sd_upr = sd[1]
+            sd_start = sd[0]
+            sd_end = sd[1]
 
         if self.cv != 0.0:
-            r = 1/self.cv
-            try:
-                adj_upr = sqrt(r*r - sd_upr*sd_upr)
-            except ValueError:
-                sd_upr = abs(r)
-                adj_upr = 0.
-            ang_upr = atan2(sd_upr, adj_upr)
-            try:
-                adj_lwr = sqrt(r*r - sd_lwr*sd_lwr)
-            except ValueError:
-                sd_lwr = -abs(r)
-                adj_lwr = 0.
-            ang_lwr = atan2(sd_lwr, adj_lwr)
-            ang = 0.5*(ang_upr - ang_lwr)
-            da = dir*copysign(ang/steps, self.cv)
+            cv = self.cv
+            r = 1/cv
+
+            # calculate distance from CofC to profile point at the sd limit
+            adj_start = copysign(sqrt(r*r - sd_start*sd_start), cv)
+            adj_end = copysign(sqrt(r*r - sd_end*sd_end), cv)
+
+            # get direction vectors from CofC to limiting profile points
+            dir1 = normalize(np.array([adj_start, sd_start]))
+            dir2 = normalize(np.array([adj_end, sd_end]))
+
+            # calculate sine of the angle between direction vectors. the sign
+            # of the sine is determined by the pt generation direction, dir
+            if dir > 0:
+                total_sin = np.cross(dir1, dir2)
+            else:
+                total_sin = np.cross(dir2, dir1)
+            
+            # calculate the increment sin/cos
+            total_ang = asin(total_sin)
+            da = total_ang/(2*steps)
             sa = sin(da)
             ca = sqrt(1.0 - sa*sa)
-            sab = sb = -dir*(sd_upr/r)
-            cab = cb = abs(adj_upr/r)
+
+            # calculate the starting sin/cos
+            if dir > 0:
+                sab = sb = sd_start*cv
+                cab = cb = abs(adj_start*cv)
+            else:
+                sab = sb = sd_end*cv
+                cab = cb = abs(adj_end*cv)
+
+            # generate the points using the double angle trig formula
             for i in range(2*steps):
                 prf.append([r*(1-cab), r*sab])
                 # print(i, r*(1-cab), r*sab)
@@ -362,8 +378,8 @@ class Spherical(SurfaceProfile):
             prf.append([r*(1-cab), r*sab])
             # print(2*steps, r*(1-cab), r*sab)
         else:
-            prf.append([0, dir*sd_lwr])
-            prf.append([0, dir*sd_upr])
+            prf.append([0, dir*sd_start])
+            prf.append([0, dir*sd_end])
         return prf
 
 

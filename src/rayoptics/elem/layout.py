@@ -86,8 +86,17 @@ class OpticalElement():
     def update_shape(self, view):
         self.e.render_handles(self.opt_model)
         for key, graphics_handle in self.e.handles.items():
-            poly = np.array(graphics_handle.polydata)
-            poly_gbl, bbox = transform_poly(graphics_handle.tfrm, poly)
+            if isinstance(graphics_handle.polydata, tuple):
+                polys = []
+                for poly_seg in graphics_handle.polydata:
+                    poly = np.array(poly_seg)
+                    poly_gbl, bbox = transform_poly(graphics_handle.tfrm, poly)
+                    polys.append(np.array(poly_gbl))
+                poly_gbl = tuple(polys)
+            else:
+                poly = np.array(graphics_handle.polydata)
+                poly_gbl, bbox = transform_poly(graphics_handle.tfrm, poly)
+
             if graphics_handle.polytype == 'polygon':
                 p = view.create_polygon(poly_gbl,
                                         fill_color=graphics_handle.color,
