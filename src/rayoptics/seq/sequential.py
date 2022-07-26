@@ -20,6 +20,7 @@ from rayoptics.raytr import waveabr
 from rayoptics.elem import transform as trns
 from opticalglass import glassfactory as gfact
 from opticalglass import glasserror as ge
+
 import numpy as np
 from math import copysign, sqrt
 from rayoptics.util.misc_math import isanumber
@@ -368,16 +369,20 @@ class SequentialModel:
             - **refractive_index** only -> constant index model
             - **'REFL'** -> set interact_mode to 'reflect'
             - **glass_name, catalog_name** as 1 or 2 strings
+            - an instance with a `rindex` attribute
             - blank -> defaults to air
 
-        The `semi-diameter` entry is optional
+        The `semi-diameter` entry is optional. It may also be entered using the 
+        `sd` keyword argument.
 
         """
         radius_mode = self.opt_model.radius_mode
         mat = None
         if len(surf_data) > 2:
             if not isanumber(surf_data[2]):
-                if surf_data[2].upper() == 'REFL':
+                if (isinstance(surf_data[2], str) 
+                    and 
+                    surf_data[2].upper() == 'REFL'):
                     mat = self.gaps[self.cur_surface].medium
         s, g, z_dir, rn, tfrm = create_surface_and_gap(surf_data,
                                                        prev_medium=mat,
@@ -1011,9 +1016,11 @@ def create_surface_and_gap(surf_data, radius_mode=False, prev_medium=None,
         - **refractive_index** only -> constant index model
         - **'REFL'** -> set interact_mode to 'reflect'
         - **glass_name, catalog_name** as 1 or 2 strings
+        - an instance with a `rindex` attribute
         - blank -> defaults to air
 
-    The `semi-diameter` entry is optional
+    The `semi-diameter` entry is optional. It may also be entered using the 
+    `sd` keyword argument.
     """
     s = surface.Surface()
 
@@ -1028,18 +1035,20 @@ def create_surface_and_gap(surf_data, radius_mode=False, prev_medium=None,
     z_dir = 1
     if len(surf_data) > 2:
         if isanumber(surf_data[2]):  # assume all args are numeric
-            if len(surf_data) < 3:
+            if len(surf_data) <= 3:
                 if surf_data[2] == 1.0:
                     mat = m.Air()
                 else:
-                    mat = m.Medium(surf_data[2])
+                    mat = m.Medium(surf_data[2], f"n:{surf_data[2]:.3f}")
             else:
                 if surf_data[2] == 1.0:
                     mat = m.Air()
+                elif surf_data[3] == '':
+                    mat = m.Medium(surf_data[2], f"n:{surf_data[2]:.3f}")
                 else:
                     mat = m.Glass(surf_data[2], surf_data[3], '')
 
-        else:  # string args
+        elif isinstance(surf_data[2], str):  # string args
             if surf_data[2].upper() == 'REFL':
                 s.interact_mode = 'reflect'
                 mat = prev_medium
@@ -1065,6 +1074,9 @@ def create_surface_and_gap(surf_data, radius_mode=False, prev_medium=None,
                                      gerr.name)
                         logging.info('Replacing material with air.')
                         mat = m.Air()
+        # glass instance args. if they respond to `rindex`, they're in
+        elif hasattr(surf_data[2], 'rindex'):
+            mat = surf_data[2]
 
         if len(surf_data) >= 5:
             s.set_max_aperture(surf_data[4])
@@ -1072,6 +1084,8 @@ def create_surface_and_gap(surf_data, radius_mode=False, prev_medium=None,
     else:  # only curvature and thickness entered, set material to air
         mat = m.Air()
 
+    if kwargs.get('sd', None) is not None:
+        s.set_max_aperture(kwargs.get('sd'))
     thi = surf_data[1]
     g = gap.Gap(thi, mat)
     rndx = mat.rindex(wvl)
