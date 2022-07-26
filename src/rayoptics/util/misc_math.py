@@ -106,6 +106,8 @@ def isanumber(a):
         bool_a = True
     except ValueError:
         bool_a = False
+    except TypeError:
+        bool_a = False
 
     return bool_a
 
