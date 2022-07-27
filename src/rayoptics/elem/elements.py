@@ -881,7 +881,9 @@ class Mirror(Part):
         self.profile = ifc.profile
         self.z_dir = z_dir
         self.sd = sd
+        self.hole_sd = None
         self.flat = None
+        self.do_flat = 'if concave'
         self.thi = thi
         self.medium_name = 'Mirror'
         self.handles = {}
@@ -987,45 +989,91 @@ class Mirror(Part):
         return offset
 
     def render_shape(self):
-        poly = full_profile(self.profile, self.is_flipped, self.extent(),
-                            self.flat)
+        is_concave_s1 = self.s.profile_cv < 0.0
+        is_concave_s2 = self.s.profile_cv > 0.0
+        
+        self.profile_polys = []
+
+        computed_flat = compute_flat(self.s, self.sd)
+        if use_flat(self.do_flat, is_concave_s1):
+            if self.flat is None:
+                flat = computed_flat
+            else:
+                flat = self.flat
+        else:
+            flat = None
+        poly1 = full_profile(self.profile, self.is_flipped, self.extent(), 
+                             flat, hole_id=self.hole_sd)
+        self.profile_polys.append(poly1)
+
+        if use_flat(self.do_flat, is_concave_s2):
+            if self.flat is None:
+                flat = computed_flat
+            else:
+                flat = self.flat
+        else:
+            flat = None
         poly2 = full_profile(self.profile, self.is_flipped, self.extent(),
-                             self.flat, dir=-1)
+                             flat, hole_id=self.hole_sd, dir=-1)
+        self.profile_polys.append(poly2)
 
         offset = self.substrate_offset()
 
-        for p in poly2:
-            p[0] += offset
-        poly += poly2
-        poly.append(poly[0])
+        if self.hole_sd is None:
+            for p in poly2:
+                p[0] += offset
+            poly1 += poly2
+            poly1.append(poly1[0])
+            poly = poly1
+        else:
+            poly = []
+            for p1, p2 in zip(poly1, poly2):
+                for p in p2:
+                    p[0] += offset
+                p1 += p2
+                p1.append(p1[0])
+                poly.append(p1)
+            poly = tuple(poly)
+
         return poly
 
     def render_handles(self, opt_model):
         self.handles = {}
-        # ifcs_gbl_tfrms = opt_model.seq_model.gbl_tfrms
 
         self.handles['shape'] = GraphicsHandle(self.render_shape(), self.tfrm,
                                                'polygon', self.render_color)
+        extent = self.extent()
 
-        poly = full_profile(self.profile, self.is_flipped, self.extent())
-        self.handles['s_profile'] = GraphicsHandle(poly, self.tfrm,
-                                                   # ifcs_gbl_tfrms[self.s_indx],
-                                                   'polyline')
+        poly_s1 = self.profile_polys[0]
+        gh1 = GraphicsHandle(poly_s1, self.tfrm, 'polyline')
+        self.handles['s_profile'] = gh1
 
-        offset = self.substrate_offset()
+        poly_s2 = self.profile_polys[1]
 
-        poly_sd_upr = []
-        poly_sd_upr.append(poly[-1])
-        poly_sd_upr.append([poly[-1][0]+offset, poly[-1][1]])
-        self.handles['sd_upr'] = GraphicsHandle(poly_sd_upr, self.tfrm,
-                                                'polyline')
-
-        poly_sd_lwr = []
-        poly_sd_lwr.append(poly[0])
-        poly_sd_lwr.append([poly[0][0]+offset, poly[0][1]])
-        self.handles['sd_lwr'] = GraphicsHandle(poly_sd_lwr, self.tfrm,
-                                                'polyline')
-
+        if self.hole_sd is None:
+            poly_sd_upr = []
+            poly_sd_upr.append([poly_s1[-1][0], extent[1]])
+            poly_sd_upr.append([poly_s2[0][0], extent[1]])
+            self.handles['sd_upr'] = GraphicsHandle(poly_sd_upr, self.tfrm,
+                                                    'polyline')
+            poly_sd_lwr = []
+            poly_sd_lwr.append([poly_s2[-1][0], extent[0]])
+            poly_sd_lwr.append([poly_s1[0][0], extent[0]])
+            self.handles['sd_lwr'] = GraphicsHandle(poly_sd_lwr, self.tfrm,
+                                                    'polyline')
+        else:
+            poly_s1_lwr, poly_s1_upr = poly_s1
+            poly_s2_lwr, poly_s2_upr = poly_s2
+            poly_sd_upr = []
+            poly_sd_upr.append([poly_s1_upr[-1][0], extent[1]])
+            poly_sd_upr.append([poly_s2_upr[0][0], extent[1]])
+            self.handles['sd_upr'] = GraphicsHandle(poly_sd_upr, self.tfrm,
+                                                    'polyline')
+            poly_sd_lwr = []
+            poly_sd_lwr.append([poly_s2_lwr[-1][0], extent[0]])
+            poly_sd_lwr.append([poly_s1_lwr[0][0], extent[0]])
+            self.handles['sd_lwr'] = GraphicsHandle(poly_sd_lwr, self.tfrm,
+                                                    'polyline')
         return self.handles
 
     def handle_actions(self):
