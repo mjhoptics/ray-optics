@@ -1,1 +1,2 @@
 rayoptics/_version.py export-subst
+src/rayoptics/_version.py export-subst
