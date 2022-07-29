@@ -1,27 +1,21 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
     Setup file for rayoptics.
     Use setup.cfg to configure your project.
 
-    This file was generated with PyScaffold 3.1.
+    This file was generated with PyScaffold 4.3.
     PyScaffold helps you to put up the scaffold of your new Python project.
     Learn more under: https://pyscaffold.org/
 """
-import sys
-
-from pkg_resources import require, VersionConflict
 from setuptools import setup
-import versioneer
-
-try:
-    require('setuptools>=38.3')
-except VersionConflict:
-    print("Error: version of setuptools is too old (<38.3)!")
-    sys.exit(1)
-
 
 if __name__ == "__main__":
-    setup(use_pyscaffold=True,
-          version=versioneer.get_version(),
-          cmdclass=versioneer.get_cmdclass())
+    try:
+        setup(use_scm_version={"version_scheme": "no-guess-dev"})
+    except:  # noqa
+        print(
+            "\n\nAn error occurred while building the project, "
+            "please ensure you have the most updated version of setuptools, "
+            "setuptools_scm and wheel with:\n"
+            "   pip install -U setuptools setuptools_scm wheel\n\n"
+        )
+        raise
