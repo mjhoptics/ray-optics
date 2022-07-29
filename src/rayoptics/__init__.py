@@ -26,15 +26,12 @@
     and other miscellaneous calculations.
 """
 
-import pkg_resources
+from importlib.metadata import version
 
 try:
-    __version__ = pkg_resources.get_distribution(__name__).version
+    __version__ = version(__name__)
 except:
     __version__ = 'unknown'
-
-from . import _version
-__version__ = _version.get_versions()['version']
 
 
 def listobj(obj):
