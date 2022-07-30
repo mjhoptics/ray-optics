@@ -5,14 +5,19 @@
     The optical model is contained in the :mod:`~.optical` subpackage. It is
     supported by the following subpackages:
 
+        - :mod:`~.optical`: OpticalModel and OpticalBench import
         - :mod:`~.seq`: support for the Sequential model
-        - :mod:`~.raytr`: support for ray tracing and analysis
-        - :mod:`~.parax`: support for paraxial optical design
+        - :mod:`~.elem`: Element and PartTree models, geometry support, e.g. 
+          for profiles
         - :mod:`~.oprops`: optical property and actions
-        - :mod:`~.elem`: support for the Element model
+        - :mod:`~.parax`: support for paraxial optical design
+        - :mod:`~.raytr`: support for ray tracing and analysis
+
         - :mod:`~.codev`: handles import of CODE V .seq files
+        - :mod:`~.zemax`: handles import of Zemax .zmx files
+
         - :mod:`opticalglass`: this package interfaces with glass manufacturer
-          optical data
+          optical data and the RefractiveIndex.Info website
 
     The :mod:`~.gui` subpackage is a layer that implements the platform
     neutral part of the graphical user interface.

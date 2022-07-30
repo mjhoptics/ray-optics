@@ -1,3 +1,20 @@
+
+.. image:: https://readthedocs.org/projects/rayoptics/badge/?version=latest
+   :alt: ReadTheDocs
+   :target: https://rayoptics.readthedocs.io/en/stable/
+
+.. image:: https://img.shields.io/pypi/v/rayoptics.svg
+   :alt: PyPI-Server
+   :target: https://pypi.org/project/rayoptics/
+
+.. image:: https://img.shields.io/conda/vn/conda-forge/rayoptics.svg
+   :alt: Conda-Forge
+   :target: https://anaconda.org/conda-forge/rayoptics
+
+.. image:: https://img.shields.io/badge/-PyScaffold-005CA0?logo=pyscaffold
+   :alt: Project generated with PyScaffold
+   :target: https://pyscaffold.org/
+
 ==========
 ray-optics
 ==========
@@ -30,4 +47,4 @@ RayOptics is a Python geometrical optics and image forming optics library. It pr
 Note
 ----
 
-This project has been set up using PyScaffold 3.1. For details and usage information on PyScaffold see https://pyscaffold.org/.
+This project has been set up using PyScaffold 4.3. For details and usage information on PyScaffold see https://pyscaffold.org/.

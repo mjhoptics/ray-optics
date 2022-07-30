@@ -11,7 +11,7 @@ import logging
 import math
 import requests
 
-import rayoptics.optical.opticalmodel as opticalmodel
+from rayoptics.optical import opticalmodel
 from rayoptics.elem.surface import (DecenterData, Circular, Rectangular,
                                     Elliptical)
 from rayoptics.elem import profiles

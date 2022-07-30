@@ -137,19 +137,20 @@ class OpticalModel:
 
     def map_submodels(self, **kwargs):
         """Setup machinery for model mapping api. 
-        
+
         This function performs two tasks:
-            
+
             - populating the submodel `dict` either with attributes or creating 
-            a new instance as needed.
+              a new instance as needed.
             - populate a submodel alias `dict` with short versions of the wordy
-            defining names
-            
+              defining names
+   
         The first task must handle these use cases:
-            
+
             - opt_model populated by importing a .roa file
             - an opt_model created interactively
             - an opt_model initialized by a lens file importer
+
         """
         submodels = {}
         specsheet = kwargs.pop('specsheet', None)
