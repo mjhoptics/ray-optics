@@ -242,6 +242,10 @@ class OpticalModel:
         """
         file_extension = os.path.splitext(file_name)[1]
         filename = file_name if len(file_extension) > 0 else file_name+'.roa'
+        # Ensure the parent directory exists
+        if not filename.parent.exists():
+            filename.parent.mkdir(parents=True)
+
         # update version number prior to writing file.
         self.ro_version = rayoptics.__version__ if version is None else version
 
@@ -250,6 +254,7 @@ class OpticalModel:
 
         fs_dict = {}
         fs_dict['optical_model'] = self
+
         with open(filename, 'w') as f:
             json_tricks.dump(fs_dict, f, indent=1,
                              separators=(',', ':'), allow_nan=True)
@@ -260,7 +265,7 @@ class OpticalModel:
         """ build a profile dict for the union of the seq_model and part_tree. """
         profile_dict = {}
         for ifc in self.seq_model.ifcs:
-            if ifc.profile is not None:
+            if hasattr(ifc, 'profile') and ifc.profile is not None:
                 profile_dict[str(id(ifc.profile))] = ifc.profile
         profile_nodes = self.part_tree.nodes_with_tag(tag='#profile')
         for profile_node in profile_nodes:

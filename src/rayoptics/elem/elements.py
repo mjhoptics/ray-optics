@@ -602,7 +602,7 @@ class Element(Part):
         del attrs['actions']
         encode_obj_reference(self, 'profile1', attrs)
         encode_obj_reference(self, 'profile2', attrs)
-        if hasattr(attrs, 'profile_polys'):
+        if hasattr(self, 'profile_polys'):
             del attrs['profile_polys']
         return attrs
         
@@ -634,6 +634,8 @@ class Element(Part):
             self.do_flat1 = 'if concave'
         if not hasattr(self, 'do_flat2'):
             self.do_flat2 = 'if concave'
+        if not hasattr(self, 'hole_sd'):
+            self.hole_sd = None
         self.handles = {}
         self.actions = {}
 
@@ -902,6 +904,8 @@ class Mirror(Part):
         del attrs['handles']
         del attrs['actions']
         encode_obj_reference(self, 'profile', attrs)
+        if hasattr(self, 'profile_polys'):
+            del attrs['profile_polys']
         return attrs
 
     def __str__(self):
@@ -924,6 +928,8 @@ class Mirror(Part):
         sync_obj_reference(self, 'profile', profile_dict, self.s.profile)
         if not hasattr(self, 'medium_name'):
             self.medium_name = 'Mirror'
+        if not hasattr(self, 'hole_sd'):
+            self.hole_sd = None
         self.handles = {}
         self.actions = {}
 
@@ -1181,7 +1187,7 @@ class CementedElement(Part):
         del attrs['actions']
         attrs['profile_ids'] = [str(id(p)) for p in self.profiles]
         del attrs['profiles']
-        if hasattr(attrs, 'profile_polys'):
+        if hasattr(self, 'profile_polys'):
             del attrs['profile_polys']
 
         return attrs
