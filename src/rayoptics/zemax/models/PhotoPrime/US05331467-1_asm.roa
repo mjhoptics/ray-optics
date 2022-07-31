@@ -5,7 +5,7 @@
    "OpticalModel"
   ],
   "attributes":{
-   "ro_version":"0.8.2+0.gcd48956.dirty",
+   "ro_version":"0.8.3a2",
    "radius_mode":true,
    "specsheet":{
     "__instance_type__":[
@@ -114,7 +114,7 @@
         ],
         "edge_apertures":[],
         "z_type":"STANDARD",
-        "profile_id":"140449473207168"
+        "profile_id":"140245474274512"
        }
       },
       {
@@ -144,7 +144,7 @@
         ],
         "edge_apertures":[],
         "z_type":"STANDARD",
-        "profile_id":"140449473205872"
+        "profile_id":"140246538838464"
        }
       },
       {
@@ -174,7 +174,7 @@
         ],
         "edge_apertures":[],
         "z_type":"STANDARD",
-        "profile_id":"140450281702064"
+        "profile_id":"140246538841872"
        }
       },
       {
@@ -204,7 +204,7 @@
         ],
         "edge_apertures":[],
         "z_type":"STANDARD",
-        "profile_id":"140450281701584"
+        "profile_id":"140246538841248"
        }
       },
       {
@@ -234,7 +234,7 @@
         ],
         "edge_apertures":[],
         "z_type":"STANDARD",
-        "profile_id":"140450281704896"
+        "profile_id":"140246538841392"
        }
       },
       {
@@ -264,7 +264,7 @@
         ],
         "edge_apertures":[],
         "z_type":"STANDARD",
-        "profile_id":"140450281702544"
+        "profile_id":"140246272653392"
        }
       },
       {
@@ -294,7 +294,7 @@
         ],
         "edge_apertures":[],
         "z_type":"STANDARD",
-        "profile_id":"140450281704176"
+        "profile_id":"140246272653680"
        }
       },
       {
@@ -324,7 +324,7 @@
         ],
         "edge_apertures":[],
         "z_type":"STANDARD",
-        "profile_id":"140449874523760"
+        "profile_id":"140246272653104"
        }
       },
       {
@@ -354,7 +354,7 @@
         ],
         "edge_apertures":[],
         "z_type":"STANDARD",
-        "profile_id":"140449874525200"
+        "profile_id":"140246272651424"
        }
       },
       {
@@ -384,7 +384,7 @@
         ],
         "edge_apertures":[],
         "z_type":"STANDARD",
-        "profile_id":"140449874557968"
+        "profile_id":"140246272651904"
        }
       },
       {
@@ -414,7 +414,7 @@
         ],
         "edge_apertures":[],
         "z_type":"STANDARD",
-        "profile_id":"140449874555280"
+        "profile_id":"140246272654208"
        }
       },
       {
@@ -444,7 +444,7 @@
         ],
         "edge_apertures":[],
         "z_type":"STANDARD",
-        "profile_id":"140449874557440"
+        "profile_id":"140246272495280"
        }
       },
       {
@@ -474,7 +474,7 @@
         ],
         "edge_apertures":[],
         "z_type":"STANDARD",
-        "profile_id":"140449874568144"
+        "profile_id":"140246272493984"
        }
       },
       {
@@ -504,7 +504,7 @@
         ],
         "edge_apertures":[],
         "z_type":"STANDARD",
-        "profile_id":"140449475118848"
+        "profile_id":"140246272492064"
        }
       },
       {
@@ -534,7 +534,7 @@
         ],
         "edge_apertures":[],
         "z_type":"STANDARD",
-        "profile_id":"140449475108624"
+        "profile_id":"140246272492016"
        }
       },
       {
@@ -564,7 +564,7 @@
         ],
         "edge_apertures":[],
         "z_type":"STANDARD",
-        "profile_id":"140449475081792"
+        "profile_id":"140246272493600"
        }
       },
       {
@@ -594,7 +594,7 @@
         ],
         "edge_apertures":[],
         "z_type":"STANDARD",
-        "profile_id":"140449475080784"
+        "profile_id":"140246272494464"
        }
       },
       {
@@ -624,7 +624,7 @@
         ],
         "edge_apertures":[],
         "z_type":"STANDARD",
-        "profile_id":"140449475082032"
+        "profile_id":"140246272493456"
        }
       },
       {
@@ -654,7 +654,7 @@
         ],
         "edge_apertures":[],
         "z_type":"STANDARD",
-        "profile_id":"140449475083088"
+        "profile_id":"140246272495376"
        }
       },
       {
@@ -684,7 +684,7 @@
         ],
         "edge_apertures":[],
         "z_type":"STANDARD",
-        "profile_id":"140450281705184"
+        "profile_id":"140246272494512"
        }
       },
       {
@@ -714,7 +714,7 @@
         ],
         "edge_apertures":[],
         "z_type":"STANDARD",
-        "profile_id":"140449874522704"
+        "profile_id":"140246272494656"
        }
       },
       {
@@ -744,7 +744,7 @@
         ],
         "edge_apertures":[],
         "z_type":"STANDARD",
-        "profile_id":"140450281703456"
+        "profile_id":"140246272493360"
        }
       },
       {
@@ -774,7 +774,7 @@
         ],
         "edge_apertures":[],
         "z_type":"STANDARD",
-        "profile_id":"140449874557632"
+        "profile_id":"140246272495472"
        }
       },
       {
@@ -804,7 +804,7 @@
         ],
         "edge_apertures":[],
         "z_type":"STANDARD",
-        "profile_id":"140449874536432"
+        "profile_id":"140246272495424"
        }
       },
       {
@@ -834,7 +834,7 @@
         ],
         "edge_apertures":[],
         "z_type":"STANDARD",
-        "profile_id":"140449874598544"
+        "profile_id":"140246272493264"
        }
       },
       {
@@ -864,7 +864,7 @@
         ],
         "edge_apertures":[],
         "z_type":"STANDARD",
-        "profile_id":"140449874569824"
+        "profile_id":"140246272491776"
        }
       }
      ],
@@ -2172,240 +2172,240 @@
     ],
     "attributes":{
      "root_node":{
-      "id_key":"140450279235200",
       "tag":"#group#root",
       "name":"root",
+      "id_key":"140246538838320",
       "children":[
        {
-        "id_key":"140449874135024",
         "tag":"#dummyifc#object",
         "name":"Object",
+        "id_key":"140246272492832",
         "children":[
          {
-          "id_key":"140449473207168",
           "tag":"#profile",
           "name":"p",
+          "id_key":"140245474274512",
           "children":[
            {
-            "id_key":"140450279234144",
             "tag":"#ifc",
-            "name":"i0"
+            "name":"i0",
+            "id_key":"140246272497648"
            }
           ]
          }
         ]
        },
        {
-        "id_key":"140449874133824",
         "tag":"#airgap#object",
         "name":"Object space",
+        "id_key":"140246272494032",
         "children":[
          {
-          "id_key":"140450279234000",
           "tag":"#thic",
           "name":"t",
+          "id_key":"140246273094896",
           "children":[
            {
-            "id_key":"140450284633792",
             "tag":"#gap",
-            "name":"g0"
+            "name":"g0",
+            "id_key":"140246810614912"
            }
           ]
          }
         ]
        },
        {
-        "id_key":"140450284586464",
         "tag":"#group#assembly",
         "name":"ASM2",
+        "id_key":"140245474450976",
         "children":[
          {
-          "id_key":"140449874567424",
           "tag":"#element#lens",
           "name":"E1",
+          "id_key":"140246272491680",
           "children":[
            {
-            "id_key":"140449473205872",
             "tag":"#profile",
             "name":"p1",
+            "id_key":"140246538838464",
             "children":[
              {
-              "id_key":"140449473206784",
               "tag":"#ifc",
-              "name":"i1"
+              "name":"i1",
+              "id_key":"140246272499280"
              }
             ]
            },
            {
-            "id_key":"140449473206640",
             "tag":"#thic",
             "name":"t",
+            "id_key":"140246273093744",
             "children":[
              {
-              "id_key":"140450034470528",
               "tag":"#gap",
-              "name":"g1"
+              "name":"g1",
+              "id_key":"140245474364480"
              }
             ]
            },
            {
-            "id_key":"140450281702064",
             "tag":"#profile",
             "name":"p2",
+            "id_key":"140246538841872",
             "children":[
              {
-              "id_key":"140450281702352",
               "tag":"#ifc",
-              "name":"i2"
+              "name":"i2",
+              "id_key":"140246272498416"
              }
             ]
            }
           ]
          },
          {
-          "id_key":"140449874570592",
           "tag":"#airgap",
           "name":"AG1",
+          "id_key":"140246272494080",
           "children":[
            {
-            "id_key":"140450281703648",
             "tag":"#thic",
             "name":"t",
+            "id_key":"140246273095520",
             "children":[
              {
-              "id_key":"140449472780800",
               "tag":"#gap",
-              "name":"g2"
+              "name":"g2",
+              "id_key":"140245474304448"
              }
             ]
            }
           ]
          },
          {
-          "id_key":"140450284586368",
           "tag":"#group#assembly",
           "name":"ASM1",
+          "id_key":"140245474450112",
           "children":[
            {
-            "id_key":"140449874567376",
             "tag":"#element#lens",
             "name":"E2",
+            "id_key":"140246272494944",
             "children":[
              {
-              "id_key":"140450281701584",
               "tag":"#profile",
               "name":"p1",
+              "id_key":"140246538841248",
               "children":[
                {
-                "id_key":"140450281701824",
                 "tag":"#ifc",
-                "name":"i3"
+                "name":"i3",
+                "id_key":"140246272498512"
                },
                {
-                "id_key":"140450281701872",
                 "tag":"#ifc",
-                "name":"i5"
+                "name":"i5",
+                "id_key":"140246272496016"
                }
               ]
              },
              {
-              "id_key":"140450281704704",
               "tag":"#thic",
               "name":"t",
+              "id_key":"140246273095472",
               "children":[
                {
-                "id_key":"140450284631552",
                 "tag":"#gap",
-                "name":"g3"
+                "name":"g3",
+                "id_key":"140246810604864"
                },
                {
-                "id_key":"140449475517888",
                 "tag":"#gap",
-                "name":"g4"
+                "name":"g4",
+                "id_key":"140245475056832"
                }
               ]
              },
              {
-              "id_key":"140450281704896",
               "tag":"#profile",
               "name":"p2",
+              "id_key":"140246538841392",
               "children":[
                {
-                "id_key":"140450281704992",
                 "tag":"#ifc",
-                "name":"i4"
+                "name":"i4",
+                "id_key":"140246272497024"
                }
               ]
              }
             ]
            },
            {
-            "id_key":"140449472885280",
             "tag":"#airgap",
             "name":"AG2",
+            "id_key":"140246272493552",
             "children":[
              {
-              "id_key":"140450281702832",
               "tag":"#thic",
               "name":"t",
+              "id_key":"140246273096864",
               "children":[
                {
-                "id_key":"140450034577664",
                 "tag":"#gap",
-                "name":"g5"
+                "name":"g5",
+                "id_key":"140246810612352"
                }
               ]
              }
             ]
            },
            {
-            "id_key":"140449472888448",
             "tag":"#element#lens",
             "name":"E3",
+            "id_key":"140246272491968",
             "children":[
              {
-              "id_key":"140450281704176",
               "tag":"#profile",
               "name":"p1",
+              "id_key":"140246272653680",
               "children":[
                {
-                "id_key":"140450281701776",
                 "tag":"#ifc",
-                "name":"i6"
+                "name":"i6",
+                "id_key":"140246537826656"
                },
                {
-                "id_key":"140449874525872",
                 "tag":"#ifc",
-                "name":"i8"
+                "name":"i8",
+                "id_key":"140246538929968"
                }
               ]
              },
              {
-              "id_key":"140449874526016",
               "tag":"#thic",
               "name":"t",
+              "id_key":"140246273094272",
               "children":[
                {
-                "id_key":"140450034580800",
                 "tag":"#gap",
-                "name":"g6"
+                "name":"g6",
+                "id_key":"140246810555840"
                },
                {
-                "id_key":"140449472959424",
                 "tag":"#gap",
-                "name":"g7"
+                "name":"g7",
+                "id_key":"140246810551360"
                }
               ]
              },
              {
-              "id_key":"140449874523760",
               "tag":"#profile",
               "name":"p2",
+              "id_key":"140246272653104",
               "children":[
                {
-                "id_key":"140449874522800",
                 "tag":"#ifc",
-                "name":"i7"
+                "name":"i7",
+                "id_key":"140246538930208"
                }
               ]
              }
@@ -2416,239 +2416,239 @@
         ]
        },
        {
-        "id_key":"140449472884896",
         "tag":"#airgap",
         "name":"AG3",
+        "id_key":"140246272494752",
         "children":[
          {
-          "id_key":"140449874525968",
           "tag":"#thic",
           "name":"t",
+          "id_key":"140246273094176",
           "children":[
            {
-            "id_key":"140450034581120",
             "tag":"#gap",
-            "name":"g8"
+            "name":"g8",
+            "id_key":"140246810687744"
            }
           ]
          }
         ]
        },
        {
-        "id_key":"140449472886672",
         "tag":"#element#cemented",
         "name":"CE1",
+        "id_key":"140246272493312",
         "children":[
          {
-          "id_key":"140449874557968",
           "tag":"#profile",
           "name":"p1",
+          "id_key":"140246272651904",
           "children":[
            {
-            "id_key":"140449874558688",
             "tag":"#ifc",
-            "name":"i9"
+            "name":"i9",
+            "id_key":"140246538931600"
            }
           ]
          },
          {
-          "id_key":"140449874558496",
           "tag":"#thic",
           "name":"t1",
+          "id_key":"140246273094080",
           "children":[
            {
-            "id_key":"140450281355392",
             "tag":"#gap",
-            "name":"g9"
+            "name":"g9",
+            "id_key":"140246810519296"
            }
           ]
          },
          {
-          "id_key":"140449874555280",
           "tag":"#profile",
           "name":"p2",
+          "id_key":"140246272654208",
           "children":[
            {
-            "id_key":"140449874554944",
             "tag":"#ifc",
-            "name":"i10"
+            "name":"i10",
+            "id_key":"140246538929440"
            }
           ]
          },
          {
-          "id_key":"140449874555904",
           "tag":"#thic",
           "name":"t2",
+          "id_key":"140246272646496",
           "children":[
            {
-            "id_key":"140449472821888",
             "tag":"#gap",
-            "name":"g10"
+            "name":"g10",
+            "id_key":"140245474307456"
            }
           ]
          },
          {
-          "id_key":"140449874557440",
           "tag":"#profile",
           "name":"p3",
+          "id_key":"140246272495280",
           "children":[
            {
-            "id_key":"140449874556144",
             "tag":"#ifc",
-            "name":"i11"
+            "name":"i11",
+            "id_key":"140246538929728"
            }
           ]
          }
         ]
        },
        {
-        "id_key":"140450281217376",
         "tag":"#airgap",
         "name":"AG4",
+        "id_key":"140246272492352",
         "children":[
          {
-          "id_key":"140449874569488",
           "tag":"#thic",
           "name":"t",
+          "id_key":"140246272643520",
           "children":[
            {
-            "id_key":"140449476050688",
             "tag":"#gap",
-            "name":"g11"
+            "name":"g11",
+            "id_key":"140246539298048"
            }
           ]
          }
         ]
        },
        {
-        "id_key":"140450284585648",
         "tag":"#group#assembly",
         "name":"ASM3",
+        "id_key":"140245474449056",
         "children":[
          {
-          "id_key":"140449473108864",
           "tag":"#element#cemented",
           "name":"CE2",
+          "id_key":"140246272493504",
           "children":[
            {
-            "id_key":"140449874568144",
             "tag":"#profile",
             "name":"p1",
+            "id_key":"140246272493984",
             "children":[
              {
-              "id_key":"140449874567520",
               "tag":"#ifc",
-              "name":"i12"
+              "name":"i12",
+              "id_key":"140246538930064"
              }
             ]
            },
            {
-            "id_key":"140449874568048",
             "tag":"#thic",
             "name":"t1",
+            "id_key":"140246272644432",
             "children":[
              {
-              "id_key":"140449476022784",
               "tag":"#gap",
-              "name":"g12"
+              "name":"g12",
+              "id_key":"140246811227264"
              }
             ]
            },
            {
-            "id_key":"140449475118848",
             "tag":"#profile",
             "name":"p2",
+            "id_key":"140246272492064",
             "children":[
              {
-              "id_key":"140449475118752",
               "tag":"#ifc",
-              "name":"i13"
+              "name":"i13",
+              "id_key":"140246538928720"
              }
             ]
            },
            {
-            "id_key":"140449475118800",
             "tag":"#thic",
             "name":"t2",
+            "id_key":"140246272644144",
             "children":[
              {
-              "id_key":"140449472820864",
               "tag":"#gap",
-              "name":"g13"
+              "name":"g13",
+              "id_key":"140245475006016"
              }
             ]
            },
            {
-            "id_key":"140449475108624",
             "tag":"#profile",
             "name":"p3",
+            "id_key":"140246272492016",
             "children":[
              {
-              "id_key":"140449475117744",
               "tag":"#ifc",
-              "name":"i14"
+              "name":"i14",
+              "id_key":"140245474435136"
              }
             ]
            }
           ]
          },
          {
-          "id_key":"140449473109056",
           "tag":"#airgap",
           "name":"AG5",
+          "id_key":"140246272492976",
           "children":[
            {
-            "id_key":"140449475082944",
             "tag":"#thic",
             "name":"t",
+            "id_key":"140246272643184",
             "children":[
              {
-              "id_key":"140450282722304",
               "tag":"#gap",
-              "name":"g14"
+              "name":"g14",
+              "id_key":"140246269831744"
              }
             ]
            }
           ]
          },
          {
-          "id_key":"140449473108720",
           "tag":"#element#lens",
           "name":"E4",
+          "id_key":"140246272494224",
           "children":[
            {
-            "id_key":"140449475081792",
             "tag":"#profile",
             "name":"p1",
+            "id_key":"140246272493600",
             "children":[
              {
-              "id_key":"140449475082080",
               "tag":"#ifc",
-              "name":"i15"
+              "name":"i15",
+              "id_key":"140245474436096"
              }
             ]
            },
            {
-            "id_key":"140449475081696",
             "tag":"#thic",
             "name":"t",
+            "id_key":"140246272645440",
             "children":[
              {
-              "id_key":"140449476024768",
               "tag":"#gap",
-              "name":"g15"
+              "name":"g15",
+              "id_key":"140246810612160"
              }
             ]
            },
            {
-            "id_key":"140449475080784",
             "tag":"#profile",
             "name":"p2",
+            "id_key":"140246272494464",
             "children":[
              {
-              "id_key":"140449475080928",
               "tag":"#ifc",
-              "name":"i16"
+              "name":"i16",
+              "id_key":"140246273093840"
              }
             ]
            }
@@ -2657,129 +2657,129 @@
         ]
        },
        {
-        "id_key":"140449874134496",
         "tag":"#airgap",
         "name":"AG6",
+        "id_key":"140246272492880",
         "children":[
          {
-          "id_key":"140449475082176",
           "tag":"#thic",
           "name":"t",
+          "id_key":"140246272643856",
           "children":[
            {
-            "id_key":"140449875646080",
             "tag":"#gap",
-            "name":"g16"
+            "name":"g16",
+            "id_key":"140245474007040"
            }
           ]
          }
         ]
        },
        {
-        "id_key":"140450279165616",
         "tag":"#group#assembly",
         "name":"ASM4",
+        "id_key":"140245474449824",
         "children":[
          {
-          "id_key":"140449874136848",
           "tag":"#element#lens",
           "name":"E5",
+          "id_key":"140245474448816",
           "children":[
            {
-            "id_key":"140449475082032",
             "tag":"#profile",
             "name":"p1",
+            "id_key":"140246272493456",
             "children":[
              {
-              "id_key":"140449475082512",
               "tag":"#ifc",
-              "name":"i17"
+              "name":"i17",
+              "id_key":"140246273095040"
              }
             ]
            },
            {
-            "id_key":"140449475081456",
             "tag":"#thic",
             "name":"t",
+            "id_key":"140246272644576",
             "children":[
              {
-              "id_key":"140449475511680",
               "tag":"#gap",
-              "name":"g17"
+              "name":"g17",
+              "id_key":"140246810625856"
              }
             ]
            },
            {
-            "id_key":"140449475083088",
             "tag":"#profile",
             "name":"p2",
+            "id_key":"140246272495376",
             "children":[
              {
-              "id_key":"140449475083856",
               "tag":"#ifc",
-              "name":"i18"
+              "name":"i18",
+              "id_key":"140246273094752"
              }
             ]
            }
           ]
          },
          {
-          "id_key":"140449874133584",
           "tag":"#airgap",
           "name":"AG7",
+          "id_key":"140245474448864",
           "children":[
            {
-            "id_key":"140449475083808",
             "tag":"#thic",
             "name":"t",
+            "id_key":"140246272645200",
             "children":[
              {
-              "id_key":"140449475419648",
               "tag":"#gap",
-              "name":"g18"
+              "name":"g18",
+              "id_key":"140246810500736"
              }
             ]
            }
           ]
          },
          {
-          "id_key":"140449874136272",
           "tag":"#element#lens",
           "name":"E6",
+          "id_key":"140245474449152",
           "children":[
            {
-            "id_key":"140450281705184",
             "tag":"#profile",
             "name":"p1",
+            "id_key":"140246272494512",
             "children":[
              {
-              "id_key":"140450281702304",
               "tag":"#ifc",
-              "name":"i19"
+              "name":"i19",
+              "id_key":"140246273094656"
              }
             ]
            },
            {
-            "id_key":"140450281703696",
             "tag":"#thic",
             "name":"t",
+            "id_key":"140246272643424",
             "children":[
              {
-              "id_key":"140449475741440",
               "tag":"#gap",
-              "name":"g19"
+              "name":"g19",
+              "id_key":"140245475102592"
              }
             ]
            },
            {
-            "id_key":"140449874522704",
             "tag":"#profile",
             "name":"p2",
+            "id_key":"140246272494656",
             "children":[
              {
-              "id_key":"140449874523664",
               "tag":"#ifc",
-              "name":"i20"
+              "name":"i20",
+              "id_key":"140246273094464"
              }
             ]
            }
@@ -2788,129 +2788,129 @@
         ]
        },
        {
-        "id_key":"140449874136032",
         "tag":"#airgap",
         "name":"AG8",
+        "id_key":"140245474450784",
         "children":[
          {
-          "id_key":"140449874522752",
           "tag":"#thic",
           "name":"t",
+          "id_key":"140246272645536",
           "children":[
            {
-            "id_key":"140450277786752",
             "tag":"#gap",
-            "name":"g20"
+            "name":"g20",
+            "id_key":"140246810624320"
            }
           ]
          }
         ]
        },
        {
-        "id_key":"140450284587472",
         "tag":"#group#assembly",
         "name":"ASM5",
+        "id_key":"140245474448336",
         "children":[
          {
-          "id_key":"140449874133152",
           "tag":"#element#lens",
           "name":"E7",
+          "id_key":"140245474447952",
           "children":[
            {
-            "id_key":"140450281703456",
             "tag":"#profile",
             "name":"p1",
+            "id_key":"140246272493360",
             "children":[
              {
-              "id_key":"140450281701968",
               "tag":"#ifc",
-              "name":"i21"
+              "name":"i21",
+              "id_key":"140246273095424"
              }
             ]
            },
            {
-            "id_key":"140450281704080",
             "tag":"#thic",
             "name":"t",
+            "id_key":"140246272645152",
             "children":[
              {
-              "id_key":"140449475419456",
               "tag":"#gap",
-              "name":"g21"
+              "name":"g21",
+              "id_key":"140246810584768"
              }
             ]
            },
            {
-            "id_key":"140449874557632",
             "tag":"#profile",
             "name":"p2",
+            "id_key":"140246272495472",
             "children":[
              {
-              "id_key":"140449874558064",
               "tag":"#ifc",
-              "name":"i22"
+              "name":"i22",
+              "id_key":"140246273094800"
              }
             ]
            }
           ]
          },
          {
-          "id_key":"140449874136416",
           "tag":"#airgap",
           "name":"AG9",
+          "id_key":"140245474450352",
           "children":[
            {
-            "id_key":"140449874538016",
             "tag":"#thic",
             "name":"t",
+            "id_key":"140246272644864",
             "children":[
              {
-              "id_key":"140450034366464",
               "tag":"#gap",
-              "name":"g22"
+              "name":"g22",
+              "id_key":"140246810605952"
              }
             ]
            }
           ]
          },
          {
-          "id_key":"140449874136464",
           "tag":"#element#lens",
           "name":"E8",
+          "id_key":"140245474450640",
           "children":[
            {
-            "id_key":"140449874536432",
             "tag":"#profile",
             "name":"p1",
+            "id_key":"140246272495424",
             "children":[
              {
-              "id_key":"140449874538112",
               "tag":"#ifc",
-              "name":"i23"
+              "name":"i23",
+              "id_key":"140246273093984"
              }
             ]
            },
            {
-            "id_key":"140449874538304",
             "tag":"#thic",
             "name":"t",
+            "id_key":"140246272646784",
             "children":[
              {
-              "id_key":"140450034404352",
               "tag":"#gap",
-              "name":"g23"
+              "name":"g23",
+              "id_key":"140246810597696"
              }
             ]
            },
            {
-            "id_key":"140449874598544",
             "tag":"#profile",
             "name":"p2",
+            "id_key":"140246272493264",
             "children":[
              {
-              "id_key":"140449874598448",
               "tag":"#ifc",
-              "name":"i24"
+              "name":"i24",
+              "id_key":"140246273094320"
              }
             ]
            }
@@ -2919,38 +2919,38 @@
         ]
        },
        {
-        "id_key":"140449874134448",
         "tag":"#airgap#image#image",
         "name":"Image space",
+        "id_key":"140245474451216",
         "children":[
          {
-          "id_key":"140449874596624",
           "tag":"#thic",
           "name":"t",
+          "id_key":"140246272646160",
           "children":[
            {
-            "id_key":"140450034367296",
             "tag":"#gap",
-            "name":"g24"
+            "name":"g24",
+            "id_key":"140246810594304"
            }
           ]
          }
         ]
        },
        {
-        "id_key":"140449874134016",
         "tag":"#dummyifc#image",
         "name":"Image",
+        "id_key":"140245474450592",
         "children":[
          {
-          "id_key":"140449874569824",
           "tag":"#profile",
           "name":"p",
+          "id_key":"140246272491776",
           "children":[
            {
-            "id_key":"140449874570976",
             "tag":"#ifc",
-            "name":"i25"
+            "name":"i25",
+            "id_key":"140246273095568"
            }
           ]
          }
@@ -2961,7 +2961,7 @@
     }
    },
    "profile_dict":{
-    "140449473207168":{
+    "140245474274512":{
      "__instance_type__":[
       "rayoptics.elem.profiles",
       "Spherical"
@@ -2970,7 +2970,7 @@
       "cv":0.0
      }
     },
-    "140449473205872":{
+    "140246538838464":{
      "__instance_type__":[
       "rayoptics.elem.profiles",
       "Spherical"
@@ -2979,7 +2979,7 @@
       "cv":0.0002595630152812534
      }
     },
-    "140450281702064":{
+    "140246538841872":{
      "__instance_type__":[
       "rayoptics.elem.profiles",
       "Spherical"
@@ -2988,7 +2988,7 @@
       "cv":-0.0016663084103584395
      }
     },
-    "140450281701584":{
+    "140246538841248":{
      "__instance_type__":[
       "rayoptics.elem.profiles",
       "Spherical"
@@ -2997,7 +2997,7 @@
       "cv":-0.005159825597894791
      }
     },
-    "140450281704896":{
+    "140246538841392":{
      "__instance_type__":[
       "rayoptics.elem.profiles",
       "Spherical"
@@ -3006,7 +3006,7 @@
       "cv":-0.0032371783458666086
      }
     },
-    "140450281702544":{
+    "140246272653392":{
      "__instance_type__":[
       "rayoptics.elem.profiles",
       "Spherical"
@@ -3015,7 +3015,7 @@
       "cv":-0.005159825597894791
      }
     },
-    "140450281704176":{
+    "140246272653680":{
      "__instance_type__":[
       "rayoptics.elem.profiles",
       "Spherical"
@@ -3024,7 +3024,7 @@
       "cv":-0.010483938606055523
      }
     },
-    "140449874523760":{
+    "140246272653104":{
      "__instance_type__":[
       "rayoptics.elem.profiles",
       "Spherical"
@@ -3033,7 +3033,7 @@
       "cv":-0.006784720808738721
      }
     },
-    "140449874525200":{
+    "140246272651424":{
      "__instance_type__":[
       "rayoptics.elem.profiles",
       "Spherical"
@@ -3042,7 +3042,7 @@
       "cv":-0.010483938606055523
      }
     },
-    "140449874557968":{
+    "140246272651904":{
      "__instance_type__":[
       "rayoptics.elem.profiles",
       "Spherical"
@@ -3051,7 +3051,7 @@
       "cv":0.014855529971031718
      }
     },
-    "140449874555280":{
+    "140246272654208":{
      "__instance_type__":[
       "rayoptics.elem.profiles",
       "Spherical"
@@ -3060,7 +3060,7 @@
       "cv":0.0029176890735461885
      }
     },
-    "140449874557440":{
+    "140246272495280":{
      "__instance_type__":[
       "rayoptics.elem.profiles",
       "Spherical"
@@ -3069,7 +3069,7 @@
       "cv":0.012200924830102123
      }
     },
-    "140449874568144":{
+    "140246272493984":{
      "__instance_type__":[
       "rayoptics.elem.profiles",
       "Spherical"
@@ -3078,7 +3078,7 @@
       "cv":0.004831828218843163
      }
     },
-    "140449475118848":{
+    "140246272492064":{
      "__instance_type__":[
       "rayoptics.elem.profiles",
       "Spherical"
@@ -3087,7 +3087,7 @@
       "cv":-0.01695748757864035
      }
     },
-    "140449475108624":{
+    "140246272492016":{
      "__instance_type__":[
       "rayoptics.elem.profiles",
       "Spherical"
@@ -3096,7 +3096,7 @@
       "cv":0.015405472023662804
      }
     },
-    "140449475081792":{
+    "140246272493600":{
      "__instance_type__":[
       "rayoptics.elem.profiles",
       "Spherical"
@@ -3105,7 +3105,7 @@
       "cv":-0.012065345913467338
      }
     },
-    "140449475080784":{
+    "140246272494464":{
      "__instance_type__":[
       "rayoptics.elem.profiles",
       "Spherical"
@@ -3114,7 +3114,7 @@
       "cv":0.016089845698379752
      }
     },
-    "140449475082032":{
+    "140246272493456":{
      "__instance_type__":[
       "rayoptics.elem.profiles",
       "Spherical"
@@ -3123,7 +3123,7 @@
       "cv":0.021164469089292894
      }
     },
-    "140449475083088":{
+    "140246272495376":{
      "__instance_type__":[
       "rayoptics.elem.profiles",
       "Spherical"
@@ -3132,7 +3132,7 @@
       "cv":-0.007793442597398549
      }
     },
-    "140450281705184":{
+    "140246272494512":{
      "__instance_type__":[
       "rayoptics.elem.profiles",
       "Spherical"
@@ -3141,7 +3141,7 @@
       "cv":0.0005896459353052272
      }
     },
-    "140449874522704":{
+    "140246272494656":{
      "__instance_type__":[
       "rayoptics.elem.profiles",
       "Spherical"
@@ -3150,7 +3150,7 @@
       "cv":0.010074653180064277
      }
     },
-    "140450281703456":{
+    "140246272493360":{
      "__instance_type__":[
       "rayoptics.elem.profiles",
       "Spherical"
@@ -3159,7 +3159,7 @@
       "cv":0.014366164808642683
      }
     },
-    "140449874557632":{
+    "140246272495472":{
      "__instance_type__":[
       "rayoptics.elem.profiles",
       "Spherical"
@@ -3168,7 +3168,7 @@
       "cv":-0.005088929034884609
      }
     },
-    "140449874536432":{
+    "140246272495424":{
      "__instance_type__":[
       "rayoptics.elem.profiles",
       "Spherical"
@@ -3177,7 +3177,7 @@
       "cv":-0.021538726630481606
      }
     },
-    "140449874598544":{
+    "140246272493264":{
      "__instance_type__":[
       "rayoptics.elem.profiles",
       "Spherical"
@@ -3186,7 +3186,7 @@
       "cv":-0.0014666584533793278
      }
     },
-    "140449874569824":{
+    "140246272491776":{
      "__instance_type__":[
       "rayoptics.elem.profiles",
       "Spherical"
@@ -3197,7 +3197,7 @@
     }
    },
    "parts_dict":{
-    "140449874135024":{
+    "140246272492832":{
      "__instance_type__":[
       "rayoptics.elem.elements",
       "DummyInterface"
@@ -3250,10 +3250,10 @@
       "idx":0,
       "medium_name":"Interface",
       "sd":0,
-      "profile_id":"140449473207168"
+      "profile_id":"140245474274512"
      }
     },
-    "140449874133824":{
+    "140246272494032":{
      "__instance_type__":[
       "rayoptics.elem.elements",
       "AirGap"
@@ -3309,7 +3309,60 @@
       "idx":0
      }
     },
-    "140449874567424":{
+    "140245474450976":{
+     "__instance_type__":[
+      "rayoptics.elem.elements",
+      "Assembly"
+     ],
+     "attributes":{
+      "label":"ASM2",
+      "tfrm":[
+       {
+        "__ndarray__":[
+         [
+          1.0,
+          0.0,
+          0.0
+         ],
+         [
+          0.0,
+          1.0,
+          0.0
+         ],
+         [
+          0.0,
+          0.0,
+          1.0
+         ]
+        ],
+        "dtype":"float64",
+        "shape":[
+         3,
+         3
+        ],
+        "Corder":true
+       },
+       {
+        "__ndarray__":[
+         0.0,
+         0.0,
+         0.0
+        ],
+        "dtype":"float64",
+        "shape":[
+         3
+        ]
+       }
+      ],
+      "idx":1,
+      "part_ids":[
+       "140246272491680",
+       "140246272494080",
+       "140245474450112"
+      ]
+     }
+    },
+    "140246272491680":{
      "__instance_type__":[
       "rayoptics.elem.elements",
       "Element"
@@ -3367,177 +3420,11 @@
        -69.30892741211,
        69.30892741211
       ],
-      "profile_polys":[
-       [
-        [
-         0.6234854372309532,
-         -69.30892741211
-        ],
-        [
-         0.4329795665906288,
-         -57.758391580835195
-        ],
-        [
-         0.2771087912327369,
-         -46.20733644384877
-        ],
-        [
-         0.1558745125913986,
-         -34.65586585669002
-        ],
-        [
-         0.06927782068371459,
-         -23.104083678633597
-        ],
-        [
-         0.01731949410078296,
-         -11.552093771755644
-        ],
-        [
-         0.0,
-         -1.6708114926322625e-15
-        ],
-        [
-         0.01731949410078296,
-         11.55209377175564
-        ],
-        [
-         0.06927782068371459,
-         23.104083678633597
-        ],
-        [
-         0.1558745125913986,
-         34.65586585669002
-        ],
-        [
-         0.2771087912327369,
-         46.207336443848774
-        ],
-        [
-         0.4329795665906288,
-         57.7583915808352
-        ],
-        [
-         0.6234854372305255,
-         69.30892741211001
-        ],
-        [
-         5.984319111377452,
-         69.30892741211
-        ],
-        [
-         7.210381035194086,
-         57.79689010224803
-        ],
-        [
-         8.214145404055232,
-         46.26334390185972
-        ],
-        [
-         8.995238670908751,
-         34.71258097583779
-        ],
-        [
-         9.553370154897262,
-         23.1488998962132
-        ],
-        [
-         9.888332149534008,
-         11.576604042458175
-        ],
-        [
-         10.000000000000133,
-         -6.246347189486912e-15
-        ],
-        [
-         9.888332149534076,
-         -11.57660404245819
-        ],
-        [
-         9.553370154897328,
-         -23.148899896213223
-        ],
-        [
-         8.995238670908819,
-         -34.71258097583781
-        ],
-        [
-         8.2141454040553,
-         -46.263343901859756
-        ],
-        [
-         7.210381035194153,
-         -57.79689010224807
-        ],
-        [
-         5.9843191113775855,
-         -69.30892741211005
-        ],
-        [
-         0.6234854372309532,
-         -69.30892741211
-        ]
-       ],
-       [
-        [
-         5.984319111377452,
-         69.30892741211
-        ],
-        [
-         7.210381035194086,
-         57.79689010224803
-        ],
-        [
-         8.214145404055232,
-         46.26334390185972
-        ],
-        [
-         8.995238670908751,
-         34.71258097583779
-        ],
-        [
-         9.553370154897262,
-         23.1488998962132
-        ],
-        [
-         9.888332149534008,
-         11.576604042458175
-        ],
-        [
-         10.000000000000133,
-         -6.246347189486912e-15
-        ],
-        [
-         9.888332149534076,
-         -11.57660404245819
-        ],
-        [
-         9.553370154897328,
-         -23.148899896213223
-        ],
-        [
-         8.995238670908819,
-         -34.71258097583781
-        ],
-        [
-         8.2141454040553,
-         -46.263343901859756
-        ],
-        [
-         7.210381035194153,
-         -57.79689010224807
-        ],
-        [
-         5.9843191113775855,
-         -69.30892741211005
-        ]
-       ]
-      ],
-      "profile1_id":"140449473205872",
-      "profile2_id":"140450281702064"
+      "profile1_id":"140246538838464",
+      "profile2_id":"140246538841872"
      }
     },
-    "140449874570592":{
+    "140246272494080":{
      "__instance_type__":[
       "rayoptics.elem.elements",
       "AirGap"
@@ -3593,7 +3480,60 @@
       "idx":2
      }
     },
-    "140449874567376":{
+    "140245474450112":{
+     "__instance_type__":[
+      "rayoptics.elem.elements",
+      "Assembly"
+     ],
+     "attributes":{
+      "label":"ASM1",
+      "tfrm":[
+       {
+        "__ndarray__":[
+         [
+          1.0,
+          0.0,
+          0.0
+         ],
+         [
+          0.0,
+          1.0,
+          0.0
+         ],
+         [
+          0.0,
+          0.0,
+          1.0
+         ]
+        ],
+        "dtype":"float64",
+        "shape":[
+         3,
+         3
+        ],
+        "Corder":true
+       },
+       {
+        "__ndarray__":[
+         0.0,
+         0.0,
+         108.15
+        ],
+        "dtype":"float64",
+        "shape":[
+         3
+        ]
+       }
+      ],
+      "idx":3,
+      "part_ids":[
+       "140246272494944",
+       "140246272493552",
+       "140246272491968"
+      ]
+     }
+    },
+    "140246272494944":{
      "__instance_type__":[
       "rayoptics.elem.elements",
       "Element"
@@ -3641,363 +3581,21 @@
       "s1_indx":3,
       "s2_indx":4,
       "medium_name":"N-BK7",
-      "_sd":62.5,
+      "_sd":61.80137536485,
       "hole_sd":20.0,
       "flat1":60.817,
       "flat2":null,
       "do_flat1":"if concave",
       "do_flat2":"if concave",
       "edge_extent":[
-       -62.5,
-       62.5
+       -61.80137536485,
+       61.80137536485
       ],
-      "profile_polys":[
-       [
-        [
-         [
-          -9.789591579944034,
-          -62.5
-         ],
-         [
-          -9.789591579944055,
-          -60.817
-         ],
-         [
-          -8.725629400928177,
-          -57.4978660791114
-         ],
-         [
-          -7.7215299677943845,
-          -54.160134838949915
-         ],
-         [
-          -6.777618050121314,
-          -50.80488584746743
-         ],
-         [
-          -5.894198950218335,
-          -47.43320433862112
-         ],
-         [
-          -5.071558404377483,
-          -44.046180861361435
-         ],
-         [
-          -4.30996249045383,
-          -40.64491092690102
-         ],
-         [
-          -3.6096575418043355,
-          -37.2304946543785
-         ],
-         [
-          -2.9708700676128155,
-          -33.804036415031995
-         ],
-         [
-          -2.393806679627094,
-          -30.366644474997216
-         ],
-         [
-          -1.8786540253316504,
-          -26.919430636845902
-         ],
-         [
-          -1.4255787275776945,
-          -23.463509879980265
-         ],
-         [
-          -1.034727330690151,
-          -20.00000000000004
-         ],
-         [
-          14.351884436320038,
-          -20.0
-         ],
-         [
-          14.099658343159794,
-          -23.567780294573843
-         ],
-         [
-          13.806140780506828,
-          -27.13240112613988
-         ],
-         [
-          13.471371096906902,
-          -30.693384626714227
-         ],
-         [
-          13.095394171106287,
-          -34.25025341592839
-         ],
-         [
-          12.678260406035326,
-          -37.80253066502622
-         ],
-         [
-          12.220025722051565,
-          -41.34974016078687
-         ],
-         [
-          11.72075154944306,
-          -44.89140636936531
-         ],
-         [
-          11.180504820193216,
-          -48.427054500041656
-         ],
-         [
-          10.599357959007923,
-          -51.95621056887097
-         ],
-         [
-          9.977388873606362,
-          -55.47840146222485
-         ],
-         [
-          9.314680944276962,
-          -58.993155000216426
-         ],
-         [
-          8.611323012699357,
-          -62.50000000000001
-         ],
-         [
-          -9.789591579944034,
-          -62.5
-         ]
-        ],
-        [
-         [
-          -1.0347273306903233,
-          19.999999999999996
-         ],
-         [
-          -1.425578727577845,
-          23.463509879980222
-         ],
-         [
-          -1.8786540253317365,
-          26.91943063684586
-         ],
-         [
-          -2.3938066796271587,
-          30.366644474997173
-         ],
-         [
-          -2.970870067612858,
-          33.80403641503195
-         ],
-         [
-          -3.6096575418043355,
-          37.23049465437846
-         ],
-         [
-          -4.309962490453808,
-          40.644910926901
-         ],
-         [
-          -5.071558404377418,
-          44.046180861361414
-         ],
-         [
-          -5.894198950218228,
-          47.4332043386211
-         ],
-         [
-          -6.777618050121163,
-          50.80488584746743
-         ],
-         [
-          -7.721529967794234,
-          54.160134838949936
-         ],
-         [
-          -8.725629400928005,
-          57.49786607911144
-         ],
-         [
-          -9.789591579943862,
-          60.81700000000005
-         ],
-         [
-          -9.789591579944034,
-          62.5
-         ],
-         [
-          8.611323012699357,
-          62.5
-         ],
-         [
-          9.314680944276962,
-          58.99315500021641
-         ],
-         [
-          9.977388873606394,
-          55.478401462224845
-         ],
-         [
-          10.599357959007957,
-          51.95621056887096
-         ],
-         [
-          11.18050482019325,
-          48.427054500041656
-         ],
-         [
-          11.720751549443094,
-          44.89140636936531
-         ],
-         [
-          12.220025722051599,
-          41.349740160786865
-         ],
-         [
-          12.67826040603536,
-          37.802530665026204
-         ],
-         [
-          13.09539417110632,
-          34.25025341592837
-         ],
-         [
-          13.471371096906935,
-          30.69338462671421
-         ],
-         [
-          13.806140780506862,
-          27.13240112613986
-         ],
-         [
-          14.099658343159827,
-          23.567780294573822
-         ],
-         [
-          14.351884436320107,
-          19.99999999999998
-         ],
-         [
-          -1.0347273306903233,
-          19.999999999999996
-         ]
-        ]
-       ],
-       [
-        [
-         [
-          14.351884436320038,
-          -20.0
-         ],
-         [
-          14.099658343159794,
-          -23.567780294573843
-         ],
-         [
-          13.806140780506828,
-          -27.13240112613988
-         ],
-         [
-          13.471371096906902,
-          -30.693384626714227
-         ],
-         [
-          13.095394171106287,
-          -34.25025341592839
-         ],
-         [
-          12.678260406035326,
-          -37.80253066502622
-         ],
-         [
-          12.220025722051565,
-          -41.34974016078687
-         ],
-         [
-          11.72075154944306,
-          -44.89140636936531
-         ],
-         [
-          11.180504820193216,
-          -48.427054500041656
-         ],
-         [
-          10.599357959007923,
-          -51.95621056887097
-         ],
-         [
-          9.977388873606362,
-          -55.47840146222485
-         ],
-         [
-          9.314680944276962,
-          -58.993155000216426
-         ],
-         [
-          8.611323012699357,
-          -62.50000000000001
-         ]
-        ],
-        [
-         [
-          8.611323012699357,
-          62.5
-         ],
-         [
-          9.314680944276962,
-          58.99315500021641
-         ],
-         [
-          9.977388873606394,
-          55.478401462224845
-         ],
-         [
-          10.599357959007957,
-          51.95621056887096
-         ],
-         [
-          11.18050482019325,
-          48.427054500041656
-         ],
-         [
-          11.720751549443094,
-          44.89140636936531
-         ],
-         [
-          12.220025722051599,
-          41.349740160786865
-         ],
-         [
-          12.67826040603536,
-          37.802530665026204
-         ],
-         [
-          13.09539417110632,
-          34.25025341592837
-         ],
-         [
-          13.471371096906935,
-          30.69338462671421
-         ],
-         [
-          13.806140780506862,
-          27.13240112613986
-         ],
-         [
-          14.099658343159827,
-          23.567780294573822
-         ],
-         [
-          14.351884436320107,
-          19.99999999999998
-         ]
-        ]
-       ]
-      ],
-      "profile1_id":"140450281701584",
-      "profile2_id":"140450281704896"
+      "profile1_id":"140246538841248",
+      "profile2_id":"140246538841392"
      }
     },
-    "140449472885280":{
+    "140246272493552":{
      "__instance_type__":[
       "rayoptics.elem.elements",
       "AirGap"
@@ -4053,7 +3651,7 @@
       "idx":5
      }
     },
-    "140449472888448":{
+    "140246272491968":{
      "__instance_type__":[
       "rayoptics.elem.elements",
       "Element"
@@ -4111,177 +3709,11 @@
        -26.7886269203,
        26.7886269203
       ],
-      "profile_polys":[
-       [
-        [
-         -3.8390551711074536,
-         -26.7886269203
-        ],
-        [
-         -2.6715240795662427,
-         -22.41660689540221
-        ],
-        [
-         -1.7126668424447886,
-         -17.99413239048502
-        ],
-        [
-         -0.9646416205895494,
-         -13.531157349630417
-        ],
-        [
-         -0.42913204184775805,
-         -9.037726874047369
-        ],
-        [
-         -0.10734341161943318,
-         -4.523954612924915
-        ],
-        [
-         4.235900519233837e-14,
-         1.3237189122605741e-15
-        ],
-        [
-         -0.1073434116194226,
-         4.523954612924918
-        ],
-        [
-         -0.4291320418477369,
-         9.037726874047372
-        ],
-        [
-         -0.9646416205895176,
-         13.531157349630424
-        ],
-        [
-         -1.7126668424447569,
-         17.99413239048503
-        ],
-        [
-         -2.6715240795662005,
-         22.41660689540222
-        ],
-        [
-         -3.839055171107401,
-         26.788626920300022
-        ],
-        [
-         -7.454905672487397,
-         26.7886269203
-        ],
-        [
-         -6.706246972323987,
-         22.36193649421041
-        ],
-        [
-         -6.092758520945724,
-         17.91449791703038
-        ],
-        [
-         -5.615009533415231,
-         13.450437670721287
-        ],
-        [
-         -5.273443281189755,
-         8.973897659383931
-        ],
-        [
-         -5.068376680839104,
-         4.489031366261667
-        ],
-        [
-         -4.999999999999934,
-         5.1136178624844315e-15
-        ],
-        [
-         -5.068376680839071,
-         -4.489031366261658
-        ],
-        [
-         -5.27344328118969,
-         -8.973897659383926
-        ],
-        [
-         -5.615009533415165,
-         -13.450437670721286
-        ],
-        [
-         -6.092758520945642,
-         -17.91449791703038
-        ],
-        [
-         -6.706246972323888,
-         -22.36193649421042
-        ],
-        [
-         -7.454905672487283,
-         -26.788626920300015
-        ],
-        [
-         -3.8390551711074536,
-         -26.7886269203
-        ]
-       ],
-       [
-        [
-         -7.454905672487397,
-         26.7886269203
-        ],
-        [
-         -6.706246972323987,
-         22.36193649421041
-        ],
-        [
-         -6.092758520945724,
-         17.91449791703038
-        ],
-        [
-         -5.615009533415231,
-         13.450437670721287
-        ],
-        [
-         -5.273443281189755,
-         8.973897659383931
-        ],
-        [
-         -5.068376680839104,
-         4.489031366261667
-        ],
-        [
-         -4.999999999999934,
-         5.1136178624844315e-15
-        ],
-        [
-         -5.068376680839071,
-         -4.489031366261658
-        ],
-        [
-         -5.27344328118969,
-         -8.973897659383926
-        ],
-        [
-         -5.615009533415165,
-         -13.450437670721286
-        ],
-        [
-         -6.092758520945642,
-         -17.91449791703038
-        ],
-        [
-         -6.706246972323888,
-         -22.36193649421042
-        ],
-        [
-         -7.454905672487283,
-         -26.788626920300015
-        ]
-       ]
-      ],
-      "profile1_id":"140450281704176",
-      "profile2_id":"140449874523760"
+      "profile1_id":"140246272653680",
+      "profile2_id":"140246272653104"
      }
     },
-    "140449472884896":{
+    "140246272494752":{
      "__instance_type__":[
       "rayoptics.elem.elements",
       "AirGap"
@@ -4337,7 +3769,7 @@
       "idx":8
      }
     },
-    "140449472886672":{
+    "140246272493312":{
      "__instance_type__":[
       "rayoptics.elem.elements",
       "CementedElement"
@@ -4395,178 +3827,14 @@
       "_sd":19.82502070125,
       "do_flat_0":"if concave",
       "do_flat_k":"if concave",
-      "profile_polys":[
-       [
-        [
-         2.9855527833869027,
-         -19.825020701250004
-        ],
-        [
-         2.07802981686743,
-         -16.596594419490806
-        ],
-        [
-         1.3324196071012393,
-         -13.326976764992613
-        ],
-        [
-         0.7505726968739221,
-         -10.024282657968357
-        ],
-        [
-         0.3339331820253024,
-         -6.6967091116465705
-        ],
-        [
-         0.08353512732311952,
-         -3.352514887963502
-        ],
-        [
-         -1.4946932580528482e-14,
-         1.8683665725660602e-15
-        ],
-        [
-         0.08353512732311952,
-         3.352514887963506
-        ],
-        [
-         0.33393318202529493,
-         6.696709111646575
-        ],
-        [
-         0.7505726968739147,
-         10.02428265796836
-        ],
-        [
-         1.3324196071012242,
-         13.326976764992619
-        ],
-        [
-         2.078029816867415,
-         16.596594419490813
-        ],
-        [
-         2.9855527833868876,
-         19.82502070125001
-        ]
-       ],
-       [
-        [
-         3.5738521842321123,
-         19.82502070125
-        ],
-        [
-         3.3985424532021065,
-         16.523669491951757
-        ],
-        [
-         3.2550849705640066,
-         13.220780868397531
-        ],
-        [
-         3.1434930840538873,
-         9.916662141748334
-        ],
-        [
-         3.0637771765323767,
-         6.611620737617849
-        ],
-        [
-         3.0159446650185693,
-         3.305964167468574
-        ],
-        [
-         3.000000000000038,
-         -7.729200959816218e-15
-        ],
-        [
-         3.015944665018607,
-         -3.3059641674685887
-        ],
-        [
-         3.0637771765324526,
-         -6.611620737617863
-        ],
-        [
-         3.1434930840540014,
-         -9.916662141748345
-        ],
-        [
-         3.255084970564159,
-         -13.22078086839754
-        ],
-        [
-         3.398542453202259,
-         -16.52366949195176
-        ],
-        [
-         3.5738521842323023,
-         -19.82502070125
-        ]
-       ],
-       [
-        [
-         6.433809208453679,
-         -19.82502070125
-        ],
-        [
-         5.6927180483612885,
-         -16.571313572925682
-        ],
-        [
-         5.084688234777809,
-         -13.290136051018463
-        ],
-        [
-         4.6107277033877345,
-         -9.986927368667313
-        ],
-        [
-         4.271622142198412,
-         -6.667163280234817
-        ],
-        [
-         4.0679336890989655,
-         -3.3363469841071653
-        ],
-        [
-         4.0000000000000275,
-         0.0
-        ],
-        [
-         4.0679336890989655,
-         3.3363469841071653
-        ],
-        [
-         4.271622142198422,
-         6.667163280234815
-        ],
-        [
-         4.610727703387752,
-         9.986927368667311
-        ],
-        [
-         5.084688234777836,
-         13.29013605101846
-        ],
-        [
-         5.692718048361325,
-         16.571313572925675
-        ],
-        [
-         6.4338092084537255,
-         19.825020701249993
-        ]
-       ]
-      ],
       "profile_ids":[
-       "140449874557968",
-       "140449874555280",
-       "140449874557440"
+       "140246272651904",
+       "140246272654208",
+       "140246272495280"
       ]
      }
     },
-    "140450281217376":{
+    "140246272492352":{
      "__instance_type__":[
       "rayoptics.elem.elements",
       "AirGap"
@@ -4622,7 +3890,60 @@
       "idx":11
      }
     },
-    "140449473108864":{
+    "140245474449056":{
+     "__instance_type__":[
+      "rayoptics.elem.elements",
+      "Assembly"
+     ],
+     "attributes":{
+      "label":"ASM3",
+      "tfrm":[
+       {
+        "__ndarray__":[
+         [
+          1.0,
+          0.0,
+          0.0
+         ],
+         [
+          0.0,
+          1.0,
+          0.0
+         ],
+         [
+          0.0,
+          0.0,
+          1.0
+         ]
+        ],
+        "dtype":"float64",
+        "shape":[
+         3,
+         3
+        ],
+        "Corder":true
+       },
+       {
+        "__ndarray__":[
+         0.0,
+         0.0,
+         98.30470000000001
+        ],
+        "dtype":"float64",
+        "shape":[
+         3
+        ]
+       }
+      ],
+      "idx":12,
+      "part_ids":[
+       "140246272493504",
+       "140246272492976",
+       "140246272494224"
+      ]
+     }
+    },
+    "140246272493504":{
      "__instance_type__":[
       "rayoptics.elem.elements",
       "CementedElement"
@@ -4680,186 +4001,14 @@
       "_sd":16.49782200558,
       "do_flat_0":"if concave",
       "do_flat_k":"if concave",
-      "profile_polys":[
-       [
-        [
-         0.6586069211212352,
-         -16.49782200558
-        ],
-        [
-         0.457440090343868,
-         -13.752645768689801
-        ],
-        [
-         0.2928005020276309,
-         -11.005036904358725
-        ],
-        [
-         0.16471727833472866,
-         -8.255481421521528
-        ],
-        [
-         0.07321307517950582,
-         -5.504465673439272
-        ],
-        [
-         0.018304078221001007,
-         -2.7524762716710414
-        ],
-        [
-         2.2977286739944707e-14,
-         2.5131407371814524e-15
-        ],
-        [
-         0.018304078221023985,
-         2.7524762716710462
-        ],
-        [
-         0.0732130751795288,
-         5.5044656734392765
-        ],
-        [
-         0.1647172783347746,
-         8.255481421521532
-        ],
-        [
-         0.2928005020276998,
-         11.005036904358727
-        ],
-        [
-         0.45744009034393696,
-         13.752645768689804
-        ],
-        [
-         0.6586069211213271,
-         16.49782200558
-        ]
-       ],
-       [
-        [
-         0.9952583545769107,
-         16.497822005579998
-        ],
-        [
-         1.711407882979632,
-         13.804848689487825
-        ],
-        [
-         2.2995416973450116,
-         11.08105096487317
-        ],
-        [
-         2.7583465723441987,
-         8.33251071323178
-        ],
-        [
-         3.086798057132628,
-         5.565365062862756
-        ],
-        [
-         3.284162762813775,
-         2.785792685469548
-        ],
-        [
-         3.3499999999999805,
-         2.0459675620365656e-15
-        ],
-        [
-         3.284162762813769,
-         -2.7857926854695436
-        ],
-        [
-         3.0867980571326146,
-         -5.5653650628627505
-        ],
-        [
-         2.7583465723441853,
-         -8.332510713231775
-        ],
-        [
-         2.2995416973449982,
-         -11.081050964873166
-        ],
-        [
-         1.7114078829796189,
-         -13.804848689487818
-        ],
-        [
-         0.9952583545768912,
-         -16.497822005579994
-        ]
-       ],
-       [
-        [
-         6.915401270594833,
-         -16.49782200558
-        ],
-        [
-         6.915401270594826,
-         -15.449729209710002
-        ],
-        [
-         6.347325473469116,
-         -12.91282033033618
-        ],
-        [
-         5.881288431246458,
-         -10.355199121321421
-        ],
-        [
-         5.518037673327577,
-         -7.78096803993088
-        ],
-        [
-         5.258155858593191,
-         -5.194256185878305
-        ],
-        [
-         5.102059840811615,
-         -2.5992126781970777
-        ],
-        [
-         5.050000000000014,
-         -9.008349621808521e-16
-        ],
-        [
-         5.102059840811622,
-         2.599212678197076
-        ],
-        [
-         5.258155858593206,
-         5.194256185878302
-        ],
-        [
-         5.518037673327599,
-         7.780968039930876
-        ],
-        [
-         5.88128843124648,
-         10.355199121321418
-        ],
-        [
-         6.347325473469145,
-         12.912820330336173
-        ],
-        [
-         6.915401270594855,
-         15.449729209709993
-        ],
-        [
-         6.915401270594833,
-         16.49782200558
-        ]
-       ]
-      ],
       "profile_ids":[
-       "140449874568144",
-       "140449475118848",
-       "140449475108624"
+       "140246272493984",
+       "140246272492064",
+       "140246272492016"
       ]
      }
     },
-    "140449473109056":{
+    "140246272492976":{
      "__instance_type__":[
       "rayoptics.elem.elements",
       "AirGap"
@@ -4915,7 +4064,7 @@
       "idx":14
      }
     },
-    "140449473108720":{
+    "140246272494224":{
      "__instance_type__":[
       "rayoptics.elem.elements",
       "Element"
@@ -4973,177 +4122,11 @@
        -15.30265854497,
        15.30265854497
       ],
-      "profile_polys":[
-       [
-        [
-         -1.4249280819887566,
-         -15.30265854497
-        ],
-        [
-         -0.99040305689807,
-         -12.77467315075174
-        ],
-        [
-         -0.6343136364726699,
-         -10.234452200623183
-        ],
-        [
-         -0.35700088243379,
-         -7.684428713033647
-        ],
-        [
-         -0.15873040437209612,
-         -5.127045095282857
-        ],
-        [
-         -0.03969210534742493,
-         -2.5647508041882054
-        ],
-        [
-         -0.0,
-         -5.46353934316457e-15
-        ],
-        [
-         -0.03969210534742493,
-         2.5647508041881943
-        ],
-        [
-         -0.1587304043720869,
-         5.127045095282846
-        ],
-        [
-         -0.35700088243377165,
-         7.684428713033636
-        ],
-        [
-         -0.6343136364726516,
-         10.234452200623172
-        ],
-        [
-         -0.9904030568980424,
-         12.774673150751733
-        ],
-        [
-         -1.4249280819887291,
-         15.302658544969997
-        ],
-        [
-         4.163341990611411,
-         15.30265854497
-        ],
-        [
-         3.5808070947134274,
-         12.792612554272504
-        ],
-        [
-         3.1028160646794025,
-         10.260577334224712
-        ],
-        [
-         2.7301905195759804,
-         7.71090520167672
-        ],
-        [
-         2.4635709656749083,
-         5.147978789578035
-        ],
-        [
-         2.3034156954864162,
-         2.576203513667189
-        ],
-        [
-         2.2499999999999725,
-         2.587555170130429e-15
-        ],
-        [
-         2.303415695486409,
-         -2.576203513667184
-        ],
-        [
-         2.463570965674888,
-         -5.147978789578031
-        ],
-        [
-         2.7301905195759595,
-         -7.710905201676718
-        ],
-        [
-         3.102816064679375,
-         -10.260577334224713
-        ],
-        [
-         3.5808070947133928,
-         -12.792612554272509
-        ],
-        [
-         4.163341990611363,
-         -15.30265854497001
-        ],
-        [
-         -1.4249280819887566,
-         -15.30265854497
-        ]
-       ],
-       [
-        [
-         4.163341990611411,
-         15.30265854497
-        ],
-        [
-         3.5808070947134274,
-         12.792612554272504
-        ],
-        [
-         3.1028160646794025,
-         10.260577334224712
-        ],
-        [
-         2.7301905195759804,
-         7.71090520167672
-        ],
-        [
-         2.4635709656749083,
-         5.147978789578035
-        ],
-        [
-         2.3034156954864162,
-         2.576203513667189
-        ],
-        [
-         2.2499999999999725,
-         2.587555170130429e-15
-        ],
-        [
-         2.303415695486409,
-         -2.576203513667184
-        ],
-        [
-         2.463570965674888,
-         -5.147978789578031
-        ],
-        [
-         2.7301905195759595,
-         -7.710905201676718
-        ],
-        [
-         3.102816064679375,
-         -10.260577334224713
-        ],
-        [
-         3.5808070947133928,
-         -12.792612554272509
-        ],
-        [
-         4.163341990611363,
-         -15.30265854497001
-        ]
-       ]
-      ],
-      "profile1_id":"140449475081792",
-      "profile2_id":"140449475080784"
+      "profile1_id":"140246272493600",
+      "profile2_id":"140246272494464"
      }
     },
-    "140449874134496":{
+    "140246272492880":{
      "__instance_type__":[
       "rayoptics.elem.elements",
       "AirGap"
@@ -5199,7 +4182,60 @@
       "idx":16
      }
     },
-    "140449874136848":{
+    "140245474449824":{
+     "__instance_type__":[
+      "rayoptics.elem.elements",
+      "Assembly"
+     ],
+     "attributes":{
+      "label":"ASM4",
+      "tfrm":[
+       {
+        "__ndarray__":[
+         [
+          1.0,
+          0.0,
+          0.0
+         ],
+         [
+          0.0,
+          1.0,
+          0.0
+         ],
+         [
+          0.0,
+          0.0,
+          1.0
+         ]
+        ],
+        "dtype":"float64",
+        "shape":[
+         3,
+         3
+        ],
+        "Corder":true
+       },
+       {
+        "__ndarray__":[
+         0.0,
+         0.0,
+         138.0387
+        ],
+        "dtype":"float64",
+        "shape":[
+         3
+        ]
+       }
+      ],
+      "idx":17,
+      "part_ids":[
+       "140245474448816",
+       "140245474448864",
+       "140245474449152"
+      ]
+     }
+    },
+    "140245474448816":{
      "__instance_type__":[
       "rayoptics.elem.elements",
       "Element"
@@ -5257,177 +4293,11 @@
        -20.06754865683,
        20.06754865683
       ],
-      "profile_polys":[
-       [
-        [
-         4.4732885283510395,
-         -20.06754865683
-        ],
-        [
-         3.1217493591544065,
-         -16.88945682607917
-        ],
-        [
-         2.0059593448757878,
-         -13.621133333125327
-        ],
-        [
-         1.1318795764309313,
-         -10.280039145744002
-        ],
-        [
-         0.504179811480904,
-         -6.884024008021621
-        ],
-        [
-         0.12621352632391472,
-         -3.4512310783734454
-        ],
-        [
-         -1.0491385538102805e-14,
-         3.934269576788552e-15
-        ],
-        [
-         0.12621352632390948,
-         3.451231078373453
-        ],
-        [
-         0.5041798114808987,
-         6.884024008021629
-        ],
-        [
-         1.1318795764309209,
-         10.280039145744011
-        ],
-        [
-         2.005959344875777,
-         13.621133333125336
-        ],
-        [
-         3.121749359154391,
-         16.889456826079176
-        ],
-        [
-         4.4732885283510235,
-         20.067548656830006
-        ],
-        [
-         8.421050120343576,
-         20.06754865683
-        ],
-        [
-         8.902818022205771,
-         16.744002327431318
-        ],
-        [
-         9.297442580869715,
-         13.408986289595308
-        ],
-        [
-         9.604653476937367,
-         10.064785042621462
-        ],
-        [
-         9.82424026971853,
-         6.713689377714204
-        ],
-        [
-         9.956052541383526,
-         3.3579948087817697
-        ],
-        [
-         10.000000000000057,
-         4.896926614206264e-15
-        ],
-        [
-         9.95605254138354,
-         -3.35799480878176
-        ],
-        [
-         9.824240269718572,
-         -6.713689377714196
-        ],
-        [
-         9.604653476937438,
-         -10.064785042621457
-        ],
-        [
-         9.297442580869802,
-         -13.408986289595306
-        ],
-        [
-         8.90281802220587,
-         -16.74400232743132
-        ],
-        [
-         8.421050120343704,
-         -20.067548656830006
-        ],
-        [
-         4.4732885283510395,
-         -20.06754865683
-        ]
-       ],
-       [
-        [
-         8.421050120343576,
-         20.06754865683
-        ],
-        [
-         8.902818022205771,
-         16.744002327431318
-        ],
-        [
-         9.297442580869715,
-         13.408986289595308
-        ],
-        [
-         9.604653476937367,
-         10.064785042621462
-        ],
-        [
-         9.82424026971853,
-         6.713689377714204
-        ],
-        [
-         9.956052541383526,
-         3.3579948087817697
-        ],
-        [
-         10.000000000000057,
-         4.896926614206264e-15
-        ],
-        [
-         9.95605254138354,
-         -3.35799480878176
-        ],
-        [
-         9.824240269718572,
-         -6.713689377714196
-        ],
-        [
-         9.604653476937438,
-         -10.064785042621457
-        ],
-        [
-         9.297442580869802,
-         -13.408986289595306
-        ],
-        [
-         8.90281802220587,
-         -16.74400232743132
-        ],
-        [
-         8.421050120343704,
-         -20.067548656830006
-        ]
-       ]
-      ],
-      "profile1_id":"140449475082032",
-      "profile2_id":"140449475083088"
+      "profile1_id":"140246272493456",
+      "profile2_id":"140246272495376"
      }
     },
-    "140449874133584":{
+    "140245474448864":{
      "__instance_type__":[
       "rayoptics.elem.elements",
       "AirGap"
@@ -5483,7 +4353,7 @@
       "idx":18
      }
     },
-    "140449874136272":{
+    "140245474449152":{
      "__instance_type__":[
       "rayoptics.elem.elements",
       "Element"
@@ -5541,177 +4411,11 @@
        -19.42611240486,
        19.42611240486
       ],
-      "profile_polys":[
-       [
-        [
-         0.11126212604698382,
-         -19.42611240486
-        ],
-        [
-         0.07726562345822233,
-         -16.188535177744548
-        ],
-        [
-         0.049450134189044974,
-         -12.950898947053776
-        ],
-        [
-         0.027815759620750252,
-         -9.713215513244677
-        ],
-        [
-         0.012362578605605676,
-         -6.475496676946293
-        ],
-        [
-         0.0030906474670360424,
-         -3.2377542389167013
-        ],
-        [
-         -7.531455459286463e-13,
-         1.838734242989859e-15
-        ],
-        [
-         0.003090647466847756,
-         3.2377542389167053
-        ],
-        [
-         0.012362578605040817,
-         6.4754966769463
-        ],
-        [
-         0.027815759619997105,
-         9.713215513244686
-        ],
-        [
-         0.049450134188291826,
-         12.950898947053789
-        ],
-        [
-         0.0772656234572809,
-         16.188535177744566
-        ],
-        [
-         0.1112621260458541,
-         19.42611240486002
-        ],
-        [
-         3.619515525128536,
-         19.42611240486
-        ],
-        [
-         3.0343152928091826,
-         16.22051805576087
-        ],
-        [
-         2.5546526461862737,
-         12.99744216644061
-        ],
-        [
-         2.1810445380365793,
-         9.760358382475834
-        ],
-        [
-         1.9138936216629918,
-         6.512755446345303
-        ],
-        [
-         1.7534878169379613,
-         3.2581334374641786
-        ],
-        [
-         1.700000000000033,
-         4.821233690055492e-15
-        ],
-        [
-         1.7534878169379613,
-         -3.258133437464168
-        ],
-        [
-         1.913893621663003,
-         -6.512755446345293
-        ],
-        [
-         2.181044538036601,
-         -9.760358382475824
-        ],
-        [
-         2.554652646186307,
-         -12.997442166440596
-        ],
-        [
-         3.034315292809216,
-         -16.22051805576086
-        ],
-        [
-         3.6195155251285804,
-         -19.426112404859985
-        ],
-        [
-         0.11126212604698382,
-         -19.42611240486
-        ]
-       ],
-       [
-        [
-         3.619515525128536,
-         19.42611240486
-        ],
-        [
-         3.0343152928091826,
-         16.22051805576087
-        ],
-        [
-         2.5546526461862737,
-         12.99744216644061
-        ],
-        [
-         2.1810445380365793,
-         9.760358382475834
-        ],
-        [
-         1.9138936216629918,
-         6.512755446345303
-        ],
-        [
-         1.7534878169379613,
-         3.2581334374641786
-        ],
-        [
-         1.700000000000033,
-         4.821233690055492e-15
-        ],
-        [
-         1.7534878169379613,
-         -3.258133437464168
-        ],
-        [
-         1.913893621663003,
-         -6.512755446345293
-        ],
-        [
-         2.181044538036601,
-         -9.760358382475824
-        ],
-        [
-         2.554652646186307,
-         -12.997442166440596
-        ],
-        [
-         3.034315292809216,
-         -16.22051805576086
-        ],
-        [
-         3.6195155251285804,
-         -19.426112404859985
-        ]
-       ]
-      ],
-      "profile1_id":"140450281705184",
-      "profile2_id":"140449874522704"
+      "profile1_id":"140246272494512",
+      "profile2_id":"140246272494656"
      }
     },
-    "140449874136032":{
+    "140245474450784":{
      "__instance_type__":[
       "rayoptics.elem.elements",
       "AirGap"
@@ -5767,7 +4471,60 @@
       "idx":20
      }
     },
-    "140449874133152":{
+    "140245474448336":{
+     "__instance_type__":[
+      "rayoptics.elem.elements",
+      "Assembly"
+     ],
+     "attributes":{
+      "label":"ASM5",
+      "tfrm":[
+       {
+        "__ndarray__":[
+         [
+          1.0,
+          0.0,
+          0.0
+         ],
+         [
+          0.0,
+          1.0,
+          0.0
+         ],
+         [
+          0.0,
+          0.0,
+          1.0
+         ]
+        ],
+        "dtype":"float64",
+        "shape":[
+         3,
+         3
+        ],
+        "Corder":true
+       },
+       {
+        "__ndarray__":[
+         0.0,
+         0.0,
+         174.3387
+        ],
+        "dtype":"float64",
+        "shape":[
+         3
+        ]
+       }
+      ],
+      "idx":21,
+      "part_ids":[
+       "140245474447952",
+       "140245474450352",
+       "140245474450640"
+      ]
+     }
+    },
+    "140245474447952":{
      "__instance_type__":[
       "rayoptics.elem.elements",
       "Element"
@@ -5825,177 +4582,11 @@
        -18.87518208057,
        18.87518208057
       ],
-      "profile_polys":[
-       [
-        [
-         2.6079913027966226,
-         -18.87518208057
-        ],
-        [
-         1.8145895729400745,
-         -15.790097107624206
-        ],
-        [
-         1.163164489834986,
-         -12.67194365464329
-        ],
-        [
-         0.655080303315167,
-         -9.52725192815502
-        ],
-        [
-         0.2914010709138678,
-         -6.362607712582706
-        ],
-        [
-         0.07288842945662037,
-         -3.184638577937332
-        ],
-        [
-         -1.545608085962158e-14,
-         -1.0626055590989837e-14
-        ],
-        [
-         0.07288842945662037,
-         3.1846385779373105
-        ],
-        [
-         0.2914010709138601,
-         6.362607712582687
-        ],
-        [
-         0.6550803033151515,
-         9.527251928155001
-        ],
-        [
-         1.163164489834963,
-         12.671943654643277
-        ],
-        [
-         1.8145895729400514,
-         15.790097107624197
-        ],
-        [
-         2.6079913027965915,
-         18.875182080569992
-        ],
-        [
-         6.091376567730255,
-         18.87518208057
-        ],
-        [
-         6.368862770217176,
-         15.736737542265164
-        ],
-        [
-         6.595994276454812,
-         12.594247448174132
-        ],
-        [
-         6.77271269612074,
-         9.44851966072385
-        ],
-        [
-         6.898972598945605,
-         6.300362874678289
-        ],
-        [
-         6.97474152639224,
-         3.150586409241472
-        ],
-        [
-         7.0,
-         6.817636732936449e-16
-        ],
-        [
-         6.97474152639224,
-         -3.1505864092414706
-        ],
-        [
-         6.898972598945605,
-         -6.300362874678287
-        ],
-        [
-         6.772712696120719,
-         -9.448519660723848
-        ],
-        [
-         6.59599427645479,
-         -12.594247448174126
-        ],
-        [
-         6.368862770217133,
-         -15.736737542265159
-        ],
-        [
-         6.091376567730212,
-         -18.875182080569996
-        ],
-        [
-         2.6079913027966226,
-         -18.87518208057
-        ]
-       ],
-       [
-        [
-         6.091376567730255,
-         18.87518208057
-        ],
-        [
-         6.368862770217176,
-         15.736737542265164
-        ],
-        [
-         6.595994276454812,
-         12.594247448174132
-        ],
-        [
-         6.77271269612074,
-         9.44851966072385
-        ],
-        [
-         6.898972598945605,
-         6.300362874678289
-        ],
-        [
-         6.97474152639224,
-         3.150586409241472
-        ],
-        [
-         7.0,
-         6.817636732936449e-16
-        ],
-        [
-         6.97474152639224,
-         -3.1505864092414706
-        ],
-        [
-         6.898972598945605,
-         -6.300362874678287
-        ],
-        [
-         6.772712696120719,
-         -9.448519660723848
-        ],
-        [
-         6.59599427645479,
-         -12.594247448174126
-        ],
-        [
-         6.368862770217133,
-         -15.736737542265159
-        ],
-        [
-         6.091376567730212,
-         -18.875182080569996
-        ]
-       ]
-      ],
-      "profile1_id":"140450281703456",
-      "profile2_id":"140449874557632"
+      "profile1_id":"140246272493360",
+      "profile2_id":"140246272495472"
      }
     },
-    "140449874136416":{
+    "140245474450352":{
      "__instance_type__":[
       "rayoptics.elem.elements",
       "AirGap"
@@ -6051,7 +4642,7 @@
       "idx":22
      }
     },
-    "140449874136464":{
+    "140245474450640":{
      "__instance_type__":[
       "rayoptics.elem.elements",
       "Element"
@@ -6109,177 +4700,11 @@
        -17.40342255013,
        17.40342255013
       ],
-      "profile_polys":[
-       [
-        [
-         -3.3852297877840263,
-         -17.40342255013
-        ],
-        [
-         -2.3597265566957186,
-         -14.613228928822084
-        ],
-        [
-         -1.514883715886764,
-         -11.763127545415905
-        ],
-        [
-         -0.8541647465743565,
-         -8.864802552432767
-        ],
-        [
-         -0.3802783037053505,
-         -5.93013579782077
-        ],
-        [
-         -0.0951671116714031,
-         -2.9711581146442074
-        ],
-        [
-         -0.0,
-         -6.443179323412096e-15
-        ],
-        [
-         -0.0951671116714031,
-         2.9711581146441945
-        ],
-        [
-         -0.3802783037053505,
-         5.930135797820758
-        ],
-        [
-         -0.8541647465743565,
-         8.864802552432755
-        ],
-        [
-         -1.514883715886759,
-         11.763127545415896
-        ],
-        [
-         -2.3597265566957084,
-         14.613228928822076
-        ],
-        [
-         -3.385229787784016,
-         17.403422550129996
-        ],
-        [
-         2.0278537026998107,
-         17.40342255013
-        ],
-        [
-         2.09572917813458,
-         14.50333344874988
-        ],
-        [
-         2.151265333558729,
-         11.602981812904671
-        ],
-        [
-         2.1944611636754754,
-         8.702420143784398
-        ],
-        [
-         2.2253158865684806,
-         5.801700946381026
-        ],
-        [
-         2.2438289437158554,
-         2.9008767285380483
-        ],
-        [
-         2.2500000000004543,
-         1.7741589447561878e-15
-        ],
-        [
-         2.243828943715931,
-         -2.900876728538045
-        ],
-        [
-         2.225315886568708,
-         -5.801700946381023
-        ],
-        [
-         2.194461163675854,
-         -8.702420143784396
-        ],
-        [
-         2.1512653335591834,
-         -11.602981812904673
-        ],
-        [
-         2.0957291781351097,
-         -14.503333448749883
-        ],
-        [
-         2.027853702700416,
-         -17.40342255013001
-        ],
-        [
-         -3.3852297877840263,
-         -17.40342255013
-        ]
-       ],
-       [
-        [
-         2.0278537026998107,
-         17.40342255013
-        ],
-        [
-         2.09572917813458,
-         14.50333344874988
-        ],
-        [
-         2.151265333558729,
-         11.602981812904671
-        ],
-        [
-         2.1944611636754754,
-         8.702420143784398
-        ],
-        [
-         2.2253158865684806,
-         5.801700946381026
-        ],
-        [
-         2.2438289437158554,
-         2.9008767285380483
-        ],
-        [
-         2.2500000000004543,
-         1.7741589447561878e-15
-        ],
-        [
-         2.243828943715931,
-         -2.900876728538045
-        ],
-        [
-         2.225315886568708,
-         -5.801700946381023
-        ],
-        [
-         2.194461163675854,
-         -8.702420143784396
-        ],
-        [
-         2.1512653335591834,
-         -11.602981812904673
-        ],
-        [
-         2.0957291781351097,
-         -14.503333448749883
-        ],
-        [
-         2.027853702700416,
-         -17.40342255013001
-        ]
-       ]
-      ],
-      "profile1_id":"140449874536432",
-      "profile2_id":"140449874598544"
+      "profile1_id":"140246272495424",
+      "profile2_id":"140246272493264"
      }
     },
-    "140449874134448":{
+    "140245474451216":{
      "__instance_type__":[
       "rayoptics.elem.elements",
       "AirGap"
@@ -6335,7 +4760,7 @@
       "idx":24
      }
     },
-    "140449874134016":{
+    "140245474450592":{
      "__instance_type__":[
       "rayoptics.elem.elements",
       "DummyInterface"
@@ -6388,272 +4813,7 @@
       "idx":25,
       "medium_name":"Interface",
       "sd":21.0496048888,
-      "profile_id":"140449874569824"
-     }
-    },
-    "140450284586368":{
-     "__instance_type__":[
-      "rayoptics.elem.elements",
-      "Assembly"
-     ],
-     "attributes":{
-      "label":"ASM1",
-      "tfrm":[
-       {
-        "__ndarray__":[
-         [
-          1.0,
-          0.0,
-          0.0
-         ],
-         [
-          0.0,
-          1.0,
-          0.0
-         ],
-         [
-          0.0,
-          0.0,
-          1.0
-         ]
-        ],
-        "dtype":"float64",
-        "shape":[
-         3,
-         3
-        ],
-        "Corder":true
-       },
-       {
-        "__ndarray__":[
-         0.0,
-         0.0,
-         108.15
-        ],
-        "dtype":"float64",
-        "shape":[
-         3
-        ]
-       }
-      ],
-      "idx":3,
-      "part_ids":[
-       "140449874567376",
-       "140449472885280",
-       "140449472888448"
-      ]
-     }
-    },
-    "140450284586464":{
-     "__instance_type__":[
-      "rayoptics.elem.elements",
-      "Assembly"
-     ],
-     "attributes":{
-      "label":"ASM2",
-      "tfrm":[
-       {
-        "__ndarray__":[
-         [
-          1.0,
-          0.0,
-          0.0
-         ],
-         [
-          0.0,
-          1.0,
-          0.0
-         ],
-         [
-          0.0,
-          0.0,
-          1.0
-         ]
-        ],
-        "dtype":"float64",
-        "shape":[
-         3,
-         3
-        ],
-        "Corder":true
-       },
-       {
-        "__ndarray__":[
-         0.0,
-         0.0,
-         0.0
-        ],
-        "dtype":"float64",
-        "shape":[
-         3
-        ]
-       }
-      ],
-      "idx":1,
-      "part_ids":[
-       "140449874567424",
-       "140449874570592",
-       "140450284586368"
-      ]
-     }
-    },
-    "140450284585648":{
-     "__instance_type__":[
-      "rayoptics.elem.elements",
-      "Assembly"
-     ],
-     "attributes":{
-      "label":"ASM3",
-      "tfrm":[
-       {
-        "__ndarray__":[
-         [
-          1.0,
-          0.0,
-          0.0
-         ],
-         [
-          0.0,
-          1.0,
-          0.0
-         ],
-         [
-          0.0,
-          0.0,
-          1.0
-         ]
-        ],
-        "dtype":"float64",
-        "shape":[
-         3,
-         3
-        ],
-        "Corder":true
-       },
-       {
-        "__ndarray__":[
-         0.0,
-         0.0,
-         98.30470000000001
-        ],
-        "dtype":"float64",
-        "shape":[
-         3
-        ]
-       }
-      ],
-      "idx":12,
-      "part_ids":[
-       "140449473108864",
-       "140449473109056",
-       "140449473108720"
-      ]
-     }
-    },
-    "140450279165616":{
-     "__instance_type__":[
-      "rayoptics.elem.elements",
-      "Assembly"
-     ],
-     "attributes":{
-      "label":"ASM4",
-      "tfrm":[
-       {
-        "__ndarray__":[
-         [
-          1.0,
-          0.0,
-          0.0
-         ],
-         [
-          0.0,
-          1.0,
-          0.0
-         ],
-         [
-          0.0,
-          0.0,
-          1.0
-         ]
-        ],
-        "dtype":"float64",
-        "shape":[
-         3,
-         3
-        ],
-        "Corder":true
-       },
-       {
-        "__ndarray__":[
-         0.0,
-         0.0,
-         138.0387
-        ],
-        "dtype":"float64",
-        "shape":[
-         3
-        ]
-       }
-      ],
-      "idx":17,
-      "part_ids":[
-       "140449874136848",
-       "140449874133584",
-       "140449874136272"
-      ]
-     }
-    },
-    "140450284587472":{
-     "__instance_type__":[
-      "rayoptics.elem.elements",
-      "Assembly"
-     ],
-     "attributes":{
-      "label":"ASM5",
-      "tfrm":[
-       {
-        "__ndarray__":[
-         [
-          1.0,
-          0.0,
-          0.0
-         ],
-         [
-          0.0,
-          1.0,
-          0.0
-         ],
-         [
-          0.0,
-          0.0,
-          1.0
-         ]
-        ],
-        "dtype":"float64",
-        "shape":[
-         3,
-         3
-        ],
-        "Corder":true
-       },
-       {
-        "__ndarray__":[
-         0.0,
-         0.0,
-         174.3387
-        ],
-        "dtype":"float64",
-        "shape":[
-         3
-        ]
-       }
-      ],
-      "idx":21,
-      "part_ids":[
-       "140449874133152",
-       "140449874136416",
-       "140449874136464"
-      ]
+      "profile_id":"140246272491776"
      }
     }
    }
