@@ -10,6 +10,7 @@
 import os.path
 import json_tricks
 from collections.abc import Sequence
+from pathlib import Path
 
 import rayoptics
 
@@ -240,11 +241,12 @@ class OpticalModel:
             file_name: str or Path
             version: optional override for rayoptics version number
         """
-        file_extension = os.path.splitext(file_name)[1]
-        filename = file_name if len(file_extension) > 0 else file_name+'.roa'
+        file_pth = Path(file_name)
+        file_pth.with_suffix('.roa')
+
         # Ensure the parent directory exists
-        if not filename.parent.exists():
-            filename.parent.mkdir(parents=True)
+        if not file_pth.parent.exists():
+            file_pth.parent.mkdir(parents=True)
 
         # update version number prior to writing file.
         self.ro_version = rayoptics.__version__ if version is None else version
@@ -255,7 +257,7 @@ class OpticalModel:
         fs_dict = {}
         fs_dict['optical_model'] = self
 
-        with open(filename, 'w') as f:
+        with open(file_pth, 'w') as f:
             json_tricks.dump(fs_dict, f, indent=1,
                              separators=(',', ':'), allow_nan=True)
         delattr(self, 'profile_dict')
