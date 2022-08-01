@@ -354,6 +354,8 @@ def full_profile_new(profile, is_flipped, edge_extent,
     steps: number of profile curve samples
     """
     from rayoptics.raytr.traceerror import TraceError
+    def flip_profile(prf):
+        return [[-pt[0], pt[1]] for pt in prf]
 
     if len(edge_extent) == 1:
         sd_upr = edge_extent[0]
@@ -400,10 +402,11 @@ def full_profile_new(profile, is_flipped, edge_extent,
             prf = prf_lwr, prf_upr
 
     if is_flipped:
-        if len(prf) > 1:
-            prf = ([[-pt[0], pt[1]] for pt in p] for p in prf)
+        if hole_id is None:
+            prf = flip_profile(prf)
         else:
-            prf = [[-pt[0], pt[1]] for pt in prf]
+            prf = flip_profile(prf_lwr), flip_profile(prf_upr)
+
     return prf
 
 
