@@ -183,11 +183,11 @@ def iterate_pupil_ray(opt_model, indx, xy, start_r0, r_target, fld, wvl, **kwarg
                                        check_apertures=False)
             ray = ray_pkg[0]
         except terr.TraceMissedSurfaceError as ray_miss:
-            ray = ray_miss.ray_pkg
+            ray = ray_miss.ray_pkg[0]
             if ray_miss.surf <= indx:
                 raise ray_miss
         except terr.TraceTIRError as ray_tir:
-            ray = ray_tir.ray_pkg
+            ray = ray_tir.ray_pkg[0]
             if ray_tir.surf < indx:
                 raise ray_tir
         r_ray = sqrt(ray[indx][mc.p][0]**2 + ray[indx][mc.p][1]**2)
