@@ -241,8 +241,7 @@ class OpticalModel:
             file_name: str or Path
             version: optional override for rayoptics version number
         """
-        file_pth = Path(file_name)
-        file_pth.with_suffix('.roa')
+        file_pth = Path(file_name).with_suffix('.roa')
 
         # Ensure the parent directory exists
         if not file_pth.parent.exists():
