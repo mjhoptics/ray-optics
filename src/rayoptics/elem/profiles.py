@@ -8,7 +8,7 @@
 .. codeauthor: Michael J. Hayford
 """
 import numpy as np
-from math import sqrt, copysign, sin, asin, atan2
+from math import sqrt, copysign, sin, acos
 from scipy import optimize
 
 from rayoptics.util.misc_math import normalize
@@ -346,15 +346,22 @@ class Spherical(SurfaceProfile):
             dir1 = normalize(np.array([adj_start, sd_start]))
             dir2 = normalize(np.array([adj_end, sd_end]))
 
-            # calculate sine of the angle between direction vectors. the sign
-            # of the sine is determined by the pt generation direction, dir
+            # calculate the angle between direction vectors.
+            # the cross product gives the correct sign for the total angle
             if dir > 0:
                 total_sin = np.cross(dir1, dir2)
             else:
                 total_sin = np.cross(dir2, dir1)
-            
-            # calculate the increment sin/cos
-            total_ang = asin(total_sin)
+
+            # using the dot prod gives the correct magnitude between 0 and pi
+            total_cos = np.dot(dir1, dir2)
+            total_ang_c = acos(total_cos)
+
+            # use the sign of the sine to get the correct direction 
+            #  for the angle
+            total_ang = total_ang_c if total_sin > 0 else -total_ang_c
+
+            # calculate the increment and sin/cos
             da = total_ang/(2*steps)
             sa = sin(da)
             ca = sqrt(1.0 - sa*sa)
