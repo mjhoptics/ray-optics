@@ -15,8 +15,9 @@ from scipy.optimize import newton
 
 import rayoptics.optical.model_constants as mc
 
-from rayoptics.raytr import trace
+from rayoptics.raytr import trace, RayPkg, RaySeg
 from rayoptics.raytr import traceerror as terr
+from rayoptics.parax import etendue
 
 # label for coordinate chooser
 xy_str = 'xy'
@@ -63,6 +64,69 @@ def set_vig(opm):
         fld, wvl, foc = osp.lookup_fld_wvl_focus(fi)
         # print(f"field {fi}:")
         calc_vignetting_for_field(opm, fld, wvl)
+
+
+def set_pupil(opm):
+    """ From existing stop size, calculate pupil spec and vignetting. 
+    
+    Use the upper Y marginal ray on-axis (field #0) and iterate until it
+    goes through the edge of the stop surface. Use the object or image 
+    segments of this ray to update the pupil specification value 
+    e.g. EPD, NA or f/#.
+    """
+    sm = opm['sm']
+    if sm.stop_surface is None:
+        # Nope, the whole purpose here is to go from aperture stop to pupil
+        print('floating stop surface')
+        return
+    osp = opm['osp']
+
+    # iterate the on-axis marginal ray thru the edge of the stop.
+    fld, wvl, foc = osp.lookup_fld_wvl_focus(0)
+    stop_radius = sm.ifcs[sm.stop_surface].max_aperture
+    start_coords = iterate_pupil_ray(opm, sm.stop_surface, 1, 1.0, 
+                                     stop_radius, fld, wvl)
+
+    # trace the real axial marginal ray
+    ray_pkg = RayPkg(*trace.trace_base(opm, start_coords, fld, wvl,
+                                       apply_vignetting=False,
+                                       check_apertures=True))
+
+    obj_img_key = osp['pupil'].key[1]
+    pupil_spec = osp['pupil'].key[2]
+    pupil_value_orig = osp['pupil'].value
+
+    if obj_img_key == 'object':
+        if pupil_spec == 'pupil':
+            rs1 = RaySeg(*ray_pkg.ray[1])
+            ht = rs1.p[1]
+            osp['pupil'].value = 2*ht
+        else:
+            rs0 = RaySeg(*ray_pkg.ray[0])
+            slp0 = rs0.d[1]/rs0.d[2]
+            if pupil_spec == 'NA':
+                n0 = sm.rindx[0]
+                osp['pupil'].value = n0*rs0.d[1]
+                # osp['pupil'].value = etendue.slp2na(slp0)
+            elif pupil_spec == 'f/#':
+                osp['pupil'].value = 1/(2*slp0)
+    elif obj_img_key == 'image':
+        rsm2 = RaySeg(*ray_pkg.ray[-2])
+        if pupil_spec == 'pupil':
+            ht = rsm2.p[1]
+            osp['pupil'].value = 2*ht
+        else:
+            slpk = rsm2.d[1]/rsm2.d[2]
+            if pupil_spec == 'NA':
+                nk = sm.rindx[-1]
+                osp['pupil'].value = -nk*rsm2.d[1]
+                # osp['pupil'].value = etendue.slp2na(slpk)
+            elif pupil_spec == 'f/#':
+                osp['pupil'].value = -1/(2*slpk)
+
+    if pupil_value_orig != osp['pupil'].value:
+        opm.update_model()
+        set_vig(opm)
 
 
 def calc_vignetting_for_field(opm, fld, wvl):

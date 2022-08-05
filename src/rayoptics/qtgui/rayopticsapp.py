@@ -101,6 +101,7 @@ class MainWindow(QMainWindow):
         tools_menu = bar.addMenu("Tools")
         tools_menu.addAction("Set Vignetting")
         tools_menu.addAction("Set Apertures")
+        tools_menu.addAction("Set Pupil")
         tools_menu.triggered[QAction].connect(self.do_view_action)
 
         wnd_menu = bar.addMenu("Window")
@@ -387,6 +388,9 @@ class MainWindow(QMainWindow):
 
         if action == "Set Apertures":
             cmds.set_apertures(opt_model, gui_parent=self)
+
+        if action == "Set Pupil":
+            cmds.set_pupil(opt_model, gui_parent=self)
 
     def do_window_action(self, q):
         self.window_action(q.text())

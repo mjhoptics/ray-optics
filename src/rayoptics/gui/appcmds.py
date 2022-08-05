@@ -364,6 +364,15 @@ def set_apertures(opt_model, gui_parent=None):
         gui_parent.refresh_gui(src_model=opt_model['seq_model'])
 
 
+def set_pupil(opt_model, gui_parent=None):
+    """ From existing stop size, calculate pupil spec and vignetting. """
+    vigcalc.set_pupil(opt_model)
+    if gui_parent is None:
+        opt_model.update_model(src_model=opt_model['seq_model'])
+    else:
+        gui_parent.refresh_gui(src_model=opt_model['seq_model'])
+
+
 def create_ray_fan_view(opt_model, data_type, gui_parent=None):
     refresh_gui, is_dark = get_defaults_from_gui_parent(gui_parent)
     fig = RayFanFigure(opt_model, data_type,
