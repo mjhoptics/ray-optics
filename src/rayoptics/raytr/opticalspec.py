@@ -314,9 +314,6 @@ class PupilSpec:
         return o_str
 
     def sync_to_restore(self, optical_spec):
-        if hasattr(self, 'pupil_type'):
-            self.key = model_enums.get_ape_key_for_type(self.pupil_type)
-            del self.pupil_type
         self.optical_spec = optical_spec
 
     def set_from_specsheet(self, ss):
@@ -330,15 +327,12 @@ class PupilSpec:
             self.pupil_rays = PupilSpec.default_pupil_rays
             self.ray_labels = PupilSpec.default_ray_labels
 
-    def get_pupil_type(self):
-        return model_enums.get_ape_type_for_key(self.key).value
-
-    def mutate_pupil_type(self, new_pupil_type):
-        ape_key = model_enums.get_ape_key_for_type(new_pupil_type)
+    def mutate_pupil_type(self, ape_key):
         aperture, obj_img_key, value_key = ape_key
         if self.optical_spec is not None:
-            if self.optical_spec.parax_data is not None:
-                fod = self.optical_spec.parax_data.fod
+            opm = self.optical_spec.opt_model
+            if opm['ar']['parax_data'] is not None:
+                fod = opm['ar']['parax_data'].fod
                 if obj_img_key == 'object':
                     if value_key == 'pupil':
                         self.value = 2*fod.enp_radius
@@ -388,9 +382,6 @@ class FieldSpec:
         return o_str
 
     def sync_to_restore(self, optical_spec):
-        if hasattr(self, 'field_type'):
-            self.key = model_enums.get_fld_key_for_type(self.field_type)
-            del self.field_type
         if not hasattr(self, 'is_relative'):
             self.is_relative = False
         if not hasattr(self, 'value'):
@@ -453,15 +444,11 @@ class FieldSpec:
             self.index_labels[-1] = 'edge'
         return self
 
-    def get_field_type(self):
-        return model_enums.get_fld_type_for_key(self.key).value
-
-    def mutate_field_type(self, new_field_type):
+    def mutate_field_type(self, fld_key):
         osp = self.optical_spec
         parax_data = osp.opt_model['ar']['parax_data']
         fod = parax_data.fod
 
-        fld_key = model_enums.get_fld_key_for_type(new_field_type)
         field, obj_img_key, value_key = fld_key
 
         if obj_img_key == 'object':

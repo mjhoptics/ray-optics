@@ -14,9 +14,6 @@ from PyQt5.QtGui import QDoubleValidator
 from PyQt5.QtWidgets import (QCheckBox, QComboBox, QAction, QLineEdit,
                              QDockWidget, QFormLayout, QWidget)
 
-from rayoptics.optical.model_enums import PupilType
-from rayoptics.optical.model_enums import FieldType
-
 
 PanelInfo = namedtuple('PanelInfo', ['dock', 'panel_widget', 'menu_action'])
 
@@ -216,7 +213,8 @@ class SpectrumWavelengthsPanel(QWidget):
 
 
 class AperturePanel(QWidget):
-    comboItems = ["Ent Pupil Diam", "Object NA", "F/#", "NA"]
+    obj_img_items = ["object", "image"]
+    pupil_type_items = ["pupil", "NA", "f/#"]
 
     def __init__(self, gui_app, parent=None):
         super().__init__(parent)
@@ -224,10 +222,23 @@ class AperturePanel(QWidget):
         self.gui_app = gui_app
         apertureLayout = QFormLayout()
 
-        self.aperture_combo = EnumChoiceWidget(gui_app, self.root, None, self.comboItems)
-        self.aperture_combo.get = lambda: self.root().get_pupil_type()
-        self.aperture_combo.set = lambda value: self.root().mutate_pupil_type(PupilType(value))
-        apertureLayout.addRow('Type', self.aperture_combo.widget)
+        self.obj_img_combo = ListChoiceWidget(gui_app, lambda: self.root(),
+                                              None, self.obj_img_items)
+        self.obj_img_combo.get = lambda: self.root().key[1]
+        self.obj_img_combo.set = lambda value: \
+            self.root().mutate_pupil_type((self.root().key[0], 
+                                           self.obj_img_items[value], 
+                                           self.root().key[2]))
+        apertureLayout.addRow('Space', self.obj_img_combo.widget)
+
+        self.pupil_type_combo = ListChoiceWidget(gui_app, self.root, None, 
+                                                 self.pupil_type_items)
+        self.pupil_type_combo.get = lambda: self.root().key[2]
+        self.pupil_type_combo.set = lambda value: \
+            self.root().mutate_pupil_type((self.root().key[0], 
+                                           self.root().key[1],
+                                           self.pupil_type_items[value]))
+        apertureLayout.addRow('Type', self.pupil_type_combo.widget)
 
         self.aperture_edit = FloatFieldWidget(gui_app, self.root, 'value')
         apertureLayout.addRow('value', self.aperture_edit.widget)
@@ -239,12 +250,14 @@ class AperturePanel(QWidget):
 
     def update(self, opt_model):
         """ push backend data to widgets """
-        self.aperture_combo.refresh()
+        self.obj_img_combo.refresh()
+        self.pupil_type_combo.refresh()
         self.aperture_edit.refresh()
 
 
 class FieldOfViewPanel(QWidget):
-    comboItems = ["Object Angle", "Object Height", "Image Height"]
+    obj_img_items = ["object", "image"]
+    field_type_items = ["height", "angle"]
 
     def __init__(self, gui_app, parent=None):
         super().__init__(parent)
@@ -253,9 +266,22 @@ class FieldOfViewPanel(QWidget):
 
         fieldLayout = QFormLayout()
 
-        self.field_combo = EnumChoiceWidget(gui_app, self.root, None, self.comboItems)
-        self.field_combo.get = lambda: self.root().get_field_type()
-        self.field_combo.set = lambda value: self.root().mutate_field_type(FieldType(value))
+        self.obj_img_combo = ListChoiceWidget(gui_app, lambda: self.root(),
+                                              None, self.obj_img_items)
+        self.obj_img_combo.get = lambda: self.root().key[1]
+        self.obj_img_combo.set = lambda value: \
+            self.root().mutate_field_type((self.root().key[0], 
+                                           self.obj_img_items[value], 
+                                           self.root().key[2]))
+        fieldLayout.addRow('Space', self.obj_img_combo.widget)
+
+        self.field_combo = ListChoiceWidget(gui_app, lambda: self.root(),
+                                              None, self.field_type_items)
+        self.field_combo.get = lambda: self.root().key[2]
+        self.field_combo.set = lambda value: \
+            self.root().mutate_field_type((self.root().key[0], 
+                                           self.root().key[1],
+                                           self.field_type_items[value]))
         fieldLayout.addRow('Type', self.field_combo.widget)
 
         self.field_edit = FloatFieldWidget(gui_app, self.root, 'value')
