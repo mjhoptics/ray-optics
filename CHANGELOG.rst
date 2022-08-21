@@ -4,6 +4,10 @@
 Changelog
 =========
 
+Version 0.8.3
+=============
+Add :func:`~.gui.appcmds.set_pupil` function to set the pupil specification based on the aperture stop size. Add a hole feature to :class:`~.elem.elements.Element` and :class:`~.elem.elements.Mirror`. InteractiveLayout will draw holes but they haven't yet been included in the sequential model or the ray trace. The :meth:`~.seq.sequential.SequentialModel.add_surface` method was fixed and enhanced to take additional inputs for materials and allow use of a `sd` keyword argument to specify the semi-diameter of the surface. A variety of bug fixes were made to import and saving of models as well as other fixes; see the update log for specifics. All of the .roa files on the distro were restored and saved with the current version. At the same time, the long deprecated Pupil and Field enums were removed from the code. Finally, the build and packaging of **ray-optics** was updated to use current python technologies.
+
 Version 0.8.2
 =============
 Fixes to drawing cemented element flats when the inner surfaces intersect the outer flats. Accept URLs from the OpticalBench database as arguments to :func:`~.gui.appcmds.open_model`. Enhance :func:`~listobj` output for :class:`~.seq.sequential.SequentialModel` and :class:`~.seq.gap.Gap`. Bump pyqt5 compatability to v5.15.
