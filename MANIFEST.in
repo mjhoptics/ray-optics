@@ -1,2 +1,0 @@
-include versioneer.py
-include src/rayoptics/_version.py
