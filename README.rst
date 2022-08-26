@@ -1,7 +1,7 @@
 
 .. image:: https://readthedocs.org/projects/rayoptics/badge/?version=latest
    :alt: ReadTheDocs
-   :target: https://rayoptics.readthedocs.io/en/stable/
+   :target: https://rayoptics.readthedocs.io/
 
 .. image:: https://img.shields.io/pypi/v/rayoptics.svg
    :alt: PyPI-Server
