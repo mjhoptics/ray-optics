@@ -13,7 +13,6 @@ import math
 from . import tla
 from . import reader as cvr
 
-import rayoptics.optical.opticalmodel as opticalmodel
 from rayoptics.elem.surface import (DecenterData, Circular, Rectangular,
                                     Elliptical)
 from rayoptics.elem import profiles
@@ -58,6 +57,7 @@ def read_lens(filename, **kwargs):
     Returns:
         an OpticalModel instance and a info tuple
     """
+    import rayoptics.optical.opticalmodel as opticalmodel
     global _glass_handler, _track_contents
     global _reading_private_catalog
     logging.basicConfig(filename='cv_cmd_proc.log',

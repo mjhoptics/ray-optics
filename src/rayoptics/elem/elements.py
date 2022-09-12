@@ -22,7 +22,7 @@ from anytree import Node  # type: ignore
 
 import rayoptics.util.rgbtable as rgbt
 import rayoptics.oprops.thinlens as thinlens
-from rayoptics.elem import parttree
+import rayoptics.elem.parttree as parttree
 from rayoptics.elem.profiles import SurfaceProfile, Spherical, Conic
 from rayoptics.elem.surface import Surface
 from rayoptics.seq.gap import Gap

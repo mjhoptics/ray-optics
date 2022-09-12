@@ -11,7 +11,6 @@ import logging
 import math
 import requests
 
-from rayoptics.optical import opticalmodel
 from rayoptics.elem.surface import (DecenterData, Circular, Rectangular,
                                     Elliptical)
 from rayoptics.elem import profiles
@@ -86,6 +85,7 @@ def read_lens_url(url, **kwargs):
 
 def read_lens(filename, inpt, **kwargs):
     ''' given inpt str of a Zemax .zmx file, return an OpticalModel  '''
+    import rayoptics.optical.opticalmodel as opticalmodel
     global _glass_handler, _cmd_not_handled, _track_contents
     _cmd_not_handled = util.Counter()
     _track_contents = util.Counter()

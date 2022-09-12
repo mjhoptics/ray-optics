@@ -14,7 +14,7 @@ from anytree.exporter import DictExporter
 from anytree.importer import DictImporter
 from anytree.search import find_by_attr
 
-from rayoptics.elem import elements
+import rayoptics.elem.elements as elements
 import rayoptics.oprops.thinlens as thinlens
 
 

@@ -14,7 +14,7 @@ from rayoptics.gui.util import bbox_from_poly, scale_bounds
 
 from rayoptics.mpl.interactivefigure import InteractiveFigure
 
-from rayoptics.elem.layout import LensLayout
+import rayoptics.elem.layout
 
 
 class InteractiveLayout(InteractiveFigure):
@@ -39,7 +39,8 @@ class InteractiveLayout(InteractiveFigure):
                  **kwargs):
         self.refresh_gui = refresh_gui
         is_dark = kwargs['is_dark'] if 'is_dark' in kwargs else False
-        self.layout = LensLayout(opt_model, is_dark=is_dark)
+        self.layout = rayoptics.elem.layout.LensLayout(opt_model, 
+                                                       is_dark=is_dark)
         if do_draw_rays:
             self.do_draw_beams = do_draw_beams
             self.do_draw_edge_rays = do_draw_rays
