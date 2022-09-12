@@ -633,6 +633,39 @@ def intersect_2_lines(P1, V1, P2, V2):
     return s
 
 
+def trace_astigmatism_curve(opt_model, num_points=21, **kwargs):
+    """ Trace a fan of fields and collect astigmatism data for each field.
+
+    Args:
+        opt_model: the optical model
+        num_points: the number of FOV sampling points
+        kwargs: keyword args for ray trace
+
+    Returns:
+        tuple: field point, sagittal and tangential focus shifts
+    """
+    from rayoptics.raytr.opticalspec import Field
+    s_data = []
+    t_data = []
+    field_data = []
+
+    osp = opt_model.optical_spec
+    _, wvl, foc = osp.lookup_fld_wvl_focus(0)
+    fld = Field()
+    max_field = osp['fov'].max_field()[0]
+    for f in np.linspace(0., max_field, num=num_points):
+        fld.y = f
+        ref_sphere, cr_pkg = setup_pupil_coords(opt_model, fld, wvl, foc)
+        fld.chief_ray = cr_pkg
+        fld.ref_sphere = ref_sphere
+        
+        s_foc, t_foc = trace_astigmatism(opt_model, fld, wvl, foc, **kwargs)
+        s_data.append(s_foc)
+        t_data.append(t_foc)
+        field_data.append(f)
+    return field_data, s_data, t_data
+
+
 def trace_astigmatism(opt_model, fld, wvl, foc, dx=0.001, dy=0.001):
     """ calculate astigmatism by tracing close rays about the chief ray at **fld**
 

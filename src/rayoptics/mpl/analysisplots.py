@@ -14,7 +14,7 @@ from rayoptics.mpl.axisarrayfigure import Fit
 from rayoptics.mpl.styledfigure import StyledFigure
 
 from rayoptics.raytr.opticalspec import Field
-from rayoptics.raytr.trace import trace_astigmatism
+from rayoptics.raytr.trace import trace_astigmatism, trace_astigmatism_curve
 from rayoptics.parax.thirdorder import compute_third_order
 
 
@@ -22,13 +22,12 @@ class FieldCurveFigure(StyledFigure):
     """ Plot of astigmatism curves """
 
     def __init__(self, opt_model,
-                 eval_fct=trace_astigmatism,
-                 user_scale_value=0.1,
+                 user_scale_value=0.1, num_points=21,
                  **kwargs):
         self.opt_model = opt_model
         self.scale_type = Fit.All
         self.user_scale_value = user_scale_value
-        self.eval_fct = eval_fct
+        self.num_points = num_points
 
         super().__init__(**kwargs)
 
@@ -40,20 +39,8 @@ class FieldCurveFigure(StyledFigure):
         return self
 
     def update_data(self, **kwargs):
-        self.s_data = []
-        self.t_data = []
-        self.field_data = []
-
-        osp = self.opt_model.optical_spec
-        _, wvl, foc = osp.lookup_fld_wvl_focus(0)
-        fld = Field()
-        max_field = osp.field_of_view.max_field()[0]
-        for f in np.linspace(0., max_field, num=21):
-            fld.y = f
-            s_foc, t_foc = self.eval_fct(self.opt_model, fld, wvl, foc)
-            self.s_data.append(s_foc)
-            self.t_data.append(t_foc)
-            self.field_data.append(f)
+        results = trace_astigmatism_curve(self.opt_model, self.num_points)
+        self.field_data, self.s_data, self.t_data = results
         return self
 
     def plot(self):
