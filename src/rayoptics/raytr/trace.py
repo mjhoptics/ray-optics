@@ -115,7 +115,7 @@ def trace_safe(opt_model, pupil, fld, wvl,
         if use_named_tuples:
             ray, op_delta, wvl = ray_pkg
             ray = [RaySeg(*rs) for rs in ray]
-            ray_pkg = ray, op_delta, wvl
+            ray_pkg = RayPkg(ray, op_delta, wvl)
 
         if output_filter is None:
             ray_result = ray_pkg
@@ -531,6 +531,23 @@ def get_chief_ray_pkg(opt_model, fld, wvl, foc):
     else:
         chief_ray_pkg = fld.chief_ray
     return chief_ray_pkg
+
+
+def refocus(opt_model):
+    """ Compute a focus shift bringing the axial marginal ray to zero. """
+    osp = opt_model['optical_spec']
+
+    fld = osp['fov'].fields[0]      # assumed to be the axial field
+    wvl = osp['wvls'].central_wvl
+
+    df_ray, ray_op, wvl = trace_safe(opt_model, [0., 1.], fld, wvl, 
+                                     output_filter=None, rayerr_filter='full', 
+                                     use_named_tuples=True)
+
+    defocus = -df_ray[-1].p[1]/(df_ray[-2].d[1]/df_ray[-2].d[2])
+
+    return defocus
+
 
 def trace_astigmatism_coddington_fan(opt_model, fld, wvl, foc):
     """ calculate astigmatism by Coddington trace at **fld** """

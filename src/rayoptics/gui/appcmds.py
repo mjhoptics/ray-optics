@@ -33,6 +33,7 @@ from rayoptics.parax.specsheet import (conjugate_types, SpecSheet,
                                        create_specsheet, create_specsheets,
                                        create_specsheet_from_model)
 from rayoptics.raytr import vigcalc
+from rayoptics.raytr import trace
 
 from rayoptics.gui.appmanager import ModelInfo
 from rayoptics.gui.roafile import open_roa
@@ -371,6 +372,17 @@ def set_pupil(opt_model, gui_parent=None):
         opt_model.update_model(src_model=opt_model['seq_model'])
     else:
         gui_parent.refresh_gui(src_model=opt_model['seq_model'])
+
+
+def refocus(opt_model, gui_parent=None):
+    """ Compute a focus shift bringing the axial marginal ray to zero. """
+    focus_shift = trace.refocus(opt_model)
+    opt_model['optical_spec']['focus'].focus_shift += focus_shift
+
+    if gui_parent is None:
+        opt_model.update_model(src_model=opt_model['optical_spec'])
+    else:
+        gui_parent.refresh_gui(src_model=opt_model['optical_spec'])
 
 
 def create_ray_fan_view(opt_model, data_type, gui_parent=None):
