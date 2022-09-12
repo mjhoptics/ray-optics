@@ -15,13 +15,15 @@ from rayoptics.optical import opticalmodel
 from rayoptics.elem.surface import (DecenterData, Circular, Rectangular,
                                     Elliptical)
 from rayoptics.elem import profiles
-from rayoptics.seq.medium import (glass_encode, Glass, GlassHandlerBase)
+from rayoptics.seq.medium import GlassHandlerBase
 from rayoptics.raytr.opticalspec import Field
 from rayoptics.util.misc_math import isanumber
 import rayoptics.zemax.zmx2ro as zmx2ro
 import rayoptics.oprops.thinlens as thinlens
 
 from opticalglass import glassfactory as gfact
+from opticalglass import modelglass as mg
+from opticalglass import opticalmedium as om
 from opticalglass import glasserror
 from opticalglass import util
 
@@ -531,7 +533,7 @@ class ZmxGlassHandler(GlassHandlerBase):
             elif name == '___BLANK':
                 nd = float(inputs[3])
                 vd = float(inputs[4])
-                g.medium = Glass(nd=nd, vd=vd, mat=glass_encode(nd, vd))
+                g.medium = mg.ModelGlass(nd, vd, om.glass_encode(nd, vd))
                 self.track_contents[name] += 1
                 return True
             elif isanumber(name):

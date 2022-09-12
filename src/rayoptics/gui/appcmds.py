@@ -14,6 +14,7 @@ import pathlib
 
 from opticalglass import glassmap as gm
 from opticalglass import glassfactory as gfact
+from opticalglass import opticalmedium as om
 
 from rayoptics.codev import cmdproc
 from rayoptics.optical import obench
@@ -32,7 +33,6 @@ from rayoptics.parax.specsheet import (conjugate_types, SpecSheet,
                                        create_specsheet, create_specsheets,
                                        create_specsheet_from_model)
 from rayoptics.raytr import vigcalc
-import rayoptics.seq.medium as medium
 
 from rayoptics.gui.appmanager import ModelInfo
 from rayoptics.gui.roafile import open_roa
@@ -451,7 +451,7 @@ def create_glass_map_view(opt_model, gui_parent=None):
     glasses = list()
     for g in opt_model.seq_model.gaps:
         m = g.medium
-        if not isinstance(m, medium.Air):
+        if not isinstance(m, om.Air):
             if m.name() not in glass_names:
                 glass_names.add(m.name())
                 glasses.append(m)

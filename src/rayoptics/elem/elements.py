@@ -20,15 +20,12 @@ import numpy as np
 
 from anytree import Node  # type: ignore
 
-import rayoptics
-
 import rayoptics.util.rgbtable as rgbt
 import rayoptics.oprops.thinlens as thinlens
 from rayoptics.elem import parttree
 from rayoptics.elem.profiles import SurfaceProfile, Spherical, Conic
 from rayoptics.elem.surface import Surface
 from rayoptics.seq.gap import Gap
-from rayoptics.seq.medium import Glass
 
 # from rayoptics.optical.opticalmodel import OpticalModel
 from rayoptics.seq.sequential import SequentialModel
@@ -40,6 +37,7 @@ from rayoptics.gui.actions import (Action, AttrAction, SagAction, BendAction,
 from rayoptics.gui.util import calc_render_color_for_material
 
 import opticalglass.glassfactory as gfact  # type: ignore
+from opticalglass.modelglass import ModelGlass  # type: ignore
 
 GraphicsHandle = namedtuple('GraphicsHandle', ['polydata', 'tfrm', 'polytype',
                                                'color'], defaults=(None,))
@@ -122,7 +120,7 @@ def create_mirror(c=0.0, r=None, cc=0.0, ec=None,
 def lens_from_power(power=0., bending=0., th=None, sd=1.,
                     med=None, nom_wvl='d'):
     if med is None:
-        med = Glass()
+        med = ModelGlass(1.517, 64.2, '517642')
     rndx = med.rindex(nom_wvl)
 
     if th is None:
@@ -145,7 +143,7 @@ def lens_from_power(power=0., bending=0., th=None, sd=1.,
 def create_lens(power=0., bending=0., th=None, sd=1., med=None, 
                 lens=None, **kwargs):
     if med is None:
-        med = Glass()
+        med = ModelGlass(1.517, 64.2, '517642')
     if lens is None:
         lens = lens_from_power(power=power, bending=bending, th=th, sd=sd,
                                med=med)

@@ -9,7 +9,13 @@
 """
 
 
-from . import medium as m
+from opticalglass import opticalmedium as om
+
+
+def gap_medium(g) -> str:
+    """ return a formatted string of the gap's medium. """
+    m = g.medium
+    return f"{m.name():<12} {m.__class__.__name__:<14} {m.__module__:<27}"
 
 
 class Gap:
@@ -29,7 +35,7 @@ class Gap:
         medium: a :class:`~optical.medium.Medium` or a catalog glass instance
     """
 
-    def __init__(self, t=0.0, med=m.Air()):
+    def __init__(self, t=0.0, med=om.Air()):
         self.thi = t
         self.medium = med
 

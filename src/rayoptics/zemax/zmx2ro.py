@@ -8,7 +8,7 @@
 .. codeauthor: Michael J. Hayford
 """
 import numpy as np
-import rayoptics.seq.medium as mdm
+from opticalglass import opticalmedium as om
 import rayoptics.elem.profiles as profiles
 import rayoptics.elem.surface as surface
 
@@ -116,7 +116,7 @@ def is_null_ifc(ifc):
 
 
 def is_null_gap(gap):
-    if gap.thi == 0 and isinstance(gap.medium, mdm.Air):
+    if gap.thi == 0 and isinstance(gap.medium, om.Air):
         return True
     else:
         return False

@@ -63,6 +63,10 @@ def postprocess_roa(opt_model, **kwargs):
         if hasattr(opt_model, 'part_tree'):
             delattr(opt_model, 'part_tree')
 
+    for i, g in enumerate(opt_model.seq_model.gaps):
+        if hasattr(g.medium, 'convert_to_OG'):
+            g.medium = g.medium.convert_to_OG()
+
     opt_model.sync_to_restore()
     return opt_model
 

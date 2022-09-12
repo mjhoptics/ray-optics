@@ -13,13 +13,14 @@ from anytree import Node
 
 from rayoptics.elem import surface
 from . import gap
-from . import medium as m
 from rayoptics.raytr import raytrace as rt
 from rayoptics.raytr import trace as trace
 from rayoptics.raytr import waveabr
 from rayoptics.elem import transform as trns
 from opticalglass import glassfactory as gfact
 from opticalglass import glasserror as ge
+from opticalglass import modelglass as mg
+from opticalglass import opticalmedium as om
 
 import numpy as np
 from math import copysign, sqrt
@@ -1037,16 +1038,16 @@ def create_surface_and_gap(surf_data, radius_mode=False, prev_medium=None,
         if isanumber(surf_data[2]):  # assume all args are numeric
             if len(surf_data) <= 3:
                 if surf_data[2] == 1.0:
-                    mat = m.Air()
+                    mat = om.Air()
                 else:
-                    mat = m.Medium(surf_data[2], f"n:{surf_data[2]:.3f}")
+                    mat = om.ConstantIndex(surf_data[2], f"n:{surf_data[2]:.3f}")
             else:
                 if surf_data[2] == 1.0:
-                    mat = m.Air()
+                    mat = om.Air()
                 elif surf_data[3] == '':
-                    mat = m.Medium(surf_data[2], f"n:{surf_data[2]:.3f}")
+                    mat = om.ConstantIndex(surf_data[2], f"n:{surf_data[2]:.3f}")
                 else:
-                    mat = m.Glass(surf_data[2], surf_data[3], '')
+                    mat = mg.ModelGlass(surf_data[2], surf_data[3], '')
 
         elif isinstance(surf_data[2], str):  # string args
             if surf_data[2].upper() == 'REFL':
@@ -1063,7 +1064,7 @@ def create_surface_and_gap(surf_data, radius_mode=False, prev_medium=None,
                 elif num_str_args == 1:
                     name, cat = surf_data[2].split(',')
                 elif num_str_args == 0:
-                    mat = m.Air()
+                    mat = om.Air()
 
                 if num_str_args > 0:
                     try:
@@ -1073,7 +1074,7 @@ def create_surface_and_gap(surf_data, radius_mode=False, prev_medium=None,
                                      gerr.catalog,
                                      gerr.name)
                         logging.info('Replacing material with air.')
-                        mat = m.Air()
+                        mat = om.Air()
         # glass instance args. if they respond to `rindex`, they're in
         elif hasattr(surf_data[2], 'rindex'):
             mat = surf_data[2]
@@ -1082,7 +1083,7 @@ def create_surface_and_gap(surf_data, radius_mode=False, prev_medium=None,
             s.set_max_aperture(surf_data[4])
 
     else:  # only curvature and thickness entered, set material to air
-        mat = m.Air()
+        mat = om.Air()
 
     if kwargs.get('sd', None) is not None:
         s.set_max_aperture(kwargs.get('sd'))

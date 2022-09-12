@@ -18,12 +18,14 @@ from rayoptics.elem.surface import (DecenterData, Circular, Rectangular,
                                     Elliptical)
 from rayoptics.elem import profiles
 from rayoptics.oprops import doe
-from rayoptics.seq.medium import (Air, Glass, InterpolatedGlass, Medium,
-                                  GlassHandlerBase)
+from rayoptics.seq.medium import GlassHandlerBase
 from rayoptics.raytr.opticalspec import Field
 from rayoptics.util.misc_math import isanumber
 
 from opticalglass import util
+
+from opticalglass import opticalmedium as om
+from opticalglass import modelglass as mg
 
 _tla = tla.MapTLA()
 
@@ -134,8 +136,9 @@ def process_command(cmd):
         label = cmd[0]
         for t in cmd[1:]:
             dlist.append(eval("float("+t+")"))
-        prv_glass = InterpolatedGlass(label, wvls=_private_catalog_wvls,
-                                      rndx=dlist)
+        prv_glass = om.InterpolatedMedium(label, 
+                                          wvls=_private_catalog_wvls, 
+                                          rndx=dlist, cat='CV private catalog')
         _private_catalog_glasses[label] = prv_glass
 
     return cmd_fct, tla, qlist, dlist
@@ -308,7 +311,7 @@ def update_surface_and_gap(opt_model, dlist, idx=None):
         g.thi = dlist[1]
 
         if len(dlist) < 3:
-            g.medium = Air()
+            g.medium = om.Air()
         else:
             if dlist[2].upper() == 'REFL':
                 s.interact_mode = 'reflect'
@@ -590,7 +593,7 @@ class CVGlassHandler(GlassHandlerBase):
                 return medium
             else:  # process as fictitious glass code
                 nd, vd = fictitious_glass_decode(float(glass_data))
-                medium = Glass(nd, vd)
+                medium = mg.ModelGlass(nd, vd, glass_data)
                 self.track_contents['fictitious glass'] += 1
                 return medium
         else:  # look for glass name and optional catalog
@@ -616,5 +619,5 @@ class CVGlassHandler(GlassHandlerBase):
                 if name in _private_catalog_glasses:
                     medium = _private_catalog_glasses[name]
                 else:
-                    medium = Medium(1.5, 'not '+name)
+                    medium = om.ConstantIndex(1.5, 'not '+name)
                 return medium

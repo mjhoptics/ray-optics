@@ -22,6 +22,9 @@ from opticalglass import util
 from opticalglass.spectral_lines import get_wavelength
 from opticalglass.buchdahl import Buchdahl, Buchdahl2
 
+from opticalglass import opticalmedium as om
+from opticalglass import modelglass as mg
+
 
 def glass_encode(n, v):
     return f'{int(1000*round((n - 1), 3)):3d}.{int(round(10*v, 3)):3d}'
@@ -43,6 +46,9 @@ class Medium:
     def __repr__(self):
         return ('Medium(' + str(self.n) + ', ' + f"'{self.label}'" +
                 ', cat=' + f"'{self._catalog_name}'" + ')')
+
+    def convert_to_OG(self):
+        return om.ConstantIndex(self.n, self.label, cat=self._catalog_name)
 
     def name(self):
         return self.label
@@ -72,6 +78,9 @@ class Air(Medium):
     def __repr__(self):
         return 'Air()'
 
+    def convert_to_OG(self):
+        return om.Air()
+
     def name(self):
         return self.label
 
@@ -97,6 +106,10 @@ class Glass(Medium):
                 ', vd=' + str(self.v) +
                 ', mat=' + f"'{self.label}'" +
                 ', cat=' + f"'{self._catalog_name}'" + ')')
+
+    def convert_to_OG(self):
+        return mg.ModelGlass(self.n, self.v, 
+                             self.label, cat=self._catalog_name)
 
     def sync_to_restore(self):
         if not hasattr(self, 'bdhl_model'):
@@ -149,6 +162,11 @@ class InterpolatedGlass():
                 ', cat=' + f"'{self._catalog}'" +
                 ', wvls=' + repr(self.wvls) +
                 ', rndx=' + repr(self.rndx) + ')')
+
+    def convert_to_OG(self):
+        return om.InterpolatedMedium(self.label, 
+                                     rndx=self.rndx, wvls=self.wvls, 
+                                     cat=self._catalog)
 
     def __json_encode__(self):
         attrs = dict(vars(self))
@@ -266,7 +284,7 @@ class GlassHandlerBase():
         medium = self.handle_glass_not_found(name)
         if medium is None and always is True:
             self.track_contents['glass not found'] += 1
-            medium = Medium(1.5, 'not '+name)
+            medium = om.ConstantIndex(1.5, 'not '+name)
 
         return medium
 
@@ -277,7 +295,7 @@ class GlassHandlerBase():
                 # process as a 6 digit code, no decimal point
                 nd = 1 + float(name[:3])/1000
                 vd = float(name[3:])/10
-                medium = Glass(nd, vd, mat=name)
+                medium = mg.ModelGlass(nd, vd, name)
                 self.track_contents['6 digit code'] += 1
                 return medium
         else:
