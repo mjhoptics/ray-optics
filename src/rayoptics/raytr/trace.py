@@ -104,7 +104,7 @@ def trace_safe(opt_model, pupil, fld, wvl,
         elif rayerr_filter == 'full':
             ray, op_delta, wvl = rayerr.ray_pkg
             ray = [RaySeg(*rs) for rs in ray]
-            rayerr.ray_pkg = ray, op_delta, wvl
+            rayerr.ray_pkg = RayPkg(ray, op_delta, wvl)
             ray_result = rayerr
         elif rayerr_filter == 'summary':
             rayerr.ray_pkg = None
@@ -429,6 +429,8 @@ def trace_fan(opt_model, fan_rng, fld, wvl, foc, img_filter=None,
 
 def trace_grid(opt_model, grid_rng, fld, wvl, foc, img_filter=None,
                form='grid', append_if_none=True, **kwargs):
+    output_filter = kwargs.get('output_filter', None)
+    rayerr_filter = kwargs.get('rayerr_filter', None)
     start = np.array(grid_rng[0])
     stop = grid_rng[1]
     num = grid_rng[2]
@@ -443,14 +445,16 @@ def trace_grid(opt_model, grid_rng, fld, wvl, foc, img_filter=None,
 
         for j in range(num):
             pupil = np.array(start)
-            if (pupil[0]**2 + pupil[1]**2) < 1.0:
-                ray_pkg = trace_base(opt_model, pupil, fld, wvl, **kwargs)
+            ray_result = trace_safe(opt_model, pupil, fld, wvl, 
+                                    output_filter, rayerr_filter, 
+                                    check_apertures=True, **kwargs)
+            if ray_result is not None:
                 if img_filter:
-                    result = img_filter(pupil, ray_pkg)
+                    result = img_filter(pupil, ray_result)
                     working_grid.append(result)
                 else:
-                    working_grid.append([pupil[0], pupil[1], ray_pkg])
-            else:  # ray outside pupil
+                    working_grid.append([pupil[0], pupil[1], ray_result])
+            else:  # ray outside pupil or failed
                 if img_filter:
                     result = img_filter(pupil, None)
                     if result is not None or append_if_none:

@@ -395,13 +395,12 @@ def trace_ray_list(opt_model, pupil_coords, fld, wvl, foc,
 
     ray_list = []
     for pupil in pupil_coords:
-        if (pupil[0]**2 + pupil[1]**2) < 1.0:
-            ray_result = trace.trace_safe(opt_model, pupil, fld, wvl, 
-                                          output_filter, rayerr_filter, 
-                                          **kwargs)
-            if ray_result is not None:
-                ray_list.append([pupil[0], pupil[1], ray_result])
-        else:  # ray outside pupil
+        ray_result = trace.trace_safe(opt_model, pupil, fld, wvl, 
+                                      output_filter, rayerr_filter, 
+                                      **kwargs)
+        if ray_result is not None:
+            ray_list.append([pupil[0], pupil[1], ray_result])
+        else:  # ray outside pupil or failed
             if append_if_none:
                 ray_list.append([pupil[0], pupil[1], None])
 
@@ -475,7 +474,7 @@ def eval_pupil_coords(opt_model, fld, wvl, foc,
     grid_def = [grid_start, grid_stop, num_rays]
 
     ray_list = trace_ray_list(opt_model, sampler.grid_ray_generator(grid_def),
-                              fld, wvl, foc)
+                              fld, wvl, foc, check_apertures=True)
 
     def rfc(ri):
         pupil_x, pupil_y, ray_pkg = ri
@@ -501,7 +500,7 @@ def trace_pupil_coords(opt_model, pupil_coords, fld, wvl, foc,
     fld.ref_sphere = ref_sphere
 
     ray_list = trace_ray_list(opt_model, pupil_coords,
-                              fld, wvl, foc)
+                              fld, wvl, foc, check_apertures=True)
 
     return ray_list
 
@@ -591,13 +590,12 @@ def trace_ray_grid(opt_model, grid_rng, fld, wvl, foc, append_if_none=True,
 
         for j in range(num):
             pupil = np.array(start)
-            if (pupil[0]**2 + pupil[1]**2) < 1.0:
-                ray_result = trace.trace_safe(opt_model, pupil, fld, wvl,
-                                              output_filter, rayerr_filter, 
-                                              **kwargs)
-                if ray_result is not None:
+            ray_result = trace.trace_safe(opt_model, pupil, fld, wvl, 
+                                          output_filter, rayerr_filter, 
+                                          **kwargs)
+            if ray_result is not None:
                     grid_row.append([pupil[0], pupil[1], ray_result])
-            else:  # ray outside pupil
+            else:  # ray outside pupil or failed
                 if append_if_none:
                     grid_row.append([pupil[0], pupil[1], None])
 
@@ -623,7 +621,8 @@ def eval_wavefront(opt_model, fld, wvl, foc,
     grid_stop = np.array([1., 1.])
     grid_def = [grid_start, grid_stop, num_rays]
 
-    grid = trace_ray_grid(opt_model, grid_def, fld, wvl, foc)
+    grid = trace_ray_grid(opt_model, grid_def, 
+                          fld, wvl, foc, check_apertures=True)
 
     central_wvl = opt_model.optical_spec.spectral_region.central_wvl
     convert_to_opd = 1/opt_model.nm_to_sys_units(central_wvl)
@@ -655,7 +654,8 @@ def trace_wavefront(opt_model, fld, wvl, foc,
     grid_stop = np.array([1., 1.])
     grid_def = [grid_start, grid_stop, num_rays]
 
-    grid = trace_ray_grid(opt_model, grid_def, fld, wvl, foc)
+    grid = trace_ray_grid(opt_model, grid_def, 
+                          fld, wvl, foc, check_apertures=True)
 
     def wpc(gij):
         pupil_x, pupil_y, ray_pkg = gij
