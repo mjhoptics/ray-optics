@@ -189,9 +189,11 @@ class RayGeoPSF():
     def __init__(self, ray_list,
                  user_scale_value=0.1, scale_type='fit',
                  yaxis_ticks_position='left', dsp_typ='hist2d',
+                 num_img_samples=100,
                  **kwargs):
         self.ray_list = ray_list
         self.dsp_typ = dsp_typ
+        self.num_img_samples = num_img_samples
 
         if 'title' in kwargs:
             self.title = kwargs.pop('title', None)
@@ -245,42 +247,44 @@ class RayGeoPSF():
         return delta_x, delta_y, center_x, center_y
 
     def plot(self, ax):
+        num_img_samples = self.num_img_samples
         delta_x, delta_y, center_x, center_y = self.ray_data_bounds()
         if self.scale_type == 'fit':
             max_delta = delta_x if delta_x > delta_y else delta_y
             max_value = max_delta
             ax.set_xlim(-max_value, max_value)
             ax.set_ylim(center_y-max_value, center_y+max_value)
-            x_edges = np.linspace(-max_value, max_value, num=100)
+            x_edges = np.linspace(-max_value, max_value, num=num_img_samples)
             y_edges = np.linspace(center_y-max_value, center_y+max_value,
-                                  num=100)
+                                  num=num_img_samples)
             bins = [x_edges, y_edges]
         elif self.scale_type == 'user centered':
             max_value = self.user_scale_value
             ax.set_xlim(-max_value, max_value)
             ax.set_ylim(center_y-max_value, center_y+max_value)
-            x_edges = np.linspace(-max_value, max_value, num=100)
+            x_edges = np.linspace(-max_value, max_value, num=num_img_samples)
             y_edges = np.linspace(center_y-max_value, center_y+max_value,
-                                  num=100)
+                                  num=num_img_samples)
             bins = [x_edges, y_edges]
         elif self.scale_type == 'user':
             max_value = self.user_scale_value
             ax.set_xlim(-max_value, max_value)
             ax.set_ylim(-max_value, max_value)
-            edges = np.linspace(-max_value, max_value, num=100)
+            edges = np.linspace(-max_value, max_value, num=num_img_samples)
             bins = edges
 
         if self.dsp_typ == 'spot':
             ax.scatter(*self.ray_list.ray_abr, **self.plot_kwargs)
         elif self.dsp_typ == 'hist2d':
-            x_edges = np.linspace(-max_value, max_value, num=100)
-            y_edges = np.linspace(-max_value, max_value, num=100)
+            x_edges = np.linspace(-max_value, max_value, num=num_img_samples)
+            y_edges = np.linspace(-max_value, max_value, num=num_img_samples)
             h, xedges, yedges, qmesh = ax.hist2d(*self.ray_list.ray_abr,
                                                  # bins=edges,
                                                  bins=bins,
                                                  norm=self.norm,
                                                  **self.plot_kwargs)
             ax.set_facecolor(qmesh.cmap(0))
+            self.hist2d_data = h, xedges, yedges
 
         ax.set_aspect('equal')
 
