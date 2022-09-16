@@ -2,11 +2,15 @@
 # -*- coding: utf-8 -*-
 """Wavefront aberration calculations - **Experimental**
 
-   Functions for implementing HH Hopkins canonical coordinates and path 
-   difference calculations using equally inclined chords (eic). There is a
-   problem somewhere in that a simple fold mirror added to the system isn't
-   handled correctly by the eic calculation. See the `Newtonian with diagonal`
-   lens model.
+    Functions for implementing HH Hopkins canonical coordinates and path 
+    difference calculations using equally inclined chords (eic). There is a
+    problem somewhere in that a simple fold mirror added to the system isn't
+    handled correctly by the eic calculation. See the `Newtonian with diagonal`
+    lens model.
+
+    The main references for the calculations are in the H. H. Hopkins paper
+    `Calculation of the Aberrations and Image Assessment for a General Optical
+    System <https://doi.org/10.1080/713820605>`_
 
 .. Created on Tue Apr 12 22:04:59 2022
 
@@ -38,8 +42,8 @@ def eic_distance_from_axis(r, z_dir):
         float: distance along r from equally inclined chord point to p
     """
     # eq 3.20/3.21
-    e = ((np.dot(r[mc.p], r[mc.d]) + z_dir*r[mc.p][2]) /
-         (1.0 + z_dir*r[mc.d][2]))
+    dir0 = np.array([0., 0., z_dir])
+    e = np.dot(r[mc.p], r[mc.d] + dir0) / (1.0 + z_dir*r[mc.d][2])
     return e
 
 
@@ -76,30 +80,34 @@ def calc_delta_op_via_eic(ray, path):
 
         inc_pt = after_ray_seg[mc.p]
         after_dir = after_ray_seg[mc.d]
+        z_dir_after = (surf[mc.Zdir] if surf[mc.Zdir] is not None
+                       else z_dir_before)
 
+        # calculate the eic values in the interface coords
+        #  1) before_dir is in previous coord sys. transform it into the 
+        #     current coord system.
         b4_pt, b4_dir = transform_before_surface(surf[mc.Intfc],
                                                  (inc_pt, before_dir))
-        e = eic_distance_from_axis((b4_pt, before_dir), z_dir_before)
+        e = eic_distance_from_axis((inc_pt, b4_dir), z_dir_before)
 
-        z_dir_after = surf[mc.Zdir]
-        aft_pt, aft_dir = transform_after_surface(surf[mc.Intfc],
-                                                  (inc_pt, after_dir))
-        ep = eic_distance_from_axis((aft_pt, aft_dir), z_dir_after)
-
-        # eic_dst_before = ((inc_pt.dot(b4_dir) + z_dir_before*inc_pt[2]) /
-        #                   (1.0 + z_dir_before*b4_dir[2]))
+        # 2) the after coords are already in the current coord system.
+        ep = eic_distance_from_axis((inc_pt, after_dir), z_dir_after)
+        
+        print(" ")
+        print(f"before pt{i}: {inc_pt} -> {b4_pt}")
+        print(f"before dir{i}: {before_dir} -> {b4_dir}")
 
         # Per `Hopkins, 1981 <https://dx.doi.org/10.1080/713820605>`_, the
         #  propagation direction is given by the direction cosines of the ray
         #  and therefore doesn't require the use of a negated refractive index
         #  following a reflection. Thus we use the (positive) refractive indices
         #  from the seq_model.rndx array.
-        n_after = surf[mc.Indx]
+        n_after = surf[mc.Indx] if surf[mc.Indx] is not None else n_before
         dW = n_after*ep - n_before*e
 
         eic.append([n_before, e, n_after, ep, dW])
-        print("e{}= {:12.5g} e{}'= {:12.5g} dW={:10.8g} n={:8.5g}"
-              " n'={:8.5g}".format(i, e, i, ep, dW, n_before, n_after))
+        print(f"e{i}= {e:12.5g} e{i}'= {ep:12.5g} dW={dW:<14.8g} "
+              f"n={n_before:8.5g} n'={n_after:8.5g}")
 
         n_before = n_after
         before_dir = after_dir
@@ -133,11 +141,17 @@ def eic_path_accumulation(ray, rndx, lcl_tfrms, z_dir):
 
     before_dir = ray[0][1]
 
+    img_idx = len(z_dir)
+    
     for i, r in enumerate(ray):
-        rotT, _ = lcl_tfrms[i]
-        b4_dir = rotT.dot(before_dir)
+        rot, _ = lcl_tfrms[i]
+        if r is None:
+            b4_dir = before_dir
+        else:
+            rotT = rot.transpose()
+            b4_dir = rotT.dot(before_dir)
 
-        z_dir_after = z_dir[i]
+        z_dir_after = z_dir[i] if i < img_idx else z_dir[-1]
 
         inc_pt = ray[i][0]
         eic_dst_before = eic_distance_from_axis((inc_pt, b4_dir), z_dir_before)
@@ -151,14 +165,12 @@ def eic_path_accumulation(ray, rndx, lcl_tfrms, z_dir):
         #  and therefore doesn't require the use of a negated refractive index
         #  following a reflection. Thus we use the (positive) refractive indices
         #  from the seq_model.rndx array.
-        n_after = rndx[i]
+        n_after = z_dir_after*rndx[i] if i < img_idx else z_dir_before*rndx[-1]
         dW = n_after*eic_dst_after - n_before*eic_dst_before
 
         eic.append([n_before, eic_dst_before, n_after, eic_dst_after, dW])
-        print("e{}= {:12.5g} e{}'= {:12.5g} dW={:10.8g} n={:8.5g}"
-              " n'={:8.5g}".format(i, eic_dst_before,
-                                   i, eic_dst_after,
-                                   dW, n_before, n_after))
+        print(f"e{i}= {eic_dst_before:12.5g} e{i}'= {eic_dst_after:12.5g} "
+              f"dW={dW:10.8g} n={n_before:8.5g} n'={n_after:8.5g}")
 
         n_before = n_after
         before_dir = after_dir
@@ -191,6 +203,67 @@ def calc_path_length(eic, offset=0):
         return P, P1k, Ps
     else:
         return 0., 0., 0.
+
+
+# *****************
+# not validated yet
+# *****************
+def wave_abr_full_calc_HHH(opm, fod, fld, wvl, foc, path,
+                           ray_pkg, chief_ray_pkg, ref_sphere):
+    """Given a ray, a chief ray and an image pt, evaluate the OPD.
+
+    The main references for the calculations are in the H. H. Hopkins paper
+    `Calculation of the Aberrations and Image Assessment for a General Optical
+    System <https://doi.org/10.1080/713820605>`_
+
+    Args:
+        fod: :class:`~.FirstOrderData` for object and image space refractive
+             indices
+        fld: :class:`~.Field` point for wave aberration calculation
+        wvl: wavelength of ray (nm)
+        foc: defocus amount
+        ray_pkg: input tuple of ray, ray_op, wvl
+        chief_ray_pkg: input tuple of chief_ray, cr_exp_seg
+        ref_sphere: input tuple of image_pt, ref_dir, ref_sphere_radius
+
+    Returns:
+        opd: OPD of ray wrt chief ray at **fld**
+    """
+    image_pt, ref_dir, ref_sphere_radius = ref_sphere
+    cr, cr_exp_seg = chief_ray_pkg
+    cr_eic, cr_P, cr_P1k, cr_Ps = calc_delta_op_via_eic(cr, opm['sm'].path())
+    chief_ray, chief_ray_op, wvl = cr
+    cr_exp_pt, cr_exp_dir, cr_exp_dist, ifc, cr_b4_pt, cr_b4_dir = cr_exp_seg
+
+    ray, ray_op, wvl = ray_pkg
+    eic, P, P1k, Ps = calc_delta_op_via_eic(ray, opm['sm'].path())
+
+    k = -2  # last interface in sequence
+
+    # eq 3.12
+    e1 = eic_distance((ray[1][mc.p], ray[0][mc.d]),
+                      (chief_ray[1][mc.p], chief_ray[0][mc.d]))
+    # eq 3.13
+    ekp = eic_distance((ray[k][mc.p], ray[k][mc.d]),
+                       (chief_ray[k][mc.p], chief_ray[k][mc.d]))
+
+    b4_pt, b4_dir = transform_after_surface(ifc, (ray[k][mc.p], ray[k][mc.d]))
+    dst = ekp - cr_exp_dist
+    eic_exp_pt = b4_pt - dst*b4_dir
+    p_coord = eic_exp_pt - cr_exp_pt
+
+    F = ref_dir.dot(b4_dir) - b4_dir.dot(p_coord)/ref_sphere_radius
+    J = p_coord.dot(p_coord)/ref_sphere_radius - 2.0*ref_dir.dot(p_coord)
+
+    sign_soln = -1 if ref_dir[2]*cr.ray[-1][mc.d][2] < 0 else 1
+    denom = F + sign_soln*sqrt(F**2 + J/ref_sphere_radius)
+    ep = 0 if denom == 0 else J/denom
+
+    n_obj = abs(fod.n_obj)
+    n_img = abs(fod.n_img)
+    opd = -n_obj*e1 - P + n_img*ekp + cr_P - n_img*ep
+
+    return opd
 
 
 # HH Hopkins Canonical Coordinates - experimental
