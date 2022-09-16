@@ -17,6 +17,7 @@ from rayoptics.optical import model_enums
 import rayoptics.optical.model_constants as mc
 from opticalglass.spectral_lines import get_wavelength
 import rayoptics.util.colour_system as cs
+import rayoptics.gui.util as gui_util
 from rayoptics.util import colors
 srgb = cs.cs_srgb
 
@@ -567,6 +568,15 @@ class Field:
     def update(self):
         self.chief_ray = None
         self.ref_sphere = None
+        
+    def vignetting_bbox(self, pupil_spec: PupilSpec, oversize=1.02):
+        """ returns a bbox of the vignetted pupil ray extents. """
+        poly = []
+        for pup_ray in pupil_spec.pupil_rays:
+            vig_pup_ray = self.apply_vignetting(pup_ray)
+            poly.append(vig_pup_ray)
+        vig_bbox = oversize*gui_util.bbox_from_poly(poly)
+        return vig_bbox
 
     def apply_vignetting(self, pupil):
         vig_pupil = pupil[:]
