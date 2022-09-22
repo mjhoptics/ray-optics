@@ -9,6 +9,7 @@
 """
 import json
 import difflib
+import logging
 
 from scipy.interpolate import interp1d
 
@@ -32,6 +33,77 @@ def glass_encode(n, v):
 
 def glass_decode(gc):
     return round(1.0 + (int(gc)/1000), 3), round(100.0*(gc - int(gc)), 3)
+
+
+def decode_medium(*inputs, **kwargs):
+    """ Input utility for parsing various forms of glass input. 
+
+    The **inputs** can have several forms:
+        
+        - **refractive_index, v-number** (numeric)
+        - **refractive_index** only -> constant index model
+        - **glass_name, catalog_name** as 1 or 2 strings
+        - an instance with a `rindex` attribute
+        - **air**, str -> om.Air
+        - blank -> defaults to om.Air
+
+    """
+    if 'cat_list' in kwargs:
+        cat = kwargs['cat_list']
+    else:
+        cat = None
+    mat = None
+
+    logging.debug(f"num inputs = {len(inputs)}, inputs[0] = {inputs[0]}, "
+                  f"{type(inputs[0])}")
+    if isanumber(inputs[0]):  # assume all args are numeric
+        if len(inputs) <= 1:
+            if inputs[0] == 1.0:
+                mat = om.Air()
+            else:
+                mat = om.ConstantIndex(inputs[0], f"n:{inputs[0]:.3f}")
+        else:
+            if inputs[0] == 1.0:
+                mat = om.Air()
+            elif inputs[1] == '':
+                mat = om.ConstantIndex(inputs[0], f"n:{inputs[0]:.3f}")
+            else:
+                mat = mg.ModelGlass(inputs[0], inputs[1], '')
+
+    elif isinstance(inputs[0], str):  # string args
+        num_str_args = 0
+        for tkn in inputs:
+            if isinstance(tkn, str) and len(tkn) > 0:
+                num_str_args += 1
+        if num_str_args == 2:
+            name, cat = inputs[0].strip(), inputs[1].strip()
+        elif num_str_args == 1:
+            if inputs[0].upper() == 'AIR':
+                mat = om.Air()
+            elif cat is not None:
+                name = inputs[0]
+            else:
+                name, cat = inputs[0].split(',')
+                name, cat = name.strip(), cat.strip()
+        elif num_str_args == 0:
+            mat = om.Air()
+
+        if mat is None:
+            try:
+                mat = gfact.create_glass(name, cat)
+            except glasserror.GlassNotFoundError as gerr:
+                logging.info('%s glass data type %s not found',
+                             gerr.catalog,
+                             gerr.name)
+                logging.info('Replacing material with air.')
+                mat = om.Air()
+    # glass instance args. if they respond to `rindex`, they're in
+    elif hasattr(inputs[0], 'rindex'):
+        mat = inputs[0]
+
+    if mat:
+        logging.info(f"mat = {mat.name()}, {mat.catalog_name()}, {type(mat)}")
+    return mat
 
 
 # --- material definitions
