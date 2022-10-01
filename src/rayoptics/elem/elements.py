@@ -173,14 +173,14 @@ def create_cemented_doublet(power=0., bending=0., th=None, sd=1.,
                             glasses=('N-BK7,Schott', 'N-F2,Schott'),
                             **kwargs):
     from opticalglass.spectral_lines import get_wavelength  # type: ignore
-    from opticalglass import glass
+    from opticalglass import util
     wvls = np.array([get_wavelength(w) for w in ['d', 'F', 'C']])
     gla_a = gfact.create_glass(glasses[0])
     rndx_a = gla_a.calc_rindex(wvls)
-    Va, PcDa = glass.calc_glass_constants(*rndx_a)
+    Va, PcDa = util.calc_glass_constants(*rndx_a)
     gla_b = gfact.create_glass(glasses[1])
     rndx_b = gla_b.calc_rindex(wvls)
-    Vb, PcDb = glass.calc_glass_constants(*rndx_b)
+    Vb, PcDb = util.calc_glass_constants(*rndx_b)
 
     power_a, power_b = achromat(power, Va, Vb)
 
