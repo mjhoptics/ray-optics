@@ -362,6 +362,12 @@ class OpticalModel:
         """
         return self.system_spec.nm_to_sys_units(nm)
 
+    def add_part(self, factory_fct, *args, **kwargs):
+        """Use a factory_fct to create a new part and insert into optical model. """
+        descriptor = factory_fct(*args, **kwargs)
+        kwargs['insert'] = True
+        self.insert_ifc_gp_ele(*descriptor, **kwargs)
+
     def add_lens(self, **kwargs):
         """ Add a lens into the optical model
 
@@ -375,33 +381,24 @@ class OpticalModel:
                     - cv1: front curvature
                     - cv2: rear curvature
                     - th: lens thickness
-                    - glass_name_catalog: a str, e.g. 'N-BK7, Schott'
+                    - glass_input: a str, e.g. 'N-BK7, Schott' or 
+                        refractive index or index/V-number pair
                     - sd: lens semi-diameter
 
         """
-        descriptor = ele.create_lens(**kwargs)
-        kwargs['insert'] = True
-        self.insert_ifc_gp_ele(*descriptor, **kwargs)
+        self.add_part(ele.create_lens, **kwargs)
 
     def add_mirror(self, **kwargs):
-        descriptor = ele.create_mirror(**kwargs)
-        kwargs['insert'] = True
-        self.insert_ifc_gp_ele(*descriptor, **kwargs)
+        self.add_part(ele.create_mirror, **kwargs)
 
     def add_thinlens(self, **kwargs):
-        descriptor = ele.create_thinlens(**kwargs)
-        kwargs['insert'] = True
-        self.insert_ifc_gp_ele(*descriptor, **kwargs)
+        self.add_part(ele.create_thinlens, **kwargs)
 
     def add_dummy_plane(self, **kwargs):
-        descriptor = ele.create_dummy_plane(**kwargs)
-        kwargs['insert'] = True
-        self.insert_ifc_gp_ele(*descriptor, **kwargs)
+        self.add_part(ele.create_dummy_plane, **kwargs)
 
     def add_from_file(self, filename, **kwargs):
-        descriptor = ele.create_from_file(filename, **kwargs)
-        kwargs['insert'] = True
-        self.insert_ifc_gp_ele(*descriptor, **kwargs)
+        self.add_part(ele.create_from_file, filename, **kwargs)
 
     def add_assembly_from_seq(self, idx1, idx2, **kwargs):
         """ Create an Assembly from the elements in the sequence range. """

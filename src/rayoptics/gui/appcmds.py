@@ -132,8 +132,6 @@ def create_new_optical_model_from_specsheet(specsheet):
     """ create an OpticalModel with a basic thinlens model, given specsheet """
     opt_model = opticalmodel.OpticalModel(specsheet=specsheet)
 
-    seq_model = opt_model.seq_model
-
     # enter a basic thinlens model for the given specsheet
     imager = specsheet.imager
     if specsheet.conjugate_type == 'finite':
@@ -141,11 +139,7 @@ def create_new_optical_model_from_specsheet(specsheet):
     else:
         opt_model.seq_model.gaps[0].thi = 1.0e10
 
-    opt_model.insert_ifc_gp_ele(*ele.create_thinlens(
-        power=1/imager.f, indx=1.5), idx=0, t=imager.sp, insert=True)
-
-    opt_model.ele_model.add_dummy_interface_at_image(seq_model,
-                                                     seq_model.gbl_tfrms)
+    opt_model.add_thinlens(power=1/imager.f, indx=1.5, idx=0, t=imager.sp)
 
     opt_model.update_model()
 
