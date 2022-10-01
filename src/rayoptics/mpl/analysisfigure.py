@@ -322,8 +322,6 @@ class Wavefront():
         self.update_data()
 
     def init_axis(self, ax):
-        ax.set_xlim(-1., 1.)
-        ax.set_ylim(-1., 1.)
         ax.tick_params(labelbottom=False, labelleft=False)
         if self.title is not None:
             ax.set_title(self.title, fontsize='small')
@@ -356,7 +354,6 @@ class Wavefront():
                              origin='lower',
                              vmin=-max_value,
                              vmax=max_value,
-                             extent=[-1., 1., -1., 1.],
                              **self.plot_kwargs
                              )
         ax.figure.colorbar(hmap, ax=ax, use_gridspec=True)

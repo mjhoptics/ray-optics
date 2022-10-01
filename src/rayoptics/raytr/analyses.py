@@ -326,11 +326,13 @@ class RayList():
         wl: wavelength (nm) to trace the fan, or central wavelength if None
         foc: focus shift to apply to the results
         image_pt_2d: image offset to apply to the results
+        apply_vignetting: whether to apply vignetting factors to pupil coords
     """
 
     def __init__(self, opt_model,
                  pupil_gen=None, pupil_coords=None, num_rays=21,
-                 f=0, wl=None, foc=None, image_pt_2d=None):
+                 f=0, wl=None, foc=None, image_pt_2d=None, 
+                 apply_vignetting=True):
         self.opt_model = opt_model
         osp = opt_model.optical_spec
         if pupil_coords is not None and pupil_gen is None:
@@ -354,6 +356,7 @@ class RayList():
         self.foc = osp.defocus.focus_shift if foc is None else foc
         self.image_pt_2d = image_pt_2d if image_pt_2d is not None  \
             else np.array([0., 0.])
+        self.apply_vignetting = apply_vignetting
 
         self.update_data()
 
@@ -375,7 +378,8 @@ class RayList():
             self.ray_list = trace_pupil_coords(
                 self.opt_model, self.pupil_coords,
                 self.fld, self.wvl, self.foc,
-                image_pt_2d=self.image_pt_2d)
+                image_pt_2d=self.image_pt_2d,
+                apply_vignetting=self.apply_vignetting)
 
         ray_list_data = focus_pupil_coords(
             self.opt_model, self.ray_list,
@@ -462,7 +466,7 @@ def trace_list_of_rays(opt_model, rays,
 
 
 def eval_pupil_coords(opt_model, fld, wvl, foc,
-                      image_pt_2d=None, num_rays=21):
+                      image_pt_2d=None, num_rays=21, **kwargs):
     """Trace a list of rays and return the transverse abr."""
     ref_sphere, cr_pkg = trace.setup_pupil_coords(opt_model, fld, wvl, foc, 
                                                     image_pt=image_pt_2d)
@@ -474,7 +478,7 @@ def eval_pupil_coords(opt_model, fld, wvl, foc,
     grid_def = [grid_start, grid_stop, num_rays]
 
     ray_list = trace_ray_list(opt_model, sampler.grid_ray_generator(grid_def),
-                              fld, wvl, foc, check_apertures=True)
+                              fld, wvl, foc, check_apertures=True, **kwargs)
 
     def rfc(ri):
         pupil_x, pupil_y, ray_pkg = ri
@@ -492,7 +496,7 @@ def eval_pupil_coords(opt_model, fld, wvl, foc,
 
 
 def trace_pupil_coords(opt_model, pupil_coords, fld, wvl, foc,
-                       image_pt_2d=None):
+                       image_pt_2d=None, **kwargs):
     """Trace a list of rays and return data needed for rapid refocus."""
     ref_sphere, cr_pkg = trace.setup_pupil_coords(opt_model, fld, wvl, foc, 
                                                     image_pt=image_pt_2d)
@@ -500,7 +504,8 @@ def trace_pupil_coords(opt_model, pupil_coords, fld, wvl, foc,
     fld.ref_sphere = ref_sphere
 
     ray_list = trace_ray_list(opt_model, pupil_coords,
-                              fld, wvl, foc, check_apertures=True)
+                              fld, wvl, foc, 
+                              check_apertures=True, **kwargs)
 
     return ray_list
 
