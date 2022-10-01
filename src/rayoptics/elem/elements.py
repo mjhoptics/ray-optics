@@ -26,6 +26,7 @@ import rayoptics.elem.parttree as parttree
 from rayoptics.elem.profiles import SurfaceProfile, Spherical, Conic
 from rayoptics.elem.surface import Surface
 from rayoptics.seq.gap import Gap
+from rayoptics.seq.medium import decode_medium
 
 # from rayoptics.optical.opticalmodel import OpticalModel
 from rayoptics.seq.sequential import SequentialModel
@@ -121,12 +122,17 @@ def lens_from_power(power=0., bending=0., th=None, sd=1.,
                     med=None, nom_wvl='d'):
     if med is None:
         med = ModelGlass(1.517, 64.2, '517642')
+    else:
+        med = decode_medium(med)
     rndx = med.rindex(nom_wvl)
 
     if th is None:
         th = sd/5
     
-    if bending == -1:
+    if bending == 1:
+        cv1 = power/(rndx - 1)
+        cv2 = 0
+    elif bending == -1:
         cv2 = -power/(rndx - 1)
         cv1 = 0
     else:
@@ -138,24 +144,45 @@ def lens_from_power(power=0., bending=0., th=None, sd=1.,
         cv2 = cv1*B
 
     return cv1, cv2, th, rndx, sd
-   
+
 
 def create_lens(power=0., bending=0., th=None, sd=1., med=None, 
                 lens=None, **kwargs):
+    """ Create a lens element chunk of sm, em, and pt tree 
+    
+    Args:
+        kwargs: keyword arguments including:
+
+            - idx: insertion point in the sequential model
+            - t: the thickness following a chunk when inserting
+            - lens: tuple of `cv1, cv2, th, glass_name_catalog, sd` where:
+
+                - cv1: front curvature
+                - cv2: rear curvature
+                - th: lens thickness
+                - glass_input: a str, e.g. 'N-BK7, Schott' or index (+V-number)
+                - sd: lens semi-diameter
+
+        """
     if med is None:
-        med = ModelGlass(1.517, 64.2, '517642')
+        mat = ModelGlass(1.517, 64.2, '517642')
+    else:
+        mat = decode_medium(med)
+        
     if lens is None:
         lens = lens_from_power(power=power, bending=bending, th=th, sd=sd,
-                               med=med)
+                               med=mat)
+        cv1, cv2, th, rndx, sd = lens
     else:
         cv1, cv2, th, glass, sd = lens
-        med = gfact.create_glass(glass)
-        rndx = med.calc_rindex('d')
-        lens = cv1, cv2, th, rndx, sd
+        mat = decode_medium(glass)
+
+    rndx = mat.rindex('d')
+    lens = cv1, cv2, th, rndx, sd
 
     s1 = Surface(profile=Spherical(c=cv1), max_ap=sd, delta_n=(rndx - 1))
     s2 = Surface(profile=Spherical(c=cv2), max_ap=sd, delta_n=(1 - rndx))
-    g = Gap(t=th, med=med)
+    g = Gap(t=th, med=mat)
     le = Element(s1, s2, g, sd=sd)
     tree = le.tree()
 

@@ -13,6 +13,7 @@ from anytree import Node
 
 from rayoptics.elem import surface
 from . import gap
+from . import medium
 from rayoptics.raytr import raytrace as rt
 from rayoptics.raytr import trace as trace
 from rayoptics.raytr import waveabr
@@ -366,12 +367,13 @@ class SequentialModel:
 
         The `refractive_index, v-number` entry can have several forms:
 
-            - **refractive_index, v-number**
+            - **refractive_index, v-number** (numeric)
             - **refractive_index** only -> constant index model
-            - **'REFL'** -> set interact_mode to 'reflect'
             - **glass_name, catalog_name** as 1 or 2 strings
             - an instance with a `rindex` attribute
-            - blank -> defaults to air
+            - **air**, str -> om.Air
+            - blank -> defaults to om.Air
+            - **'REFL'** -> set interact_mode to 'reflect'
 
         The `semi-diameter` entry is optional. It may also be entered using the 
         `sd` keyword argument.
@@ -503,6 +505,8 @@ class SequentialModel:
 
     def set_from_specsheet(self, specsheet):
         if 'parax_data' not in self.opt_model['analysis_results']:
+            return
+        if self.opt_model['analysis_results']['parax_data'] is None:
             return
         if len(specsheet.imager_inputs) == 2:
             fod = self.opt_model['analysis_results']['parax_data'].fod
@@ -1013,12 +1017,13 @@ def create_surface_and_gap(surf_data, radius_mode=False, prev_medium=None,
 
     The `refractive_index, v-number` entry can have several forms:
         
-        - **refractive_index, v-number**
+        - **refractive_index, v-number** (numeric)
         - **refractive_index** only -> constant index model
-        - **'REFL'** -> set interact_mode to 'reflect'
         - **glass_name, catalog_name** as 1 or 2 strings
         - an instance with a `rindex` attribute
-        - blank -> defaults to air
+        - **air**, str -> om.Air
+        - blank -> defaults to om.Air
+        - **'REFL'** -> set interact_mode to 'reflect'
 
     The `semi-diameter` entry is optional. It may also be entered using the 
     `sd` keyword argument.
@@ -1034,53 +1039,36 @@ def create_surface_and_gap(surf_data, radius_mode=False, prev_medium=None,
         s.profile.cv = surf_data[0]
 
     z_dir = 1
-    if len(surf_data) > 2:
-        if isanumber(surf_data[2]):  # assume all args are numeric
-            if len(surf_data) <= 3:
-                if surf_data[2] == 1.0:
-                    mat = om.Air()
-                else:
-                    mat = om.ConstantIndex(surf_data[2], f"n:{surf_data[2]:.3f}")
+    sd_indx = None
+    num_inputs = len(surf_data)
+    if num_inputs > 2:  # look for medium data, possibly followed by sd
+        last_k = 3      # assume medium with 1 input
+        if num_inputs >= 5:  # 2 input medium plus sd
+            last_k = 4
+            sd_indx = 4
+        elif num_inputs == 4:  # 2 inputs left
+            if type(surf_data[2]) == type(surf_data[3]):
+                # if same type, assume 2 medium inputs, no sd
+                last_k = 4
             else:
-                if surf_data[2] == 1.0:
-                    mat = om.Air()
-                elif surf_data[3] == '':
-                    mat = om.ConstantIndex(surf_data[2], f"n:{surf_data[2]:.3f}")
-                else:
-                    mat = mg.ModelGlass(surf_data[2], surf_data[3], '')
-
-        elif isinstance(surf_data[2], str):  # string args
-            if surf_data[2].upper() == 'REFL':
-                s.interact_mode = 'reflect'
-                mat = prev_medium
-                z_dir = -1
+                # different types, assume 1 medium input and sd
+                last_k = 3
+                sd_indx = 3
+        try:
+            # Feed the right number of inputs into decode_medium
+            if last_k == 3:
+                mat = medium.decode_medium(surf_data[2])
             else:
-                num_str_args = 0
-                for tkn in surf_data[2:]:
-                    if isinstance(tkn, str) and len(tkn) > 0:
-                        num_str_args += 1
-                if num_str_args == 2:
-                    name, cat = surf_data[2], surf_data[3]
-                elif num_str_args == 1:
-                    name, cat = surf_data[2].split(',')
-                elif num_str_args == 0:
-                    mat = om.Air()
+                mat = medium.decode_medium(surf_data[2], surf_data[3])
+        except ValueError:
+            if isinstance(surf_data[2], str):  # string args
+                if surf_data[2].upper() == 'REFL':
+                    s.interact_mode = 'reflect'
+                    mat = prev_medium
+                    z_dir = -1
 
-                if num_str_args > 0:
-                    try:
-                        mat = gfact.create_glass(name, cat)
-                    except ge.GlassNotFoundError as gerr:
-                        logging.info('%s glass data type %s not found',
-                                     gerr.catalog,
-                                     gerr.name)
-                        logging.info('Replacing material with air.')
-                        mat = om.Air()
-        # glass instance args. if they respond to `rindex`, they're in
-        elif hasattr(surf_data[2], 'rindex'):
-            mat = surf_data[2]
-
-        if len(surf_data) >= 5:
-            s.set_max_aperture(surf_data[4])
+        if sd_indx:
+            s.set_max_aperture(surf_data[sd_indx])
 
     else:  # only curvature and thickness entered, set material to air
         mat = om.Air()
