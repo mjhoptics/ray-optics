@@ -1228,6 +1228,9 @@ class XToroid(YToroid):
         super().__init__(c, cR, cc, r, rR, ec, coefs)
 
     def normal(self, p):
+        """Returns the unit normal of the profile at point *p*. """
+
+        # note that normal() uses df() which takes care of reordering x & y
         return super().normal(np.array([p[1], p[0], p[2]]))
 
     def sag(self, x, y):
@@ -1237,7 +1240,8 @@ class XToroid(YToroid):
         return super().f(np.array([p[1], p[0], p[2]]))
 
     def df(self, p):
-        return super().df(np.array([p[1], p[0], p[2]]))
+        grad = super().df(np.array([p[1], p[0], p[2]]))
+        return np.array([grad[1], grad[0], grad[2]])
 
 
 dispatch = {
