@@ -113,8 +113,8 @@ class AppManager:
         Args:
             view: view being closed by user
         """
-        logging.debug('AppManager.delete_view: {}'.format(view.windowTitle()))
-        del self.view_dict[view]
+        logging.debug(f'AppManager.delete_view: {view.windowTitle()}')
+        self.view_dict.pop(view, None)
 
     def close_model(self, view_close_fct=None):
         """ close all ui views associated with the active model
