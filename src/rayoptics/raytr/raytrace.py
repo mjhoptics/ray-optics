@@ -114,15 +114,26 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, check_apertures=False, **kwargs
     first_surf = kwargs.get('first_surf', 0)
     last_surf = kwargs.get('last_surf', None)
 
-    def in_surface_range(s, include_last_surf=False):
+    def in_gap_range(gap_indx, include_last_surf=False):
         if first_surf == last_surf:
             return False
-        if s < first_surf:
+        if gap_indx < first_surf:
             return False
         if last_surf is None:
             return True
         else:
-            return s <= last_surf if include_last_surf else s < last_surf
+            return (gap_indx <= last_surf if include_last_surf 
+                    else gap_indx < last_surf)
+
+    def in_surface_range(s):
+        if s < first_surf:
+            return False
+        if last_surf is None:
+            return True
+        elif s > last_surf:
+            return False
+        else:
+            return True
 
     # trace object surface
     obj = next(path)
@@ -143,6 +154,7 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, check_apertures=False, **kwargs
     while True:
         try:
             after = next(path)
+            surf += 1
 
             rt, t = tfrm_from_before
             b4_pt, b4_dir = rt.dot(before_pt - t), rt.dot(before_dir)
@@ -159,7 +171,7 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, check_apertures=False, **kwargs
             dst_b4 = pp_dst + pp_dst_intrsct
             ray.append([before_pt, before_dir, dst_b4, before_normal])
 
-            if in_surface_range(surf):
+            if in_gap_range(surf-1):
                 opl += before[mc.Indx] * dst_b4
 
             normal = ifc.normal(inc_pt)
@@ -187,8 +199,6 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, check_apertures=False, **kwargs
             else:  # no action, input becomes output
                 after_dir = b4_dir
 
-            surf += 1
-
             before_pt = inc_pt
             before_normal = normal
             before_dir = after_dir
@@ -198,7 +208,7 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, check_apertures=False, **kwargs
 
         except TraceMissedSurfaceError as ray_miss:
             ray.append([before_pt, before_dir, pp_dst, before_normal])
-            ray_miss.surf = surf+1
+            ray_miss.surf = surf
             ray_miss.ifc = ifc
             ray_miss.prev_tfrm = before[mc.Tfrm]
             ray_miss.ray_pkg = ray, opl, wvl
@@ -206,19 +216,19 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, check_apertures=False, **kwargs
 
         except TraceTIRError as ray_tir:
             ray.append([inc_pt, before_dir, 0.0, normal])
-            ray_tir.surf = surf+1
+            ray_tir.surf = surf
             ray_tir.ray_pkg = ray, opl, wvl
             raise ray_tir
 
         except TraceRayBlockedError as ray_blocked:
             ray.append([inc_pt, before_dir, 0.0, normal])
-            ray_blocked.surf = surf+1
+            ray_blocked.surf = surf
             ray_blocked.ray_pkg = ray, opl, wvl
             raise ray_blocked
             
         except TraceEvanescentRayError as ray_evn:
             ray.append([inc_pt, before_dir, 0.0, normal])
-            ray_evn.surf = surf+1
+            ray_evn.surf = surf
             ray_evn.ray_pkg = ray, opl, wvl
             raise ray_evn
 
