@@ -622,11 +622,10 @@ def eval_wavefront(opt_model, fld, wvl, foc,
     fld.chief_ray = cr_pkg
     fld.ref_sphere = ref_sphere
 
-    grid_start = np.array([-1., -1.])
-    grid_stop = np.array([1., 1.])
-    grid_def = [grid_start, grid_stop, num_rays]
+    vig_bbox = fld.vignetting_bbox(opt_model['osp']['pupil'])
+    vig_grid_def = [vig_bbox[0], vig_bbox[1], num_rays]
 
-    grid = trace_ray_grid(opt_model, grid_def, 
+    grid = trace_ray_grid(opt_model, vig_grid_def, 
                           fld, wvl, foc, check_apertures=True)
 
     central_wvl = opt_model.optical_spec.spectral_region.central_wvl
@@ -655,11 +654,10 @@ def trace_wavefront(opt_model, fld, wvl, foc,
     fld.chief_ray = cr_pkg
     fld.ref_sphere = ref_sphere
 
-    grid_start = np.array([-1., -1.])
-    grid_stop = np.array([1., 1.])
-    grid_def = [grid_start, grid_stop, num_rays]
+    vig_bbox = fld.vignetting_bbox(opt_model['osp']['pupil'])
+    vig_grid_def = [vig_bbox[0], vig_bbox[1], num_rays]
 
-    grid = trace_ray_grid(opt_model, grid_def, 
+    grid = trace_ray_grid(opt_model, vig_grid_def, 
                           fld, wvl, foc, check_apertures=True)
 
     def wpc(gij):
