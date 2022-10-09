@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Copyright © 2017 Michael J. Hayford
-""" Module for simple optical media definitions
+""" Module building on :mod:`opticalglass` for ray-optics material support
 
 .. Created on Fri Sep 15 17:06:17 2017
 
@@ -10,6 +10,9 @@
 import json
 import difflib
 import logging
+
+import deprecation
+import rayoptics
 
 from scipy.interpolate import interp1d
 
@@ -104,186 +107,6 @@ def decode_medium(*inputs, **kwargs):
     if mat:
         logging.info(f"mat = {mat.name()}, {mat.catalog_name()}, {type(mat)}")
     return mat
-
-
-# --- material definitions
-class Medium:
-    """ Constant refractive index medium. """
-
-    def __init__(self, nd, lbl, cat=''):
-        self.label = lbl
-        self.n = nd
-        self._catalog_name = cat
-
-    def __repr__(self):
-        return ('Medium(' + str(self.n) + ', ' + f"'{self.label}'" +
-                ', cat=' + f"'{self._catalog_name}'" + ')')
-
-    def convert_to_OG(self):
-        return om.ConstantIndex(self.n, self.label, cat=self._catalog_name)
-
-    def name(self):
-        return self.label
-
-    def catalog_name(self):
-        return self._catalog_name
-
-    def rindex(self, wv_nm):
-        """ returns the interpolated refractive index at wv_nm
-
-        Args:
-            wv_nm: the wavelength in nm for the refractive index query
-
-        Returns:
-            float: the refractive index at wv_nm
-        """
-        return self.n
-
-
-class Air(Medium):
-    """ Optical definition for air (low fidelity definition) """
-
-    def __init__(self):
-        self.label = 'air'
-        self.n = 1.0
-
-    def __repr__(self):
-        return 'Air()'
-
-    def convert_to_OG(self):
-        return om.Air()
-
-    def name(self):
-        return self.label
-
-    def catalog_name(self):
-        return ''
-
-
-class Glass(Medium):
-    """ Optical medium defined by a glass code, i.e. index - V number pair """
-
-    def __init__(self, nd=1.5168, vd=64.17, mat='', cat=''):
-        self.label = mat
-        self._catalog_name = cat
-        self.n = nd
-        self.v = vd
-        self.bdhl_model = Buchdahl2(self.n, self.v)
-
-    def __str__(self):
-        return 'Glass ' + self.label + ': ' + glass_encode(self.n, self.v)
-
-    def __repr__(self):
-        return ('Glass(nd=' + str(self.n) +
-                ', vd=' + str(self.v) +
-                ', mat=' + f"'{self.label}'" +
-                ', cat=' + f"'{self._catalog_name}'" + ')')
-
-    def convert_to_OG(self):
-        return mg.ModelGlass(self.n, self.v, 
-                             self.label, cat=self._catalog_name)
-
-    def sync_to_restore(self):
-        if not hasattr(self, 'bdhl_model'):
-            self.bdhl_model = Buchdahl2(self.n, self.v)
-
-    def glass_code(self):
-        return str(1000*round((self.n - 1), 3) + round(self.v/100, 3))
-
-    def name(self):
-        if self.label == '':
-            return glass_encode(self.n, self.v)
-        else:
-            return self.label
-
-    def rindex(self, wv_nm):
-        return self.bdhl_model.rindex(wv_nm)
-
-    def update(self, nd, vd):
-        self.n = nd
-        self.v = vd
-        self.bdhl_model.update_model(nd, vd)
-
-
-class InterpolatedGlass():
-    """ Optical medium defined by a list of wavelength/index pairs
-
-    Attributes:
-        label: required string identifier for the material
-        wvls: list of wavelenghts in nm, used as x axis
-        rndx: list of refractive indices corresponding to the values in wvls
-        rindex_interp: the interpolation function
-    """
-
-    def __init__(self, label, pairs=None, rndx=None, wvls=None, cat=''):
-        self.label = label
-        self._catalog = cat
-        if pairs is not None:
-            self.wvls = []
-            self.rndx = []
-            for w, n in pairs:
-                self.wvls.append(w)
-                self.rndx.append(n)
-        else:
-            self.wvls = wvls
-            self.rndx = rndx
-        self.update()
-
-    def __repr__(self):
-        return ('InterpolatedGlass(' + f"'{self.label}'" +
-                ', cat=' + f"'{self._catalog}'" +
-                ', wvls=' + repr(self.wvls) +
-                ', rndx=' + repr(self.rndx) + ')')
-
-    def convert_to_OG(self):
-        return om.InterpolatedMedium(self.label, 
-                                     rndx=self.rndx, wvls=self.wvls, 
-                                     cat=self._catalog)
-
-    def __json_encode__(self):
-        attrs = dict(vars(self))
-        del attrs['rindex_interp']
-        return attrs
-
-    def sync_to_restore(self):
-        """ rebuild interpolating function """
-        self.update()
-
-    def update(self):
-        self.rindex_interp = interp1d(self.wvls, self.rndx, kind='cubic',
-                                      assume_sorted=False)
-
-    def glass_code(self):
-        nd = self.rindex('d')
-        nF = self.rindex('F')
-        nC = self.rindex('C')
-        vd = (nd - 1)/(nF - nC)
-        return str(glass_encode(nd, vd))
-
-    def name(self):
-        if self.label == '':
-            return self.glass_code()
-        else:
-            return self.label
-
-    def catalog_name(self):
-        """ returns the glass catalog name """
-        return self._catalog
-
-    def rindex(self, wv_nm):
-        """ returns the interpolated refractive index at wv_nm
-
-        Args:
-            wvl: either the wavelength in nm or a string with a spectral line
-                 identifier. for the refractive index query
-
-        Returns:
-            float: the refractive index at wv_nm
-
-        Raises:
-            KeyError: if ``wvl`` is not in the spectra dictionary
-        """
-        return float(self.rindex_interp(get_wavelength(wv_nm)))
 
 
 # --- glass finder base class
@@ -439,3 +262,203 @@ class GlassHandlerBase():
                     return eval(self.glasses_not_found[name])
             else:
                 return None
+
+
+# --- material definitions
+class Medium:
+    """ Constant refractive index medium. """
+
+    @deprecation.deprecated(deprecated_in="0.8.4", removed_in="0.9.0",
+                            current_version=rayoptics.__version__,
+                            details="Use opticalglass.opticalmedium."
+                                    "ConstantIndex instead")
+    def __init__(self, nd, lbl, cat=''):
+        self.label = lbl
+        self.n = nd
+        self._catalog_name = cat
+
+    def __repr__(self):
+        return ('Medium(' + str(self.n) + ', ' + f"'{self.label}'" +
+                ', cat=' + f"'{self._catalog_name}'" + ')')
+
+    def convert_to_OG(self):
+        """ returns an equivalent material from the :mod:`opticalglass` package. """
+        return om.ConstantIndex(self.n, self.label, cat=self._catalog_name)
+
+    def name(self):
+        return self.label
+
+    def catalog_name(self):
+        return self._catalog_name
+
+    def rindex(self, wv_nm):
+        """ returns the interpolated refractive index at wv_nm
+
+        Args:
+            wv_nm: the wavelength in nm for the refractive index query
+
+        Returns:
+            float: the refractive index at wv_nm
+        """
+        return self.n
+
+
+class Air(Medium):
+    """ Optical definition for air (low fidelity definition) """
+
+    @deprecation.deprecated(deprecated_in="0.8.4", removed_in="0.9.0",
+                            current_version=rayoptics.__version__,
+                            details="Use opticalglass.opticalmedium."
+                                    "Air instead")
+    def __init__(self):
+        self.label = 'air'
+        self.n = 1.0
+
+    def __repr__(self):
+        return 'Air()'
+
+    def convert_to_OG(self):
+        """ returns an equivalent material from the :mod:`opticalglass` package. """
+        return om.Air()
+
+    def name(self):
+        return self.label
+
+    def catalog_name(self):
+        return ''
+
+
+class Glass(Medium):
+    """ Optical medium defined by a glass code, i.e. index - V number pair """
+
+    @deprecation.deprecated(deprecated_in="0.8.4", removed_in="0.9.0",
+                            current_version=rayoptics.__version__,
+                            details="Use opticalglass.modelglass."
+                                    "ModelGlass instead")
+    def __init__(self, nd=1.5168, vd=64.17, mat='', cat=''):
+        self.label = mat
+        self._catalog_name = cat
+        self.n = nd
+        self.v = vd
+        self.bdhl_model = Buchdahl2(self.n, self.v)
+
+    def __str__(self):
+        return 'Glass ' + self.label + ': ' + glass_encode(self.n, self.v)
+
+    def __repr__(self):
+        return ('Glass(nd=' + str(self.n) +
+                ', vd=' + str(self.v) +
+                ', mat=' + f"'{self.label}'" +
+                ', cat=' + f"'{self._catalog_name}'" + ')')
+
+    def convert_to_OG(self):
+        """ returns an equivalent material from the :mod:`opticalglass` package. """
+        return mg.ModelGlass(self.n, self.v, 
+                             self.label, cat=self._catalog_name)
+
+    def sync_to_restore(self):
+        if not hasattr(self, 'bdhl_model'):
+            self.bdhl_model = Buchdahl2(self.n, self.v)
+
+    def glass_code(self):
+        return str(1000*round((self.n - 1), 3) + round(self.v/100, 3))
+
+    def name(self):
+        if self.label == '':
+            return glass_encode(self.n, self.v)
+        else:
+            return self.label
+
+    def rindex(self, wv_nm):
+        return self.bdhl_model.rindex(wv_nm)
+
+    def update(self, nd, vd):
+        self.n = nd
+        self.v = vd
+        self.bdhl_model.update_model(nd, vd)
+
+
+class InterpolatedGlass():
+    """ Optical medium defined by a list of wavelength/index pairs
+
+    Attributes:
+        label: required string identifier for the material
+        wvls: list of wavelenghts in nm, used as x axis
+        rndx: list of refractive indices corresponding to the values in wvls
+        rindex_interp: the interpolation function
+    """
+
+    @deprecation.deprecated(deprecated_in="0.8.4", removed_in="0.9.0",
+                            current_version=rayoptics.__version__,
+                            details="Use opticalglass.opticalmedium."
+                                    "InterpolatedMedium instead")
+    def __init__(self, label, pairs=None, rndx=None, wvls=None, cat=''):
+        self.label = label
+        self._catalog = cat
+        if pairs is not None:
+            self.wvls = []
+            self.rndx = []
+            for w, n in pairs:
+                self.wvls.append(w)
+                self.rndx.append(n)
+        else:
+            self.wvls = wvls
+            self.rndx = rndx
+        self.update()
+
+    def __repr__(self):
+        return ('InterpolatedGlass(' + f"'{self.label}'" +
+                ', cat=' + f"'{self._catalog}'" +
+                ', wvls=' + repr(self.wvls) +
+                ', rndx=' + repr(self.rndx) + ')')
+
+    def convert_to_OG(self):
+        """ returns an equivalent material from the :mod:`opticalglass` package. """
+        return om.InterpolatedMedium(self.label, 
+                                     rndx=self.rndx, wvls=self.wvls, 
+                                     cat=self._catalog)
+
+    def __json_encode__(self):
+        attrs = dict(vars(self))
+        del attrs['rindex_interp']
+        return attrs
+
+    def sync_to_restore(self):
+        """ rebuild interpolating function """
+        self.update()
+
+    def update(self):
+        self.rindex_interp = interp1d(self.wvls, self.rndx, kind='cubic',
+                                      assume_sorted=False)
+
+    def glass_code(self):
+        nd = self.rindex('d')
+        nF = self.rindex('F')
+        nC = self.rindex('C')
+        vd = (nd - 1)/(nF - nC)
+        return str(glass_encode(nd, vd))
+
+    def name(self):
+        if self.label == '':
+            return self.glass_code()
+        else:
+            return self.label
+
+    def catalog_name(self):
+        """ returns the glass catalog name """
+        return self._catalog
+
+    def rindex(self, wv_nm):
+        """ returns the interpolated refractive index at wv_nm
+
+        Args:
+            wvl: either the wavelength in nm or a string with a spectral line
+                 identifier. for the refractive index query
+
+        Returns:
+            float: the refractive index at wv_nm
+
+        Raises:
+            KeyError: if ``wvl`` is not in the spectra dictionary
+        """
+        return float(self.rindex_interp(get_wavelength(wv_nm)))
