@@ -5,3 +5,4 @@ rayoptics.seq.medium module
    :members:
    :undoc-members:
    :show-inheritance:
+   :exclude-members: Medium, Air, Glass, InterpolatedGlass

@@ -24,17 +24,17 @@ from opticalglass.glassfactory import create_glass
 from opticalglass import glasserror
 from opticalglass import util
 from opticalglass.spectral_lines import get_wavelength
-from opticalglass.buchdahl import Buchdahl, Buchdahl2
+from opticalglass.buchdahl import Buchdahl2
 
 from opticalglass import opticalmedium as om
 from opticalglass import modelglass as mg
 
 
-def glass_encode(n, v):
+def glass_encode(n: float, v: float) -> str:
     return f'{int(1000*round((n - 1), 3)):3d}.{int(round(10*v, 3)):3d}'
 
 
-def glass_decode(gc):
+def glass_decode(gc: float) -> float:
     return round(1.0 + (int(gc)/1000), 3), round(100.0*(gc - int(gc)), 3)
 
 
@@ -43,12 +43,12 @@ def decode_medium(*inputs, **kwargs):
 
     The **inputs** can have several forms:
         
-        - **refractive_index, v-number** (numeric)
-        - **refractive_index** only -> constant index model
+        - **refractive_index, v-number**: float -> :class:`opticalglass.modelglass.ModelGlass`
+        - **refractive_index** only: float -> :class:`opticalglass.opticalmedium.ConstantIndex`
         - **glass_name, catalog_name** as 1 or 2 strings
         - an instance with a `rindex` attribute
-        - **air**, str -> om.Air
-        - blank -> defaults to om.Air
+        - **air**: str -> :class:`opticalglass.opticalmedium.Air`
+        - blank -> defaults to :class:`opticalglass.opticalmedium.Air`
 
     """
     if 'cat_list' in kwargs:

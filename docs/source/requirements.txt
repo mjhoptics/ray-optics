@@ -24,6 +24,8 @@ debugpy==1.6.3
     # via ipykernel
 decorator==5.1.1
     # via ipython
+deprecation==2.1.0
+    # via rayoptics (setup.py)
 entrypoints==0.4
     # via jupyter-client
 et-xmlfile==1.1.0
@@ -88,6 +90,7 @@ opticalglass==1.0.3
     # via rayoptics (setup.py)
 packaging==21.3
     # via
+    #   deprecation
     #   ipykernel
     #   matplotlib
     #   qtpy
