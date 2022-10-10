@@ -10,7 +10,7 @@ Improve :meth:`~.seq.sequential.SequentialModel.add_surface` handling of materia
 Maintenance work on ray trace related issues, esp. aperture handling for list and grid traces.
 Move functionality in :mod:`~.seq.medium` into the :mod:`opticalglass` package and update code.
 Remove jupyterlab and ipympl from the installation. These should be installed as desired by the user.
-Fix a ray trace bug in XToroid profile; other miscellaeous bug fixes.
+Fix a ray trace bug in XToroid profile; other miscellaneous bug fixes.
 Revise doc to use RTD yaml file; other doc updates.
 
 
@@ -20,13 +20,13 @@ Add :func:`~.gui.appcmds.set_pupil` function to set the pupil specification base
 
 Version 0.8.2
 =============
-Fixes to drawing cemented element flats when the inner surfaces intersect the outer flats. Accept URLs from the OpticalBench database as arguments to :func:`~.gui.appcmds.open_model`. Enhance :func:`~listobj` output for :class:`~.seq.sequential.SequentialModel` and :class:`~.seq.gap.Gap`. Bump pyqt5 compatability to v5.15.
+Fixes to drawing cemented element flats when the inner surfaces intersect the outer flats. Accept URLs from the OpticalBench database as arguments to :func:`~.gui.appcmds.open_model`. Enhance :func:`~listobj` output for :class:`~.seq.sequential.SequentialModel` and :class:`~.seq.gap.Gap`. Bump pyqt5 compatibility to v5.15.
 
 Version 0.8.1
 =============
 Major review and cleanup of the :mod:`~.raytr` package. Moved wave aberration calculations and support to new module :mod:`~.raytr.waveabr`.  
 
-Integrate :meth:`~.seq.interface.Interface.point_inside` query into the raytrace and add a new raytrace exception, :class:`~.raytr.traceerror.TraceRayBlockedError`. Use this to implement a pupil ray-based vignetting calculation and provide :func:`~.gui.appcmds.set_vignetting` to set the vignetted pupil rays for each field point and the companion function, :func:`~.gui.appcmds.set_apertures`, to set clear apertures based on the vignetted pupils at each field. to clear aperture. These new calculations are in the :mod:`~.raytr.vigcalc` module.
+Integrate :meth:`~.seq.interface.Interface.point_inside` query into the ray trace and add a new ray trace exception, :class:`~.raytr.traceerror.TraceRayBlockedError`. Use this to implement a pupil ray-based vignetting calculation and provide :func:`~.gui.appcmds.set_vignetting` to set the vignetted pupil rays for each field point and the companion function, :func:`~.gui.appcmds.set_apertures`, to set clear apertures based on the vignetted pupils at each field. to clear aperture. These new calculations are in the :mod:`~.raytr.vigcalc` module.
 
 The addition of the ``set_vignetting`` function uncovered a bug in the ray plots; they didn't handle the case of needing to overfill the paraxial entrance pupil in wide angle lenses. The ray plots, :class:`~.mpl.axisarrayfigure.RayFanFigure` and :class:`~.mpl.analysisfigure.RayFanPlot`, were updated to correctly display overfilled pupils, and an example lens was added to demonstrate the issue.
 
@@ -51,7 +51,7 @@ Included the effect of defocus in transverse aberration plots (fixes bug in impl
 
 Version 0.7.5
 =============
-Implemented a formatted object output protocol, the listobj_str() method, that returns a formatted, descriptive string about the object's contents. This supercedes the use of listobj as a per-class method (see 0.7.1 release notes). This protocol was implemented in particular for profiles and parts of the optical specification. Added a console print function :func:`~listobj` that will work with objects that implement a listobj_str() method; the fallback is to invoke repr(obj). Thanks to @asebian and @rlabs-oss for their issue reports and @dibyendumajumdar for continued discussions.
+Implemented a formatted object output protocol, the listobj_str() method, that returns a formatted, descriptive string about the object's contents. This supersedes the use of listobj as a per-class method (see 0.7.1 release notes). This protocol was implemented in particular for profiles and parts of the optical specification. Added a console print function :func:`~listobj` that will work with objects that implement a listobj_str() method; the fallback is to invoke repr(obj). Thanks to @asebian and @rlabs-oss for their issue reports and @dibyendumajumdar for continued discussions.
 
 Version 0.7.4
 =============
@@ -59,7 +59,7 @@ Pass 2 on the |ybar| diagram layer capability. Handle thick elements and include
 
 Version 0.7.3
 =============
-Miscellaneous bug fixes, see checkin comments.
+Miscellaneous bug fixes, see check-in comments.
 
 Version 0.7.2
 =============
