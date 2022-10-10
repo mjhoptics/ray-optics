@@ -22,7 +22,6 @@ import numpy as np
 from rayoptics.gui.util import (GUIHandle, transform_ray_seg, bbox_from_poly,
                                 transform_poly, inv_transform_poly)
 
-from rayoptics.elem import parttree
 from rayoptics.raytr.analyses import RayFan
 from rayoptics.raytr.trace import (trace_boundary_rays_at_field,
                                    boundary_ray_dict, retrieve_ray)
@@ -437,6 +436,7 @@ class LensLayout():
     """ manager for live layout graphics entities """
 
     def __init__(self, opt_model, is_dark=True, **kwargs):
+        from rayoptics.elem import parttree
         self.opt_model = opt_model
         self.ray_table = None
 

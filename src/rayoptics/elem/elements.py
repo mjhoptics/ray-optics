@@ -21,14 +21,13 @@ import numpy as np
 from anytree import Node  # type: ignore
 
 import rayoptics.util.rgbtable as rgbt
-import rayoptics.oprops.thinlens as thinlens
-import rayoptics.elem.parttree as parttree
+from rayoptics.oprops import thinlens
+from rayoptics.elem import parttree
 from rayoptics.elem.profiles import SurfaceProfile, Spherical, Conic
 from rayoptics.elem.surface import Surface
 from rayoptics.seq.gap import Gap
 from rayoptics.seq.medium import decode_medium
 
-# from rayoptics.optical.opticalmodel import OpticalModel
 from rayoptics.seq.sequential import SequentialModel
 from rayoptics.seq.interface import Interface
 
@@ -318,65 +317,22 @@ def create_assembly_from_seq(opt_model, idx1, idx2, **kwargs):
     asm_node = asm.tree(part_tree=opt_model['part_tree'])
 
     return asm, asm_node
-    
+
 
 def full_profile(profile, is_flipped, edge_extent,
                  flat_id=None, hole_id=None, dir=1, steps=6):
-    do_orig = False
-    if do_orig:
-        return full_profile_orig(profile, is_flipped, edge_extent,
-                                 flat_id, dir, steps)
-    else:
-        return full_profile_new(profile, is_flipped, edge_extent,
-                                flat_id, hole_id, dir, steps)
-
-
-def full_profile_orig(profile, is_flipped, edge_extent,
-                      flat_id=None, dir=1, steps=6):
     """Produce a 2d segmented approximation to the *profile*. 
 
-    profile: optical profile to be sampled
-    edge_extent: tuple with symmetric or asymetric bounds
-    flat_id: if not None, inside diameter of flat zone
-    dir: sampling direction, +1 for up, -1 for down
-    steps: number of profile curve samples
-    """
-    from rayoptics.raytr.traceerror import TraceError
-    if flat_id is None:
-        return profile.profile(edge_extent, dir, steps)
-    else:
-        if len(edge_extent) == 1:
-            sd_upr = edge_extent[0]
-            sd_lwr = -edge_extent[0]
-        else:
-            sd_upr = edge_extent[1]
-            sd_lwr = edge_extent[0]
-        if dir < 0:
-            sd_lwr, sd_upr = sd_upr, sd_lwr
+    Args:
 
-        prf = []
-        try:
-            sag = profile.sag(0, flat_id)
-        except TraceError:
-            sag = None
-        else:
-            prf.append([sag, sd_lwr])
-        prf += profile.profile((flat_id,), dir, steps)
-        if sag is not None:
-            prf.append([sag, sd_upr])
-        return prf
+        profile: optical profile to be sampled
+        is_flipped: the flipped state of the profile
+        edge_extent: tuple with symmetric or asymetric bounds
+        flat_id: if not None, inside diameter of flat zone
+        hole_id: if not None, inside diameter of centered surface hole
+        dir: sampling direction, +1 for up, -1 for down
+        steps: number of profile curve samples
 
-
-def full_profile_new(profile, is_flipped, edge_extent,
-                     flat_id=None, hole_id=None, dir=1, steps=6):
-    """Produce a 2d segmented approximation to the *profile*. 
-
-    profile: optical profile to be sampled
-    edge_extent: tuple with symmetric or asymetric bounds
-    flat_id: if not None, inside diameter of flat zone
-    hole_id: if not None, inside diameter of centered surface hole
-    dir: sampling direction, +1 for up, -1 for down
-    steps: number of profile curve samples
     """
     from rayoptics.raytr.traceerror import TraceError
     def flip_profile(prf):

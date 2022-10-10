@@ -17,7 +17,7 @@ import rayoptics
 import rayoptics.elem.elements as ele
 import rayoptics.optical.model_constants as mc
 
-from rayoptics.elem import elements
+#from rayoptics.elem import elements
 from rayoptics.elem import parttree
 from rayoptics.elem.parttree import (PartTree, elements_from_sequence)
 from rayoptics.parax.paraxialdesign import ParaxialModel
@@ -174,7 +174,7 @@ class OpticalModel:
                                     else ParaxialModel(self, **kwargs))
         submodels['ele_model'] = self.ele_model = (self.ele_model
                                   if hasattr(self, 'ele_model')
-                                  else elements.ElementModel(self, **kwargs))
+                                  else ele.ElementModel(self, **kwargs))
         submodels['part_tree'] = self.part_tree = (self.part_tree
                                   if hasattr(self, 'part_tree')
                                   else PartTree(self, **kwargs))
@@ -463,7 +463,7 @@ class OpticalModel:
                                                                idx1, idx2)
             flip_pt = 0.5*(sm.gbl_tfrms[idx2][1] + sm.gbl_tfrms[idx1][1])
             flip_pt_tfrm = sm.gbl_tfrms[idx1][0], flip_pt
-            elements.do_flip_with_part_list(part_list, flip_pt_tfrm)
+            ele.do_flip_with_part_list(part_list, flip_pt_tfrm)
 
         elif isinstance(args[0], list):
             # flip a list of parts
@@ -475,7 +475,7 @@ class OpticalModel:
 
             flip_pt = 0.5*(sm.gbl_tfrms[idx2][1] + sm.gbl_tfrms[idx1][1])
             flip_pt_tfrm = sm.gbl_tfrms[idx1][0], flip_pt
-            elements.do_flip_with_part_list(part_list, flip_pt_tfrm)
+            ele.do_flip_with_part_list(part_list, flip_pt_tfrm)
 
         elif isinstance(args[0], ele.Part):
             # flip a Part, any subtype
