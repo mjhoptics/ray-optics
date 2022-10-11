@@ -13,7 +13,8 @@ import itertools
 from packaging import version
 
 from abc import abstractmethod
-from typing import Protocol, ClassVar, List, Dict, Any
+from typing import Protocol, ClassVar, List, Dict, Any, runtime_checkable
+
 
 from math import sqrt
 import numpy as np
@@ -425,6 +426,7 @@ def sync_obj_reference(obj, obj_attr_str, obj_dict, alt_attr_value):
 
 
 # --- Element definitions
+@runtime_checkable
 class Part(Protocol):
     """Abstract base class for all types of elements. """
     label_format: ClassVar[str]
