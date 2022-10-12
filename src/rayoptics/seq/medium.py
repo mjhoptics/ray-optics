@@ -28,6 +28,7 @@ from opticalglass.buchdahl import Buchdahl2
 
 from opticalglass import opticalmedium as om
 from opticalglass import modelglass as mg
+from opticalglass import rindexinfo as rii
 
 
 def glass_encode(n: float, v: float) -> str:
@@ -259,7 +260,10 @@ class GlassHandlerBase():
                     gn, gc = val
                     return create_glass(gn, gc)
                 else:  # eval code to create a new glass instance
-                    return eval(self.glasses_not_found[name])
+                    mat = eval(self.glasses_not_found[name])
+                    if hasattr(mat, 'convert_to_OG'):
+                        mat = mat.convert_to_OG()
+                    return mat
             else:
                 return None
 
