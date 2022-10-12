@@ -46,3 +46,4 @@ rayoptics-pyscaffold-4_3/*
 roa_new/*
 MANIFEST
 setup.cfg
+conftest.py

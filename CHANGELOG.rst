@@ -4,6 +4,11 @@
 Changelog
 =========
 
+Version 0.8.5
+=============
+Fix crashing issue #101. Adjustments to the :mod:`~.medium` package. Remove many work files that weren't in the repo.
+
+
 Version 0.8.4
 =============
 Improve :meth:`~.seq.sequential.SequentialModel.add_surface` handling of materials and semi-diameter.
