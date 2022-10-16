@@ -225,6 +225,28 @@ def create_glass_map_view(app, glass_db):
     sub_window.show()
 
 
+def on_plot_scale_toggled(cntxt, scale_type):
+    plotFigure, scale_wdgt = cntxt
+    plotFigure.scale_type = scale_type
+    if scale_type == Fit.User_Scale:
+        scale_wdgt.setReadOnly(False)
+        scale_wdgt.setText('{:.7g}'.format(plotFigure.user_scale_value))
+    else:
+        scale_wdgt.setReadOnly(True)
+    plotFigure.plot()
+
+
+def on_plot_scale_changed(cntxt):
+    plotFigure, scale_wdgt = cntxt
+    try:
+        val = float(scale_wdgt.text())
+        plotFigure.user_scale_value = val
+        scale_wdgt.setText('{:.7g}'.format(val))
+    except ValueError:
+        return ''
+    plotFigure.plot()
+
+
 def create_plot_scale_panel(app, pc):
     groupBox = QGroupBox("Plot Scale", app)
 
@@ -282,30 +304,6 @@ def create_multi_plot_scale_panel(app, pc):
     groupBox.setLayout(box)
 
     return groupBox
-
-
-def on_plot_scale_toggled(cntxt, scale_type):
-    plotFigure, scale_wdgt = cntxt
-    plotFigure.scale_type = scale_type
-    if scale_type == Fit.User_Scale:
-        scale_wdgt.setReadOnly(False)
-        scale_wdgt.setText('{:.7g}'.format(plotFigure.user_scale_value))
-    else:
-        scale_wdgt.setReadOnly(True)
-
-    plotFigure.plot()
-
-
-def on_plot_scale_changed(cntxt):
-    plotFigure, scale_wdgt = cntxt
-    try:
-        val = float(scale_wdgt.text())
-        plotFigure.user_scale_value = val
-        scale_wdgt.setText('{:.7g}'.format(val))
-    except ValueError:
-        return ''
-
-    plotFigure.plot()
 
 
 def get_icon(fig, icon_filepath, icon_size=48):
@@ -424,6 +422,31 @@ def create_draw_rays_groupbox(app, pc):
 
 
 def create_diagram_controls_groupbox(app, pc):
+    def on_barrel_constraint_toggled(cntxt, state):
+        fig, barrel_wdgt = cntxt
+        diagram = fig.diagram
+        checked = state == qt.Checked
+        if checked:
+            diagram.do_barrel_constraint = True
+            barrel_wdgt.setReadOnly(False)
+            barrel_wdgt.setText('{:.7g}'.format(diagram.barrel_constraint_radius))
+        else:
+            diagram.do_barrel_constraint = False
+            barrel_wdgt.setReadOnly(True)
+    
+        fig.refresh()
+    
+    def on_barrel_constraint_changed(cntxt):
+        fig, barrel_wdgt = cntxt
+        try:
+            val = float(barrel_wdgt.text())
+            fig.diagram.barrel_constraint_radius = val
+            barrel_wdgt.setText('{:.7g}'.format(val))
+        except ValueError:
+            return ''
+    
+        fig.refresh()
+
     groupBox = QGroupBox("Controls", app)
 
     def attr_check(fig, attr, state):
@@ -459,7 +482,11 @@ def create_diagram_controls_groupbox(app, pc):
 
     return groupBox
 
+
 def create_diagram_edge_actions_groupbox(app, pc):
+    def on_bend_or_gap_toggled(diagram, radio_btn_id):
+        diagram.bend_or_gap = radio_btn_id
+
     fig = pc.figure
     diagram = fig.diagram
 
@@ -484,6 +511,10 @@ def create_diagram_edge_actions_groupbox(app, pc):
 
 
 def create_diagram_layers_groupbox(app, pc):
+    def on_active_diagram_toggled(fig, layer_key):
+        fig.diagram.set_active_layer(layer_key)
+        fig.refresh(build='rebuild')
+
     fig = pc.figure
     diagram = fig.diagram
 
@@ -513,40 +544,3 @@ def create_diagram_layers_groupbox(app, pc):
     groupBox.setLayout(vbox)
 
     return groupBox
-
-
-def on_barrel_constraint_toggled(cntxt, state):
-    fig, barrel_wdgt = cntxt
-    diagram = fig.diagram
-    checked = state == qt.Checked
-    if checked:
-        diagram.do_barrel_constraint = True
-        barrel_wdgt.setReadOnly(False)
-        barrel_wdgt.setText('{:.7g}'.format(diagram.barrel_constraint_radius))
-    else:
-        diagram.do_barrel_constraint = False
-        barrel_wdgt.setReadOnly(True)
-
-    fig.refresh()
-
-
-def on_barrel_constraint_changed(cntxt):
-    fig, barrel_wdgt = cntxt
-    try:
-        val = float(barrel_wdgt.text())
-        fig.diagram.barrel_constraint_radius = val
-        barrel_wdgt.setText('{:.7g}'.format(val))
-    except ValueError:
-        return ''
-
-    fig.refresh()
-
-
-def on_bend_or_gap_toggled(diagram, radio_btn_id):
-    diagram.bend_or_gap = radio_btn_id
-
-
-def on_active_diagram_toggled(fig, layer_key):
-    fig.diagram.set_active_layer(layer_key)
-    fig.refresh(build='rebuild')
-    
