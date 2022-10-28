@@ -371,7 +371,7 @@ def set_pupil(opt_model, gui_parent=None):
 def refocus(opt_model, gui_parent=None):
     """ Compute a focus shift bringing the axial marginal ray to zero. """
     focus_shift = trace.refocus(opt_model)
-    opt_model['optical_spec']['focus'].focus_shift += focus_shift
+    opt_model['optical_spec']['focus'].focus_shift = focus_shift
 
     if gui_parent is None:
         opt_model.update_model(src_model=opt_model['optical_spec'])
