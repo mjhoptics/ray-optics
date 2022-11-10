@@ -979,12 +979,12 @@ def gen_sequence(surf_data_list, **kwargs):
     z_dir = []
 
     for surf_data in surf_data_list:
-        s, g, z_dir, rn, tfrm = create_surface_and_gap(surf_data, **kwargs)
+        s, g, zdir, rn, tfrm = create_surface_and_gap(surf_data, **kwargs)
         ifcs.append(s)
         gaps.append(g)
         rndx.append(rn)
         lcl_tfrms.append(tfrm)
-        z_dir.append(1)
+        z_dir.append(zdir)
     ifcs[-1].interact_mode = 'dummy'
 
     n_before = 1.0
