@@ -161,7 +161,8 @@ class Diagram():
 
     def assign_object_to_node(self, node, factory, **kwargs):
         parax_model = self.parax_model
-        inputs = parax_model.assign_object_to_node(node, factory, **kwargs)
+        inputs = parax_model.assign_object_to_node(node, self.type_sel, 
+                                                   factory, **kwargs)
         return inputs
 
     def register_commands(self, *args, **inputs):
@@ -217,8 +218,12 @@ class Diagram():
 
     def fit_axis_limits(self):
         ''' define diagram axis limits as the extent of the shape polygon '''
-        x_min, x_max = fit_data_range([x[0] for x in self.shape])
-        y_min, y_max = fit_data_range([x[1] for x in self.shape])
+        if len(self.shape) > 0:
+            x_min, x_max = fit_data_range([x[0] for x in self.shape])
+            y_min, y_max = fit_data_range([x[1] for x in self.shape])
+        else:
+            x_min, x_max = -1, 1
+            y_min, y_max = -1, 1
         return np.array([[x_min, y_min], [x_max, y_max]])
 
 
@@ -533,13 +538,13 @@ class ConjugateLine():
         pm = dgm.parax_model
 
         def calculate_slope(x, y):
-            ''' x=ybar, y=y  '''
+            """ x=ybar, y=y  """
             if self.line_type == 'stop':
                 k = x/y
-                return k, np.array([[1, 0], [-k, 1]])
+                return k, np.array([[1, -k], [0, 1]]).T
             elif self.line_type == 'object_image':
                 k = y/x
-                return k, np.array([[1, -k], [0, 1]])
+                return k, np.array([[1, 0], [-k, 1]]).T
             else:
                 k = 0
                 return 0, np.array([[1, 0], [0, 1]])
@@ -557,7 +562,6 @@ class ConjugateLine():
             if event.xdata is not None and event.ydata is not None:
                 event_data = np.array([event.xdata, event.ydata])
                 apply_data(event_data)
-                fig.build = 'update'
                 fig.refresh_gui(build='update', src_model=pm)
 
         def on_release(fig, event):
@@ -645,7 +649,6 @@ class EditNodeAction():
                 if self.constrain_to_wedge:
                     event_data = do_constrain_to_wedge(event_data)
                 diagram.apply_data(self.cur_node, event_data)
-                fig.build = 'update'
                 fig.refresh_gui(build='update', src_model=parax_model)
 
         def on_release(fig, event):
@@ -656,7 +659,6 @@ class EditNodeAction():
                 if self.constrain_to_wedge:
                     event_data = do_constrain_to_wedge(event_data)
                 diagram.apply_data(self.cur_node, event_data)
-                fig.build = 'rebuild'
                 fig.refresh_gui(build='rebuild', src_model=parax_model)
                 self.cur_node = None
 
@@ -780,13 +782,11 @@ class EditThicknessAction():
                     pt2 = np.array(get_intersect(vertex, shape[node+2],
                                                  inpt, edge_pt))
                     diagram.apply_data(self.node+1, pt2)
-                    fig.build = 'update'
                     fig.refresh_gui(build='update', src_model=parax_model)
 
         def on_release(fig, event):
             if event.xdata is not None and event.ydata is not None:
                 event_data = np.array([event.xdata, event.ydata])
-                fig.build = 'rebuild'
                 fig.refresh_gui(build='rebuild', src_model=parax_model)
                 self.node = None
                 self.bundle = None
@@ -823,7 +823,6 @@ class EditBendingAction():
             tau_factor = pm.sys[self.node][mc.tau]*pm.opt_inv
             constrain_to_line = constrain_to_line_action(vertex,
                                                          vertex+dir_inpt)
-
             def calc_t(inpt):
                 pt = constrain_to_line(inpt)
                 if iNode < oNode:
@@ -882,7 +881,6 @@ class EditBendingAction():
         def on_release(fig, event):
             if event.xdata is not None and event.ydata is not None:
                 event_data = np.array([event.xdata, event.ydata])
-                fig.build = 'rebuild'
                 fig.refresh_gui(build='rebuild', src_model=pm)
                 self.node = None
                 self.bundle = None
@@ -925,8 +923,9 @@ class AddReplaceElementAction():
                     self.cur_node = shape.node
                     event_data = np.array([event.xdata, event.ydata])
                     interact = diagram.command_inputs['interact_mode']
+                    sys_data = [[1.0, interact]]
                     parax_model.add_node(self.cur_node, event_data,
-                                         diagram.type_sel, interact)
+                                         diagram.type_sel, sys_data)
                     self.cur_node += 1
                     # create a node for editing during the drag action
                     #  'node_init' will currently be a thinlens or a mirror
@@ -935,9 +934,8 @@ class AddReplaceElementAction():
                                             self.cur_node,
                                             node_init,
                                             insert=True)
-                    parax_model.paraxial_lens_to_seq_model()
-                    fig.build = 'rebuild'
                     fig.refresh_gui(build='rebuild', src_model=parax_model)
+
             elif isinstance(shape, DiagramNode):
                 if 'factory' in diagram.command_inputs:
                     # replacing a node with a chunk only requires recording
@@ -950,7 +948,6 @@ class AddReplaceElementAction():
             if self.cur_node is not None and isinstance(shape, DiagramEdge):
                 event_data = np.array([event.xdata, event.ydata])
                 diagram.apply_data(self.cur_node, event_data)
-                fig.build = 'update'
                 fig.refresh_gui(build='update', src_model=parax_model)
 
         def on_release_add_point(fig, event, shape):
@@ -960,18 +957,9 @@ class AddReplaceElementAction():
                 # always call factory fct for a node
                 if factory != diagram.command_inputs['node_init'] or \
                               isinstance(shape, DiagramNode):
-                    prev_ifc = seq_model.ifcs[self.cur_node]
-                    inputs = diagram.assign_object_to_node(self.cur_node,
-                                                           factory)
-                    idx = seq_model.ifcs.index(prev_ifc)
-                    n_after = parax_model.sys[idx-1][mc.indx]
-                    thi = n_after*parax_model.sys[idx-1][mc.tau]
-                    seq_model.gaps[idx-1].thi = thi
-                    # remove the edit scaffolding or previous node from model
-                    seq, eles, e_node = self.init_inputs[0]
-                    diagram.opt_model.remove_node(e_node)
-                    parax_model.paraxial_lens_to_seq_model()
-                fig.build = 'rebuild'
+                    inputs = diagram.assign_object_to_node(
+                                  self.cur_node, 
+                                  factory)
                 fig.refresh_gui(build='rebuild', src_model=parax_model)
             self.cur_node = None
 

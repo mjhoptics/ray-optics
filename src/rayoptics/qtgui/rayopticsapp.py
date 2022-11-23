@@ -129,7 +129,8 @@ class MainWindow(QMainWindow):
         if False:
             # create new model
             # self.new_model()
-            self.new_model_via_specsheet()
+            self.new_model_via_diagram()
+            # self.new_model_via_specsheet()
             # self.new_console_empty_model()
 
         else:

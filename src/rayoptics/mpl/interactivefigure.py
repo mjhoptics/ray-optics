@@ -22,7 +22,7 @@ from rayoptics.mpl.styledfigure import StyledFigure
 
 from rayoptics.gui import util
 from rayoptics.util import rgb2mpl
-
+from rayoptics.util import misc_math
 
 SelectInfo = namedtuple('SelectInfo', ['artist', 'info'])
 SelectInfo.artist.__doc__ = "the artist"
@@ -149,7 +149,7 @@ class InteractiveFigure(StyledFigure):
     def register_action(self, *args, **kwargs):
         action_obj = args[0]
         fig = kwargs.pop('figure')
-
+        
         def do_command_action(event, target, event_key):
             nonlocal action_obj, fig
             try:
@@ -615,3 +615,165 @@ class ZoomBoxAction():
             button=[1, 3],  # don't use middle button
             minspanx=5, minspany=5, spancoords='pixels', rectprops=rectprops,
             interactive=False)
+
+
+def enter_polyline(point_filter=None, constrain_to_wedge=True, **inputs):
+    """ Graphical input of a 2d polyline """
+    fig = inputs.pop('figure')
+    canvas = fig.canvas
+    ax = fig.ax
+    polyline = np.array([])
+    line = None
+    cur_node = None
+    pt0 = None
+    pt2 = None
+    do_on_finished = inputs.pop('do_on_finished', None)
+
+    useblit = inputs.pop('useblit', True)
+    background = fig.canvas.copy_from_bbox(fig.bbox)
+
+    def init_poly(init_pt):
+        nonlocal pt0
+        pt0 = init_pt
+        poly0 = np.array([init_pt, np.copy(init_pt)])
+        poly0_data = poly0.T
+        x, y = poly0_data[0], poly0_data[1]
+        line0 = lines.Line2D(x, y, color=fig._rgb['foreground'],
+                            marker='o',
+                            animated=True)
+        ax.add_line(line0)
+        return poly0, line0
+
+    def do_constrain_to_wedge(input_pt):
+        """ keep the input point inside the wedge of adjacent points """
+        projected_point_on_radial_line = misc_math.projected_point_on_radial_line
+        if pt0 is not None:
+            x_prod0 = input_pt[0]*pt0[1] - pt0[0]*input_pt[1]
+            if x_prod0 < 0:
+                # pin to boundary
+                output_pt = projected_point_on_radial_line(input_pt, pt0)
+                return output_pt
+
+        if pt2 is not None:
+            x_prod2 = input_pt[0]*pt2[1] - pt2[0]*input_pt[1]
+            if x_prod2 > 0:
+                # pin to boundary
+                output_pt = projected_point_on_radial_line(input_pt, pt2)
+                return output_pt
+
+        return input_pt
+
+    def update():
+        nonlocal line, background
+        if useblit:
+            canvas.restore_region(background)
+            ax.draw_artist(line)
+            canvas.blit(fig.bbox)
+        else:
+            canvas.draw_idle()
+
+    def draw_polyline(poly):
+        """ draw the polyline """
+        line.set_data(poly.T)
+        ax.draw_artist(line)
+        update()
+
+    def add_point(pt):
+        nonlocal polyline, pt0
+        pt0 = polyline[-1]
+        polyline = np.append(polyline, np.array([pt]), axis=0)
+        return polyline
+
+    def constrain_point(pt):
+        # nonlocal polyline, pt0
+        if point_filter is not None:
+            pt = point_filter(pt)
+        if constrain_to_wedge:
+            pt = do_constrain_to_wedge(pt)
+        return pt
+
+    def remove_last_point():
+        nonlocal polyline, pt0
+        polyline = np.delete(polyline, -1, axis=0)
+        pt0 = polyline[-1]
+        return polyline
+
+    def on_mouse_move(event):
+        """Callback for mouse movements."""
+        nonlocal polyline, line, background
+
+        if (event.inaxes is None):
+            return
+
+        if len(polyline) > 0:
+            if event.xdata is not None and event.ydata is not None:
+                event_data = np.array([event.xdata, event.ydata])
+                event_data = constrain_point(event_data)
+                polyline[-1] = event_data
+    
+                draw_polyline(polyline)
+
+    def on_button_press(event):
+        """Callback for mouse button presses."""
+        nonlocal polyline, line
+
+        if (event.inaxes is None or event.button != 1):
+            return
+
+        if event.xdata is not None and event.ydata is not None:
+            event_data = np.array([event.xdata, event.ydata])
+            event_data = constrain_point(event_data)
+
+            if len(polyline) == 0:
+                polyline, line = init_poly(event_data)
+            else:
+                polyline = add_point(event_data)
+            draw_polyline(polyline)
+
+    def on_button_release(event):
+        """Callback for mouse button releases."""
+        if (event.button != 1):
+            return
+
+    def on_key_press(event):
+        """Callback for key presses."""
+        if not event.inaxes:
+            return
+
+        event_key = event.key
+        if event_key == 'escape':
+            # we're done
+            remove_last_point()  # potential new point not needed, delete
+            fig.disconnect_events()
+            fig.connect_events(saved_events)
+            fig.action_complete()
+
+        elif event_key == 'backspace' or event_key == 'backspace':
+            # remove the most recently entered point
+            remove_last_point()
+            draw_polyline(polyline)
+
+        elif event_key == 'shift':
+            # reserved for add to selection
+            pass
+        elif event_key == 'control':
+            # perhaps some sort of snap mode?
+            pass
+        canvas.draw()
+
+    def on_finished_clb():
+        """Callback for mouse movements."""
+        nonlocal polyline, line, pt0
+        pt0 = None
+        draw_polyline(polyline)
+        if do_on_finished is not None:
+            do_on_finished(polyline, line)
+
+    action_dict = {'button_press_event': on_button_press,
+                   'button_release_event': on_button_release,
+                   'key_press_event': on_key_press,
+                   'motion_notify_event': on_mouse_move}
+
+    saved_events = fig.disconnect_events()
+    fig.connect_events(action_dict=action_dict)
+    fig.on_finished = on_finished_clb

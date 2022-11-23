@@ -580,19 +580,20 @@ class SequentialModel:
             return
         if self.opt_model['analysis_results']['parax_data'] is None:
             return
-        if len(specsheet.imager_inputs) == 2:
+        if specsheet.imager_defined():
             fod = self.opt_model['analysis_results']['parax_data'].fod
+            imager = specsheet.imager
             f_old = fod.efl
-            f_new = specsheet.imager.f
+            f_new = imager.f
             scale_factor = f_new/f_old
-            if scale_factor != 1.0:
+            if scale_factor < 1.0-1e-5 or scale_factor > 1.0+1e-5:
                 self.apply_scale_factor(scale_factor)
 
             if specsheet.conjugate_type == 'finite':
-                self.gaps[0].thi = scale_factor*fod.pp1 - specsheet.imager.s
-                self.gaps[-1].thi = specsheet.imager.sp - scale_factor*fod.ppk
+                self.gaps[0].thi = -(imager.s + scale_factor*fod.pp1)
+                self.gaps[-1].thi = imager.sp - scale_factor*fod.ppk
             elif specsheet.conjugate_type == 'infinite':
-                self.gaps[-1].thi = specsheet.imager.sp - scale_factor*fod.ppk
+                self.gaps[-1].thi = imager.sp - scale_factor*fod.ppk
 
     def insert_surface_and_gap(self):
         s = surface.Surface()

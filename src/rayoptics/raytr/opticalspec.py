@@ -12,6 +12,7 @@ import math
 import numpy as np
 
 from rayoptics.parax.firstorder import compute_first_order, list_parax_trace
+from rayoptics.parax import etendue
 from rayoptics.raytr.trace import aim_chief_ray
 from rayoptics.optical import model_enums
 import rayoptics.optical.model_constants as mc
@@ -134,6 +135,11 @@ class OpticalSpecs:
         self.pupil.set_from_specsheet(ss)
         self.field_of_view.set_from_specsheet(ss)
         self.defocus.set_from_specsheet(ss)
+
+    def sync_to_parax(self, parax_model):
+        """ Use the parax_model database to update the optical specs. """
+        self.pupil.sync_to_parax(parax_model)
+        self.field_of_view.sync_to_parax(parax_model)
 
     def sync_to_restore(self, opt_model):
         self.opt_model = opt_model
@@ -314,6 +320,24 @@ class PupilSpec:
         o_str = f"{key[0]}: {key[1]} {key[2]}; value={self.value}\n"
         return o_str
 
+    def sync_to_parax(self, parax_model):
+        """ Use the parax_model database to update the pupil specs. """
+        num_nodes = parax_model.get_num_nodes()
+        if self.key[1] == 'object':
+            idx = 0
+        else:
+            idx = num_nodes-2
+
+        n = parax_model.sys[idx][mc.indx]
+        slope = parax_model.ax[idx][mc.slp]
+        y_star, ybar_star = parax_model.calc_object_and_pupil(idx)
+        if 'NA' in self.key[2]:
+            self.value = etendue.slp2na(slope, n=n)
+        elif 'f/#' in self.key[2]:
+            self.value = -1/(2*slope)
+        elif 'pupil' in self.key[2]:
+            self.value = y_star
+
     def sync_to_restore(self, optical_spec):
         self.optical_spec = optical_spec
 
@@ -381,6 +405,23 @@ class FieldSpec:
         for i, fld in enumerate(self.fields):
             o_str += fld.listobj_str()
         return o_str
+
+    def sync_to_parax(self, parax_model):
+        """ Use the parax_model database to update the field specs. """
+        num_nodes = parax_model.get_num_nodes()
+        if self.key[1] == 'object':
+            idx = 0
+        else:
+            idx = num_nodes-2
+
+        if 'height' in self.key[2]:
+            y_star, ybar_star = parax_model.calc_object_and_pupil(idx)
+            self.value = ybar_star
+
+        elif 'angle' in self.key[2]:
+            n = parax_model.sys[idx][mc.indx]
+            slope = parax_model.pr[idx][mc.slp]/n
+            self.value = etendue.slp2ang(slope)
 
     def sync_to_restore(self, optical_spec):
         if not hasattr(self, 'is_relative'):
