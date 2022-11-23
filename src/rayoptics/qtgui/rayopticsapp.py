@@ -63,6 +63,7 @@ class MainWindow(QMainWindow):
 
         file_menu = bar.addMenu("File")
         file_menu.addAction("New")
+        file_menu.addAction("New Diagram")
         file_menu.addAction("New Spec Sheet")
         file_menu.addAction("New Console")
         file_menu.addAction("Open...")
@@ -243,6 +244,9 @@ class MainWindow(QMainWindow):
         if action == "New":
             self.new_model()
 
+        if action == "New Diagram":
+            self.new_model_via_diagram()
+
         if action == "New Spec Sheet":
             self.new_model_via_specsheet()
 
@@ -299,6 +303,15 @@ class MainWindow(QMainWindow):
     def new_model_via_specsheet(self):
         cmds.create_new_ideal_imager_dialog(gui_parent=self,
                                             conjugate_type='infinite')
+        self.new_console_empty_model()
+
+    def new_model_via_diagram(self, **kwargs):
+        """ Define a new model using a |yybar| diagram. """
+        from rayoptics.optical import opticalmodel
+        opt_model = opticalmodel.OpticalModel(**kwargs)
+        self.app_manager.set_model(opt_model)
+
+        cmds.create_paraxial_design_view_v2(opt_model, 'ht', gui_parent=self)
         self.new_console_empty_model()
 
     def new_console_empty_model(self):
@@ -483,7 +496,9 @@ class MainWindow(QMainWindow):
         model = cmds.create_ray_table_model(opt_model, ray)
         self.create_table_view(model, "Ray Table")
 
-    def create_table_view(self, table_model, table_title, close_callback=None):
+    def create_table_view(self, table_model, table_title, 
+                          close_callback=None,
+                          update_callback=None):
         # construct the top level widget
         widget = QWidget()
         # construct the top level layout
@@ -515,7 +530,9 @@ class MainWindow(QMainWindow):
         sub.setGeometry(orig_x, orig_y, view_width, view_ht)
 
         # table data updated successfully
-        table_model.update.connect(self.on_data_changed)
+        if update_callback is None:
+            update_callback = self.on_data_changed
+        table_model.update.connect(update_callback)
 
         sub.show()
 
@@ -576,7 +593,7 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot(object, int)
     def on_data_changed(self, rootObj, index):
-        self.refresh_gui()
+        self.refresh_gui(src_model=rootObj)
 
 
 def main():

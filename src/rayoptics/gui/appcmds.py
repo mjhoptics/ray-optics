@@ -26,6 +26,7 @@ import rayoptics.elem.elements as ele
 import rayoptics.elem.parttree as pt
 from rayoptics.elem import layout
 from rayoptics.parax import diagram
+from rayoptics.parax import paraxialdesign
 from rayoptics.parax.firstorder import specsheet_from_parax_data
 from rayoptics.parax.idealimager import ideal_imager_setup
 from rayoptics.parax.etendue import create_etendue_dict
@@ -38,13 +39,13 @@ from rayoptics.raytr import trace
 from rayoptics.gui.appmanager import ModelInfo
 from rayoptics.gui.roafile import open_roa
 
+from rayoptics.mpl import interactivefigure
 from rayoptics.mpl.interactivelayout import InteractiveLayout
 from rayoptics.mpl.axisarrayfigure import Fit
 from rayoptics.mpl.axisarrayfigure import (RayFanFigure, SpotDiagramFigure,
                                            WavefrontFigure)
 
 from rayoptics.mpl.analysisplots import FieldCurveFigure, ThirdOrderBarChart
-import rayoptics.mpl.interactivediagram as dgm
 
 import rayoptics.qtgui.plotview as plotview
 from rayoptics.qtgui.idealimagerdialog import IdealImagerDialog
@@ -258,10 +259,11 @@ def create_live_layout_commands(fig):
 
 
 def create_paraxial_design_view_v2(opt_model, dgm_type, gui_parent=None):
+    from rayoptics.mpl.interactivediagram import InteractiveDiagram
     refresh_gui, is_dark = get_defaults_from_gui_parent(gui_parent)
-    fig = dgm.InteractiveDiagram(opt_model, dgm_type, refresh_gui=refresh_gui,
-                                 do_draw_frame=True, do_draw_axes=True,
-                                 aspect='auto', is_dark=is_dark)
+    fig = InteractiveDiagram(opt_model, dgm_type, refresh_gui=refresh_gui,
+                             do_draw_frame=True, do_draw_axes=True,
+                             aspect='auto', is_dark=is_dark)
     panel_fcts = [create_2d_figure_toolbar,
                   ]
     if dgm_type == 'ht':
@@ -289,6 +291,13 @@ def create_parax_design_commands(fig):
     dgm = fig.diagram
     # initialize dgm with a Select command
     dgm.register_commands((), figure=fig)
+
+    # draw polyline to define an initial model
+    kwargs = {'factory': ele.create_thinlens,
+              'opt_model': dgm.opt_model,
+              'gui_fct': interactivefigure.enter_polyline}
+    cmds.append(('Sketch Diagram', (paraxialdesign.nodes_to_new_model, 
+                                          (), kwargs)))
     # Select an existing point
     cmds.append(('Select', (dgm.register_commands, (), {})))
     # Add thin lens
@@ -299,8 +308,9 @@ def create_parax_design_commands(fig):
                    'interact_mode': 'transmit'})))
     # Add lens
     kwargs = {'node_init': ele.create_thinlens,
-              'factory': ele.create_lens,
-              'interact_mode': 'transmit'}
+              'factory': ele.create_lens_from_dgm,
+              'interact_mode': 'transmit',
+              }
     cmds.append(('Add Lens', (dgm.register_add_replace_element, (), kwargs)))
 
     # Add doublet
@@ -316,6 +326,10 @@ def create_parax_design_commands(fig):
                   {'node_init': ele.create_mirror,
                    'factory': ele.create_mirror,
                    'interact_mode': 'reflect'})))
+
+    # draw polyline
+    # cmds.append(('Draw Polyline', (interactivefigure.enter_polyline, 
+    #                                       (), {})))
 
     # Replace with file
     pth = pathlib.Path(__file__).resolve()
@@ -549,16 +563,16 @@ def create_parax_table_model(opt_model):
 
 
 def create_parax_model_table(opt_model):
-    rootEvalStr = ".parax_model"
     colEvalStr = ['.ax[{}][0]', '.pr[{}][0]', '.ax[{}][1]', '.pr[{}][1]',
                   '.sys[{}][0]', '.sys[{}][1]', '.sys[{}][2]', '.sys[{}][3]']
     seq_model = opt_model.seq_model
+    parax_model = opt_model.parax_model
     rowHeaders = seq_model.surface_label_list()
     colHeaders = ['y', 'y-bar', 'nu', 'nu-bar',
                   'pwr', 'tau', 'n after', 'mode']
     colFormats = ['{:12.5g}', '{:12.5g}', '{:9.6f}', '{:9.6f}',
                   '{:12.7g}', '{:12.5g}', '{:7.4f}', '{:s}']
-    return PyTableModel(opt_model, rootEvalStr, colEvalStr, rowHeaders,
+    return PyTableModel(parax_model, '', colEvalStr, rowHeaders,
                         colHeaders, colFormats, True,
-                        get_num_rows=seq_model.get_num_surfaces,
+                        get_num_rows=parax_model.get_num_nodes,
                         get_row_headers=seq_model.surface_label_list)
