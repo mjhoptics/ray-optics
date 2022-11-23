@@ -95,6 +95,9 @@ class ThinLens(Interface):
         super().apply_scale_factor(scale_factor)
         self.optical_power = self.optical_power/scale_factor
 
+    def update_following_reflection(self):
+        super().apply_scale_factor(-1)
+
     def from_first_order(self, nu_before, nu_after, y):
         # nu_before used for reference point
         ref = -y/nu_before if nu_before != 0.0 else 1e+10

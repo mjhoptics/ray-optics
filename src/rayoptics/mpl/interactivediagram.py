@@ -49,8 +49,6 @@ class InteractiveDiagram(InteractiveFigure):
         self.setup_dgm_type(dgm_type)
         self.enable_slide = enable_slide
 
-        self.build = 'rebuild'
-
         super().__init__(**kwargs)
 
     def setup_dgm_type(self, dgm_type):
@@ -70,7 +68,6 @@ class InteractiveDiagram(InteractiveFigure):
     def update_data(self, **kwargs):
         self.artists = []
         self.sys_bbox = self.diagram.update_data(self, **kwargs)
-        self.build = 'rebuild'
         return self
 
     def action_complete(self):

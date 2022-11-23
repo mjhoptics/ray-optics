@@ -153,6 +153,9 @@ class Surface(interface.Interface):
     def from_first_order(self, nu_before, nu_after, y):
         pass
 
+    def update_following_reflection(self):
+        self.apply_scale_factor(-1)
+
     def z_sag(self, pt):
         return self.profile.sag(0., pt[1])
 

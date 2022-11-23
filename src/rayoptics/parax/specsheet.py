@@ -351,12 +351,12 @@ class SpecSheet():
                     slpbar0 = math.tan(ang)
                     ybar0 = -slpbar0*thi_0
                 elif value_key == 'height':
-                    ybar0 = -value
+                    ybar0 = -abs(value)
                     slpbar0 = ybar0/thi_0
             elif obj_img_key == 'image':
                 if value_key == 'height':
-                    ybar0 = -value/imager.m
-                    slpbar0 = ybar0/thi_0
+                    ybar0 = -abs(value/imager.m)
+                    slpbar0 = -ybar0/thi_0
             yu_bar = [ybar0, slpbar0]
 
         return yu, yu_bar

@@ -161,6 +161,10 @@ class Interface:
                                             n_in, n_out)
 
     def apply_scale_factor(self, scale_factor):
-        self.max_aperture *= scale_factor
+        self.max_aperture *= abs(scale_factor)
         if self.decenter:
             self.decenter.apply_scale_factor(scale_factor)
+
+    def update_following_reflection(self):
+        """ Notification that incident light is following reflection. """
+        pass
