@@ -502,12 +502,14 @@ class OpticalModel:
                 idx: insertion point in the sequential model
                 insert: if True, insert the chunk, otherwise replace it
                 t: the thickness following a chunk when inserting
+                do_update: update seq_model and optical properties if True (default)
+                src_model: the model originating the changes
         """
         sm = self['seq_model']
         osp = self['optical_spec']
         em = self['ele_model']
         pt = self['part_tree']
-        seq, elm, e_nodez = descriptor
+        seq, elm, e_nodez, dgm = descriptor
         if 'idx' in kwargs:
             sm.cur_surface = kwargs['idx']
         idx = sm.cur_surface
@@ -549,34 +551,34 @@ class OpticalModel:
                 seq[-1][mc.Gap] = g
             elm.append(ag)
             ag_node.parent = pt.root_node
-        else:
-            # replacing an existing node. need to hook new chunk final
-            # interface to the existing gap and following (air gap) element
-            g = sm.gaps[sm.cur_surface+1]
-            seq[-1][mc.Gap] = g
-            ag, ag_node = pt.parent_object(g, '#airgap')
 
-        # insert the new seq into the seq_model
-        for sg in seq:
-            if ins_prev_gap:
-                gap, g = g, sg[mc.Gap]
-            else:
-                gap = sg[mc.Gap]
-            sm.insert(sg[mc.Intfc], gap, z_dir=sg[mc.Zdir], prev=ins_prev_gap)
-        sm.update_model()
-        osp.update_model()
-        self.update_optical_properties()
+            # insert the new seq into the seq_model
+            for sg in seq:
+                if ins_prev_gap:
+                    gap, g = g, sg[mc.Gap]
+                else:
+                    gap = sg[mc.Gap]
+                sm.insert(sg[mc.Intfc], gap, z_dir=sg[mc.Zdir], 
+                          prev=ins_prev_gap)
+            # add new elements into the ele_model 
+            for e in elm:
+                em.add_element(e)
+            em.sync_to_seq(sm)
+    
+            # re-sort the part_tree to incorporate the new seq
+            pt.update_model()
+            # re-sort the ele_model by position on Z axis
+            em.sequence_elements()
 
-        # add new elements into the ele_model and 
-        #  re-sync them with the seq_model
-        for e in elm:
-            em.add_element(e)
-        em.sync_to_seq(sm)
+        else:  # replacing an existing node.
+            e_node = pt.parent_node(sm.ifcs[idx])
+            self.replace_node_with_descriptor(e_node, *descriptor, **kwargs)
 
-        # re-sort the part_tree to incorporate the new seq
-        pt.update_model()
-        # re-sort the ele_model by position on Z axis
-        em.sequence_elements()
+        if kwargs.get('do_update', True):
+            src_model = kwargs.get('src_model', None)
+            sm.update_model(src_model=src_model)
+            osp.update_model(src_model=src_model)
+            self.update_optical_properties(src_model=src_model)
 
     def remove_ifc_gp_ele(self, *descriptor, **kwargs):
         """ remove interfaces and gaps from seq_model and eles from ele_model
@@ -585,7 +587,7 @@ class OpticalModel:
         osp = self['optical_spec']
         em = self['ele_model']
         pt = self['part_tree']
-        seq, elm, e_nodez = descriptor
+        seq, elm, e_nodez, dgm = descriptor
         sg = seq[0]
         idx = sm.ifcs.index(sg[mc.Intfc])
 
@@ -624,3 +626,36 @@ class OpticalModel:
         self.ele_model.remove_node(e_node)
         # unhook node
         e_node.parent = None
+
+    def replace_node_with_descriptor(self, e_node, *descriptor, **inputs):
+        sm = self['seq_model']
+        pm = self['parax_model']
+        em = self['ele_model']
+        pt = self['part_tree']
+
+        seq, elm, e_nodez, dgm = descriptor
+
+        # remove interfaces from seq_model
+        sm.replace_node_with_seq(e_node, seq, **inputs)
+
+        # remove interfaces from seq_model
+        if dgm is not None:
+            pm.replace_node_with_dgm(e_node, dgm, **inputs)
+
+        # remove elements from ele_model
+        em.remove_node(e_node)
+        for e in elm:
+            em.add_element(e)
+        if inputs.get('src_model', None) is not em:
+            em.sync_to_seq(sm)
+        em.sequence_elements()
+
+        # unhook node
+        parent_node = e_node.parent if e_node is not None else pt.root_node
+        e_node.parent = None
+        if isinstance(e_nodez, Sequence):
+            for node in e_nodez:
+                node.parent = parent_node
+        else:
+            e_nodez.parent = parent_node
+        pt.update_model()

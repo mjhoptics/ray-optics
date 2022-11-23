@@ -11,6 +11,8 @@ import logging
 
 from anytree import Node
 
+import rayoptics.optical.model_constants as mc
+
 from rayoptics.elem import surface
 from . import gap
 from . import medium
@@ -339,22 +341,90 @@ class SequentialModel:
         del self.z_dir[idx]
         del self.rndx[idx]
 
+    def replace_node_with_seq(self, e_node, seq, **kwargs):
+        """ Replace a sub-sequence of e_node with seq. """
+        if e_node is None:
+            idx_1 = kwargs.get('idx', self.cur_surface)
+        else:
+            idx_1, idx_k, idx_stop = self.remove_node(e_node)
+
+        # add seq into self.
+        tfrm = np.identity(3), np.array([0., 0., 0.])
+        for idx, sg in enumerate(seq, start=idx_1):
+            self.ifcs.insert(idx, sg[mc.Intfc])
+            self.lcl_tfrms.insert(idx, sg[mc.Tfrm])
+            self.gbl_tfrms.insert(idx, tfrm)
+            if sg[mc.Gap] is not None:
+                self.gaps.insert(idx, sg[mc.Gap])
+                self.z_dir.insert(idx, sg[mc.Zdir])
+                self.rndx.insert(idx, sg[mc.Indx])
+
+        # figure out where the stop belongs
+        if self.stop_surface is not None:
+            if idx_stop <= idx_1:
+                pass
+            elif idx_stop <= idx_k:
+                # stop was interior to replaced node. set to float because
+                # entrance pupil should be well defined.
+                self.stop_surface = None
+            else:
+                idx_delta = idx_stop - idx_k
+                idx_stop_new = idx + idx_delta
+                self.stop_surface = idx_stop_new
+
+        # handle inserted reflecting interfaces
+        self.scan_for_reflections(start=idx_1)
+
     def remove_node(self, e_node):
-        part_tree = self.opt_model.part_tree
-        ifcs = [n.id for n in part_tree.nodes_with_tag(tag='#ifc',
-                                                       root=e_node)]
+        """ Remove the ifcs/gaps connected to **e_node**. 
+        
+        Return the first and last ifc indices. 
+        """
+        pt = self.opt_model.part_tree
+        ifcs = [n.id for n in pt.nodes_with_tag(tag='#ifc', root=e_node)]
+        idx_1, idx_k = self.ifcs.index(ifcs[0]), self.ifcs.index(ifcs[-1])
+        idx_stop = self.stop_surface
         for ifc in ifcs:
             idx = self.ifcs.index(ifc)
-            if (self.stop_surface is not None and
-                idx <= self.stop_surface and
-                idx > 1):
-                self.stop_surface -= 1
             del self.ifcs[idx]
+            del self.lcl_tfrms[idx]
+            del self.gbl_tfrms[idx]
+
+        gaps = [n.id for n in pt.nodes_with_tag(tag='#gap', root=e_node)]
+        for gz in gaps:
+            g, z_dir = gz
+            idx = self.gaps.index(g)
             del self.gaps[idx]
             del self.z_dir[idx]
             del self.rndx[idx]
-            del self.lcl_tfrms[idx]
-            del self.gbl_tfrms[idx]
+        
+        return idx_1, idx_k, idx_stop
+
+    def scan_for_reflections(self, start=0):
+        """ Rectify any inconsistent z_dir setting due to insertions. """
+        b4_idx = start if start == 0 else start-1
+        z_dir_before = self.z_dir[b4_idx]
+        reflected = z_dir_before
+        
+        seq = itertools.zip_longest(self.ifcs[start:], 
+                                    self.gaps[start:],
+                                    self.z_dir[start:])
+
+        for i, sgz in enumerate(seq, start=start):
+            ifc, g, z_dir_after = sgz
+            if ifc.interact_mode == 'reflect' or reflected != z_dir_after:
+                if i != start:
+                    ifc.update_following_reflection()
+                if g:
+                    g.apply_scale_factor(-1)
+                    z_dir_after = -z_dir_after
+                # update the reflected state (-1 if odd # of reflections)
+                if ifc.interact_mode == 'reflect':
+                    reflected = -reflected
+
+            if g is not None:
+                z_dir_before = z_dir_after
+                self.z_dir[i] = z_dir_after
 
     def add_surface(self, surf_data, **kwargs):
         """ add a surface where `surf_data` is a list that contains:
@@ -435,15 +505,17 @@ class SequentialModel:
 
         self.wvlns = spectral_region.wavelengths
         self.rndx = self.calc_ref_indices_for_spectrum(self.wvlns)
-        n_before = self.rndx[0][ref_wl]
 
-        z_dir_before = self.z_dir[0]
+        start = kwargs.get('start', 0)
+        b4_idx = start if start == 0 else start-1
+        n_before = self.rndx[b4_idx][ref_wl]
+        z_dir_before = self.z_dir[b4_idx]
 
-        seq = itertools.zip_longest(self.ifcs, self.gaps)
+        seq = itertools.zip_longest(self.ifcs[start:], self.gaps[start:])
 
-        for i, sg in enumerate(seq):
+        for i, sg in enumerate(seq, start=start):
             ifc, g = sg
-            z_dir_after = copysign(1, z_dir_before)
+            z_dir_after = int(copysign(1, z_dir_before))
             if ifc.interact_mode == 'reflect':
                 z_dir_after = -z_dir_after
 
@@ -534,7 +606,7 @@ class SequentialModel:
         for i, sg in enumerate(self.path(start=start), start=start):
             ifc, g, lcl_tfrm, rndx, z_dir = sg
             if i > start:
-                ifc.apply_scale_factor(-1)
+                ifc.update_following_reflection()
                 if g:
                     g.apply_scale_factor(-1)
                     self.z_dir[i] = -z_dir
@@ -979,18 +1051,18 @@ def gen_sequence(surf_data_list, **kwargs):
     z_dir = []
 
     for surf_data in surf_data_list:
-        s, g, z_dir, rn, tfrm = create_surface_and_gap(surf_data, **kwargs)
+        s, g, zdir, rn, tfrm = create_surface_and_gap(surf_data, **kwargs)
         ifcs.append(s)
         gaps.append(g)
         rndx.append(rn)
         lcl_tfrms.append(tfrm)
-        z_dir.append(1)
+        z_dir.append(zdir)
     ifcs[-1].interact_mode = 'dummy'
 
     n_before = 1.0
     z_dir_before = 1
     for i, s in enumerate(ifcs):
-        z_dir_after = copysign(1, z_dir_before)
+        z_dir_after = int(copysign(1, z_dir_before))
         n_after = np.copysign(rndx[i], n_before)
         if s.interact_mode == 'reflect':
             n_after = -n_after

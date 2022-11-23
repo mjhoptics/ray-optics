@@ -65,7 +65,16 @@ def create_thinlens(power=0., indx=1.5, sd=None, **kwargs):
     tl = thinlens.ThinLens(power=power, ref_index=indx, max_ap=sd, **kwargs)
     tle = ThinElement(tl)
     tree = tle.tree()
-    return [[tl, None, None, 1, +1]], [tle], tree
+
+    if 'prx' in kwargs:
+        pm, node, type_sel = prx = kwargs['prx']
+        dgm_pkg = [pm.get_pt(node)], [[indx, 'transmit']]
+        dgm = prx, dgm_pkg
+    else:
+        dgm = None
+
+    descriptor = [[tl, None, None, 1, +1]], [tle], tree, dgm
+    return descriptor
 
 
 def create_mirror(c=0.0, r=None, cc=0.0, ec=None,
@@ -115,7 +124,14 @@ def create_mirror(c=0.0, r=None, cc=0.0, ec=None,
 
     tree = me.tree()
 
-    return [[m, None, None, 1, -1]], [me], tree
+    if 'prx' in kwargs:
+        pm, node, type_sel = prx = kwargs['prx']
+        dgm_pkg = [pm.get_pt(node)], [[-1, 'reflect']]
+        dgm = prx, dgm_pkg
+    else:
+        dgm = None
+
+    return [[m, None, None, 1, -1]], [me], tree, dgm
 
 
 def lens_from_power(power=0., bending=0., th=None, sd=1.,
@@ -189,6 +205,24 @@ def create_lens(power=0., bending=0., th=None, sd=1., med=None,
     return [[s1, g, None, rndx, 1], [s2, None, None, 1, 1]], [le], tree
 
 
+def create_lens_from_dgm(prx=None, **kwargs):
+    """ Use diagram points to create a lens. 
+    
+    Adds a |yybar| component to the descriptor tuple.
+    dgm = prx, dgm_pkg
+    
+    prx = parax_model, node_idx, type_sel
+    dgm_pkg = node_list, sys_data
+    
+    sys_data = list([rndx, 'transmit'|'reflect'])
+    """
+    pm, node, type_sel = prx
+    dgm_pkg, lens_from_dgm = pm.lens_from_dgm(node, **kwargs)
+    descriptor = create_lens(lens=lens_from_dgm, **kwargs)
+    descriptor += ((prx, dgm_pkg),)
+    return descriptor
+
+
 def achromat(power, Va, Vb):
     """Compute lens powers for a thin doublet achromat, given their V-numbers."""
     power_a = (Va/(Va - Vb))*power
@@ -251,14 +285,23 @@ def create_cemented_doublet(power=0., bending=0., th=None, sd=1.,
 
     return [[s1, g1, None, rndx_a, 1],
             [s2, g2, None, rndx_b, 1],
-            [s3, None, None, 1, 1]], [ce], tree
+            [s3, None, None, 1, 1]], [ce], tree, None
 
 
 def create_dummy_plane(sd=1., **kwargs):
     s = Surface(**kwargs)
     se = DummyInterface(s, sd=sd)
     tree = se.tree()
-    return [[s, None, None, 1, +1]], [se], tree
+
+    if 'prx' in kwargs:
+        pm, node, type_sel = prx = kwargs['prx']
+        dgm_pkg = [pm.get_pt(node)], [[1, 'transmit']]
+        dgm = prx, dgm_pkg
+    else:
+        dgm = None
+
+    descriptor = [[s, None, None, 1, +1]], [se], tree, dgm
+    return descriptor
 
 
 def create_air_gap(t=0., **kwargs):
@@ -266,7 +309,7 @@ def create_air_gap(t=0., **kwargs):
     ag = AirGap(g, **kwargs)
     kwargs.pop('label', None)
     tree = ag.tree(**kwargs)
-    return g, ag, tree
+    return g, ag, tree, None
 
 
 def create_from_file(filename, **kwargs):
@@ -307,7 +350,7 @@ def create_from_file(filename, **kwargs):
         asm_node = asm.tree(part_tree=opm['part_tree'], tag='#file')
     asm_node.parent = None
 
-    return seq, parts, part_nodes
+    return seq, parts, part_nodes, None
 
 
 def create_assembly_from_seq(opt_model, idx1, idx2, **kwargs):
@@ -1977,7 +2020,7 @@ class ElementModel:
         self.add_element(di)
 
     def update_model(self, **kwargs):
-        # dynamically build element list from part_tree
+        """ dynamically build element list from part_tree. """
         part_tree = self.opt_model['part_tree']
         part_tag = '#element#airgap#dummyifc#assembly'
         nodes = part_tree.nodes_with_tag(tag=part_tag)
