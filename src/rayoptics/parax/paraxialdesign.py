@@ -200,6 +200,14 @@ class ParaxialModel():
         self.pr[idx][type_sel] = pt[0]
         self.ax[idx][type_sel] = pt[1]
 
+    def apply_scale_factor(self, scale_factor):
+        """ Apply scale factor to height diagram and update parax_model. """
+        type_sel = mc.ht
+        nodes = self.parax_to_nodes(type_sel)
+        nodes = scale_factor*nodes
+        self.opt_inv *= scale_factor
+        self.nodes_to_parax(nodes, type_sel)
+
     def get_gap_for_node(self, node_idx, dgm_type):
         if self.seq_mapping is None:
             # just return the node in the seq_model

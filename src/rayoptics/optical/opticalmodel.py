@@ -429,6 +429,17 @@ class OpticalModel:
         self['pt'].root_node.children = []
         elements_from_sequence(self['em'], self['sm'], self['pt'])
 
+    def apply_scale_factor(self, scale_factor):
+        self['seq_model'].apply_scale_factor(scale_factor)
+        self['optical_spec'].apply_scale_factor(scale_factor)
+        self['parax_model'].apply_scale_factor(scale_factor)
+        self['ele_model'].apply_scale_factor(scale_factor)
+        self['part_tree'].update_model()
+
+        self['optical_spec'].update_model()
+        self.update_optical_properties()
+
+
     def flip(self, *args, **kwargs):
         """ Flip a `Part` or an `Interface` range in the optical model. 
         

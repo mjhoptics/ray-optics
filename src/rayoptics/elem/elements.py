@@ -2043,6 +2043,11 @@ class ElementModel:
         if src_model is not self:
             self.sync_to_seq(self.opt_model['seq_model'])
 
+    def apply_scale_factor(self, scale_factor):
+        """ Apply scale factor by resyncing with the sequential model. """
+        seq_model = self.opt_model['seq_model']
+        self.sync_to_seq(seq_model)
+
     def sync_to_seq(self, seq_model):
         tfrms = seq_model.compute_global_coords(1)
 

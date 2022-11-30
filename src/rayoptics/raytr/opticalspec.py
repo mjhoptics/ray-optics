@@ -167,6 +167,12 @@ class OpticalSpecs:
                     aim_pt = aim_chief_ray(self.opt_model, fld, wvl)
                     fld.aim_pt = aim_pt
 
+    def apply_scale_factor(self, scale_factor):
+        self['wvls'].apply_scale_factor(scale_factor)
+        self['pupil'].apply_scale_factor(scale_factor)
+        self['fov'].apply_scale_factor(scale_factor)
+        self['focus'].apply_scale_factor(scale_factor)
+
     def lookup_fld_wvl_focus(self, fi, wl=None, fr=0.0):
         """ returns field, wavelength and defocus data
 
@@ -255,6 +261,9 @@ class WvlSpec:
 
     def update_model(self, **kwargs):
         self.calc_colors()
+
+    def apply_scale_factor(self, scale_factor):
+        pass
 
     def add(self, wl, wt):
         self.wavelengths.append(get_wavelength(wl))
@@ -351,6 +360,11 @@ class PupilSpec:
         if not hasattr(self, 'pupil_rays'):
             self.pupil_rays = PupilSpec.default_pupil_rays
             self.ray_labels = PupilSpec.default_ray_labels
+
+    def apply_scale_factor(self, scale_factor):
+        aperture, obj_img_key, value_key = self.key
+        if value_key == 'pupil':
+            self.value *= scale_factor
 
     def mutate_pupil_type(self, ape_key):
         aperture, obj_img_key, value_key = ape_key
@@ -486,6 +500,14 @@ class FieldSpec:
             self.index_labels[-1] = 'edge'
         return self
 
+    def apply_scale_factor(self, scale_factor):
+        field, obj_img_key, value_key = self.key
+        if value_key == 'height':
+            if not self.is_relative:
+                for f in self.fields:
+                    f.apply_scale_factor(scale_factor)
+            self.value *= scale_factor
+
     def mutate_field_type(self, fld_key):
         osp = self.optical_spec
         parax_data = osp.opt_model['ar']['parax_data']
@@ -609,7 +631,11 @@ class Field:
     def update(self):
         self.chief_ray = None
         self.ref_sphere = None
-        
+
+    def apply_scale_factor(self, scale_factor):
+        self.x *= scale_factor
+        self.y *= scale_factor
+
     def vignetting_bbox(self, pupil_spec: PupilSpec, oversize=1.02):
         """ returns a bbox of the vignetted pupil ray extents. """
         poly = []
@@ -664,6 +690,10 @@ class FocusRange:
 
     def update(self):
         pass
+
+    def apply_scale_factor(self, scale_factor):
+        self.focus_shift *= scale_factor
+        self.defocus_range *= scale_factor
 
     def get_focus(self, fr=0.0):
         """ return focus position for input focus range parameter
