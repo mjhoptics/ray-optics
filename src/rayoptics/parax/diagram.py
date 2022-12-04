@@ -112,46 +112,49 @@ class Diagram():
         parax_model = self.parax_model
 
         self.shape = self.render_shape()
-        self.shape_bbox = bbox_from_poly(self.shape)
-        build = kwargs.get('build', fig.build)
-        if build == 'update':
-            # just a change in node positions - handled above
-            # self.shape = self.render_shape()
-            pass
-        else:
-            # number of nodes have changed, rebuild everything
-            num_nodes = len(parax_model.sys)
-            if self.dgm_type == 'slp':
-                num_nodes -= 1
-
-            self.node_list = []
-            for i in range(num_nodes):
-                self.node_list.append(DiagramNode(self, i))
-
-            self.edge_list = []
-            for i in range(num_nodes-1):
-                self.edge_list.append(DiagramEdge(self, i))
-
-            self.object_shift = ConjugateLine(self, 'object_image')
-            if self.opt_model.seq_model.stop_surface is None:
-                # stop shift conjugate line is only editable for floating stop
-                self.stop_shift = ConjugateLine(self, 'stop')
-
-            if self.do_barrel_constraint:
-                self.barrel_constraint = BarrelConstraint(self)
-                
-            if self.do_node_annotation:
+        if len(self.shape) > 0:
+            self.shape_bbox = bbox_from_poly(self.shape)
+            build = kwargs.get('build', 'rebuild')
+            if build == 'update':
+                # just a change in node positions - handled above
+                # self.shape = self.render_shape()
                 pass
-
-        self.node_bbox = fig.update_patches(self.node_list)
-        self.edge_bbox = fig.update_patches(self.edge_list)
-
-        self.object_shift_bbox = fig.update_patches([self.object_shift])
-        if self.opt_model.seq_model.stop_surface is None:
-            self.stop_shift_bbox = fig.update_patches([self.stop_shift])
-
-        if self.do_barrel_constraint:
-            self.barrel_bbox = fig.update_patches([self.barrel_constraint])
+            else:
+                # number of nodes have changed, rebuild everything
+                num_nodes = len(parax_model.sys)
+                if self.dgm_type == 'slp':
+                    num_nodes -= 1
+    
+                self.node_list = []
+                for i in range(num_nodes):
+                    self.node_list.append(DiagramNode(self, i))
+    
+                self.edge_list = []
+                for i in range(num_nodes-1):
+                    self.edge_list.append(DiagramEdge(self, i))
+    
+                self.object_shift = ConjugateLine(self, 'object_image')
+                if self.opt_model.seq_model.stop_surface is None:
+                    # stop shift conjugate line is only editable for floating stop
+                    self.stop_shift = ConjugateLine(self, 'stop')
+    
+                if self.do_barrel_constraint:
+                    self.barrel_constraint = BarrelConstraint(self)
+                    
+                if self.do_node_annotation:
+                    pass
+    
+            self.node_bbox = fig.update_patches(self.node_list)
+            self.edge_bbox = fig.update_patches(self.edge_list)
+    
+            self.object_shift_bbox = fig.update_patches([self.object_shift])
+            if self.opt_model.seq_model.stop_surface is None:
+                self.stop_shift_bbox = fig.update_patches([self.stop_shift])
+    
+            if self.do_barrel_constraint:
+                self.barrel_bbox = fig.update_patches([self.barrel_constraint])
+        else:
+            self.shape_bbox = np.array([[-1, -1], [1, 1]])
 
         return self.shape_bbox
 

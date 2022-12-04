@@ -21,6 +21,8 @@ import numpy as np
 
 from anytree import Node  # type: ignore
 
+import rayoptics.optical.model_constants as mc
+
 import rayoptics.util.rgbtable as rgbt
 from rayoptics.oprops import thinlens
 from rayoptics.elem import parttree
@@ -312,31 +314,40 @@ def create_air_gap(t=0., **kwargs):
     return g, ag, tree, None
 
 
+
+
 def create_from_file(filename, **kwargs):
-    opm = cmds.open_model(filename, post_process_imports=False)
-    sm = opm['seq_model']
-    osp = opm['optical_spec']
-    em = opm['ele_model']
-    pt = opm['part_tree']
-    ar = opm['analysis_results']
-    if len(pt.nodes_with_tag(tag='#element')) == 0:
-        parttree.elements_from_sequence(em, sm, pt)
+    opm_file = cmds.open_model(filename, post_process_imports=False)
+    sm_file = opm_file['seq_model']
+    osp_file = opm_file['optical_spec']
+    pm_file = opm_file['parax_model']
+    em_file = opm_file['ele_model']
+    pt_file = opm_file['part_tree']
+    ar_file = opm_file['analysis_results']
+    if len(pt_file.nodes_with_tag(tag='#element')) == 0:
+        parttree.elements_from_sequence(em_file, sm_file, pt_file)
 
     if 'power' in kwargs:
         desired_power = kwargs['power']
-        cur_power = ar['parax_data'].fod.power
+        cur_power = ar_file['parax_data'].fod.power
         # scale_factor is linear, power is 1/linear
         #  so use reciprocal of power to compute scale_factor
         scale_factor = cur_power/desired_power
-        sm.apply_scale_factor(scale_factor)
+        opm_file.apply_scale_factor(scale_factor)
 
     # extract the system definition, minus object and image
-    seq = [list(node) for node in sm.path(start=1, stop=-1)]
+    seq = [list(node) for node in sm_file.path(start=1, stop=-1)]
     seq[-1][1] = None
+    
+    if 'prx' in kwargs:
+        dgm = pm_file.match_pupil_and_conj(kwargs['prx'])
+    else:
+        dgm = None
+
     # get the top level nodes of the input system, minus object and image
-    part_nodes = pt.nodes_with_tag(tag='#element#airgap#assembly',
-                                   not_tag='#object#image',
-                                   node_list=pt.root_node.children)
+    part_nodes = pt_file.nodes_with_tag(tag='#element#airgap#assembly',
+                                        not_tag='#object#image',
+                                        node_list=pt_file.root_node.children)
     parts = [part_node.id for part_node in part_nodes]
 
     if (len(part_nodes) == 1 and '#assembly' in part_nodes[0].tag):
@@ -345,12 +356,12 @@ def create_from_file(filename, **kwargs):
     else:
         # create an Assembly from the top level part list
         label = kwargs.get('label', None)
-        tfrm = kwargs.get('tfrm', opm['seq_model'].gbl_tfrms[1])
+        tfrm = kwargs.get('tfrm', opm_file['seq_model'].gbl_tfrms[1])
         asm = Assembly(parts, idx=1, label=label, tfrm=tfrm)
-        asm_node = asm.tree(part_tree=opm['part_tree'], tag='#file')
+        asm_node = asm.tree(part_tree=opm_file['part_tree'], tag='#file')
     asm_node.parent = None
 
-    return seq, parts, part_nodes, None
+    return seq, parts, part_nodes, dgm
 
 
 def create_assembly_from_seq(opt_model, idx1, idx2, **kwargs):

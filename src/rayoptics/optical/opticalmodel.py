@@ -557,8 +557,8 @@ class OpticalModel:
             else:
                 t_air = t_after
                 z_dir = seq[-1][mc.Zdir]
-            g, ag, ag_node = ele.create_air_gap(t=t_air, label=gap_label,
-                                                z_dir=z_dir, tag=gap_tag)
+            g, ag, ag_node, _ = ele.create_air_gap(t=t_air, label=gap_label,
+                                                   z_dir=z_dir, tag=gap_tag)
             if not ins_prev_gap:
                 seq[-1][mc.Gap] = g
             elm.append(ag)

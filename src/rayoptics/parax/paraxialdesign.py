@@ -26,6 +26,19 @@ def bbox_from_poly(poly):
     return np.array([[minx, miny], [maxx, maxy]])
 
 
+def calculate_slope(x, y, line_type):
+    """ x=ybar, y=y  """
+    if line_type == 'stop':
+        k = x/y
+        return k, np.array([[1, -k], [0, 1]]).T
+    elif line_type == 'object_image':
+        k = y/x
+        return k, np.array([[1, 0], [-k, 1]]).T
+    else:
+        k = 0
+        return 0, np.array([[1, 0], [0, 1]])
+
+
 class ParaxialModel():
     def __init__(self, opt_model, opt_inv=1.0, seq_mapping=None, **kwargs):
         self.opt_model = opt_model
@@ -703,8 +716,8 @@ class ParaxialModel():
         z11 = FZi*zf + zfp
         P10 = FWo*Pwr
         P11 = FWi*Pwr
-        To10 = np.cross(z10, z0)
-        T11i = np.cross(z2, z11)
+        # To10 = np.cross(z10, z0)
+        # T11i = np.cross(z2, z11)
         
         # pp1 = (To - To10)/opt_inv
         # ppk = (Ti - T11i)/opt_inv
@@ -785,10 +798,71 @@ class ParaxialModel():
               f"pp1={pp[1]:8.4f}, ppk={pp[2]:8.4f}")
         return pp_info
 
+    def compute_principle_points_from_dgm(self, os_idx=0, is_idx=-2):
+        """ Calculate focal points and principal points.
+
+        Args:
+            os_idx: object space gap index
+            is_idx: image space gap index
+
+        Returns:
+            (efl, pp1, ppk, ffl, bfl)
+
+            - efl: effective focal length
+            - pp1: distance of front principle plane from 1st interface
+            - ppk: distance of rear principle plane from last interface
+            - ffl: front focal length
+            - bfl: back focal length
+        """
+        n_o = self.sys[os_idx][mc.indx]
+        n_i = self.sys[is_idx][mc.indx]
+
+        opt_inv = self.opt_inv
+
+        z0 = np.array(self.get_pt(os_idx))
+        z1o = np.array(self.get_pt(os_idx+1))
+        z1i = np.array(self.get_pt(is_idx))
+        z2 = np.array(self.get_pt(is_idx+1))
+
+        z1 = np.array(get_intersect(z0, z1o, z1i, z2))
+
+        To = np.cross(z1, z1o)
+        Wo = (z1 - z1o)/To
+
+        Ti = np.cross(z1i, z1)
+        Wi = (z1i - z1)/Ti
+        Pwr = np.cross(Wi, Wo)
+        
+        zfo = -Wi/Pwr
+        zfi = Wo/Pwr
+
+        power = Pwr*opt_inv
+        pp1 = n_o*To/opt_inv
+        ppk = n_i*Ti/opt_inv
+        efl = 1/power
+        ffl = pp1 - efl
+        bfl = efl - ppk
+        pp_info = efl, pp1, ppk, ffl, bfl
+        # print(f"efl={pp_info[0]:8.4f}, ffl={pp_info[3]:8.4f}, bfl={pp_info[4]:8.4f}, "
+        #       f"pp1={pp_info[1]:8.4f}, ppk={pp_info[2]:8.4f}")
+        return pp_info
+
+
     def apply_conjugate_shift(self, nodes, k, mat, line_type):
+        sheared_nodes = self.calc_conjugate_shift(nodes, k, mat, line_type)
+
+        if self.seq_mapping is not None:
+            self.process_seq_mapping(sheared_nodes)
+
+        parax_model = self.opt_model['parax_model']
+        parax_model.paraxial_lens_to_seq_model()
+        self.opt_model['optical_spec'].sync_to_parax(parax_model)
+
+    def calc_conjugate_shift(self, nodes, k, mat, line_type):
         sys = self.sys
         ax = self.ax
         pr = self.pr
+        opt_inv = self.opt_inv
 
         # apply the shear transformation to the original shape
         sheared_nodes = np.matmul(nodes, mat)
@@ -801,36 +875,66 @@ class ParaxialModel():
             # update object distance and object y and ybar
             sheared_obj = get_intersect(nodes[0], nodes[1], *conj_line)
             pr[0][mc.ht], ax[0][mc.ht] = sheared_obj[0], 0.
-            sys[0][mc.tau] = ((-sheared_nodes[1][1]*sheared_obj[0]) /
-                              self.opt_inv)
+            sys[0][mc.tau] = ((-sheared_nodes[1][1]*sheared_obj[0]) / opt_inv)
 
             # update image distance and image y and ybar
             sheared_img = get_intersect(nodes[-2], nodes[-1], *conj_line)
             pr[-1][mc.ht], ax[-1][mc.ht] = sheared_img[0], 0.
-            sys[-2][mc.tau] = ((sheared_nodes[-2][1]*sheared_img[0]) /
-                               self.opt_inv)
+            sys[-2][mc.tau] = ((sheared_nodes[-2][1]*sheared_img[0]) / opt_inv)
 
         else:  # pupil shift, update object values here
             pr[0][mc.ht], ax[0][mc.ht] = sheared_nodes[0]
 
-        # update slope values
+        # update height and slope values over the diagram
         for i, sheared_node in enumerate(sheared_nodes[1:-1], start=1):
             pr[i][mc.ht], ax[i][mc.ht] = sheared_node
             pr[i-1][mc.slp] = (
                 (pr[i][mc.ht] - pr[i-1][mc.ht]) / sys[i-1][mc.tau])
             ax[i-1][mc.slp] = (
                 (ax[i][mc.ht] - ax[i-1][mc.ht]) / sys[i-1][mc.tau])
+
+        # update final slope values
         pr[i][mc.slp] = (pr[i+1][mc.ht] - pr[i][mc.ht]) / sys[i][mc.tau]
         ax[i][mc.slp] = (ax[i+1][mc.ht] - ax[i][mc.ht]) / sys[i][mc.tau]
         pr[-1][mc.slp] = pr[-2][mc.slp]
         ax[-1][mc.slp] = ax[-2][mc.slp]
+        
+        return sheared_nodes
 
-        if self.seq_mapping is not None:
-            self.process_seq_mapping(sheared_nodes)
+    def match_pupil_and_conj(self, prx, **kwargs):
+        pm, node, type_sel = prx
+        opt_inv = pm.opt_inv
+        z0 = np.array(pm.get_pt(node-1, type_sel=mc.ht))
+        z1 = np.array(pm.get_pt(node, type_sel=mc.ht))
+        z2 = np.array(pm.get_pt(node+1, type_sel=mc.ht))
+        To = np.cross(z1, z0)
+        Wo = (z1 - z0)/To
 
-        parax_model = self.opt_model['parax_model']
-        parax_model.paraxial_lens_to_seq_model()
-        self.opt_model['optical_spec'].sync_to_parax(parax_model)
+        pp_info = self.compute_principle_points_from_dgm()
+        efl, pp1, ppk, ffl, bfl = pp_info
+        T_pp1 = pp1 * opt_inv
+        To_new = To - T_pp1
+        z1_new = z0 + To_new * Wo
+
+        T_ppk = ppk * opt_inv
+        To_new = To - T_pp1
+        z1_new = z0 + To_new * Wo
+
+        nodes = self.parax_to_nodes(type_sel)
+        shear = nodes[1] - z1_new
+
+        k_oi, mat_oi = calculate_slope(nodes[1][0], shear[1], 'object_image')
+        obj_shft = self.calc_conjugate_shift(nodes, k_oi, mat_oi, 
+                                             'object_image')
+
+        k_s, mat_s = calculate_slope(shear[0], obj_shft[1][1], 'stop')
+        node_list = self.calc_conjugate_shift(obj_shft, k_s, mat_s, 'stop')
+
+        sys_data = [[sys_i[mc.indx], sys_i[mc.indx]] for sys_i in self.sys]
+
+        dgm_pkg = node_list[1:-1], sys_data[1:-1]
+        dgm = prx, dgm_pkg
+        return dgm
 
     def paraxial_vignetting(self, rel_fov=1):
         """Calculate the vignetting factors using paraxial optics. """
@@ -871,14 +975,14 @@ def nodes_to_new_model(*args, **inputs):
     dgm = fig.diagram
     def on_finished(poly_data, line_artist):
         pm.init_from_nodes(poly_data, dgm.type_sel)
-        create_seq_from_parax(opm, factory)
+        create_seq_from_parax(opm, factory, dgm.type_sel)
         opm['optical_spec'].sync_to_parax(pm)
         fig.refresh_gui(build='rebuild', src_model=pm)
     gui_fct = inputs['gui_fct']
     gui_fct(figure=fig, do_on_finished=on_finished)
 
 
-def create_seq_from_parax(opt_model, factory):
+def create_seq_from_parax(opt_model, factory, type_sel):
     pm = opt_model['parax_model']
     opt_model['seq_model'].reset()
     opt_model['ele_model'].reset()
@@ -891,7 +995,8 @@ def create_seq_from_parax(opt_model, factory):
         sd = abs(pm.ax[i][mc.ht]) + abs(pm.pr[i][mc.ht])
 
         # create an element with the node's properties
-        descriptor = factory(power=power, sd=sd)
+        
+        descriptor = factory(power=power, sd=sd, prx=(pm, i, type_sel))
         seq, ele, e_node, dgm = descriptor
 
         n_before = pm.sys[i-1][mc.indx]
