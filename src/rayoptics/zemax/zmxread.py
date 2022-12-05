@@ -142,7 +142,7 @@ def process_line(opt_model, line, line_no):
         s.z_type = 'STANDARD'
     elif cmd == "CURV":
         s = sm.ifcs[cur]
-        if s.z_type != 'PARAXIAL':
+        if hasattr(s, 'profile'):
             s.profile.cv = float(inputs.split()[0])
     elif cmd == "DISZ":
         g = sm.gaps[cur]
@@ -302,6 +302,7 @@ def handle_types_and_params(optm, cur, cmd, inputs):
                                                   'RadialPolynomial')
             ifc.profile = new_profile
         elif typ == 'COORDBRK':
+            ifc.interact_mode = 'dummy'
             ifc.decenter = DecenterData('decenter')
         elif typ == 'PARAXIAL':
             ifc = thinlens.ThinLens()
@@ -376,30 +377,31 @@ def handle_aperture_data(optm, cur, cmd, inputs):
         ifc = sm.ifcs[cur]
         ca_val = float(items[0])
         ca_type = int(items[1])
-        ca_list = ifc.clear_apertures
-        if len(ca_list) == 0:
-            ca = None
-            if ca_type == 0:
-                ca = Circular()
-            elif ca_type == 1:
-                ca = Circular()
-            elif ca_type == 4:
-                ca = Rectangular()
-                _track_contents['non_circular_ca_type'] += 1
-            elif ca_type == 6:
-                ca = Elliptical()
-                _track_contents['non_circular_ca_type'] += 1
+        if hasattr(ifc, 'clear_apertures'):
+            ca_list = ifc.clear_apertures
+            if len(ca_list) == 0:
+                ca = None
+                if ca_type == 0:
+                    ca = Circular()
+                elif ca_type == 1:
+                    ca = Circular()
+                elif ca_type == 4:
+                    ca = Rectangular()
+                    _track_contents['non_circular_ca_type'] += 1
+                elif ca_type == 6:
+                    ca = Elliptical()
+                    _track_contents['non_circular_ca_type'] += 1
+                else:
+                    _track_contents['ca_type_not_recognized'] += 1
+                    # print('ca_type', cur, ca_type, items[1])
+                    return True
+    
+                if ca:
+                    ca_list.append(ca)
             else:
-                _track_contents['ca_type_not_recognized'] += 1
-                # print('ca_type', cur, ca_type, items[1])
-                return True
-
-            if ca:
-                ca_list.append(ca)
-        else:
-            ca = ca_list[-1]
-
-        ca.radius = ca_val
+                ca = ca_list[-1]
+    
+            ca.radius = ca_val
         ifc.set_max_aperture(ca_val)
     elif cmd == "OBDC":
         # appears to be aperture offsets, x and y
