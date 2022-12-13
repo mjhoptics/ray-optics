@@ -629,12 +629,12 @@ class SequentialModel:
                  "          y       alpha      beta       gamma")
         fmt0b = ("              thi    medium/mode          type          y"
                  "       alpha")
-        fmt1a = ("{:5n}:                {:>10s}  {:>14s} {:#10.5g} {:#10.5g}"
+        fmt1a = ("{:6s}                {:>10s}  {:>14s} {:#10.5g} {:#10.5g}"
                  " {:#10.5g} {:#10.5g} {:#10.5g}")
-        fmt1b = ("{:5n}:                {:>10s}  {:>14s} {:#10.5g}"
+        fmt1b = ("{:6s}                {:>10s}  {:>14s} {:#10.5g}"
                  " {:#10.5g}")
-        fmt1c = "{:5n}:                {:>10s}"
-        fmt2 = "{:5n}: {:#12.6g}    {:>9s}"
+        fmt1c = "{:6s}                {:>10s}"
+        fmt2 = "{:6s} {:#12.6g}    {:>9s}"
 
         # print header
         if full:
@@ -644,23 +644,25 @@ class SequentialModel:
 
         for i, sg in enumerate(self.path()):
             ifc, gap, lcl_tfrm, rndx, z_dir = sg
+            idx = f"{i:5n}:"
             imode = (ifc.interact_mode if ifc.interact_mode != 'transmit'
                      else "")
 
             if ifc.decenter is not None:
                 d = ifc.decenter
                 if full:
-                    print(fmt1a.format(i, imode, d.dtype,
+                    print(fmt1a.format(idx, imode, d.dtype,
                                        d.dec[0], d.dec[1],
                                        d.euler[0], d.euler[1], d.euler[2]))
                 else:
-                    print(fmt1b.format(i, imode, d.dtype,
+                    print(fmt1b.format(idx, imode, d.dtype,
                                        d.dec[1], d.euler[0]))
+                idx = f"{'':5s} "
             elif gap is None:  # final interface, just list interact_mode
-                print(fmt1c.format(i, imode))
+                print(fmt1c.format(idx, imode))
 
             if gap:
-                print(fmt2.format(i, gap.thi, gap.medium.name()))
+                print(fmt2.format(idx, gap.thi, gap.medium.name()))
 
     def list_sg(self):
         """List decenter data and gap separations. """
