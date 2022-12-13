@@ -18,6 +18,7 @@ from rayoptics.seq.medium import GlassHandlerBase
 from rayoptics.raytr.opticalspec import Field
 from rayoptics.util.misc_math import isanumber
 import rayoptics.zemax.zmx2ro as zmx2ro
+from rayoptics.oprops import doe
 import rayoptics.oprops.thinlens as thinlens
 
 from opticalglass import glassfactory as gfact
@@ -308,6 +309,10 @@ def handle_types_and_params(optm, cur, cmd, inputs):
             ifc = thinlens.ThinLens()
             ifc.z_type = typ
             optm.seq_model.ifcs[cur] = ifc
+        elif typ == 'DGRATING':
+            ifc.phase_element = doe.DiffractionGrating()
+            ifc.z_type = typ
+            optm.seq_model.ifcs[cur] = ifc
     elif cmd == "CONI":
         _track_contents["CONI"] += 1
         ifc = optm.seq_model.ifcs[cur]
@@ -335,6 +340,11 @@ def handle_types_and_params(optm, cur, cmd, inputs):
                 if param_val != 0:
                     ifc.decenter.self.dtype = 'reverse'
             ifc.decenter.update()
+        elif ifc.z_type == 'DGRATING':
+            if i == 1:
+                ifc.phase_element.grating_freq_um = param_val
+            elif i == 2:
+                ifc.phase_element.order = param_val
         elif ifc.z_type == 'EVENASPH':
             ifc.profile.coefs.append(param_val)
         elif ifc.z_type == 'PARAXIAL':
@@ -376,6 +386,9 @@ def handle_aperture_data(optm, cur, cmd, inputs):
     if cmd == "DIAM":
         ifc = sm.ifcs[cur]
         ca_val = float(items[0])
+        if ca_val == 0.0:
+            ca_val = 1.0
+            logging.info(f"Surf {cur}: zero value on DIAM input.")
         ca_type = int(items[1])
         if hasattr(ifc, 'clear_apertures'):
             ca_list = ifc.clear_apertures

@@ -54,6 +54,89 @@ def radial_phase_fct(pt, coefficients):
     return dW, dWdX, dWdY
 
 
+class DiffractionGrating:
+    """ Linear (ruled) diffraction grating.
+    
+    The phase calculation is patterned after Ludwig, 
+    `Generalized grating ray-tracing equations <https://doi.org/10.1364/JOSA.63.001105>`_.
+    
+    Attributes:
+        
+        grating_normal: grating generation surface normal (**G**)
+        grating_lpmm: the grating frequency in lines/mm
+        grating_freq_um: grating frequency in lines per micrometer
+        order: integer diffraction order used in phase calculation
+        interact_mode: 'transmit'|'reflect'
+        label: string description
+    
+    """
+    def __init__(self, label='', order=1, grating_normal=None,
+                 grating_freq_um=1.0, grating_lpmm=None,
+                 interact_mode='transmit'):
+        self.label = label
+        if grating_normal is None:
+            self.grating_normal = np.array([0., 1., 0.])
+        else:
+            self.grating_normal = grating_normal
+
+        if grating_lpmm is not None:
+            self.grating_lpmm = grating_lpmm
+        else:
+            self.grating_lpmm = 1/(grating_freq_um * 1000)
+        self.order = order
+
+        self.interact_mode = interact_mode
+
+    @property
+    def grating_lpmm(self):
+        """ the grating spacing in lines/mm. """
+        return self._grating_lpmm
+
+    @grating_lpmm.setter
+    def grating_lpmm(self, grating_lpmm):
+        self._grating_lpmm = grating_lpmm
+        self._grating_spacing_nm = 1e6/grating_lpmm
+
+    @property
+    def grating_freq_um(self):
+        return 1/(self._grating_lpmm * 1000)
+
+    @grating_freq_um.setter
+    def grating_freq_um(self, grating_freq_um):
+        self.grating_lpmm = grating_freq_um * 1000
+
+    def listobj_str(self):
+        if len(self.label) == 0:
+            label = 'grating'
+        else:
+            label = self.label
+        o_str = (f"{label}: {self.interact_mode} order: {self.order}, "
+                 f"grating_lpmm: {self.grating_lpmm}\n"
+                 f"grating_normal: {self.grating_normal}\n")
+        return o_str
+
+    def phase(self, pt, in_dir, srf_nrml, z_dir, wl, n_in, n_out):
+        normal = normalize(srf_nrml)
+        P = np.cross(self.grating_normal, normal)
+        D = normalize(np.cross(normal, P))
+        mu = n_in / n_out
+        T = wl * self.order / self._grating_spacing_nm * n_out
+        V = mu*(np.dot(in_dir, normal))
+        W = mu**2 - 1 + T**2 - 2*mu*T*(np.dot(D, normal))
+        result = np.sqrt(V**2 - W)
+
+        Q1 = result - V
+        Q2 = -result - V
+        if self.interact_mode == 'transmit':
+            Q = max(Q1, Q2)
+        elif self.interact_mode == 'reflect':
+            Q = min(Q1, Q2)
+
+        out_dir = mu*in_dir - T*D + Q*normal
+        dW = 0.
+        return out_dir, dW
+
+    
 class DiffractiveElement:
     """Container class for a phase fct driven diffractive optical element
 
