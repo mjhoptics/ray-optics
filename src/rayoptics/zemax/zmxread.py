@@ -18,6 +18,7 @@ from rayoptics.seq.medium import GlassHandlerBase
 from rayoptics.raytr.opticalspec import Field
 from rayoptics.util.misc_math import isanumber
 import rayoptics.zemax.zmx2ro as zmx2ro
+from rayoptics.oprops import doe
 import rayoptics.oprops.thinlens as thinlens
 
 from opticalglass import glassfactory as gfact
@@ -142,7 +143,7 @@ def process_line(opt_model, line, line_no):
         s.z_type = 'STANDARD'
     elif cmd == "CURV":
         s = sm.ifcs[cur]
-        if s.z_type != 'PARAXIAL':
+        if hasattr(s, 'profile'):
             s.profile.cv = float(inputs.split()[0])
     elif cmd == "DISZ":
         g = sm.gaps[cur]
@@ -302,9 +303,14 @@ def handle_types_and_params(optm, cur, cmd, inputs):
                                                   'RadialPolynomial')
             ifc.profile = new_profile
         elif typ == 'COORDBRK':
+            ifc.interact_mode = 'dummy'
             ifc.decenter = DecenterData('decenter')
         elif typ == 'PARAXIAL':
             ifc = thinlens.ThinLens()
+            ifc.z_type = typ
+            optm.seq_model.ifcs[cur] = ifc
+        elif typ == 'DGRATING':
+            ifc.phase_element = doe.DiffractionGrating()
             ifc.z_type = typ
             optm.seq_model.ifcs[cur] = ifc
     elif cmd == "CONI":
@@ -334,6 +340,11 @@ def handle_types_and_params(optm, cur, cmd, inputs):
                 if param_val != 0:
                     ifc.decenter.self.dtype = 'reverse'
             ifc.decenter.update()
+        elif ifc.z_type == 'DGRATING':
+            if i == 1:
+                ifc.phase_element.grating_freq_um = param_val
+            elif i == 2:
+                ifc.phase_element.order = param_val
         elif ifc.z_type == 'EVENASPH':
             ifc.profile.coefs.append(param_val)
         elif ifc.z_type == 'PARAXIAL':
@@ -375,31 +386,35 @@ def handle_aperture_data(optm, cur, cmd, inputs):
     if cmd == "DIAM":
         ifc = sm.ifcs[cur]
         ca_val = float(items[0])
+        if ca_val == 0.0:
+            ca_val = 1.0
+            logging.info(f"Surf {cur}: zero value on DIAM input.")
         ca_type = int(items[1])
-        ca_list = ifc.clear_apertures
-        if len(ca_list) == 0:
-            ca = None
-            if ca_type == 0:
-                ca = Circular()
-            elif ca_type == 1:
-                ca = Circular()
-            elif ca_type == 4:
-                ca = Rectangular()
-                _track_contents['non_circular_ca_type'] += 1
-            elif ca_type == 6:
-                ca = Elliptical()
-                _track_contents['non_circular_ca_type'] += 1
+        if hasattr(ifc, 'clear_apertures'):
+            ca_list = ifc.clear_apertures
+            if len(ca_list) == 0:
+                ca = None
+                if ca_type == 0:
+                    ca = Circular()
+                elif ca_type == 1:
+                    ca = Circular()
+                elif ca_type == 4:
+                    ca = Rectangular()
+                    _track_contents['non_circular_ca_type'] += 1
+                elif ca_type == 6:
+                    ca = Elliptical()
+                    _track_contents['non_circular_ca_type'] += 1
+                else:
+                    _track_contents['ca_type_not_recognized'] += 1
+                    # print('ca_type', cur, ca_type, items[1])
+                    return True
+    
+                if ca:
+                    ca_list.append(ca)
             else:
-                _track_contents['ca_type_not_recognized'] += 1
-                # print('ca_type', cur, ca_type, items[1])
-                return True
-
-            if ca:
-                ca_list.append(ca)
-        else:
-            ca = ca_list[-1]
-
-        ca.radius = ca_val
+                ca = ca_list[-1]
+    
+            ca.radius = ca_val
         ifc.set_max_aperture(ca_val)
     elif cmd == "OBDC":
         # appears to be aperture offsets, x and y

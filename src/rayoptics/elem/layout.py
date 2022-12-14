@@ -318,8 +318,9 @@ class RayFanBundle():
         return np.array(poly)
 
     def update_shape(self, view):
-        self.ray_fan.update_data()
-        fan = self.ray_fan.fan_pkg[0]
+        ray_fan = self.ray_fan
+        ray_fan.update_data()
+        fan = ray_fan.fan_pkg[0]
 
         seq_model = self.opt_model.seq_model
         tfrms = seq_model.gbl_tfrms
@@ -328,10 +329,11 @@ class RayFanBundle():
         for ray_item in fan:
             ray_pkg = retrieve_ray(ray_item)
             ray_list.append(ray_pkg)
-            
+
+        ray_color = lo_rgb['ray'] if ray_fan.color is None else ray_fan.color
         kwargs = {
             'linewidth': lo_lw['line'],
-            'color': lo_rgb['ray'],
+            'color': ray_color,
             'hilite_linewidth': lo_lw['hilite'],
             'hilite': lo_rgb['ray'],
             }

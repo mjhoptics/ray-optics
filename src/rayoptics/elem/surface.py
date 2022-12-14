@@ -385,7 +385,7 @@ class Circular(Aperture):
         self.radius = radius
 
     def listobj_str(self):
-        o_str = f"radius={self.radius}\n"
+        o_str = f"ca: radius={self.radius}\n"
         o_str += super().listobj_str()
         return o_str
 
@@ -414,7 +414,7 @@ class Rectangular(Aperture):
         self.y_half_width = y_half_width
 
     def listobj_str(self):
-        o_str = (f"{type(self).__name__}: x_half_width={self.x_half_width}"
+        o_str = (f"ca: {type(self).__name__}: x_half_width={self.x_half_width}"
                  f"   y_half_width={self.y_half_width}\n")
         o_str += super().listobj_str()
         return o_str
@@ -443,7 +443,7 @@ class Elliptical(Aperture):
         self.y_half_width = y_half_width
 
     def listobj_str(self):
-        o_str = (f"{type(self).__name__}: x_half_width={self.x_half_width}"
+        o_str = (f"ca: {type(self).__name__}: x_half_width={self.x_half_width}"
                  f"   y_half_width={self.y_half_width}\n")
         o_str += super().listobj_str()
         return o_str

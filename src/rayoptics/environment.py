@@ -36,7 +36,7 @@ from rayoptics.seq.gap import Gap
 from rayoptics.elem import elements
 from rayoptics.oprops.thinlens import ThinLens
 from rayoptics.oprops import doe
-from rayoptics.oprops.doe import DiffractiveElement
+from rayoptics.oprops.doe import DiffractiveElement, DiffractionGrating
 from rayoptics.elem.profiles import (Spherical, Conic, EvenPolynomial,
                                      RadialPolynomial)
 from rayoptics.raytr.opticalspec import (WvlSpec, FieldSpec, Field,

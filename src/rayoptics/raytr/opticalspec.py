@@ -18,6 +18,7 @@ from rayoptics.optical import model_enums
 import rayoptics.optical.model_constants as mc
 from opticalglass.spectral_lines import get_wavelength
 import rayoptics.util.colour_system as cs
+from rayoptics.util.misc_math import transpose
 import rayoptics.gui.util as gui_util
 from rayoptics.util import colors
 srgb = cs.cs_srgb
@@ -228,7 +229,7 @@ class WvlSpec:
         wvls = self.wavelengths
         ref_wvl = self.reference_wvl
         o_str = f"central wavelength={wvls[ref_wvl]} nm\n"
-        o_str += f"wavelength (weight) ="
+        o_str += "wavelength (weight) ="
         for i, wlwt in enumerate(zip(wvls, self.spectral_wts)):
             wl, wt = wlwt
             comma = "," if i > 0 else ""
@@ -268,8 +269,16 @@ class WvlSpec:
     def add(self, wl, wt):
         self.wavelengths.append(get_wavelength(wl))
         self.spectral_wts.append(wt)
-        self.spectrum.sort(key=lambda w: w[0], reverse=True)
+        self.sort_spectrum()
 
+    def sort_spectrum(self):
+        spectrum = [[wl, wt] for wl, wt in zip(self.wavelengths, 
+                                               self.spectral_wts)]
+        spectrum.sort(key=lambda w: w[0])
+        spectrumT = transpose(spectrum)
+        self.wavelengths = spectrumT[0]
+        self.spectral_wts = spectrumT[1]
+        
     def calc_colors(self):
         accent = colors.accent_colors()
         self.render_colors = []

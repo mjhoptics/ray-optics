@@ -40,6 +40,14 @@ class ThinLens(Interface):
                    .format(type(self).__name__,
                            self.optical_power, self.ref_index)
 
+    def listobj_str(self):
+        o_str = f"{self.label}: " if self.label != "" else ""
+        o_str += f"{self.interact_mode}\n"
+        o_str += f"thinlens: power={self.optical_power}, ref_index={self.ref_index}\n"
+        o_str += f"surface_od={self.surface_od()}\n"
+
+        return o_str
+
     def update(self):
         super().update()
 
