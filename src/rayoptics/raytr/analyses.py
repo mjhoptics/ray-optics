@@ -113,7 +113,7 @@ class RayFan():
 
     def __init__(self, opt_model, f=0, wl=None, foc=None, image_pt_2d=None,
                  num_rays=21, xyfan='y', output_filter=None,
-                 rayerr_filter=None, **kwargs):
+                 rayerr_filter=None, color=None, **kwargs):
         self.opt_model = opt_model
         osp = opt_model.optical_spec
         self.fld = osp.field_of_view.fields[f] if isinstance(f, int) else f
@@ -131,6 +131,8 @@ class RayFan():
             self.xyfan = 1
         else:
             self.xyfan = int(xyfan)
+
+        self.color = color
 
         self.output_filter = output_filter
         self.rayerr_filter = rayerr_filter
