@@ -99,7 +99,7 @@ class DiffractionGrating:
 
     @property
     def grating_freq_um(self):
-        return 1/(self._grating_lpmm * 1000)
+        return self._grating_lpmm/1000
 
     @grating_freq_um.setter
     def grating_freq_um(self, grating_freq_um):
@@ -117,11 +117,14 @@ class DiffractionGrating:
 
     def phase(self, pt, in_dir, srf_nrml, z_dir, wl, n_in, n_out):
         normal = normalize(srf_nrml)
+        inc_dir = in_dir
+        if n_in != 1.0:
+            inc_dir = rt.bend(in_dir, srf_nrml, n_in, 1)
         P = np.cross(self.grating_normal, normal)
         D = normalize(np.cross(normal, P))
         mu = n_in / n_out
         T = wl * self.order / self._grating_spacing_nm * n_out
-        V = mu*(np.dot(in_dir, normal))
+        V = mu*(np.dot(inc_dir, normal))
         W = mu**2 - 1 + T**2 - 2*mu*T*(np.dot(D, normal))
         result = np.sqrt(V**2 - W)
 
@@ -132,8 +135,10 @@ class DiffractionGrating:
         elif self.interact_mode == 'reflect':
             Q = min(Q1, Q2)
 
-        out_dir = mu*in_dir - T*D + Q*normal
+        out_dir = mu*inc_dir - T*D + Q*normal
         dW = 0.
+        if n_in != 1.0:
+            out_dir = rt.bend(out_dir, srf_nrml, 1, n_in)
         return out_dir, dW
 
     
