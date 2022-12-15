@@ -164,7 +164,7 @@ def lens_from_power(power=0., bending=0., th=None, sd=1.,
     return cv1, cv2, th, rndx, sd
 
 
-def create_lens(power=0., bending=0., th=None, sd=1., med=None, 
+def _create_lens(power=0., bending=0., th=None, sd=1., med=None, 
                 lens=None, **kwargs):
     """ Create a lens element chunk of sm, em, and pt tree 
     
@@ -207,6 +207,29 @@ def create_lens(power=0., bending=0., th=None, sd=1., med=None,
     return [[s1, g, None, rndx, 1], [s2, None, None, 1, 1]], [le], tree
 
 
+def create_lens(power=0., bending=0., th=None, sd=1., med=None, 
+                lens=None, **kwargs):
+    """ Create a lens element chunk of sm, em, pt tree, and |yybar| entry
+    
+    Args:
+        kwargs: keyword arguments including:
+
+            - idx: insertion point in the sequential model
+            - t: the thickness following a chunk when inserting
+            - lens: tuple of `cv1, cv2, th, glass_name_catalog, sd` where:
+
+                - cv1: front curvature
+                - cv2: rear curvature
+                - th: lens thickness
+                - glass_input: a str, e.g. 'N-BK7, Schott' or index (+V-number)
+                - sd: lens semi-diameter
+
+        """
+    descriptor = _create_lens(power, bending, th, sd, med, lens, **kwargs)
+    descriptor += (None,)
+    return descriptor
+
+
 def create_lens_from_dgm(prx=None, **kwargs):
     """ Use diagram points to create a lens. 
     
@@ -220,7 +243,7 @@ def create_lens_from_dgm(prx=None, **kwargs):
     """
     pm, node, type_sel = prx
     dgm_pkg, lens_from_dgm = pm.lens_from_dgm(node, **kwargs)
-    descriptor = create_lens(lens=lens_from_dgm, **kwargs)
+    descriptor = _create_lens(lens=lens_from_dgm, **kwargs)
     descriptor += ((prx, dgm_pkg),)
     return descriptor
 
