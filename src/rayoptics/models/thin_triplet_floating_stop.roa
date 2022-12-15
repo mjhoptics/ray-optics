@@ -6,69 +6,6 @@
   ],
   "attributes":{
    "radius_mode":false,
-   "specsheet":{
-    "__instance_type__":[
-     "rayoptics.parax.specsheet",
-     "SpecSheet"
-    ],
-    "attributes":{
-     "conjugate_type":"finite",
-     "imager":[
-      -0.5,
-      -15.0,
-      7.5,
-      22.5,
-      5.0
-     ],
-     "imager_inputs":{
-      "tt":22.5,
-      "f":5.0
-     },
-     "frozen_imager_inputs":[
-      false,
-      false,
-      false,
-      false,
-      false
-     ],
-     "etendue_inputs":{
-      "field":{
-       "object":{},
-       "image":{
-        "height":2.0
-       }
-      },
-      "aperture":{
-       "object":{},
-       "image":{
-        "f/#":2.0
-       }
-      }
-     },
-     "etendue_values":{
-      "field":{
-       "object":{
-        "height":-4.0
-       },
-       "image":{
-        "height":2.0
-       }
-      },
-      "aperture":{
-       "object":{
-        "f/#":-4.0,
-        "NA":0.12403473458920845,
-        "pupil":-1.25
-       },
-       "image":{
-        "f/#":2.0,
-        "NA":-0.24253562503633297,
-        "pupil":2.5
-       }
-      }
-     }
-    }
-   },
    "system_spec":{
     "__instance_type__":[
      "rayoptics.optical.opticalmodel",
