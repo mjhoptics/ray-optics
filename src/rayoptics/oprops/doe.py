@@ -128,7 +128,8 @@ class DiffractionGrating:
         mu = n_in / n_out
         T = (wvl * self.order)/(self._grating_spacing_nm * n_out)
 
-        V = mu*(np.dot(in_dir, normal))
+        in_cosI = np.dot(in_dir, normal)
+        V = mu * in_cosI
         W = mu**2 - 1 + T**2 - 2*mu*T*(np.dot(D, normal))
         
         result = np.sqrt(V**2 - W)
@@ -146,7 +147,12 @@ class DiffractionGrating:
         # The sign of the original z-component is applied to the result.
         out_dir[2] = np.copysign(sqrt(1 - out_dir[0]**2 - out_dir[1]**2),
                                  out_dir[2])
-        dW = 0.       # needs an answer!!!!!
+
+        # calculate path difference in wavelengths introduced by grating. 
+        in_sinI = sqrt(1 - in_cosI**2)
+        out_cosI = np.dot(out_dir, normal)
+        out_sinI = sqrt(1 - out_cosI**2)
+        dW = (self._grating_spacing_nm/wvl) * (n_in*in_sinI + n_out*out_sinI)
 
         if self.debug_output:
             from numpy.linalg import norm
