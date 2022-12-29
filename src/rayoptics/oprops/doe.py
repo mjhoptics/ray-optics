@@ -86,6 +86,7 @@ class DiffractionGrating:
         self.order = order
 
         self.interact_mode = interact_mode
+        self.debug_output = False
 
     @property
     def grating_lpmm(self):
@@ -115,33 +116,51 @@ class DiffractionGrating:
                  f"grating_normal: {self.grating_normal}\n")
         return o_str
 
-    def phase(self, pt, in_dir, srf_nrml, z_dir, wl, n_in, n_out):
-        normal = normalize(srf_nrml)
-        inc_dir = in_dir
-        if n_in != 1.0:
-            inc_dir = rt.bend(in_dir, srf_nrml, n_in, 1)
-        P = np.cross(self.grating_normal, normal)
-        D = normalize(np.cross(normal, P))
-        mu = n_in / n_out
-        T = wl * self.order / self._grating_spacing_nm * n_out
-        V = mu*(np.dot(inc_dir, normal))
-        W = mu**2 - 1 + T**2 - 2*mu*T*(np.dot(D, normal))
-        result = np.sqrt(V**2 - W)
+    def phase(self, pt, in_dir, srf_nrml, ifc_cntxt):
+        z_dir, wvl, n_in, n_out, interact_mode = ifc_cntxt
+        normal = z_dir * normalize(srf_nrml)          # = R
 
+        # grating ruling vector, P = G x R
+        P = np.cross(self.grating_normal, normal)
+        # ruling separation vector, D = R x P
+        D = normalize(np.cross(normal, P))
+
+        mu = n_in / n_out
+        T = (wvl * self.order)/(self._grating_spacing_nm * n_out)
+
+        V = mu*(np.dot(in_dir, normal))
+        W = mu**2 - 1 + T**2 - 2*mu*T*(np.dot(D, normal))
+        
+        result = np.sqrt(V**2 - W)
         Q1 = result - V
         Q2 = -result - V
-        if self.interact_mode == 'transmit':
+        if interact_mode == 'transmit':
             Q = max(Q1, Q2)
-        elif self.interact_mode == 'reflect':
+        elif interact_mode == 'reflect':
             Q = min(Q1, Q2)
 
-        out_dir = mu*inc_dir - T*D + Q*normal
-        dW = 0.
-        if n_in != 1.0:
-            out_dir = rt.bend(out_dir, srf_nrml, 1, n_in)
+        out_dir = mu*in_dir - T*D + Q*normal
+        # `out_dir` is the unit vector in the diffracted ray direction.
+        # The `l` and `m` components are correct in the unit circle.
+        # The `n` component needs to be adjusted to fall on the unit hemisphere.
+        # The sign of the original z-component is applied to the result.
+        out_dir[2] = np.copysign(sqrt(1 - out_dir[0]**2 - out_dir[1]**2),
+                                 out_dir[2])
+        dW = 0.       # needs an answer!!!!!
+
+        if self.debug_output:
+            from numpy.linalg import norm
+            print(f"{interact_mode}: z_dir={z_dir}, {n_in:4.2f}, {n_out:4.2f}")
+            print(f"in_dir: {in_dir}")
+            print(f"R: {normal},  G: {self.grating_normal}")
+            print(f"P = G x R: {P},  D = R x P: {D}")
+            print(f"T={T:8.4f}, V={V:8.4f}, W={W:8.4f}")
+            print(f"Q={Q:8.4f}, Q1={Q1:8.4f}, Q2={Q2:8.4f}")
+            print(f"out_dir: {out_dir}, len={norm(out_dir):8.6f}")
+
         return out_dir, dW
 
-    
+
 class DiffractiveElement:
     """Container class for a phase fct driven diffractive optical element
 
@@ -200,7 +219,7 @@ class DiffractiveElement:
         o_str += f"ref wl: {self.ref_wl}nm  order: {self.order}\n"
         return o_str
 
-    def phase(self, pt, in_dir, srf_nrml, z_dir, wl, n_in, n_out):
+    def phase(self, pt, in_dir, srf_nrml, ifc_cntxt):
         """Returns a diffracted ray and phase increment.
 
         Args:
@@ -218,13 +237,14 @@ class DiffractiveElement:
             - out_dir: direction cosine of the out going ray
             - dW: phase added by diffractive interaction
         """
+        z_dir, wvl, n_in, n_out, interact_mode = ifc_cntxt
         order = self.order
         normal = normalize(srf_nrml)
         inc_dir = in_dir
         if n_in != 1.0:
             inc_dir = rt.bend(in_dir, srf_nrml, n_in, 1)
         in_cosI = np.dot(inc_dir, normal)
-        mu = 1.0 if wl is None else wl/self.ref_wl
+        mu = 1.0 if wvl is None else wvl/self.ref_wl
         dW, dWdX, dWdY = self.phase_fct(pt, self.coefficients)
         # print(wl, mu, dW, dWdX, dWdY)
         b = in_cosI + order*mu*(normal[0]*dWdX + normal[1]*dWdY)
@@ -245,7 +265,7 @@ class DiffractiveElement:
         out_dir = inc_dir + order*mu*(np.array([dWdX, dWdY, 0])) + Q*normal
         dW *= mu
         if n_in != 1.0:
-            out_dir = rt.bend(out_dir, srf_nrml, 1, n_in)
+            out_dir = rt.bend(out_dir, srf_nrml, 1, n_out)
 
         return out_dir, dW
 
@@ -272,7 +292,8 @@ class HolographicElement:
                   f"{self.obj_pt[2]:12.5g}   virtual: {self.obj_virtual}\n")
         return o_str
 
-    def phase(self, pt, in_dir, srf_nrml, z_dir, wl, n_in, n_out):
+    def phase(self, pt, in_dir, srf_nrml, ifc_cntxt):
+        z_dir, wvl, n_in, n_out, interact_mode = ifc_cntxt
         normal = normalize(srf_nrml)
         ref_dir = normalize(pt - self.ref_pt)
         if self.ref_virtual:
@@ -283,7 +304,7 @@ class HolographicElement:
             obj_dir = -obj_dir
         obj_cosI = np.dot(obj_dir, normal)
         in_cosI = np.dot(in_dir, normal)
-        mu = 1.0 if wl is None else wl/self.ref_wl
+        mu = 1.0 if wvl is None else wvl/self.ref_wl
         b = in_cosI + mu*(obj_cosI - ref_cosI)
         refp_cosI = np.dot(ref_dir, in_dir)
         objp_cosI = np.dot(obj_dir, in_dir)

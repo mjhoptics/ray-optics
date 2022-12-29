@@ -38,12 +38,13 @@ def reflect(d_in, normal):
     return d_out
 
 
-def phase(ifc, inc_pt, d_in, normal, z_dir, wvl, n_in, n_out):
+def phase(ifc, inc_pt, d_in, normal, ifc_cntxt):
     """ apply phase shift to incoming direction, d_in, about normal """
     try:
-        d_out, dW = ifc.phase(inc_pt, d_in, normal, z_dir, wvl, n_in, n_out)
+        d_out, dW = ifc.phase(inc_pt, d_in, normal, ifc_cntxt)
         return d_out, dW
     except ValueError:
+        z_dir, wvl, n_in, n_out, interact_mode = ifc_cntxt
         raise TraceEvanescentRayError(ifc, inc_pt, d_in, normal, n_in, n_out)
 
 
@@ -180,24 +181,22 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, check_apertures=False, **kwargs
                 if not ifc.point_inside(inc_pt[0], inc_pt[1]):
                     raise TraceRayBlockedError(ifc, inc_pt)
 
-            # if the interface has a phase element, process that first
+            # if present, use the phase element to calculate after_dir
             if hasattr(ifc, 'phase_element'):
-                doe_dir, phs = phase(ifc, inc_pt, b4_dir, normal, z_dir_before,
-                                     wvl, before[mc.Indx], after[mc.Indx])
-                # the output of the phase element becomes the input for the
-                #  refraction/reflection calculation
-                b4_dir = doe_dir
+                ifc_cntxt = (z_dir_before, wvl, 
+                             before[mc.Indx], after[mc.Indx],
+                             ifc.interact_mode)
+                after_dir, phs = phase(ifc, inc_pt, b4_dir, normal, ifc_cntxt)
                 op_delta += phs
-
-            # refract or reflect ray at interface
-            if ifc.interact_mode == 'reflect':
-                after_dir = reflect(b4_dir, normal)
-            elif ifc.interact_mode == 'transmit':
-                after_dir = bend(b4_dir, normal, before[mc.Indx], after[mc.Indx])
-            elif ifc.interact_mode == 'dummy':
-                after_dir = b4_dir
-            else:  # no action, input becomes output
-                after_dir = b4_dir
+            else:  # refract or reflect ray at interface
+                if ifc.interact_mode == 'reflect':
+                    after_dir = reflect(b4_dir, normal)
+                elif ifc.interact_mode == 'transmit':
+                    after_dir = bend(b4_dir, normal, before[mc.Indx], after[mc.Indx])
+                elif ifc.interact_mode == 'dummy':
+                    after_dir = b4_dir
+                else:  # no action, input becomes output
+                    after_dir = b4_dir
 
             before_pt = inc_pt
             before_normal = normal
