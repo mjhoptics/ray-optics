@@ -643,17 +643,19 @@ class SequentialModel:
               "      sd".format(cvr))
         labels = self.surface_label_list()
         path = self.path() if path is None else path
+        prev_z_dir = 1
         for i, sg in enumerate(path):
-            ifc, gap, _, _, _ = sg
+            ifc, gap, _, _, z_dir = sg
             s = self.list_surface_and_gap(ifc, gp=gap)
             if gap is not None:
-                s.append(self.z_dir[i])
+                s.append(z_dir)
             else:
-                s.append(self.z_dir[-1])
+                s.append(prev_z_dir)
             fmt = "{0:>5s}: {1:12.6f} {2:#12.6g} {3:>9s} {4:>10s} {6:2n}"
             if s[4] is not None:  # if the sd is not None...
                 fmt += "  {5:#10.5g}"
             print(fmt.format(labels[i], *s))
+            prev_z_dir = z_dir
 
     def list_model_old(self):
         cvr = 'r' if self.opt_model.radius_mode else 'c'

@@ -50,7 +50,7 @@ class Ray():
         opt_model: :class:`~.OpticalModel` instance
         p: relative 2d pupil coordinates
         f: index into :class:`~.FieldSpec` or a :class:`~.Field` instance
-        wl: wavelength (nm) to trace the fan, or central wavelength if None
+        wl: wavelength (nm) to trace the ray, or central wavelength if None
         foc: focus shift to apply to the results
         image_pt_2d: image offset to apply to the results
         srf_save:
@@ -62,16 +62,22 @@ class Ray():
     """
 
     def __init__(self, opt_model, p, f=0, wl=None, foc=None, image_pt_2d=None,
-                 srf_indx=-1, srf_save='single'):
+                 srf_indx=-1, srf_save='single', output_filter=None,
+                 rayerr_filter=None, color=None):
         self.opt_model = opt_model
         osp = opt_model.optical_spec
         self.pupil = p
-        self.fld = osp.field_of_view.fields[f] if isinstance(f, int) else f
-        self.wvl = osp.spectral_region.central_wvl if wl is None else wl
+        self.fld = osp['fov'].fields[f] if isinstance(f, int) else f
+        self.wvl = osp['wvls'].central_wvl if wl is None else wl
 
-        self.foc = osp.defocus.focus_shift if foc is None else foc
+        self.foc = osp['focus'].focus_shift if foc is None else foc
         self.image_pt_2d = image_pt_2d if image_pt_2d is not None  \
             else np.array([0., 0.])
+
+        self.output_filter = output_filter
+        self.rayerr_filter = rayerr_filter
+
+        self.color = color
 
         self.srf_save = srf_save
         self.srf_indx = srf_indx
@@ -79,11 +85,13 @@ class Ray():
         self.update_data()
 
     def update_data(self, **kwargs):
-        """Set the fan attribute to a list of (pupil coords), dx, dy, opd."""
+        """Trace the ray and calculate transverse aberrations. """
         build = kwargs.pop('build', 'rebuild')
         if build == 'rebuild':
-            ray_pkg = trace.trace_base(self.opt_model, self.pupil,
-                                       self.fld, self.wvl, **kwargs)
+            ray_pkg = trace.trace_safe(
+                self.opt_model, self.pupil, self.fld, self.wvl, 
+                self.output_filter, self.rayerr_filter, 
+                use_named_tuples=True, **kwargs)
             self.ray_seg = ray_pkg[0][self.srf_indx]
 
             if self.srf_save == 'all':

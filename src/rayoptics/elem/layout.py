@@ -346,6 +346,54 @@ class RayFanBundle():
         return self.handles
 
 
+class SingleRay():
+    """ class for a Ray from a single field point """
+
+    def __init__(self, opt_model, ray, start_offset, label='single ray'):
+        self.opt_model = opt_model
+
+        rayerr_filter = ray.rayerr_filter
+        ray.rayerr_filter = ('full' if rayerr_filter is None
+                                 else rayerr_filter)
+        self.ray = ray
+        self.start_offset = start_offset
+        self.label = label
+        self.handles = {}
+        self.actions = {}
+        self.handle_actions = {}
+
+    def get_label(self):
+        return self.label
+
+    def render_ray(self, ray_pkg, tfrms):
+        poly = []
+        ray, op_delta, wvl = ray_pkg
+        for i, r in enumerate(ray):
+            transform_ray_seg(poly, r, tfrms[i])
+        return np.array(poly)
+
+    def update_shape(self, view):
+        ray = self.ray
+        ray.update_data()
+
+        seq_model = self.opt_model['seq_model']
+        tfrms = seq_model.gbl_tfrms
+        global_ray = self.render_ray(ray.ray_pkg, tfrms)
+
+        ray_color = lo_rgb['ray'] if ray.color is None else ray.color
+        kwargs = {
+            'linewidth': lo_lw['line'],
+            'color': ray_color,
+            'hilite_linewidth': lo_lw['hilite'],
+            'hilite': lo_rgb['ray'],
+            }
+
+        ray_poly = view.create_polyline(global_ray, **kwargs)
+        self.handles['shape'] = GUIHandle(ray_poly, bbox_from_poly(global_ray))
+
+        return self.handles
+
+
 class ParaxialRay():
     """ class for paraxial ray rendering/editing """
 

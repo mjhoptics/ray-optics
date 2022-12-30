@@ -131,6 +131,5 @@ class ThinLens(Interface):
         p = p0 + s1*d
         return s1, p
 
-    def phase(self, pt, d_in, normal, z_dir, wl, n_in, n_out):
-        return self.phase_element.phase(pt, d_in, normal, z_dir, wl,
-                                        n_in, n_out)
+    def phase(self, pt, d_in, normal, ifc_cntxt):
+        return self.phase_element.phase(pt, d_in, normal, ifc_cntxt)
