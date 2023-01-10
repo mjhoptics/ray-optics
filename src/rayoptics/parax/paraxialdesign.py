@@ -653,10 +653,10 @@ class ParaxialModel():
         """ Return single lens constructional parameters from parax_model. 
         
         This method uses a method for thickening a lens element developed by
-        Lopez-Lopez in his PhD dissertation on the |yybar| diagram. 
+        Lopez-Lopez in his PhD dissertation on the |ybar| diagram. 
         
         The variables are named following the notation in the thesis. He used
-        `z` for the |yybar| coordinates; the reduced slopes and system
+        `z` for the |ybar| coordinates; the reduced slopes and system
         parameters include a (inverse) factor of the optical invariant, and
         are capitalized here: T, W, Pwr
         """

@@ -307,7 +307,7 @@ class MainWindow(QMainWindow):
         self.new_console_empty_model()
 
     def new_model_via_diagram(self, **kwargs):
-        """ Define a new model using a |yybar| diagram. """
+        """ Define a new model using a |ybar| diagram. """
         from rayoptics.optical import opticalmodel
         opt_model = opticalmodel.OpticalModel(**kwargs)
         self.app_manager.set_model(opt_model)

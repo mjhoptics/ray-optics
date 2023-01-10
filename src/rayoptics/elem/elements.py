@@ -212,7 +212,7 @@ def _create_lens(power=0., bending=0., th=None, sd=1., med=None,
 
 def create_lens(power=0., bending=0., th=None, sd=1., med=None, 
                 lens=None, **kwargs):
-    """ Create a lens element chunk of sm, em, pt tree, and |yybar| entry
+    """ Create a lens element chunk of sm, em, pt tree, and |ybar| entry
     
     Args:
         kwargs: keyword arguments including:
@@ -236,7 +236,7 @@ def create_lens(power=0., bending=0., th=None, sd=1., med=None,
 def create_lens_from_dgm(prx=None, **kwargs):
     """ Use diagram points to create a lens. 
     
-    Adds a |yybar| component to the descriptor tuple.
+    Adds a |ybar| component to the descriptor tuple.
     dgm = prx, dgm_pkg
     
     prx = parax_model, node_idx, type_sel
