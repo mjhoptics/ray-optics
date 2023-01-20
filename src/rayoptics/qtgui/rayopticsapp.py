@@ -221,7 +221,7 @@ class MainWindow(QMainWindow):
             title_bar = 'iPython console: '
             if opt_model is not None:
                 title_bar = title_bar + opt_model.name()
-            create_ipython_console(self, opt_model, title_bar, 800, 600)
+            create_ipython_console(self, opt_model, title_bar, 900, 600)
         except MultipleInstanceError:
             logging.debug("Unable to open iPython console. "
                           "MultipleInstanceError")

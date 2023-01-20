@@ -113,7 +113,9 @@ class AppManager:
         Args:
             view: view being closed by user
         """
-        logging.debug(f'AppManager.delete_view: {view.windowTitle()}')
+        logging.debug(f"AppManager.delete_view: {view.windowTitle()} ["
+                      f"x: {view.x()}, y: {view.y()}, " 
+                      f"w: {view.width()}, h: {view.height()}]")
         self.view_dict.pop(view, None)
 
     def close_model(self, view_close_fct=None):
@@ -167,6 +169,23 @@ class AppManager:
         #  via a close box under pyqt5
         for fig in self.figures:
             fig.refresh(**kwargs)
+
+    def listobj_str(self):
+        o_str = f"active model_id={id(self.model)}:\n"
+
+        for view, info in dict(self.view_dict).items():
+            widget, mi = info
+            if mi.model is not None:
+                lens_title = "model_id=" + str(id(mi.model))
+            else:
+                lens_title = "No model"
+            win_title = view.windowTitle()
+            o_str += f'window: "{win_title}", {lens_title}\n'
+                
+        for i, fig in enumerate(self.figures):
+             o_str += f"fig {i}: {type(fig).__name__}\n"
+
+        return o_str        
 
     def on_view_activated(self, view):
         """ Makes the model associated with input view the active model

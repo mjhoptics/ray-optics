@@ -653,7 +653,8 @@ class ParaxialModel():
         """ Return single lens constructional parameters from parax_model. 
         
         This method uses a method for thickening a lens element developed by
-        Lopez-Lopez in his PhD dissertation on the |ybar| diagram. 
+        Lopez-Lopez in his `PhD dissertation <https://repository.arizona.edu/handle/10150/582195>`_  
+        The application of the Delano |ybar| diagram to optical design. 
         
         The variables are named following the notation in the thesis. He used
         `z` for the |ybar| coordinates; the reduced slopes and system
@@ -1188,6 +1189,7 @@ def scan_nodes(parax_model, node_defs, nodes):
 
 
 def build_from_yybar(opm, nodes, type_sel, seq_mapping):
+    """Returns a parax_model for the input nodes and seq_mapping. """
     prx_model = ParaxialModel(opm, opt_inv=opm['pm'].opt_inv,
                               seq_mapping=seq_mapping)
     rndx_and_imode = None
