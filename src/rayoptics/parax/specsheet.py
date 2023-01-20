@@ -290,7 +290,7 @@ class SpecSheet():
         value = self.etendue_inputs[ape_fld_key][obj_img_key][value_key]
         return key, value
 
-    def get_parax_start_data(self,  thi_0, n_0, n_k):
+    def get_parax_start_data(self, thi_0, n_0, n_k):
         conj_type = self.conjugate_type
         imager = self.imager
 

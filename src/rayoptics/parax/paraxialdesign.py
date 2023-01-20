@@ -177,7 +177,7 @@ class ParaxialModel():
 
         self.delete_node(node_idx)
 
-        for i, ns in enumerate(zip(nodes, sys_data), start=node_idx):
+        for i, ns in enumerate(zip(nodes, sys_data), start=node_idx-1):
             node, sys = ns
             self.add_node(i, node, type_sel, sys)
 
@@ -241,7 +241,7 @@ class ParaxialModel():
     # --- add/delete points from diagram
     def add_node(self, node, new_vertex, type_sel, sys_data):
         """ Add a node in the paraxial data structures """
-
+        node += 1
         self.sys.insert(node, [0.0, 0.0, *sys_data])
 
         ax_node = [0.0, 0.0]

@@ -139,6 +139,10 @@ def paraxial_trace(path, start, start_yu, start_yu_bar):
     while True:
         try:
             ifc, gap, _, rndx, z_dir_after = next(path)
+            if rndx is None:
+                rndx = abs(n_before)
+            if z_dir_after is None:
+                z_dir_after = z_dir_before
 
             # Transfer
             t = b4_gap.thi

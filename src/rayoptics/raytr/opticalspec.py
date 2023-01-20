@@ -350,6 +350,9 @@ class PupilSpec:
         n = parax_model.sys[idx][mc.indx]
         slope = parax_model.ax[idx][mc.slp]
         y_star, ybar_star = parax_model.calc_object_and_pupil(idx)
+        if y_star == np.inf:
+            value_key = 'NA'
+        
         if 'NA' in value_key:
             value = etendue.slp2na(slope, n=n)
         elif 'f/#' in value_key:

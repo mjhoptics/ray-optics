@@ -552,6 +552,7 @@ class OpticalModel:
                     ins_prev_gap = True
 
             if ins_prev_gap:
+                idx = -1 if idx == len(sm.gaps) else idx
                 t_air, sm.gaps[idx].thi = sm.gaps[idx].thi, t_after
                 z_dir = sm.z_dir[idx]
             else:
