@@ -607,7 +607,7 @@ def trace_ray_grid(opt_model, grid_rng, fld, wvl, foc, append_if_none=True,
             pupil = np.array(start)
             ray_result = trace.trace_safe(opt_model, pupil, fld, wvl, 
                                           output_filter, rayerr_filter, 
-                                          **kwargs)
+                                          apply_vignetting=False, **kwargs)
             if ray_result is not None:
                     grid_row.append([pupil[0], pupil[1], ray_result])
             else:  # ray outside pupil or failed
