@@ -111,7 +111,8 @@ class RayFanPlot():
     """
 
     def __init__(self, fan_list,
-                 user_scale_value=0.1, scale_type='fit',
+                 user_scale_value=0.1, 
+                 scale_type='fit',
                  yaxis_ticks_position='left',
                  **kwargs):
         self.fan_list = fan_list
@@ -306,8 +307,7 @@ class Wavefront():
         kwargs: passed to plot call
     """
 
-    def __init__(self, ray_grid,
-                 do_contours=False, user_scale_value=None,
+    def __init__(self, ray_grid, do_contours=False, user_scale_value=None,
                  **kwargs):
         self.ray_grid = ray_grid
 

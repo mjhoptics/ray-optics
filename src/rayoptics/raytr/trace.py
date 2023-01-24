@@ -300,10 +300,12 @@ def iterate_ray(opt_model, ifcx, xy_target, fld, wvl, **kwargs):
 def trace_with_opd(opt_model, pupil, fld, wvl, foc, **kwargs):
     """ returns (ray, ray_opl, wvl, opd) """
     chief_ray_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
-    image_pt_2d = None if 'image_pt' not in kwargs else kwargs['image_pt'][:2]
+    image_pt_2d = kwargs.get('image_pt', None)
+    image_delta = kwargs.get('image_delta', None)
     ref_sphere = calculate_reference_sphere(opt_model, fld, wvl, foc,
                                             chief_ray_pkg,
-                                            image_pt_2d=image_pt_2d)
+                                            image_pt_2d=image_pt_2d,
+                                            image_delta=image_delta)
 
     ray, op, wvl = trace_base(opt_model, pupil, fld, wvl, **kwargs)
     # opl = rt.calc_optical_path(ray, opt_model.seq_model.path())
@@ -471,12 +473,14 @@ def trace_grid(opt_model, grid_rng, fld, wvl, foc, img_filter=None,
     return np.array(grid)
 
 
-def setup_pupil_coords(opt_model, fld, wvl, foc, image_pt=None):
+def setup_pupil_coords(opt_model, fld, wvl, foc, 
+                       image_pt=None, image_delta=None):
     chief_ray_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
     image_pt_2d = None if image_pt is None else image_pt[:2]
     ref_sphere = calculate_reference_sphere(opt_model, fld, wvl, foc,
                                             chief_ray_pkg,
-                                            image_pt_2d=image_pt_2d)
+                                            image_pt_2d=image_pt_2d,
+                                            image_delta=image_delta)
     return ref_sphere, chief_ray_pkg
 
 
