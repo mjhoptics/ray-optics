@@ -19,8 +19,10 @@ from rayoptics.elem.transform import transform_after_surface
 from rayoptics.util.misc_math import normalize
 
 
-def calculate_reference_sphere(opt_model, fld, wvl, foc,
-                            chief_ray_pkg, image_pt_2d=None):
+def calculate_reference_sphere(opt_model, fld, wvl, foc, 
+                               chief_ray_pkg, 
+                               image_pt_2d=None, 
+                               image_delta=None):
     """Compute the reference sphere for a defocussed image point at **fld**.
 
     Args:
@@ -31,6 +33,8 @@ def calculate_reference_sphere(opt_model, fld, wvl, foc,
         chief_ray_pkg: input tuple of chief_ray, cr_exp_seg
         image_pt_2d: x, y image point in (defocussed) image plane, if None, use
                      the chief ray coordinate.
+        image_delta: x, y displacements from image_pt_2d in (defocussed) 
+                     image plane, if not None.
 
     Returns:
         ref_sphere: tuple of image_pt, ref_dir, ref_sphere_radius
@@ -46,6 +50,9 @@ def calculate_reference_sphere(opt_model, fld, wvl, foc,
         image_pt = cr.ray[-1][mc.p] + dist*cr.ray[-1][mc.d]
     else:
         image_pt = np.array([image_pt_2d[0], image_pt_2d[1], foc])
+
+    if image_delta is not None:
+        image_pt[:2] += image_delta
 
     # get the image point wrt the final surface
     image_thi = opt_model['seq_model'].gaps[-1].thi

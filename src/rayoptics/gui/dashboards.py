@@ -12,8 +12,29 @@ import numpy as np
 import ipywidgets as widgets
 
 
-def create_focus_dashboard(figs, ray_data_items, foc, dfoc_rng, shift_rng,
-                           on_axis_pt, continuous_update=True):
+def create_focus_dashboard(figs, ray_data_items, 
+                           foc: float, dfoc_rng: float, shift_rng: float,
+                           image_delta, continuous_update: bool=True):
+    """Create 3 ipywidgets to modify defocus and image shift interactively.
+    
+    This function creates 3 ipywidgets (FloatSliders) controlling defoucus, 
+    x_shift and y_shift. When the user moves one of the sliders, the callback
+    function applies the new slider value to the ray_data_items and causes
+    them to 'update'. The ray_data items in the :mod:`~raytr.analyses` package
+    all provide a lightweight 'update' implementation that doesn't require
+    retracing the model.
+    
+    Arguments:
+        figs: list of Figures to be cleared and replotted
+        ray_data_items: list of ray data items to be updated to the new values
+        foc: the current defocus
+        dfoc_range: the maximum range for the defocus slider
+        shift_rng: the maximum range for the image shift sliders
+        image_delta: the current image shift, [delta_x: float, delta_y: float]
+        continuous_update: if True, model is updated for any slider movement
+    """
+    if image_delta is None:
+        image_delta = [0., 0.]
     defocus = widgets.FloatSlider(min=-dfoc_rng, max=+dfoc_rng,
                                   step=.01*dfoc_rng,
                                   description='defocus', value=foc,
@@ -21,12 +42,12 @@ def create_focus_dashboard(figs, ray_data_items, foc, dfoc_rng, shift_rng,
                                   continuous_update=continuous_update)
     x_shift = widgets.FloatSlider(min=-shift_rng, max=+shift_rng,
                                   step=.01*shift_rng,
-                                  description='x shift', value=on_axis_pt[0],
+                                  description='x shift', value=image_delta[0],
                                   readout_format='.4f',
                                   continuous_update=continuous_update)
     y_shift = widgets.FloatSlider(min=-shift_rng, max=+shift_rng,
                                   step=.01*shift_rng,
-                                  description='y shift', value=on_axis_pt[1],
+                                  description='y shift', value=image_delta[1],
                                   readout_format='.4f',
                                   continuous_update=continuous_update)
 
@@ -38,7 +59,7 @@ def create_focus_dashboard(figs, ray_data_items, foc, dfoc_rng, shift_rng,
         # apply changes to fans and grids
         for ray_data in ray_data_items:
             ray_data.foc = dfoc_val
-            ray_data.image_pt_2d = np.array([dx, dy])
+            ray_data.image_delta = np.array([dx, dy])
             ray_data.update_data(build='update')
 
         # update and plot results

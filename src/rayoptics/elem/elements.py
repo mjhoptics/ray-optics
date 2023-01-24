@@ -1974,7 +1974,7 @@ class ElementModel:
     """Maintain the element based representation of the optical model
 
     Attributes:
-        opt_model: the :class:`~rayoptics.optical.opticalmodel.OpticalModel`
+        opt_model: the :class:`~optical.opticalmodel.OpticalModel`
         elements: list of element type things
 
     """

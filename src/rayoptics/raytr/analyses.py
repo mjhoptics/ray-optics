@@ -52,7 +52,8 @@ class Ray():
         f: index into :class:`~.FieldSpec` or a :class:`~.Field` instance
         wl: wavelength (nm) to trace the ray, or central wavelength if None
         foc: focus shift to apply to the results
-        image_pt_2d: image offset to apply to the results
+        image_pt_2d: base image point. if None, the chief ray is used
+        image_delta: image offset to apply to image_pt_2d
         srf_save:
 
             'single': save the ray data for surface srf_indx
@@ -62,8 +63,8 @@ class Ray():
     """
 
     def __init__(self, opt_model, p, f=0, wl=None, foc=None, image_pt_2d=None,
-                 srf_indx=-1, srf_save='single', output_filter=None,
-                 rayerr_filter=None, color=None):
+                 image_delta=None, srf_indx=-1, srf_save='single', 
+                 output_filter=None, rayerr_filter=None, color=None):
         self.opt_model = opt_model
         osp = opt_model.optical_spec
         self.pupil = p
@@ -71,8 +72,8 @@ class Ray():
         self.wvl = osp['wvls'].central_wvl if wl is None else wl
 
         self.foc = osp['focus'].focus_shift if foc is None else foc
-        self.image_pt_2d = image_pt_2d if image_pt_2d is not None  \
-            else np.array([0., 0.])
+        self.image_pt_2d = image_pt_2d
+        self.image_delta = image_delta
 
         self.output_filter = output_filter
         self.rayerr_filter = rayerr_filter
@@ -86,6 +87,10 @@ class Ray():
 
     def update_data(self, **kwargs):
         """Trace the ray and calculate transverse aberrations. """
+        ref_sphere, cr_pkg = trace.setup_pupil_coords(
+            self.opt_model, self.fld, self.wvl, self.foc, 
+            image_pt=self.image_pt_2d, image_delta=self.image_delta
+            )
         build = kwargs.pop('build', 'rebuild')
         if build == 'rebuild':
             ray_pkg = trace.trace_safe(
@@ -100,7 +105,8 @@ class Ray():
         ray_seg = self.ray_seg
         dist = self.foc / ray_seg[mc.d][2]
         defocused_pt = ray_seg[mc.p] + dist*ray_seg[mc.d]
-        self.t_abr = defocused_pt[:-1] - self.image_pt_2d
+        reference_image_pt = ref_sphere[0]
+        self.t_abr = defocused_pt[:2] - reference_image_pt[:2]
 
         return self
 
@@ -114,13 +120,14 @@ class RayFan():
         f: index into :class:`~.FieldSpec` or a :class:`~.Field` instance
         wl: wavelength (nm) to trace the fan, or central wavelength if None
         foc: focus shift to apply to the results
-        image_pt_2d: image offset to apply to the results
+        image_pt_2d: base image point. if None, the chief ray is used
+        image_delta: image offset to apply to image_pt_2d
         num_rays: number of samples along the fan
         xyfan: 'x' or 'y', specifies the axis the fan is sampled on
     """
 
     def __init__(self, opt_model, f=0, wl=None, foc=None, image_pt_2d=None,
-                 num_rays=21, xyfan='y', output_filter=None,
+                 image_delta=None, num_rays=21, xyfan='y', output_filter=None,
                  rayerr_filter=None, color=None, **kwargs):
         self.opt_model = opt_model
         osp = opt_model.optical_spec
@@ -128,8 +135,8 @@ class RayFan():
         self.wvl = osp.spectral_region.central_wvl if wl is None else wl
 
         self.foc = osp.defocus.focus_shift if foc is None else foc
-        self.image_pt_2d = image_pt_2d if image_pt_2d is not None  \
-            else None
+        self.image_pt_2d = image_pt_2d
+        self.image_delta = image_delta
 
         self.num_rays = num_rays
 
@@ -159,13 +166,15 @@ class RayFan():
         if build == 'rebuild':
             self.fan_pkg = trace_fan(
                 self.opt_model, self.fld, self.wvl, self.foc, self.xyfan,
-                image_pt_2d=self.image_pt_2d, num_rays=self.num_rays,
+                image_pt_2d=self.image_pt_2d, image_delta=self.image_delta, 
+                num_rays=self.num_rays,
                 output_filter=self.output_filter,
                 rayerr_filter=self.rayerr_filter)
 
         self.fan = focus_fan(self.opt_model, self.fan_pkg,
                              self.fld, self.wvl, self.foc,
-                             image_pt_2d=self.image_pt_2d)
+                             image_pt_2d=self.image_pt_2d,
+                             image_delta=self.image_delta)
         return self
 
 
@@ -211,12 +220,13 @@ def trace_ray_fan(opt_model, fan_rng, fld, wvl, foc,
 
 
 def eval_fan(opt_model, fld, wvl, foc, xy,
-             image_pt_2d=None, num_rays=21,
+             image_pt_2d=None, image_delta=None, num_rays=21,
              output_filter=None, rayerr_filter=None, **kwargs):
     """Trace a fan of rays and evaluate dx, dy, & OPD across the fan."""
     fod = opt_model['analysis_results']['parax_data'].fod
     ref_sphere, cr_pkg = trace.setup_pupil_coords(opt_model, fld, wvl, foc, 
-                                                    image_pt=image_pt_2d)
+                                                  image_pt=image_pt_2d,
+                                                  image_delta=image_delta)
     fld.chief_ray = cr_pkg
     fld.ref_sphere = ref_sphere
 
@@ -254,12 +264,13 @@ def eval_fan(opt_model, fld, wvl, foc, xy,
 
 
 def trace_fan(opt_model, fld, wvl, foc, xy,
-              image_pt_2d=None, num_rays=21,
+              image_pt_2d=None, image_delta=None, num_rays=21,
               output_filter=None, rayerr_filter=None, **kwargs):
     """Trace a fan of rays and precalculate data for rapid refocus later."""
     fod = opt_model['analysis_results']['parax_data'].fod
     ref_sphere, cr_pkg = trace.setup_pupil_coords(opt_model, fld, wvl, foc, 
-                                                    image_pt=image_pt_2d)
+                                                  image_pt=image_pt_2d,
+                                                  image_delta=image_delta)
     fld.chief_ray = cr_pkg
     fld.ref_sphere = ref_sphere
 
@@ -288,12 +299,14 @@ def trace_fan(opt_model, fld, wvl, foc, xy,
     return fan, upd_fan
 
 
-def focus_fan(opt_model, fan_pkg, fld, wvl, foc, image_pt_2d=None, **kwargs):
+def focus_fan(opt_model, fan_pkg, fld, wvl, foc, 
+              image_pt_2d=None, image_delta=None, **kwargs):
     """Refocus the fan of rays and return the tranverse abr. and OPD."""
     fod = opt_model['analysis_results']['parax_data'].fod
     fan, upd_fan = fan_pkg
     ref_sphere, cr_pkg = trace.setup_pupil_coords(opt_model, fld, wvl, foc, 
-                                                    image_pt=image_pt_2d)
+                                                  image_pt=image_pt_2d,
+                                                  image_delta=image_delta)
     central_wvl = opt_model.optical_spec.spectral_region.central_wvl
     convert_to_opd = 1/opt_model.nm_to_sys_units(central_wvl)
 
@@ -335,13 +348,14 @@ class RayList():
         f: index into :class:`~.FieldSpec` or a :class:`~.Field` instance
         wl: wavelength (nm) to trace the fan, or central wavelength if None
         foc: focus shift to apply to the results
-        image_pt_2d: image offset to apply to the results
+        image_pt_2d: base image point. if None, the chief ray is used
+        image_delta: image offset to apply to image_pt_2d
         apply_vignetting: whether to apply vignetting factors to pupil coords
     """
 
     def __init__(self, opt_model,
                  pupil_gen=None, pupil_coords=None, num_rays=21,
-                 f=0, wl=None, foc=None, image_pt_2d=None, 
+                 f=0, wl=None, foc=None, image_pt_2d=None, image_delta=None, 
                  apply_vignetting=True):
         self.opt_model = opt_model
         osp = opt_model.optical_spec
@@ -364,8 +378,8 @@ class RayList():
         self.wvl = osp.spectral_region.central_wvl if wl is None else wl
 
         self.foc = osp.defocus.focus_shift if foc is None else foc
-        self.image_pt_2d = image_pt_2d if image_pt_2d is not None  \
-            else np.array([0., 0.])
+        self.image_pt_2d = image_pt_2d
+        self.image_delta = image_delta
         self.apply_vignetting = apply_vignetting
 
         self.update_data()
@@ -388,13 +402,14 @@ class RayList():
             self.ray_list = trace_pupil_coords(
                 self.opt_model, self.pupil_coords,
                 self.fld, self.wvl, self.foc,
-                image_pt_2d=self.image_pt_2d,
+                image_pt_2d=self.image_pt_2d, image_delta=self.image_delta, 
                 apply_vignetting=self.apply_vignetting)
 
         ray_list_data = focus_pupil_coords(
             self.opt_model, self.ray_list,
             self.fld, self.wvl, self.foc,
-            image_pt_2d=self.image_pt_2d)
+            image_pt_2d=self.image_pt_2d,
+            image_delta=self.image_delta)
 
         self.ray_abr = np.rollaxis(ray_list_data, 1)
 
@@ -475,11 +490,12 @@ def trace_list_of_rays(opt_model, rays,
     return ray_list
 
 
-def eval_pupil_coords(opt_model, fld, wvl, foc,
-                      image_pt_2d=None, num_rays=21, **kwargs):
+def eval_pupil_coords(opt_model, fld, wvl, foc, image_pt_2d=None, 
+                      image_delta=None, num_rays=21, **kwargs):
     """Trace a list of rays and return the transverse abr."""
     ref_sphere, cr_pkg = trace.setup_pupil_coords(opt_model, fld, wvl, foc, 
-                                                    image_pt=image_pt_2d)
+                                                  image_pt=image_pt_2d,
+                                                  image_delta=image_delta)
     fld.chief_ray = cr_pkg
     fld.ref_sphere = ref_sphere
 
@@ -506,10 +522,11 @@ def eval_pupil_coords(opt_model, fld, wvl, foc,
 
 
 def trace_pupil_coords(opt_model, pupil_coords, fld, wvl, foc,
-                       image_pt_2d=None, **kwargs):
+                       image_pt_2d=None, image_delta=None, **kwargs):
     """Trace a list of rays and return data needed for rapid refocus."""
     ref_sphere, cr_pkg = trace.setup_pupil_coords(opt_model, fld, wvl, foc, 
-                                                    image_pt=image_pt_2d)
+                                                  image_pt=image_pt_2d,
+                                                  image_delta=image_delta)
     fld.chief_ray = cr_pkg
     fld.ref_sphere = ref_sphere
 
@@ -520,10 +537,12 @@ def trace_pupil_coords(opt_model, pupil_coords, fld, wvl, foc,
     return ray_list
 
 
-def focus_pupil_coords(opt_model, ray_list, fld, wvl, foc, image_pt_2d=None):
+def focus_pupil_coords(opt_model, ray_list, fld, wvl, foc, 
+                       image_pt_2d=None, image_delta=None):
     """Given pre-traced rays and a ref. sphere, return the transverse abr."""
     ref_sphere, cr_pkg = trace.setup_pupil_coords(opt_model, fld, wvl, foc, 
-                                                    image_pt=image_pt_2d)
+                                                  image_pt=image_pt_2d,
+                                                  image_delta=image_delta)
 
     def rfc(ri):
         pupil_x, pupil_y, ray_pkg = ri
@@ -549,20 +568,21 @@ class RayGrid():
         f: index into :class:`~.FieldSpec` or a :class:`~.Field` instance
         wl: wavelength (nm) to trace the fan, or central wavelength if None
         foc: focus shift to apply to the results
-        image_pt_2d: image offset to apply to the results
+        image_pt_2d: base image point. if None, the chief ray is used
+        image_delta: image offset to apply to image_pt_2d
         num_rays: number of samples along the side of the grid
     """
 
     def __init__(self, opt_model, f=0, wl=None, foc=None, image_pt_2d=None,
-                 num_rays=21, value_if_none=np.NaN):
+                 image_delta=None, num_rays=21, value_if_none=np.NaN):
         self.opt_model = opt_model
         osp = opt_model.optical_spec
         self.fld = osp.field_of_view.fields[f] if isinstance(f, int) else f
         self.wvl = osp.spectral_region.central_wvl if wl is None else wl
 
         self.foc = osp.defocus.focus_shift if foc is None else foc
-        self.image_pt_2d = image_pt_2d if image_pt_2d is not None  \
-            else np.array([0., 0.])
+        self.image_pt_2d = image_pt_2d
+        self.image_delta = image_delta
 
         self.num_rays = num_rays
         self.value_if_none = value_if_none
@@ -580,11 +600,13 @@ class RayGrid():
         if build == 'rebuild':
             self.grid_pkg = trace_wavefront(
                 self.opt_model, self.fld, self.wvl, self.foc,
-                image_pt_2d=self.image_pt_2d, num_rays=self.num_rays)
+                image_pt_2d=self.image_pt_2d, image_delta=self.image_delta, 
+                num_rays=self.num_rays)
 
         opd = focus_wavefront(self.opt_model, self.grid_pkg,
                               self.fld, self.wvl, self.foc,
                               image_pt_2d=self.image_pt_2d,
+                              image_delta=self.image_delta, 
                               value_if_none=self.value_if_none)
 
         self.grid = np.rollaxis(opd, 2)
@@ -607,7 +629,7 @@ def trace_ray_grid(opt_model, grid_rng, fld, wvl, foc, append_if_none=True,
             pupil = np.array(start)
             ray_result = trace.trace_safe(opt_model, pupil, fld, wvl, 
                                           output_filter, rayerr_filter, 
-                                          **kwargs)
+                                          apply_vignetting=False, **kwargs)
             if ray_result is not None:
                     grid_row.append([pupil[0], pupil[1], ray_result])
             else:  # ray outside pupil or failed
@@ -623,12 +645,13 @@ def trace_ray_grid(opt_model, grid_rng, fld, wvl, foc, append_if_none=True,
     return grid
 
 
-def eval_wavefront(opt_model, fld, wvl, foc,
-                   image_pt_2d=None, num_rays=21, value_if_none=np.NaN):
+def eval_wavefront(opt_model, fld, wvl, foc, image_pt_2d=None, 
+                   image_delta=None, num_rays=21, value_if_none=np.NaN):
     """Trace a grid of rays and evaluate the OPD across the wavefront."""
     fod = opt_model['analysis_results']['parax_data'].fod
     ref_sphere, cr_pkg = trace.setup_pupil_coords(opt_model, fld, wvl, foc, 
-                                                    image_pt=image_pt_2d)
+                                                  image_pt=image_pt_2d,
+                                                  image_delta=image_delta)
     fld.chief_ray = cr_pkg
     fld.ref_sphere = ref_sphere
 
@@ -656,11 +679,12 @@ def eval_wavefront(opt_model, fld, wvl, foc,
 
 
 def trace_wavefront(opt_model, fld, wvl, foc,
-                    image_pt_2d=None, num_rays=21):
+                    image_pt_2d=None, image_delta=None, num_rays=21):
     """Trace a grid of rays and pre-calculate data needed for rapid refocus."""
     fod = opt_model['analysis_results']['parax_data'].fod
     ref_sphere, cr_pkg = trace.setup_pupil_coords(opt_model, fld, wvl, foc, 
-                                                    image_pt=image_pt_2d)
+                                                  image_pt=image_pt_2d,
+                                                  image_delta=image_delta)
     fld.chief_ray = cr_pkg
     fld.ref_sphere = ref_sphere
 
@@ -684,12 +708,13 @@ def trace_wavefront(opt_model, fld, wvl, foc,
 
 
 def focus_wavefront(opt_model, grid_pkg, fld, wvl, foc, image_pt_2d=None,
-                    value_if_none=np.NaN):
+                    image_delta=None, value_if_none=np.NaN):
     """Given pre-traced rays and a ref. sphere, return the ray's OPD."""
     fod = opt_model['analysis_results']['parax_data'].fod
     grid, upd_grid = grid_pkg
     ref_sphere, cr_pkg = trace.setup_pupil_coords(opt_model, fld, wvl, foc, 
-                                                    image_pt=image_pt_2d)
+                                                  image_pt=image_pt_2d,
+                                                  image_delta=image_delta)
     central_wvl = opt_model.optical_spec.spectral_region.central_wvl
     convert_to_opd = 1/opt_model.nm_to_sys_units(central_wvl)
 
