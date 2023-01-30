@@ -9,6 +9,7 @@
 """
 
 from PyQt5.QtGui import QColor
+from PyQt5.QtWidgets import (QHBoxLayout, QVBoxLayout, QWidget, QPushButton)
 from qtconsole.rich_jupyter_widget import RichJupyterWidget
 from qtconsole.inprocess import QtInProcessKernelManager
 from qtconsole import styles
@@ -38,7 +39,8 @@ default_template = '''\
 '''
 
 
-def create_ipython_console(gui_parent, opt_model, title, view_width, view_ht):
+def create_ipython_console(gui_parent, opt_model, title, view_width, view_ht,
+                           add_panel_fcts=None):
     """ create a iPython console with a rayoptics environment """
 
     def create_light_or_dark_callback(ipy_console):
@@ -69,11 +71,13 @@ def create_ipython_console(gui_parent, opt_model, title, view_width, view_ht):
                 'gui_parent': gui_parent,
                 'app': gui_parent.app_manager,
                 'opm': opt_model,
-                'sm': opt_model.seq_model,
-                'osp': opt_model.optical_spec,
-                'pm': opt_model.parax_model,
-                'em': opt_model.ele_model,
-                'pt': opt_model.part_tree,
+                'sm': opt_model['seq_model'],
+                'osp': opt_model['optical_spec'],
+                'ss': opt_model['specsheet'],
+                'pm': opt_model['parax_model'],
+                'em': opt_model['ele_model'],
+                'pt': opt_model['part_tree'],
+                'ar': opt_model['analysis_results'],
                 }
     else:
         ro_env = {
@@ -84,14 +88,50 @@ def create_ipython_console(gui_parent, opt_model, title, view_width, view_ht):
     ro_setup = 'from rayoptics.environment import *'
 
     # construct the top level widget
+    widget = QWidget()
+
+    top_layout = QVBoxLayout(widget)
+    # set the layout on the widget
+    widget.setLayout(top_layout)
+
     ipy_console = ConsoleWidget()
+    top_layout.addWidget(ipy_console)
+
+    button_panel_layout = QHBoxLayout()
+    top_layout.addLayout(button_panel_layout)
+
+    cmd_button_1 = QPushButton("refresh GUI")
+    cmd_button_1.clicked.connect(
+        lambda: ipy_console.execute_command('app.refresh_gui()'))
+    button_panel_layout.addWidget(cmd_button_1)
+
+    cmd_button_2 = QPushButton("setup opm")
+    opt_model = gui_parent.app_manager.model
+    opm_vars = {
+                'opm': opt_model,
+                'sm': opt_model['seq_model'],
+                'osp': opt_model['optical_spec'],
+                'ss': opt_model['specsheet'],
+                'pm': opt_model['parax_model'],
+                'em': opt_model['ele_model'],
+                'pt': opt_model['part_tree'],
+                'ar': opt_model['analysis_results'],
+                }
+    cmd_button_2.clicked.connect(
+        lambda: ipy_console.push_vars(opm_vars))
+    button_panel_layout.addWidget(cmd_button_2)
+
+    cmd_button_3 = QPushButton("First order data")
+    cmd_button_3.clicked.connect(
+        lambda: ipy_console.execute_command("app.model['pm'].first_order_data()"))
+    button_panel_layout.addWidget(cmd_button_3)
 
     # load the environment
     ipy_console.execute_command(ro_setup)
     ipy_console.push_vars(ro_env)
 
     mi = ModelInfo(opt_model)
-    sub_window = gui_parent.add_subwindow(ipy_console, mi)
+    sub_window = gui_parent.add_subwindow(widget, mi)
     sub_window.setWindowTitle(title)
     sub_window.sync_light_or_dark = create_light_or_dark_callback(ipy_console)
     orig_x, orig_y = gui_parent.initial_window_offset()
