@@ -83,7 +83,7 @@ def set_pupil(opm):
 
     # iterate the on-axis marginal ray thru the edge of the stop.
     fld, wvl, foc = osp.lookup_fld_wvl_focus(0)
-    stop_radius = sm.ifcs[sm.stop_surface].max_aperture
+    stop_radius = sm.ifcs[sm.stop_surface].surface_od()
     start_coords = iterate_pupil_ray(opm, sm.stop_surface, 1, 1.0, 
                                      stop_radius, fld, wvl)
 

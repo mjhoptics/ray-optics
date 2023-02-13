@@ -237,6 +237,10 @@ def post_process_input(opt_model, filename, **kwargs):
     sm.ifcs[-1].interact_mode = 'dummy'
     _track_contents['# surfs'] = len(sm.ifcs)
 
+    # if DIAM records, turn off sm aperture setting
+    if _track_contents.get('# clear ap', 0) > 0:
+        sm.do_apertures = False
+
     do_post_processing = kwargs.get('do_postprocess', False)
     if do_post_processing:  # everything is on by default
         if kwargs.get('do_bend', True):
@@ -410,6 +414,7 @@ def handle_aperture_data(optm, cur, cmd, inputs):
                     return True
     
                 if ca:
+                    _track_contents['# clear ap'] += 1
                     ca_list.append(ca)
             else:
                 ca = ca_list[-1]

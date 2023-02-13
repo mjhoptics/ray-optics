@@ -177,6 +177,9 @@ def post_process_input(opt_model, filename, **kwargs):
     sm.ifcs[-1].interact_mode = 'dummy'
     _track_contents['# surfs'] = len(sm.ifcs)
 
+    if _track_contents.get('# clear ap', 0) > 0:
+        sm.do_apertures = False
+
     _track_contents['# wvls'] = len(osp['wvls'].wavelengths)
     _track_contents['fov'] = osp['fov'].key
     _track_contents['# fields'] = len(osp['fov'].fields)
@@ -452,6 +455,9 @@ def aperture_data(opm, tla, qlist, dlist):
         ca.x_half_width = dlist[0]
     elif data_type == 'Y':
         ca.y_half_width = dlist[0]
+
+    if ca:
+        _track_contents['# clear ap'] += 1
 
     log_cmd("aperture_data", tla, qlist, dlist)
 
