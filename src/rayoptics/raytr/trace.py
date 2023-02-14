@@ -22,6 +22,7 @@ from .waveabr import (wave_abr_full_calc, calculate_reference_sphere,
                       transfer_to_exit_pupil)
 from rayoptics.optical import model_constants as mc
 from .traceerror import TraceError, TraceMissedSurfaceError, TraceTIRError
+from rayoptics.util.misc_math import normalize
 
 
 def ray_pkg(ray_pkg):
@@ -171,14 +172,21 @@ def trace(seq_model, pt0, dir0, wvl, **kwargs):
     return rt.trace(seq_model, pt0, dir0, wvl, **kwargs)
 
 
-def trace_base(opt_model, pupil, fld, wvl, apply_vignetting=True, **kwargs):
+def trace_base(opt_model, pupil, fld, wvl, 
+               apply_vignetting=True, pupil_type='rel pupil', 
+               **kwargs):
     """Trace ray specified by relative aperture and field point.
 
     Args:
         opt_model: instance of :class:`~.OpticalModel` to trace
-        pupil: relative pupil coordinates of ray
+        pupil: aperture coordinates of ray
         fld: instance of :class:`~.Field`
         wvl: ray trace wavelength in nm
+        apply_vignetting: if True, apply the `fld` vignetting factors to `pupil`
+        pupil_type: controls how `pupil` data is interpreted
+            - 'rel pupil': relative pupil coordinates
+            - 'aim pt': aim point on pupil plane
+            - 'aim dir': aim direction in object space
         **kwargs: keyword arguments
 
     Returns:
@@ -197,25 +205,15 @@ def trace_base(opt_model, pupil, fld, wvl, apply_vignetting=True, **kwargs):
           optical axis
         - **wvl** - wavelength (in nm) that the ray was traced in
     """
-    vig_pupil = fld.apply_vignetting(pupil) if apply_vignetting else pupil
-    osp = opt_model.optical_spec
-    fod = opt_model['analysis_results']['parax_data'].fod
-    eprad = fod.enp_radius
-    aim_pt = np.array([0., 0.])
-    if hasattr(fld, 'aim_pt') and fld.aim_pt is not None:
-        aim_pt = fld.aim_pt
-    pt1 = np.array([eprad*vig_pupil[0]+aim_pt[0], eprad*vig_pupil[1]+aim_pt[1],
-                    fod.obj_dist+fod.enp_dist])
-    pt0 = osp.obj_coords(fld)
-    dir0 = pt1 - pt0
-    length = norm(dir0)
-    dir0 = dir0/length
-    sm = opt_model.seq_model
-    # To handle virtual object distances, always propagate from 
-    #  the object in a positive Z direction.
-    if dir0[2] * sm.z_dir[0] < 0:
-        dir0 = -dir0
-    return rt.trace(sm, pt0, dir0, wvl, **kwargs)
+    if pupil_type == 'rel pupil':
+        pupil_coords = fld.apply_vignetting(pupil) if apply_vignetting else pupil
+    else:
+        pupil_coords = pupil
+
+    pt0, dir0 = opt_model['optical_spec'].ray_start_from_osp(pupil_coords, fld,
+                                                             pupil_type)
+
+    return rt.trace(opt_model['seq_model'], pt0, dir0, wvl, **kwargs)
 
 
 def iterate_ray(opt_model, ifcx, xy_target, fld, wvl, **kwargs):
@@ -226,20 +224,21 @@ def iterate_ray(opt_model, ifcx, xy_target, fld, wvl, **kwargs):
 
     If the iteration fails, a TraceError will be raised
     """
+    ray_pkg = None
     def y_stop_coordinate(y1, *args):
+        nonlocal ray_pkg
         seq_model, ifcx, pt0, dist, wvl, y_target = args
         pt1 = np.array([0., y1, dist])
-        dir0 = pt1 - pt0
-        length = norm(dir0)
-        dir0 = dir0/length
+        dir0 = normalize(pt1 - pt0)
+
         try:
-            ray, _, _ = rt.trace(seq_model, pt0, dir0, wvl)
+            ray, _, _ = ray_pkg = rt.trace(seq_model, pt0, dir0, wvl)
         except TraceMissedSurfaceError as ray_miss:
-            ray = ray_miss.ray_pkg
+            # ray = ray_miss.ray_pkg
             if ray_miss.surf <= ifcx:
                 raise ray_miss
         except TraceTIRError as ray_tir:
-            ray = ray_tir.ray_pkg
+            # ray = ray_tir.ray_pkg
             if ray_tir.surf < ifcx:
                 raise ray_tir
         y_ray = ray[ifcx][mc.p][1]
@@ -247,12 +246,11 @@ def iterate_ray(opt_model, ifcx, xy_target, fld, wvl, **kwargs):
         return y_ray - y_target
 
     def surface_coordinate(coord, *args):
+        nonlocal ray_pkg
         seq_model, ifcx, pt0, dist, wvl, target = args
         pt1 = np.array([coord[0], coord[1], dist])
-        dir0 = pt1 - pt0
-        length = norm(dir0)
-        dir0 = dir0/length
-        ray, _, _ = rt.trace(seq_model, pt0, dir0, wvl)
+        dir0 = normalize(pt1 - pt0)
+        ray, _, _ = ray_pkg = rt.trace(seq_model, pt0, dir0, wvl)
         xy_ray = np.array([ray[ifcx][mc.p][0], ray[ifcx][mc.p][1]])
 #        print(coord[0], coord[1], xy_ray[0], xy_ray[1])
         return xy_ray - target
@@ -263,7 +261,7 @@ def iterate_ray(opt_model, ifcx, xy_target, fld, wvl, **kwargs):
     fod = opt_model['analysis_results']['parax_data'].fod
     dist = fod.obj_dist + fod.enp_dist
 
-    pt0 = osp.obj_coords(fld)
+    pt0, d0 = osp.obj_coords(fld)
     if ifcx is not None:
         if pt0[0] == 0.0 and xy_target[0] == 0.0:
             # do 1D iteration if field and target points are zero in x
@@ -294,7 +292,7 @@ def iterate_ray(opt_model, ifcx, xy_target, fld, wvl, **kwargs):
     else:  # floating stop surface - use entrance pupil for aiming
         start_coords = np.array([0., 0.]) + xy_target
 
-    return start_coords
+    return start_coords, ray_pkg
 
 
 def trace_with_opd(opt_model, pupil, fld, wvl, foc, **kwargs):
@@ -490,7 +488,7 @@ def aim_chief_ray(opt_model, fld, wvl=None):
     if wvl is None:
         wvl = seq_model.central_wavelength()
     stop = seq_model.stop_surface
-    aim_pt = iterate_ray(opt_model, stop, np.array([0., 0.]), fld, wvl)
+    aim_pt, cr_ray = iterate_ray(opt_model, stop, np.array([0., 0.]), fld, wvl)
     return aim_pt
 
 

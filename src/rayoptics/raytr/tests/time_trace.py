@@ -29,7 +29,7 @@ def setup(filename):
     eprad = fod.enp_radius
     pt1 = np.array([eprad*vig_pupil[0], eprad*vig_pupil[1],
                     fod.obj_dist+fod.enp_dist])
-    pt0 = osp.obj_coords(fld)
+    pt0, d0 = osp.obj_coords(fld)
     dir0 = normalize(pt1 - pt0)
     return (sm, pt0, dir0, wvl)
 
