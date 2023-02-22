@@ -231,12 +231,12 @@ class OpticalSpecs:
                 hypt = np.sqrt(1 + (pupil[0]*slope)**2 + (pupil[1]*slope)**2)
                 pupil_dir = np.array([slope*pupil[0]/hypt, slope*pupil[1]/hypt])
 
+                pt0 = p0
                 if d0 is not None:
-                    cr_dir = d0
+                    cr_dir = d0[:2]
                 else:
                     pt1 = np.array([aim_pt[0], aim_pt[1], 
                                     fod.obj_dist+fod.enp_dist])
-                    pt0 = p0
                     cr_dir = normalize(pt1 - pt0)[:2]
                 dir_tot = pupil_dir + cr_dir
 
@@ -428,7 +428,7 @@ class PupilSpec:
         n = parax_model.sys[idx][mc.indx]
         slope = parax_model.ax[idx][mc.slp]
         y_star, ybar_star = parax_model.calc_object_and_pupil(idx)
-        if y_star == np.inf:
+        if y_star == np.inf:  # telecentric, use angular aperture spec
             value_key = 'NA'
         
         if 'NA' in value_key:
@@ -489,13 +489,14 @@ class FieldSpec:
 
     """
 
-    def __init__(self, parent, key=('object', 'angle'), value=0., flds=[0.],
+    def __init__(self, parent, key=('object', 'angle'), value=0, flds=None,
                  is_relative=False, do_init=True, **kwargs):
         self.optical_spec = parent
         self.key = 'field', key[0], key[1]
         self.value = value
         self.is_relative = is_relative
         if do_init:
+            flds = flds if flds is not None else [0., 1.]
             self.set_from_list(flds)
         else:
             self.fields = []
@@ -624,6 +625,11 @@ class FieldSpec:
         self.key = fld_key
 
     def obj_coords(self, fld):
+        """ Return a pt, direction pair characterizing `fld`. 
+        
+        Depending on the `key` settings, one of the (obj_pt, obj_dir) tuple
+        could be None. 
+        """
         fld_coord = np.array([fld.x, fld.y, 0.0])
         if self.is_relative:
             fld_coord *= self.value

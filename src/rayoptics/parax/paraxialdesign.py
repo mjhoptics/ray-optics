@@ -126,6 +126,8 @@ class ParaxialModel():
         else:
             nodes = node_list
         max_nodes = len(nodes)
+
+        # setup parax data structures
         ax = [[0., 0.] for i in range(max_nodes)]
         pr = [[0., 0.] for i in range(max_nodes)]
         sys = [[0., 0., 1., 'transmit'] for i in range(max_nodes)]
@@ -138,16 +140,23 @@ class ParaxialModel():
             sys[i] = [0.0, 0.0, *ni]
 
         # adjust object distance and object node
-        slp0 = ((ax[1][mc.ht]-ax[0][mc.ht])/
-                (pr[1][mc.ht]-pr[0][mc.ht]))
-        inc_ybar0 = ax[0][mc.ht]/slp0
+        del_y = ax[1][mc.ht] - ax[0][mc.ht]
+        del_ybar = pr[1][mc.ht] - pr[0][mc.ht]
+        if del_ybar == 0:   # telecentric
+            inc_ybar0 = pr[0][mc.ht]
+        elif del_y == 0:  # collimated
+            pr[0][mc.ht] = inc_ybar0 = np.NINF
+        else:
+            slp0 = del_y/del_ybar
+            inc_ybar0 = ax[0][mc.ht]/slp0
+            pr[0][mc.ht] = pr[0][mc.ht] - inc_ybar0
         ax[0][mc.ht] = 0.0
-        pr[0][mc.ht] = pr[0][mc.ht] - inc_ybar0
         nodes[0] = np.array([pr[0][mc.ht], ax[0][mc.ht]])
 
         self.ax = ax
         self.pr = pr
         self.sys = sys
+        self.opt_inv = opt_inv
 
         self.nodes_to_parax(nodes, type_sel)
         self.sys[0][mc.rmd] = 'dummy'
@@ -190,7 +199,7 @@ class ParaxialModel():
             nodes = node_list[type_sel]
         else:
             nodes = node_list
-            
+
         if type_sel == mc.ht:
             for i, node in enumerate(nodes):
                 self.apply_ht_dgm_data(i, node)
@@ -649,7 +658,7 @@ class ParaxialModel():
                 n_before = n_after
                 slp_before = slp_after
 
-    def lens_from_dgm(self, node, bending=0., th=None, sd=1., **kwargs):
+    def lens_from_dgm(self, node: int, bending=0., th=None, sd=1., **kwargs):
         """ Return single lens constructional parameters from parax_model. 
         
         This method uses a method for thickening a lens element developed by
@@ -736,23 +745,27 @@ class ParaxialModel():
         dgm_pkg = [z10, z11], [[rndx, 'transmit'], [1.0, 'transmit']]
         return dgm_pkg, lens
 
-    def calc_object_and_pupil(self, idx):
+    def calc_object_and_pupil(self, idx: int):
         """ calculate axial intercepts of line between idx and idx+1 """
-        k = ((self.ax[idx+1][mc.ht]-self.ax[idx][mc.ht])/
-             (self.pr[idx+1][mc.ht]-self.pr[idx][mc.ht]))
-        y_star = self.ax[idx][mc.ht] - k*self.pr[idx][mc.ht]
-        ybar_star = self.pr[idx][mc.ht] - self.ax[idx][mc.ht]/k
+        delta_ybar = self.pr[idx+1][mc.ht] - self.pr[idx][mc.ht]
+        if delta_ybar == 0:
+            y_star = np.inf
+            ybar_star = self.pr[idx][mc.ht]
+        else:
+            k = (self.ax[idx+1][mc.ht] - self.ax[idx][mc.ht]) / delta_ybar
+            y_star = self.ax[idx][mc.ht] - k*self.pr[idx][mc.ht]
+            ybar_star = self.pr[idx][mc.ht] - self.ax[idx][mc.ht]/k
         # print(f"{idx}: y_star={y_star}, ybar_star={ybar_star}, k={k}")
         return y_star, ybar_star
 
     # --- power and thickness solves
-    def pwr_slope_solve(self, ray, surf, slp_new):
+    def pwr_slope_solve(self, ray, surf: int, slp_new):
         p = ray[surf-1]
         c = ray[surf]
         pwr = (p[mc.slp] - slp_new)/c[mc.ht]
         return pwr
 
-    def pwr_ht_solve(self, ray, surf, ht_new):
+    def pwr_ht_solve(self, ray, surf: int, ht_new):
         sys = self.sys
         p = ray[surf-1]
         c = ray[surf]
@@ -760,7 +773,7 @@ class ParaxialModel():
         pwr = (p[mc.slp] - slp_new)/ht_new
         return pwr
 
-    def thi_ht_solve(self, ray, surf, ht_new):
+    def thi_ht_solve(self, ray, surf: int, ht_new):
         c = ray[surf]
         thi = (ht_new - c[mc.ht])/c[mc.slp]
         return thi

@@ -51,7 +51,6 @@ class InteractiveLayout(InteractiveFigure):
             self.do_draw_beams = False
             self.do_draw_edge_rays = False
             
-        self.do_draw_edge_rays = do_draw_edge_rays
         self.do_draw_ray_fans = do_draw_ray_fans
         self.num_rays_in_fan = num_rays_in_fan
         self.do_paraxial_layout = do_paraxial_layout

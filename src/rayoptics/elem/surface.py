@@ -143,12 +143,12 @@ class Surface(interface.Interface):
 
     def apply_scale_factor(self, scale_factor):
         super().apply_scale_factor(scale_factor)
-        self.max_aperture *= scale_factor
         self.profile.apply_scale_factor(scale_factor)
+        abs_scale_factor = abs(scale_factor)
         for e in self.edge_apertures:
-            e.apply_scale_factor(scale_factor)
+            e.apply_scale_factor(abs_scale_factor)
         for ca in self.clear_apertures:
-            ca.apply_scale_factor(scale_factor)
+            ca.apply_scale_factor(abs_scale_factor)
 
     def from_first_order(self, nu_before, nu_after, y):
         pass

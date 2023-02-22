@@ -170,6 +170,8 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, check_apertures=False, **kwargs
             pp_dst_intrsct, inc_pt = ifc.intersect(pp_pt_before, b4_dir,
                                                    eps=eps, z_dir=z_dir_before)
             dst_b4 = pp_dst + pp_dst_intrsct
+            
+            # add intersection point to ray
             ray.append([before_pt, before_dir, dst_b4, before_normal])
 
             if in_gap_range(surf-1):
