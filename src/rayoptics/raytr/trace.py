@@ -135,12 +135,13 @@ def retrieve_ray(ray_result):
     
     This function handles the normal case where the ray traces successfully
     and the case of a ray failure, which returns a TraceError instance.
+    
+    Returns a ray_pkg and the trace error or None, if traced successfully
     """
-    px, py, ray_item = ray_result
-    if isinstance(ray_item, TraceError):
-        return ray_item.ray_pkg
+    if isinstance(ray_result, TraceError):
+        return ray_result.ray_pkg, ray_result
     else:
-        return ray_item
+        return ray_result, None
 
 
 def trace(seq_model, pt0, dir0, wvl, **kwargs):
@@ -233,14 +234,11 @@ def iterate_ray(opt_model, ifcx, xy_target, fld, wvl, **kwargs):
 
         try:
             ray, _, _ = ray_pkg = rt.trace(seq_model, pt0, dir0, wvl)
-        except TraceMissedSurfaceError as ray_miss:
-            # ray = ray_miss.ray_pkg
-            if ray_miss.surf <= ifcx:
-                raise ray_miss
-        except TraceTIRError as ray_tir:
-            # ray = ray_tir.ray_pkg
-            if ray_tir.surf < ifcx:
-                raise ray_tir
+
+        except TraceError as terr:
+            if terr.surf < ifcx:
+                raise terr
+
         y_ray = ray[ifcx][mc.p][1]
 #        print(y1, y_ray)
         return y_ray - y_target
@@ -250,7 +248,14 @@ def iterate_ray(opt_model, ifcx, xy_target, fld, wvl, **kwargs):
         seq_model, ifcx, pt0, dist, wvl, target = args
         pt1 = np.array([coord[0], coord[1], dist])
         dir0 = normalize(pt1 - pt0)
-        ray, _, _ = ray_pkg = rt.trace(seq_model, pt0, dir0, wvl)
+        
+        try:
+            ray, _, _ = ray_pkg = rt.trace(seq_model, pt0, dir0, wvl)
+            
+        except TraceError as terr:
+            if terr.surf < ifcx:
+                raise terr
+
         xy_ray = np.array([ray[ifcx][mc.p][0], ray[ifcx][mc.p][1]])
 #        print(coord[0], coord[1], xy_ray[0], xy_ray[1])
         return xy_ray - target
@@ -392,9 +397,11 @@ def trace_chief_ray(opt_model, fld, wvl, foc):
     """Trace a chief ray for fld and wvl, returning the ray_pkg and exit pupil segment."""
     fod = opt_model['analysis_results']['parax_data'].fod
 
-    ray, op, wvl = trace_base(opt_model, [0., 0.], fld, wvl)
-    # op = rt.calc_optical_path(ray, opt_model.seq_model.path())
-    cr = RayPkg(ray, op, wvl)
+    ray_result = trace_safe(opt_model, [0., 0.], fld, wvl,
+                            output_filter=None, rayerr_filter='full')
+
+    ray_pkg, ray_err = retrieve_ray(ray_result)
+    cr = RayPkg(*ray_pkg)
 
     # cr_exp_pt: E upper bar prime: pupil center for pencils from Q
     # cr_exp_pt, cr_b4_dir, cr_exp_dist

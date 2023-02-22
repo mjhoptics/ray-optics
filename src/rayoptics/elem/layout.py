@@ -327,7 +327,7 @@ class RayFanBundle():
 
         ray_list = []
         for ray_item in fan:
-            ray_pkg = retrieve_ray(ray_item)
+            ray_pkg, ray_err = retrieve_ray(ray_item[2])
             ray_list.append(ray_pkg)
 
         ray_color = lo_rgb['ray'] if ray_fan.color is None else ray_fan.color
