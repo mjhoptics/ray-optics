@@ -157,6 +157,7 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, check_apertures=False, **kwargs
             after = next(path)
             surf += 1
 
+            # transform ray data from previous ifc coords to current one
             rt, t = tfrm_from_before
             b4_pt, b4_dir = rt.dot(before_pt - t), rt.dot(before_dir)
 
@@ -171,7 +172,7 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, check_apertures=False, **kwargs
                                                    eps=eps, z_dir=z_dir_before)
             dst_b4 = pp_dst + pp_dst_intrsct
             
-            # add intersection point to ray
+            # add *previous* intersection point, direction, etc., to ray
             ray.append([before_pt, before_dir, dst_b4, before_normal])
 
             if in_gap_range(surf-1):

@@ -1022,6 +1022,27 @@ class SequentialModel:
 
         return tfrms
 
+    def list_lcl_tfrms(self, *args):
+        self.list_tfrms(self.lcl_tfrms, *args)
+
+    def list_gbl_tfrms(self, *args):
+        self.list_tfrms(self.gbl_tfrms, *args)
+
+    def list_tfrms(self, tfrms, sel: str='r+t', *args):
+        for i, tfrm in enumerate(tfrms):
+            r, t = tfrm
+            if sel=='r':
+                print(f"{i:2d}:  {r[0][0]:10.6f}  {r[0][1]:10.6f}  {r[0][2]:10.6f}")
+                print(f"     {r[1][0]:10.6f}  {r[1][1]:10.6f}  {r[1][2]:10.6f}")
+                print(f"     {r[2][0]:10.6f}  {r[2][1]:10.6f}  {r[2][2]:10.6f}\n")
+            elif sel=='t':
+                print(f"{i:2d}:  {t[0]:12.5f}  {t[1]:12.5f}  {t[2]:12.5f}")
+            else:
+                print(f"{i:2d}:  {r[0][0]:10.6f}  {r[0][1]:10.6f}  {r[0][2]:10.6f}  {t[0]:12.5f}")
+                print(f"     {r[1][0]:10.6f}  {r[1][1]:10.6f}  {r[1][2]:10.6f}  {t[1]:12.5f}")
+                print(f"     {r[2][0]:10.6f}  {r[2][1]:10.6f}  {r[2][2]:10.6f}  {t[2]:12.5f}\n")
+                
+
     def find_matching_ifcs(self):
         rot_tols = dict(atol=1e-14, rtol=1e-8)
         tols = dict(atol=1e-14, rtol=1e-14)

@@ -66,6 +66,27 @@ def list_ray(ray_obj, tfrms=None, start=0):
                                     r[mc.dst]))
 
 
+def list_in_out_dir(path, ray):
+    """ list the incident and exiting ray direction cosines.  """
+    lcl_tfrms = [path_seg[mc.Tfrm] for path_seg in path]
+    print("                  in_dir              |              out_dir")
+    before_dir = ray[0][1]
+    print(f"{0:2d}:                                   |"
+          f"{before_dir[0]:10.6f} {before_dir[1]:10.6f} {before_dir[2]:10.6f}")
+    for i, rst in enumerate(zip(ray[1:], lcl_tfrms), start=1):
+        seg, tfrm = rst
+        after_dir = seg[1]
+        rt, t = tfrm
+        b4_dir = rt.dot(before_dir)
+        print(f"{i:2d}: {b4_dir[0]:10.6f} {b4_dir[1]:10.6f} {b4_dir[2]:10.6f}  |"
+              f"{after_dir[0]:10.6f} {after_dir[1]:10.6f} {after_dir[2]:10.6f}")
+        before_dir = after_dir
+
+    rt, t = lcl_tfrms[-1]
+    b4_dir = rt.dot(before_dir)
+    print(f"{i+1:2d}: {b4_dir[0]:10.6f} {b4_dir[1]:10.6f} {b4_dir[2]:10.6f}  |")
+
+
 def trace_safe(opt_model, pupil, fld, wvl,
                output_filter, rayerr_filter, **kwargs):
     """Wrapper for trace_base that handles exceptions.
@@ -553,9 +574,12 @@ def refocus(opt_model):
     fld = osp['fov'].fields[0]      # assumed to be the axial field
     wvl = osp['wvls'].central_wvl
 
-    df_ray, ray_op, wvl = trace_safe(opt_model, [0., 1.], fld, wvl, 
-                                     output_filter=None, rayerr_filter='full', 
-                                     use_named_tuples=True)
+    ray_result = trace_safe(opt_model, [0., 1.], fld, wvl,
+                            output_filter=None, rayerr_filter='full', 
+                            use_named_tuples=True)
+
+    ray_pkg, ray_err = retrieve_ray(ray_result)
+    df_ray, ray_op, wvl = ray_pkg
 
     defocus = -df_ray[-1].p[1]/(df_ray[-2].d[1]/df_ray[-2].d[2])
 

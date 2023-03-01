@@ -117,7 +117,11 @@ class DiffractionGrating:
         return o_str
 
     def phase(self, pt, in_dir, srf_nrml, ifc_cntxt):
+        return self.phase_ludwig(pt, in_dir, srf_nrml, ifc_cntxt)
+
+    def phase_ludwig(self, pt, in_dir, srf_nrml, ifc_cntxt):
         z_dir, wvl, n_in, n_out, interact_mode = ifc_cntxt
+        refl = -1 if interact_mode == 'reflect' else 1
         normal = z_dir * normalize(srf_nrml)          # = R
 
         # grating ruling vector, P = G x R
@@ -126,11 +130,11 @@ class DiffractionGrating:
         D = normalize(np.cross(normal, P))
 
         mu = n_in / n_out
-        T = (wvl * self.order)/(self._grating_spacing_nm * n_out)
+        T = refl*(wvl * self.order)/(self._grating_spacing_nm * n_out)
 
         in_cosI = np.dot(in_dir, normal)
         V = mu * in_cosI
-        W = mu**2 - 1 + T**2 - 2*mu*T*(np.dot(D, normal))
+        W = mu**2 - 1 + T**2 - 2*mu*T*(np.dot(D, in_dir))
         
         result = np.sqrt(V**2 - W)
         Q1 = result - V
@@ -152,7 +156,7 @@ class DiffractionGrating:
         in_sinI = sqrt(1 - in_cosI**2)
         out_cosI = np.dot(out_dir, normal)
         out_sinI = sqrt(1 - out_cosI**2)
-        dW = (self._grating_spacing_nm/wvl) * (n_in*in_sinI + n_out*out_sinI)
+        dW = (self._grating_spacing_nm/wvl) * (n_in*in_sinI + refl*n_out*out_sinI)
 
         if self.debug_output:
             from numpy.linalg import norm
@@ -162,6 +166,43 @@ class DiffractionGrating:
             print(f"P = G x R: {P},  D = R x P: {D}")
             print(f"T={T:8.4f}, V={V:8.4f}, W={W:8.4f}")
             print(f"Q={Q:8.4f}, Q1={Q1:8.4f}, Q2={Q2:8.4f}")
+            print(f"out_dir: {out_dir}, len={norm(out_dir):8.6f}")
+
+        return out_dir, dW
+
+    def phase_welford(self, pt, in_dir, srf_nrml, ifc_cntxt):
+        z_dir, wvl, n_in, n_out, interact_mode = ifc_cntxt
+        refl = -1 if interact_mode == 'reflect' else 1
+
+        normal = z_dir * normalize(srf_nrml)          # = R
+        cosI = np.dot(in_dir, normal)
+
+        T = refl*(wvl * self.order)/(self._grating_spacing_nm * n_out)
+
+        out_dir = in_dir.copy()
+        out_dir[0] = in_dir[0]
+        out_dir[1] = in_dir[1] - T
+        out_dir[2] = (in_dir[2] - cosI 
+                      + sqrt(cosI**2 + 2*in_dir[1]*T - T**2))
+
+        # The `l` and `m` components are correct in the unit circle.
+        # The `n` component needs to be adjusted to fall on the unit hemisphere.
+        # The sign of the original z-component is applied to the result.
+        out_dir[2] = np.copysign(sqrt(1 - out_dir[0]**2 - out_dir[1]**2),
+                                 refl)
+
+        # calculate path difference in wavelengths introduced by grating. 
+        in_sinI = sqrt(1 - cosI**2)
+        out_cosI = np.dot(out_dir, normal)
+        out_sinI = sqrt(1 - out_cosI**2)
+        dW = (self._grating_spacing_nm/wvl) * (n_in*in_sinI + refl*n_out*out_sinI)
+
+        if self.debug_output:
+            from numpy.linalg import norm
+            print(f"{interact_mode}: z_dir={z_dir}, {n_in:4.2f}, {n_out:4.2f}")
+            print(f"in_dir: {in_dir}")
+            print(f"R: {normal},  G: {self.grating_normal}")
+            print(f"T={T:8.4f}")
             print(f"out_dir: {out_dir}, len={norm(out_dir):8.6f}")
 
         return out_dir, dW
