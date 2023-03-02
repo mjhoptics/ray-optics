@@ -323,6 +323,9 @@ def iterate_ray(opt_model, ifcx, xy_target, fld, wvl, **kwargs):
 
 def trace_with_opd(opt_model, pupil, fld, wvl, foc, **kwargs):
     """ returns (ray, ray_opl, wvl, opd) """
+    output_filter = kwargs.pop('output_filter', None)
+    rayerr_filter = kwargs.pop('rayerr_filter', None)
+
     chief_ray_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
     image_pt_2d = kwargs.get('image_pt', None)
     image_delta = kwargs.get('image_delta', None)
@@ -331,9 +334,10 @@ def trace_with_opd(opt_model, pupil, fld, wvl, foc, **kwargs):
                                             image_pt_2d=image_pt_2d,
                                             image_delta=image_delta)
 
-    ray, op, wvl = trace_base(opt_model, pupil, fld, wvl, **kwargs)
-    # opl = rt.calc_optical_path(ray, opt_model.seq_model.path())
-    ray_pkg = ray, op, wvl
+    ray_result = trace_safe(opt_model, pupil, fld, wvl, 
+                            output_filter, rayerr_filter, 
+                            **kwargs)
+    ray_pkg, ray_err = retrieve_ray(ray_result)
 
     fld.chief_ray = chief_ray_pkg
     fld.ref_sphere = ref_sphere
@@ -434,6 +438,8 @@ def trace_chief_ray(opt_model, fld, wvl, foc):
 
 def trace_fan(opt_model, fan_rng, fld, wvl, foc, img_filter=None,
               **kwargs):
+    output_filter = kwargs.pop('output_filter', None)
+    rayerr_filter = kwargs.pop('rayerr_filter', None)
     start = np.array(fan_rng[0])
     stop = fan_rng[1]
     num = fan_rng[2]
@@ -441,15 +447,17 @@ def trace_fan(opt_model, fan_rng, fld, wvl, foc, img_filter=None,
     fan = []
     for r in range(num):
         pupil = np.array(start)
-        ray, op, wvl = trace_base(opt_model, pupil, fld, wvl, **kwargs)
-        # opl = rt.calc_optical_path(ray, opt_model.seq_model.path())
-        ray_pkg = ray, op, wvl
+        ray_result = trace_safe(opt_model, pupil, fld, wvl, 
+                                output_filter, rayerr_filter, 
+                                **kwargs)
+        ray_pkg, ray_err = retrieve_ray(ray_result)
 
-        if img_filter:
-            result = img_filter(pupil, ray_pkg)
-            fan.append([pupil, result])
-        else:
-            fan.append([pupil, ray_pkg])
+        if ray_pkg is not None:
+            if img_filter:
+                result = img_filter(pupil, ray_pkg)
+                fan.append([pupil, result])
+            else:
+                fan.append([pupil, ray_pkg])
 
         start += step
     return fan
@@ -457,8 +465,8 @@ def trace_fan(opt_model, fan_rng, fld, wvl, foc, img_filter=None,
 
 def trace_grid(opt_model, grid_rng, fld, wvl, foc, img_filter=None,
                form='grid', append_if_none=True, **kwargs):
-    output_filter = kwargs.get('output_filter', None)
-    rayerr_filter = kwargs.get('rayerr_filter', None)
+    output_filter = kwargs.pop('output_filter', None)
+    rayerr_filter = kwargs.pop('rayerr_filter', None)
     start = np.array(grid_rng[0])
     stop = grid_rng[1]
     num = grid_rng[2]
@@ -476,12 +484,13 @@ def trace_grid(opt_model, grid_rng, fld, wvl, foc, img_filter=None,
             ray_result = trace_safe(opt_model, pupil, fld, wvl, 
                                     output_filter, rayerr_filter, 
                                     check_apertures=True, **kwargs)
-            if ray_result is not None:
+            ray_pkg, ray_err = retrieve_ray(ray_result)
+            if ray_pkg is not None:
                 if img_filter:
-                    result = img_filter(pupil, ray_result)
+                    result = img_filter(pupil, ray_pkg)
                     working_grid.append(result)
                 else:
-                    working_grid.append([pupil[0], pupil[1], ray_result])
+                    working_grid.append([pupil[0], pupil[1], ray_pkg])
             else:  # ray outside pupil or failed
                 if img_filter:
                     result = img_filter(pupil, None)
