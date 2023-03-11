@@ -201,17 +201,17 @@ class OpticalSpecs:
         if pupil_oi_key == 'image':
             if abs(fod.m) < 1e-10:   # infinite object distance
                 if 'pupil' in pupil_value_key:
-                    pupil_value = fod.enp_radius
+                    pupil_value = 2*fod.enp_radius
                 else:
                     pupil_value_key = 'pupil'
-                    pupil_value = fod.enp_radius
+                    pupil_value = 2*fod.enp_radius
             else:  # finite conjugate
                 if abs(fod.enp_dist) > 1e10:  # telecentric entrance pupil
                     pupil_value_key = 'NA'
                     pupil_value = self.obj_na
                 else:
                     pupil_value_key = 'pupil'
-                    pupil_value = fod.enp_radius
+                    pupil_value = 2*fod.enp_radius
 
         if 'pupil' in pupil_value_key:
             if pupil_type == 'aim pt':
