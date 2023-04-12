@@ -218,6 +218,8 @@ def post_process_input(opt_model, filename, **kwargs):
     global _track_contents
     sm = opt_model.seq_model
     sm.gaps.pop()
+    sm.z_dir.pop()
+    sm.rndx.pop()
 
     if opt_model.system_spec.title == '' and filename is not None:
         fname_full = filename.resolve()
