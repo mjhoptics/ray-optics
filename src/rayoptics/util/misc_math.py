@@ -12,6 +12,21 @@ from numpy.linalg import norm
 from math import sqrt, pi, acos
 
 
+def infinity_guard(x: float, big: float = 1e12) -> float:
+    """ Replace IEEE inf with a signed big number. """
+    return (-big if np.isneginf(x) else big) if np.isinf(x) else x
+
+
+def is_kinda_big(x: float, kinda_big: float = 1e8) -> bool:
+    """ Test for IEEE inf as well as any \|x| > kinda_big  """
+    if np.isinf(x):
+        return True
+    elif np.abs(x) > kinda_big:
+        return True
+    else:
+        return False
+
+
 def normalize(v):
     """ return normalized version of input vector v """
     length = norm(v)
