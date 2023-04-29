@@ -532,11 +532,13 @@ class LensLayout():
     def create_element_entities(self, view):
         opm = self.opt_model
         pt = opm.part_tree
+        not_tags = ''
         if opm['ss'].conjugate_type == 'infinite':
-            e_nodes = pt.nodes_with_tag(tag='#element#dummyifc#airgap',
-                                        not_tag='#object')
-        else:
-            e_nodes = pt.nodes_with_tag(tag='#element#dummyifc#airgap')
+            not_tags = '#object'
+        elif opm['ss'].conjugate_type == 'afocal':
+            not_tags = '#object#image'
+        e_nodes = pt.nodes_with_tag(tag='#element#dummyifc#airgap',
+                                    not_tag=not_tags)
         elements = [create_optical_element(opm, e_node.id)
                     for e_node in e_nodes]
         return elements

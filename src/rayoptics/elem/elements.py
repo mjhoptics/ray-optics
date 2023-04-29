@@ -317,7 +317,7 @@ def create_cemented_doublet(power=0., bending=0., th=None, sd=1.,
 
 
 def create_dummy_plane(sd=1., **kwargs):
-    s = Surface(**kwargs)
+    s = Surface(interact_mode='dummy', max_ap=sd, **kwargs)
     se = DummyInterface(s, sd=sd)
     tree = se.tree()
 
