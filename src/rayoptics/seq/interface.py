@@ -7,7 +7,7 @@
 
 .. codeauthor: Michael J. Hayford
 """
-
+import numpy as np
 from numpy import sqrt
 from enum import Enum, auto
 
@@ -101,6 +101,26 @@ class Interface:
 
     def surface_od(self):
         pass
+
+    def edge_pt_target(self, rel_dir):
+        """ Get a target for ray aiming to aperture boundaries.
+        
+        The main use case for this function is iterating a ray to the internal 
+        edge of a surface. 
+
+        Although `rel_dir` is given as a 2d vector, in practice only the 4 
+        quadrant axes are handled in the implementation, a 1D directional 
+        search along a coordinate axis.
+
+        Args:
+            rel_dir: 2d vector encoding coord axis and direction for edge sample
+        
+        Returns:
+            edge_pt: intersection point of rel_dir with the aperture boundary
+        """
+        edge_pt = np.array([self.max_aperture*rel_dir[0], 
+                            self.max_aperture*rel_dir[1]])
+        return edge_pt
 
     def point_inside(self, x: float, y: float, fuzz: float = 1e-5) -> bool:
         """ Returns True if the point (x, y) is inside the clear aperture. 

@@ -205,6 +205,16 @@ class Surface(interface.Interface):
 
         return is_inside
 
+    def edge_pt_target(self, rel_dir):
+        """ Get a target for ray aiming to aperture boundaries.
+        
+        """
+        if len(self.clear_apertures) > 0:
+            # hardwire to 1 aperture until the need for more arises
+            return self.clear_apertures[0].edge_pt_target(rel_dir)
+        else:
+            return super().edge_pt_target(rel_dir)
+
     def get_y_aperture_extent(self):
         """ returns [y_min, y_max] for the union of apertures """
         od = [1.0e10, -1.0e10]
@@ -408,6 +418,14 @@ class Circular(Aperture):
         x, y = self.tform(x, y)
         return sqrt(x*x + y*y) <= self.radius
 
+    def edge_pt_target(self, rel_dir):
+        """ Get a target for ray aiming to aperture boundaries.
+        
+        """
+        edge_pt = np.array([self.radius*rel_dir[0], 
+                            self.radius*rel_dir[1]])
+        return edge_pt
+
     def apply_scale_factor(self, scale_factor):
         super().apply_scale_factor(scale_factor)
         self.radius *= scale_factor
@@ -435,6 +453,12 @@ class Rectangular(Aperture):
     def point_inside(self, x, y):
         x, y = self.tform(x, y)
         return abs(x) <= self.x_half_width and abs(y) <= self.y_half_width
+
+    def edge_pt_target(self, rel_dir):
+        """ Get a target for ray aiming to aperture boundaries. """
+        edge_pt = np.array([self.x_half_width*rel_dir[0], 
+                            self.y_half_width*rel_dir[1]])
+        return edge_pt
 
     def apply_scale_factor(self, scale_factor):
         super().apply_scale_factor(scale_factor)

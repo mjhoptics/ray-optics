@@ -256,9 +256,10 @@ def iterate_ray(opt_model, ifcx, xy_target, fld, wvl, **kwargs):
         try:
             ray, _, _ = ray_pkg = rt.trace(seq_model, pt0, dir0, wvl)
 
-        except TraceError as terr:
-            if terr.surf < ifcx:
-                raise terr
+        except TraceError as ray_error:
+            ray, _, _ = ray_pkg = ray_error.ray_pkg
+            if ray_error.surf < ifcx:
+                raise ray_error
 
         y_ray = ray[ifcx][mc.p][1]
 #        print(y1, y_ray)
@@ -273,9 +274,10 @@ def iterate_ray(opt_model, ifcx, xy_target, fld, wvl, **kwargs):
         try:
             ray, _, _ = ray_pkg = rt.trace(seq_model, pt0, dir0, wvl)
             
-        except TraceError as terr:
-            if terr.surf < ifcx:
-                raise terr
+        except TraceError as ray_error:
+            ray, _, _ = ray_pkg = ray_error.ray_pkg
+            if ray_error.surf < ifcx:
+                raise ray_error
 
         xy_ray = np.array([ray[ifcx][mc.p][0], ray[ifcx][mc.p][1]])
 #        print(coord[0], coord[1], xy_ray[0], xy_ray[1])
