@@ -114,7 +114,7 @@ def create_new_optical_system(efl=10.0, epd=1, fov=1.0):
 
     ei = create_etendue_dict()
     ei['field']['object']['angle'] = fov
-    ei['aperture']['object']['pupil'] = epd
+    ei['aperture']['object']['epd'] = epd
     ssi = SpecSheet('infinite',
                     imager=inf_conj_imgr,
                     imager_inputs=imager_inputs,

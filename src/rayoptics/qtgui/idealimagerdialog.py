@@ -127,8 +127,7 @@ class IdealImagerDialog(QWidget):
 
     def change_conjugate(self, conj_type):
         print("change_conjugate:", conj_type)
-        if self.conjugate_type is not conj_type:
-            self.update_conjugate(conj_type)
+        self.update_conjugate(conj_type)
 
     def update_conjugate(self, conj_type):
         prev_specsheet = self.specsheet_dict[self.conjugate_type]

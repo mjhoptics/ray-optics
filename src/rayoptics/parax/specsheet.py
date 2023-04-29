@@ -41,7 +41,7 @@ def create_specsheet(conjugate_type, **inputs):
 
         iev = create_etendue_dict()
         iev['field']['object'] = dict([('angle', None)])
-        iev['aperture']['object'] = dict([('pupil', None)])
+        iev['aperture']['object'] = dict([('epd', None)])
         iev['field']['image'] = dict([('height', None)])
         iev['aperture']['image'] = dict([('f/#', None),
                                          ('NA', None)])
@@ -125,26 +125,23 @@ class SpecSheet():
         return attrs
 
     def __str__(self):
-        return ("{!s} conjugates:\nimager: {}\n"
-                "imager inputs: {}\n"
-                "frozen imager inputs: {}\n"
-                "etendue inputs:\n"
-                "  field:    {}\n"
-                "  aperture: {}\n"
-                "etendue values:\n"
-                "  field:    {}\n"
-                "  aperture:\n"
-                "    object: {}\n"
-                "    image:  {}"
-                .format(self.conjugate_type,
-                        self.imager,
-                        self.imager_inputs,
-                        self.frozen_imager_inputs,
-                        self.etendue_inputs['field'],
-                        self.etendue_inputs['aperture'],
-                        self.etendue_values['field'],
-                        self.etendue_values['aperture']['object'],
-                        self.etendue_values['aperture']['image']))
+        return self.listobj_str()
+
+    def listobj_str(self):
+        """ list the spec sheet """
+        o_str = (f"{self.conjugate_type} conjugates:\n"
+                 f"imager: {self.imager}\n"
+                 f"imager inputs: {self.imager_inputs}\n"
+                 f"frozen imager inputs: {self.frozen_imager_inputs}\n"
+                 "etendue inputs:\n"
+                 f"  field:    {self.etendue_inputs['field']}\n"
+                 f"  aperture: {self.etendue_inputs['aperture']}\n"
+                 f"etendue values:\n"
+                 f"  field:    {self.etendue_values['field']}\n"
+                 "  aperture:\n"
+                 f"    object: {self.etendue_values['aperture']['object']}\n"
+                 f"    image:  {self.etendue_values['aperture']['image']}")
+        return o_str
 
     def __repr__(self):
         return ("{!s}({!s}, imager={},"
@@ -162,6 +159,18 @@ class SpecSheet():
     def sync_to_restore(self, opt_model):
         # imager is exported as a list. convert back to an IdealImager
         self.imager = IdealImager(*self.imager)
+
+        ape_in = self.etendue_inputs['aperture']
+        if 'pupil' in ape_in['object']:
+            ape_in['object']['epd'] = ape_in['object'].pop('pupil')
+        if 'pupil' in ape_in['image']:
+            ape_in['image']['epd'] = ape_in['image'].pop('pupil')
+
+        ape_val = self.etendue_values['aperture']
+        if 'pupil' in ape_val['object']:
+            ape_val['object']['epd'] = ape_val['object'].pop('pupil')
+        if 'pupil' in ape_val['image']:
+            ape_val['image']['epd'] = ape_val['image'].pop('pupil')
 
     def imager_defined(self):
         """True if the imager is completely specified. """
@@ -300,7 +309,7 @@ class SpecSheet():
             key, value = self.get_etendue_inputs('aperture')
             ape_fld_key, obj_img_key, value_key = key
             if obj_img_key == 'object':
-                if value_key == 'pupil':
+                if value_key == 'epd':
                     slp0 = 0.5*value/thi_0
             elif obj_img_key == 'image':
                 if value_key == 'f/#':
@@ -328,7 +337,7 @@ class SpecSheet():
             key, value = self.get_etendue_inputs('aperture')
             ape_fld_key, obj_img_key, value_key = key
             if obj_img_key == 'object':
-                if value_key == 'pupil':
+                if value_key == 'epd':
                     slp0 = 0.5*value/thi_0
                 elif value_key == 'f/#':
                     slp0 = -1./(2.0*value)

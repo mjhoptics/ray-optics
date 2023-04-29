@@ -449,7 +449,7 @@ def pupil_data(optm, cmd, inputs):
     elif cmd == 'OBNA':
         pupil.key = 'aperture', 'object', 'NA'
     elif cmd == 'ENPD':
-        pupil.key = 'aperture', 'object', 'pupil'
+        pupil.key = 'aperture', 'object', 'epd'
     else:
         return False
 

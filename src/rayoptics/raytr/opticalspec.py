@@ -13,6 +13,7 @@ import numpy as np
 
 from rayoptics.parax.firstorder import compute_first_order, list_parax_trace
 from rayoptics.parax import etendue
+from rayoptics.parax import idealimager
 from rayoptics.raytr.trace import aim_chief_ray
 import rayoptics.optical.model_constants as mc
 from opticalglass.spectral_lines import get_wavelength
@@ -200,20 +201,20 @@ class OpticalSpecs:
         fod = opt_model['analysis_results']['parax_data'].fod
         if pupil_oi_key == 'image':
             if abs(fod.m) < 1e-10:   # infinite object distance
-                if 'pupil' in pupil_value_key:
+                if 'epd' == pupil_value_key or 'pupil' == pupil_value_key:
                     pupil_value = 2*fod.enp_radius
                 else:
-                    pupil_value_key = 'pupil'
+                    pupil_value_key = 'epd'
                     pupil_value = 2*fod.enp_radius
             else:  # finite conjugate
                 if abs(fod.enp_dist) > 1e10:  # telecentric entrance pupil
                     pupil_value_key = 'NA'
-                    pupil_value = self.obj_na
+                    pupil_value = fod.obj_na
                 else:
-                    pupil_value_key = 'pupil'
+                    pupil_value_key = 'epd'
                     pupil_value = 2*fod.enp_radius
 
-        if 'pupil' in pupil_value_key:
+        if 'epd' == pupil_value_key or 'pupil' == pupil_value_key:
             if pupil_type == 'aim pt':
                 pt1 = np.array([aim_pt[0], aim_pt[1],
                                 fod.obj_dist+fod.enp_dist])
@@ -405,15 +406,17 @@ class PupilSpec:
     """ Aperture specification
 
     Attributes:
-        key: 'aperture', 'object'|'image', 'pupil'|'NA'|'f/#'
+        key: 'aperture', 'object'|'image', 'epd'|'NA'|'f/#'
         value: size of the pupil
         pupil_rays: list of relative pupil coordinates for pupil limiting rays
         ray_labels: list of string labels for pupil_rays
+        
+    'pupil' is a deprecated literal pupil_value_type; use 'epd' instead.
     """
     default_pupil_rays = [[0., 0.], [1., 0.], [-1., 0.], [0., 1.], [0., -1.]]
     default_ray_labels = ['00', '+X', '-X', '+Y', '-Y']
 
-    def __init__(self, parent, key=('object', 'pupil'), value=1.0):
+    def __init__(self, parent, key=('object', 'epd'), value=1.0):
         self.optical_spec = parent
         self.key = 'aperture', key[0], key[1]
         self.value = value
@@ -425,16 +428,37 @@ class PupilSpec:
         del attrs['optical_spec']
         return attrs
 
+    def __json_decode__(self, **attrs):
+        for a_key, a_val in attrs.items():
+            if a_key == 'key':
+                a_key = '_key'
+                if a_val[2] == 'pupil':
+                    a_val = a_val[0], a_val[1], 'epd'
+
+            setattr(self, a_key, a_val)
+
     def listobj_str(self):
         key = self.key
         o_str = f"{key[0]}: {key[1]} {key[2]}; value={self.value}\n"
         return o_str
 
+    @property
+    def key(self):
+        return self._key
+
+    @key.setter
+    def key(self, k):
+        ape_fld_key, obj_img_key, value_key = k
+        if value_key == 'pupil':
+            print("'pupil' deprecated; use 'epd' instead.")
+            value_key = 'epd'
+        self._key = ape_fld_key, obj_img_key, value_key
+
     def sync_to_parax(self, parax_model):
         """ Use the parax_model database to update the pupil specs. """
-        ape_fld_key, obj_img_key, value_key = self.key
+        ape_fld_key, pupil_oi_key, pupil_value_key = self.key
         num_nodes = parax_model.get_num_nodes()
-        if obj_img_key == 'object':
+        if pupil_oi_key == 'object':
             idx = 0
         else:  # obj_img_key == 'image'
             idx = num_nodes-2
@@ -443,15 +467,49 @@ class PupilSpec:
         slope = parax_model.ax[idx][mc.slp]
         y_star, ybar_star = parax_model.calc_object_and_pupil(idx)
         if y_star == np.inf:  # telecentric, use angular aperture spec
-            value_key = 'NA'
+            pupil_value_key = 'NA'
         
-        if 'NA' in value_key:
-            value = etendue.slp2na(slope, n=n)
-        elif 'f/#' in value_key:
+        if 'NA' in pupil_value_key:
+            pupil_value = etendue.slp2na(slope, n=n)
+        elif 'f/#' in pupil_value_key:
+            pupil_value = -1/(2*slope)
+        elif 'epd' == pupil_value_key:
+            pupil_value = y_star
+        self.value = pupil_value
+
+    def derive_parax_params(self):
+        """ return pupil spec as paraxial height or slope value. """
+
+        _, pupil_oi_key, pupil_value_key = self.key
+        pupil_value = self.value
+
+        if 'NA' in pupil_value_key:
+            na = pupil_value
+            slope = etendue.na2slp(na)
+            pupil_key = 'slope'
+            pupil_value = slope
+
+        elif 'f/#' in pupil_value_key:
+            fno = pupil_value
+            slope = -1/(2*fno)
+            pupil_key = 'slope'
+            pupil_value = slope
+
+        if pupil_value_key == 'epd' or 'pupil' == pupil_value_key:
+            height = pupil_value/2
+            pupil_key = 'height'
+            pupil_value = height
+
+        return pupil_oi_key, pupil_key, pupil_value
+    
+    def get_aperture_from_slope(self, slope, n=1):
+        if slope == 0:
+            return 0
+        if self.key[2] == 'f/#':
             value = -1/(2*slope)
-        elif 'pupil' in value_key:
-            value = y_star
-        self.value = value
+        elif self.key[2] == 'NA':
+            value = etendue.slp2na(slope, n=n)
+        return value
 
     def sync_to_restore(self, optical_spec):
         self.optical_spec = optical_spec
@@ -469,7 +527,7 @@ class PupilSpec:
 
     def apply_scale_factor(self, scale_factor):
         aperture, obj_img_key, value_key = self.key
-        if value_key == 'pupil':
+        if value_key == 'epd' or value_key == 'pupil':
             self.value *= scale_factor
 
     def mutate_pupil_type(self, ape_key):
@@ -479,7 +537,7 @@ class PupilSpec:
             if opm['ar']['parax_data'] is not None:
                 fod = opm['ar']['parax_data'].fod
                 if obj_img_key == 'object':
-                    if value_key == 'pupil':
+                    if value_key == 'epd' or value_key == 'pupil':
                         self.value = 2*fod.enp_radius
                     elif value_key == 'NA':
                         self.value = fod.obj_na

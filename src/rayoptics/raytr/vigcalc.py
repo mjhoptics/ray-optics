@@ -87,22 +87,24 @@ def set_pupil(opm):
     start_coords = iterate_pupil_ray(opm, sm.stop_surface, 1, 1.0, 
                                      stop_radius, fld, wvl)
 
+    print(start_coords)
     # trace the real axial marginal ray
-    ray_pkg = RayPkg(*trace.trace_base(opm, start_coords, fld, wvl,
-                                       apply_vignetting=False,
-                                       check_apertures=True))
+    ray_result = trace.trace_safe(opm, start_coords, fld, wvl, 
+                                  None, None, apply_vignetting=False, 
+                                  check_apertures=True)
+    ray_pkg, ray_err = trace.retrieve_ray(ray_result)
 
     obj_img_key = osp['pupil'].key[1]
     pupil_spec = osp['pupil'].key[2]
     pupil_value_orig = osp['pupil'].value
 
     if obj_img_key == 'object':
-        if pupil_spec == 'pupil':
-            rs1 = RaySeg(*ray_pkg.ray[1])
+        if pupil_spec == 'epd' or pupil_spec == 'pupil':
+            rs1 = RaySeg(*ray_pkg[0][1])
             ht = rs1.p[1]
             osp['pupil'].value = 2*ht
         else:
-            rs0 = RaySeg(*ray_pkg.ray[0])
+            rs0 = RaySeg(*ray_pkg[0][0])
             slp0 = rs0.d[1]/rs0.d[2]
             if pupil_spec == 'NA':
                 n0 = sm.rindx[0]
@@ -111,8 +113,8 @@ def set_pupil(opm):
             elif pupil_spec == 'f/#':
                 osp['pupil'].value = 1/(2*slp0)
     elif obj_img_key == 'image':
-        rsm2 = RaySeg(*ray_pkg.ray[-2])
-        if pupil_spec == 'pupil':
+        rsm2 = RaySeg(*ray_pkg[0][-2])
+        if pupil_spec == 'epd' or pupil_spec == 'pupil':
             ht = rsm2.p[1]
             osp['pupil'].value = 2*ht
         else:
@@ -180,16 +182,16 @@ def calc_vignetted_ray(opm, xy, start_dir, fld, wvl, max_iter_count=10):
                                        apply_vignetting=False, 
                                        check_apertures=True)
 
-        except terr.TraceError as te:
-            indx = te.surf
-            ray_pkg = te.ray_pkg
+        except terr.TraceError as ray_error:
+            indx = ray_error.surf
+            ray_pkg = ray_error.ray_pkg
             # print(f"{xy_str[xy]} = {rel_p1[xy]:10.6f}: blocked at {indx}")
             if indx == last_indx:
                 still_iterating = False
             else:
-                r_target = sm.ifcs[indx].surface_od()
-                rel_p1 = iterate_pupil_ray(opm, indx, xy, rel_p1[xy], r_target, 
-                                           fld, wvl)
+                r_target = sm.ifcs[indx].edge_pt_target(start_dir)
+                rel_p1 = iterate_pupil_ray(opm, indx, xy, rel_p1[xy], 
+                                           r_target[xy], fld, wvl)
                 still_iterating = True
                 last_indx = indx
         else:  # ray successfully traced.

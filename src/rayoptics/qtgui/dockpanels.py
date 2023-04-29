@@ -214,7 +214,7 @@ class SpectrumWavelengthsPanel(QWidget):
 
 class AperturePanel(QWidget):
     obj_img_items = ["object", "image"]
-    pupil_type_items = ["pupil", "NA", "f/#"]
+    pupil_type_items = ["epd", "NA", "f/#"]
 
     def __init__(self, gui_app, parent=None):
         super().__init__(parent)
