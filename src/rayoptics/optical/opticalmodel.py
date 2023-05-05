@@ -131,10 +131,14 @@ class OpticalModel:
 
         if kwargs.get('do_init', True):
             # need to do this after OpticalSpec is initialized
-            self.seq_model.update_model()
-            elements_from_sequence(self.ele_model,
-                                   self.seq_model,
-                                   self.part_tree)
+            self.do_init_postproc()
+
+    def do_init_postproc(self, **kwargs):
+        """ Initialize the element and part tree from the seq_model. """
+        self.seq_model.update_model()
+        elements_from_sequence(self.ele_model,
+                                self.seq_model,
+                                self.part_tree)
 
     def map_submodels(self, **kwargs):
         """Setup machinery for model mapping api. 
@@ -534,45 +538,42 @@ class OpticalModel:
 
         # distinguish between adding a new chunk, which requires splitting a
         #  gap in two, and replacing a node, which uses the existing gaps.
-        ins_prev_gap = False
         if 'insert' in kwargs:
             t_after = kwargs['t'] if 't' in kwargs else 0.
             if sm.get_num_surfaces() == 2:
                 # only object space gap, add image space gap following this
                 gap_label = "Image space"
                 gap_tag = '#image'
-                ins_prev_gap = False
+                ig_node = None
             else:
                 # we have both object and image space gaps; retain the image
                 # space gap by splitting and inserting the new gap before the
                 # inserted chunk, unless we're inserting before idx=1.
                 gap_label = None
                 gap_tag = ''
-                if idx > 0:
-                    ins_prev_gap = True
+                img_nodes = pt.nodes_with_tag(tag='#image')
+                ig_node = pt.nodes_with_tag(tag='#airgap', 
+                                            node_list=img_nodes)[0]
 
-            if ins_prev_gap:
-                idx = -1 if idx == len(sm.gaps) else idx
-                t_air, sm.gaps[idx].thi = sm.gaps[idx].thi, t_after
-                z_dir = sm.z_dir[idx]
-            else:
-                t_air = t_after
-                z_dir = seq[-1][mc.Zdir]
-            g, ag, ag_node, _ = ele.create_air_gap(t=t_air, label=gap_label,
-                                                   z_dir=z_dir, tag=gap_tag)
-            if not ins_prev_gap:
-                seq[-1][mc.Gap] = g
+            g, ag, ag_node, _ = ele.create_air_gap(t=t_after, label=gap_label,
+                                                   z_dir=seq[-1][mc.Zdir], 
+                                                   tag=gap_tag)
+            seq[-1][mc.Gap] = g
             elm.append(ag)
             ag_node.parent = pt.root_node
+            if ig_node is not None:
+                if idx+1 == len(sm.gaps):
+                    # if adding a gap at end of the sequence,
+                    #  relabel the new gap and the image space gap
+                    ig_node.name, ag_node.name = ag_node.name, "Image space"
+                    ig_node.id.label, ag.label = ag.label, "Image space"
+                    ig_node.tag = ag_node.tag
+                    ag_node.tag = '#airgap#image'
 
             # insert the new seq into the seq_model
             for sg in seq:
-                if ins_prev_gap:
-                    gap, g = g, sg[mc.Gap]
-                else:
-                    gap = sg[mc.Gap]
-                sm.insert(sg[mc.Intfc], gap, z_dir=sg[mc.Zdir], 
-                          prev=ins_prev_gap)
+                sm.insert(sg[mc.Intfc], sg[mc.Gap], z_dir=sg[mc.Zdir]) 
+
             # add new elements into the ele_model 
             for e in elm:
                 em.add_element(e)

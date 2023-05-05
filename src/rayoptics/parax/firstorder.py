@@ -8,9 +8,11 @@
 .. codeauthor: Michael J. Hayford
 """
 import math
+import numpy as np
 from collections import namedtuple
 from rayoptics.optical.model_constants import ht, slp, aoi
 from rayoptics.parax.idealimager import ideal_imager_setup
+from rayoptics.util import misc_math
 
 ParaxData = namedtuple('ParaxData', ['ax_ray', 'pr_ray', 'fod'])
 ParaxData.ax_ray.__doc__ = "axial marginal ray data, y, u, i"
@@ -124,9 +126,12 @@ def paraxial_trace(path, start, start_yu, start_yu_bar):
     b4_yui_bar = start_yu_bar
     if start == 1:
         # compute object coords from 1st surface data
-        t0 = b4_gap.thi
-        obj_ht = start_yu[ht] - t0*start_yu[slp]
-        obj_htb = start_yu_bar[ht] - t0*start_yu_bar[slp]
+        if np.isinf(t0 := b4_gap.thi):
+            obj_ht = 0.
+            obj_htb = -np.inf
+        else:
+            obj_ht = start_yu[ht] - t0*start_yu[slp]
+            obj_htb = start_yu_bar[ht] - t0*start_yu_bar[slp]
         b4_yui = [obj_ht, start_yu[slp]]
         b4_yui_bar = [obj_htb, start_yu_bar[slp]]
 
@@ -193,17 +198,16 @@ def paraxial_trace(path, start, start_yu, start_yu_bar):
     return p_ray, p_ray_bar
 
 
-def compute_first_order(opt_model, stop, wvl):
+def compute_first_order(opt_model, stop, wvl, src_model=None):
     """ Returns paraxial axial and chief rays, plus first order data. """
-    seq_model = opt_model.seq_model
+    sm = opt_model['seq_model']
+    osp = opt_model['optical_spec']
     start = 1
-    n_0 = seq_model.z_dir[start-1]*seq_model.central_rndx(start-1)
-    uq0 = 1/n_0
-    p_ray, q_ray = paraxial_trace(seq_model.path(wl=wvl), start,
-                                  [1., 0.], [0., uq0])
-
-    n_k = seq_model.z_dir[-1]*seq_model.central_rndx(-1)
-    img = -2 if seq_model.get_num_surfaces() > 2 else -1
+    n_0 = sm.z_dir[start-1]*sm.central_rndx(start-1)
+    n_k = sm.z_dir[-1]*sm.central_rndx(-1)
+    p_ray, q_ray, ff = compute_principle_points(sm.path(wl=wvl), 
+                                                n_0, n_k)
+    img = -2 if sm.get_num_surfaces() > 2 else -1
     ak1 = p_ray[img][ht]
     bk1 = q_ray[img][ht]
     ck1 = n_k*p_ray[img][slp]
@@ -215,18 +219,23 @@ def compute_first_order(opt_model, stop, wvl):
     # The code below computes the object yu and yu_bar values
     orig_stop = stop
     if stop is None:
-        if opt_model.parax_model.ax:
-            # floating stop surface - use parax_model for starting data
-            ax = opt_model.parax_model.ax
-            pr = opt_model.parax_model.pr
-            yu = [0., ax[0][slp]/n_0]
-            yu_bar = [pr[0][ht], pr[0][slp]/n_0]
-        else:
-            # temporarily set stop to surface 1
+        # check for previously computed paraxial data and
+        # use that to float the stop
+        if (pm := opt_model['parax_model']) == src_model:
+            if pm.pr[0][slp] == 0:
+                enp_dist = misc_math.infinity_guard(np.inf)
+            else:
+                enp_dist = -pm.pr[1][ht]/pm.pr[0][slp]
+        elif (opt_model['analysis_results'] is not None
+            and 'parax_data' in opt_model['analysis_results'] 
+            and opt_model['analysis_results']['parax_data'] is not None):
+                pr = opt_model['analysis_results']['parax_data'].pr_ray
+                enp_dist = -pr[1][ht]/(n_0*pr[0][slp])
+        else:  # nothing pre-computed, assume 1st surface
             stop = 1
 
-    if stop:
-        n_s = seq_model.z_dir[stop]*seq_model.central_rndx(stop)
+    if stop is not None:
+        n_s = sm.z_dir[stop]*sm.central_rndx(stop)
         as1 = p_ray[stop][ht]
         bs1 = q_ray[stop][ht]
         cs1 = n_s*p_ray[stop][slp]
@@ -235,67 +244,72 @@ def compute_first_order(opt_model, stop, wvl):
         # find entrance pupil location w.r.t. first surface
         ybar1 = -bs1
         ubar1 = as1
-        n_0 = seq_model.gaps[0].medium.rindex(wvl)
+        n_0 = sm.gaps[0].medium.rindex(wvl)
         enp_dist = -ybar1/(n_0*ubar1)
 
-        thi0 = seq_model.gaps[0].thi
+    thi0 = sm.gaps[0].thi
 
-        # calculate reduction ratio for given object distance
-        red = dk1 + thi0*ck1
-        obj2enp_dist = thi0 + enp_dist
+    # calculate reduction ratio for given object distance
+    red = dk1 + thi0*ck1
+    obj2enp_dist = thi0 + enp_dist
 
-        yu = [0., 1.]
-        pupil = opt_model.optical_spec.pupil
-        aperture, obj_img_key, value_key = pupil.key
-        if obj_img_key == 'object':
-            if value_key == 'pupil':
-                slp0 = 0.5*pupil.value/obj2enp_dist
-            elif value_key == 'f/#':
-                slp0 = -1./(2.0*pupil.value)
-            elif value_key == 'NA':
-                slp0 = n_0*math.tan(math.asin(pupil.value/n_0))
-        elif obj_img_key == 'image':
-            if value_key == 'f/#':
-                slpk = -1./(2.0*pupil.value)
-                slp0 = slpk/red
-            elif value_key == 'NA':
-                slpk = n_k*math.tan(math.asin(pupil.value/n_k))
-                slp0 = slpk/red
-        yu = [0., slp0]
+    yu = [0., 1.]
+    pupil = osp['pupil']
+    aperture_spec = osp['pupil'].derive_parax_params()
+    pupil_oi_key, pupil_key, pupil_value = aperture_spec
+    if pupil_oi_key == 'object':
+        if pupil_key == 'height':
+            slp0 = pupil_value/obj2enp_dist
+        elif pupil_key == 'slope':
+            slp0 = pupil_value
+        elif pupil_key == 'epd':
+            slp0 = 0.5*pupil.value/obj2enp_dist
+        elif pupil_key == 'f/#':
+            slp0 = -1./(2.0*pupil.value)
+        elif pupil_key == 'NA':
+            slp0 = n_0*math.tan(math.asin(pupil.value/n_0))
+    elif pupil_oi_key == 'image':
+        if pupil_key == 'height':
+            slpk = pupil_value/obj2enp_dist
+        elif pupil_key == 'slope':
+            slpk = pupil_value
+        elif pupil_key == 'f/#':
+            slpk = -1./(2.0*pupil.value)
+        elif pupil_key == 'NA':
+            slpk = n_k*math.tan(math.asin(pupil.value/n_k))
+        slp0 = slpk/red
+    yu = [0., slp0]
 
-        yu_bar = [1., 0.]
-        fov = opt_model.optical_spec.field_of_view
-        field, obj_img_key, value_key = fov.key
-        max_fld, fn = fov.max_field()
-        if max_fld == 0.0:
-            max_fld = 1.0
-        if obj_img_key == 'object':
-            if value_key == 'angle':
-                ang = math.radians(max_fld)
-                slpbar0 = math.tan(ang)
-                ybar0 = -slpbar0*obj2enp_dist
-            elif value_key == 'height':
-                ybar0 = -max_fld
-                slpbar0 = -ybar0/obj2enp_dist
-        elif obj_img_key == 'image':
-            if value_key == 'height':
-                ybar0 = red*max_fld
-                slpbar0 = -ybar0/obj2enp_dist
-        yu_bar = [ybar0, slpbar0]
+    yu_bar = [1., 0.]
+    field_spec = osp['fov'].derive_parax_params()
+    fov_oi_key, field_key, field_value = field_spec
+    if fov_oi_key == 'object':
+        if field_key == 'slope':
+            slpbar0 = field_value
+            ybar0 = -slpbar0*obj2enp_dist
+        elif field_key == 'height':
+            ybar0 = field_value
+            slpbar0 = -ybar0/obj2enp_dist
+    elif fov_oi_key == 'image':
+        if field_key == 'height':
+            ybar0 = red*field_value
+            slpbar0 = -ybar0/obj2enp_dist
+    yu_bar = [ybar0, slpbar0]
 
     stop = orig_stop
+    idx = 0
 
     # We have the starting coordinates, now trace the rays
-    ax_ray, pr_ray = paraxial_trace(seq_model.path(wl=wvl), 0, yu, yu_bar)
+    ax_ray, pr_ray = paraxial_trace(sm.path(wl=wvl), idx, yu, yu_bar)
 
     # Calculate the optical invariant
-    n_0 = seq_model.central_rndx(0)
+    n_0 = sm.central_rndx(0)
     opt_inv = n_0*(ax_ray[1][ht]*pr_ray[0][slp] - pr_ray[1][ht]*ax_ray[0][slp])
 
     # Fill in the contents of the FirstOrderData struct
     fod = FirstOrderData()
     fod.opt_inv = opt_inv
-    fod.obj_dist = obj_dist = seq_model.gaps[0].thi
+    fod.obj_dist = obj_dist = sm.gaps[0].thi
     if ck1 == 0.0:
         fod.img_dist = img_dist = 1e10
         fod.power = 0.0
@@ -334,8 +348,8 @@ def compute_first_order(opt_model, stop, wvl):
         fod.exp_radius = 1e10
 
     # compute object and image space numerical apertures
-    fod.obj_na = n_0*math.sin(math.atan(seq_model.z_dir[0]*ax_ray[0][slp]))
-    fod.img_na = n_k*math.sin(math.atan(seq_model.z_dir[-1]*ax_ray[-1][slp]))
+    fod.obj_na = n_0*math.sin(math.atan(sm.z_dir[0]*ax_ray[0][slp]))
+    fod.img_na = n_k*math.sin(math.atan(sm.z_dir[-1]*ax_ray[-1][slp]))
 
     return ParaxData(ax_ray, pr_ray, fod)
 
@@ -351,10 +365,11 @@ def compute_principle_points(path, n_0=1.0, n_k=1.0):
         n_k: refractive index following last interface
 
     Returns:
-        (p_ray, q_ray, (efl, pp1, ppk, ffl, bfl))
+        (p_ray, q_ray, (power, efl, pp1, ppk, ffl, bfl))
 
         - p_ray: [ht, slp, aoi], [1, 0, -]
         - q_ray: [ht, slp, aoi], [0, 1, -]
+        - power: optical power
         - efl: effective focal length
         - pp1: distance of front principle plane from 1st interface
         - ppk: distance of rear principle plane from last interface
@@ -362,7 +377,7 @@ def compute_principle_points(path, n_0=1.0, n_k=1.0):
         - bfl: back focal length
     """
     uq0 = 1/n_0
-    p_ray, q_ray = paraxial_trace(path, 0, [1., 0.], [0., uq0])
+    p_ray, q_ray = paraxial_trace(path, 1, [1., 0.], [0., uq0])
 
     img = -1
     ak1 = p_ray[img][ht]
@@ -374,17 +389,19 @@ def compute_principle_points(path, n_0=1.0, n_k=1.0):
     # print(ak1, bk1, ck1, dk1)
 
     if ck1 == 0.0:
+        power = 0.0
         efl = 0.0
         pp1 = 0.0
         ppk = 0.0
     else:
-        efl = -1.0/ck1
+        power = -ck1
+        efl = 1/power
         pp1 = (dk1 - 1.0)*(n_0/ck1)
         ppk = (ak1 - 1.0)*(n_k/ck1)
     ffl = pp1 - efl
     bfl = efl - ppk
 
-    return p_ray, q_ray, (efl, pp1, ppk, ffl, bfl)
+    return p_ray, q_ray, (power, efl, pp1, ppk, ffl, bfl)
 
 
 def list_parax_trace(opt_model, reduced=False):

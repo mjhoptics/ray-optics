@@ -261,24 +261,27 @@ class SequentialModel:
             self.ifcs.insert(len(self.ifcs)-1, node)
         return self
 
-    def insert(self, ifc, gap, z_dir=1, prev=False):
-        """ insert surf and gap at the cur_gap edge of the sequential model
-            graph """
-        if self.stop_surface is not None:
-            num_ifcs = len(self.ifcs)
-            if num_ifcs > 2:
-                if self.stop_surface > self.cur_surface and \
-                   self.stop_surface < num_ifcs - 2:
-                    self.stop_surface += 1
-        idx = self.cur_surface = (0 if self.cur_surface is None
-                                   else self.cur_surface+1)
+    def insert(self, ifc, gap, z_dir=1, idx=None):
+        """ insert ifc and gap after cur_surface in seq_model lists """
+
+        if idx is None:
+            if self.stop_surface is not None:
+                num_ifcs = len(self.ifcs)
+                if num_ifcs > 2:
+                    if self.stop_surface > self.cur_surface and \
+                    self.stop_surface < num_ifcs - 2:
+                        self.stop_surface += 1
+            idx = self.cur_surface = (0 if self.cur_surface is None
+                                      else self.cur_surface+1)
+        else:
+            self.cur_surface = idx
+
         self.ifcs.insert(idx, ifc)
         if gap is not None:
-            idx_g = idx-1 if prev else idx
-            self.gaps.insert(idx_g, gap)
+            self.gaps.insert(idx, gap)
             z_dir = 1 if z_dir is None else z_dir
-            new_z_dir = z_dir*self.z_dir[idx_g-1] if idx > 1 else z_dir
-            self.z_dir.insert(idx_g, new_z_dir)
+            new_z_dir = z_dir*self.z_dir[idx-1] if idx > 1 else z_dir
+            self.z_dir.insert(idx, new_z_dir)
         else:
             gap = self.gaps[idx]
 

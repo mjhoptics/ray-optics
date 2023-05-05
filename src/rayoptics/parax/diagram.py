@@ -83,6 +83,8 @@ class Diagram():
 
         self.active_layer = parax_model_key
 
+        self.command_inputs = {}
+
     def setup_dgm_type(self, dgm_type):
         if dgm_type == 'ht':
             self.type_sel = mc.ht
@@ -170,7 +172,7 @@ class Diagram():
 
     def register_commands(self, *args, **inputs):
         fig = inputs.pop('figure')
-        self.command_inputs = dict(inputs)
+        self.command_inputs = deepcopy(inputs)
 
         def do_command_action(event, target, event_key):
             nonlocal fig
@@ -189,7 +191,7 @@ class Diagram():
 
     def register_add_replace_element(self, *args, **inputs):
         fig = inputs.pop('figure')
-        self.command_inputs = dict(inputs)
+        self.command_inputs = deepcopy(inputs)
         action_obj = AddReplaceElementAction(self, **inputs)
 
         def do_command_action(event, target, event_key):
@@ -206,9 +208,12 @@ class Diagram():
     def render_shape(self):
         """ render the diagram into a shape list """
         parax_model = self.parax_model
+        ts = self.type_sel
         shape = []
         for x, y in zip(parax_model.pr, parax_model.ax):
-            shape.append([x[self.type_sel], y[self.type_sel]])
+            x_guard = misc_math.infinity_guard(x[ts])
+            y_guard = misc_math.infinity_guard(y[ts])
+            shape.append([x_guard, y_guard])
         shape = np.array(shape)
         return shape
 
@@ -553,21 +558,26 @@ class ConjugateLine():
                 return 0, np.array([[1, 0], [0, 1]])
 
         def apply_data(event_data):
-            self.k, mat = calculate_slope(event_data[0], event_data[1])
-            pm.apply_conjugate_shift(self.shape_orig, self.k, mat,
+            nonlocal self
+            k, mat = calculate_slope(event_data[0], event_data[1])
+            pm.apply_conjugate_shift(self.shape_orig, k, mat,
                                      self.line_type)
+            self.k = k
 
         def on_select(fig, event):
+            nonlocal self
             self.sys_orig = deepcopy(pm.sys)
             self.shape_orig = deepcopy(dgm.shape)
 
         def on_edit(fig, event):
+            nonlocal self
             if event.xdata is not None and event.ydata is not None:
                 event_data = np.array([event.xdata, event.ydata])
                 apply_data(event_data)
                 fig.refresh_gui(build='update', src_model=pm)
 
         def on_release(fig, event):
+            nonlocal self
             event_data = np.array([event.xdata, event.ydata])
             apply_data(event_data)
             self.sys_orig = []
@@ -914,33 +924,35 @@ class AddReplaceElementAction():
     def __init__(self, diagram, **kwargs):
         seq_model = diagram.opt_model.seq_model
         parax_model = diagram.parax_model
+        self.command_inputs = dict(kwargs)
         self.cur_node = None
         self.init_inputs = None
 
         def on_press_add_point(fig, event, shape):
             # if we don't have factory functions, skip the command
+            nonlocal self, diagram
             if isinstance(shape, DiagramEdge):
-                if 'node_init' in diagram.command_inputs and \
-                   'factory' in diagram.command_inputs:
+                if 'node_init' in self.command_inputs and \
+                   'factory' in self.command_inputs:
 
-                    self.cur_node = shape.node
+                    self.cur_node = node = shape.node
                     event_data = np.array([event.xdata, event.ydata])
-                    interact = diagram.command_inputs['interact_mode']
+                    interact = self.command_inputs['interact_mode']
                     sys_data = [1.0, interact]
-                    parax_model.add_node(self.cur_node, event_data,
-                                         diagram.type_sel, sys_data)
-                    self.cur_node += 1
+                    self.cur_node = parax_model.add_node(node, event_data, 
+                                                         diagram.type_sel, sys_data)
+
                     # create a node for editing during the drag action
                     #  'node_init' will currently be a thinlens or a mirror
-                    node_init = diagram.command_inputs['node_init']
+                    node_init = self.command_inputs['node_init']
                     self.init_inputs = diagram.assign_object_to_node(
-                                            self.cur_node,
-                                            node_init,
-                                            insert=True)
+                                            node, node_init,
+                                            insert=True, do_update=False)
+                    parax_model.paraxial_lens_to_seq_model()
                     fig.refresh_gui(build='rebuild', src_model=parax_model)
 
             elif isinstance(shape, DiagramNode):
-                if 'factory' in diagram.command_inputs:
+                if 'factory' in self.command_inputs:
                     # replacing a node with a chunk only requires recording
                     # what chunk corresponds to the current node. There is
                     # no drag action
@@ -948,17 +960,19 @@ class AddReplaceElementAction():
                     self.init_inputs = parax_model.get_object_for_node(node)
 
         def on_drag_add_point(fig, event, shape):
+            nonlocal self, diagram
             if self.cur_node is not None and isinstance(shape, DiagramEdge):
                 event_data = np.array([event.xdata, event.ydata])
                 diagram.apply_data(self.cur_node, event_data)
                 fig.refresh_gui(build='update', src_model=parax_model)
 
         def on_release_add_point(fig, event, shape):
+            nonlocal self, diagram
             if self.cur_node is not None:
-                factory = diagram.command_inputs['factory']
+                factory = self.command_inputs['factory']
                 # if factory and node_init fcts are the same, we're done;
                 # always call factory fct for a node
-                if factory != diagram.command_inputs['node_init'] or \
+                if factory != self.command_inputs['node_init'] or \
                               isinstance(shape, DiagramNode):
                     inputs = diagram.assign_object_to_node(
                                   self.cur_node, 

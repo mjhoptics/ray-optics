@@ -7,16 +7,19 @@
 
 .. codeauthor: Michael J. Hayford
 """
-
+import math
+from itertools import zip_longest
 import numpy as np
 
 import rayoptics.optical.model_constants as mc
 import rayoptics.parax.firstorder as fo
+from rayoptics.parax.idealimager import ideal_imager_setup
 from rayoptics.seq.gap import Gap
 from rayoptics.elem.surface import Surface
 
 from rayoptics.util.line_intersection import get_intersect
 from rayoptics.util.misc_math import normalize
+from rayoptics.util.misc_math import infinity_guard, is_kinda_big
 from numpy.linalg import norm
 
 
@@ -48,6 +51,7 @@ class ParaxialModel():
         self.sys = []
         self.ax = []
         self.pr = []
+        self.ztwp = []
         self.opt_inv = opt_inv
         self.y_star = None
         self.ybar_star = None
@@ -102,7 +106,8 @@ class ParaxialModel():
 
     def build_lens(self):
         # rebuild the `sys` description from the seq_model path
-        self.sys = sys = self.seq_path_to_paraxial_lens(self.seq_model.path())
+        sys = self.seq_path_to_paraxial_lens(self.seq_model.path())
+        self.sys = sys
 
         # precalculate the reduced forms of the paraxial axial and chief rays
         parax_data = self.opt_model['analysis_results']['parax_data']
@@ -112,53 +117,56 @@ class ParaxialModel():
     
             self.ax = []
             self.pr = []
+ 
             for i in range(0, len(sys)):
                 n = sys[i][mc.indx]
                 self.ax.append([ax_ray[i][mc.ht], n*ax_ray[i][mc.slp]])
                 self.pr.append([pr_ray[i][mc.ht], n*pr_ray[i][mc.slp]])
+
+            self.ztwp = parax_to_dgms(self.ax, self.pr, 
+                                      self.sys, self.opt_inv)
             self.y_star, self.ybar_star = self.calc_object_and_pupil(0)
+        
+    def parax_from_dgms(self, dgm_list, opt_inv,
+                        rndx_and_imode=None):
+        """Construct a diagram using `dgm_list`, a list of diagram vertices. """
+        Z, nu_nubar = dgm_list[0], dgm_list[1]
+        max_nodes = len(Z)
+        delta_nodes = max_nodes - len(nu_nubar)
 
-    def init_from_nodes(self, node_list, type_sel, rndx_and_imode=None):
-        """Construct a diagram using `nodes`, a list of diagram vertices. """
-        node_list = np.array(node_list)
-        if len(node_list.shape) == 1 or len(node_list.shape) == 3:
-            nodes = node_list[type_sel]
-        else:
-            nodes = node_list
-        max_nodes = len(nodes)
-
-        # setup parax data structures
         ax = [[0., 0.] for i in range(max_nodes)]
         pr = [[0., 0.] for i in range(max_nodes)]
         sys = [[0., 0., 1., 'transmit'] for i in range(max_nodes)]
         if rndx_and_imode is None:
-            rndx_and_imode = [(1., 'transmit')  for i in range(max_nodes)]
-        for i, vni in enumerate(zip(nodes, rndx_and_imode)):
-            vertex, ni = vni
-            ax[i][type_sel] = vertex[1]
-            pr[i][type_sel] = vertex[0]
-            sys[i] = [0.0, 0.0, *ni]
+            rndx_and_imode = [(1., 'transmit') 
+                              for i in range(max_nodes)]
+        hsni = zip_longest(Z, nu_nubar, rndx_and_imode)
+        for i in range(max_nodes):
+            ht_node, slp_node, ni = next(hsni)
 
-        # adjust object distance and object node
-        del_y = ax[1][mc.ht] - ax[0][mc.ht]
-        del_ybar = pr[1][mc.ht] - pr[0][mc.ht]
-        if del_ybar == 0:   # telecentric
-            inc_ybar0 = pr[0][mc.ht]
-        elif del_y == 0:  # collimated
-            pr[0][mc.ht] = inc_ybar0 = np.NINF
-        else:
-            slp0 = del_y/del_ybar
-            inc_ybar0 = ax[0][mc.ht]/slp0
-            pr[0][mc.ht] = pr[0][mc.ht] - inc_ybar0
-        ax[0][mc.ht] = 0.0
-        nodes[0] = np.array([pr[0][mc.ht], ax[0][mc.ht]])
+            ax[i][mc.ht] = ht_node[1]
+            ax[i][mc.slp] = (slp_node[1] if slp_node is not None 
+                             else ax[i-1][mc.slp])
+            pr[i][mc.ht] = ht_node[0]
+            pr[i][mc.slp] = (slp_node[0] if slp_node is not None 
+                             else pr[i-1][mc.slp])
+
+            if i < max_nodes-1:
+                tau = np.cross(Z[i+1], Z[i])/opt_inv
+            else:
+                tau = 0
+
+            if i < max_nodes-delta_nodes-1:
+                pwr = np.cross(nu_nubar[i+1], nu_nubar[i])/opt_inv
+            else:
+                pwr = 0
+            sys[i] = [pwr, tau, *ni]
 
         self.ax = ax
         self.pr = pr
         self.sys = sys
         self.opt_inv = opt_inv
 
-        self.nodes_to_parax(nodes, type_sel)
         self.sys[0][mc.rmd] = 'dummy'
         self.sys[-1][mc.rmd] = 'dummy'
 
@@ -169,7 +177,8 @@ class ParaxialModel():
 
     def parax_to_nodes(self, type_sel):
         """ render the paraxial model into a node list """
-        nodes = [[x[type_sel], y[type_sel]] for x, y in zip(self.pr, self.ax)]
+        nodes = [[x[type_sel], y[type_sel]] 
+                 for x, y in zip(self.pr, self.ax)]
         nodes = np.array(nodes)
         return nodes
 
@@ -204,15 +213,10 @@ class ParaxialModel():
             for i, node in enumerate(nodes):
                 self.apply_ht_dgm_data(i, node)
         elif type_sel == mc.slp:
-            ht_nodes = node_list[mc.ht]
-            self.pr[0][mc.ht] = ht_nodes[0][0]
-            self.ax[0][mc.ht] = ht_nodes[0][1]            
+            self.pr[0][mc.ht] = self.opt_model['parax_model'].ybar_star
+            self.ax[0][mc.ht] = 0.    
             for i, node in enumerate(nodes):
                 self.apply_slope_dgm_data(i, node)
-            self.pr[-1][mc.ht] = ht_nodes[-1][0]
-            self.ax[-1][mc.ht] = ht_nodes[-1][1]
-            self.sys[-2][mc.tau] = (ht_nodes[-2][1]*ht_nodes[-1][0] -
-                                    ht_nodes[-1][1]*ht_nodes[-2][0])/self.opt_inv
         return self
 
     def get_pt(self, idx, type_sel=mc.ht):
@@ -250,27 +254,27 @@ class ParaxialModel():
     # --- add/delete points from diagram
     def add_node(self, node, new_vertex, type_sel, sys_data):
         """ Add a node in the paraxial data structures """
-        node += 1
-        self.sys.insert(node, [0.0, 0.0, *sys_data])
+        new_node = node + 1
+        self.sys.insert(new_node, [0.0, 0.0, *sys_data])
 
         ax_node = [0.0, 0.0]
         ax_node[type_sel] = new_vertex[1]
-        self.ax.insert(node, ax_node)
+        self.ax.insert(new_node, ax_node)
 
         pr_node = [0.0, 0.0]
         pr_node[type_sel] = new_vertex[0]
-        self.pr.insert(node, pr_node)
+        self.pr.insert(new_node, pr_node)
 
         if type_sel == mc.ht:
-            self.apply_ht_dgm_data(node, new_vertex=new_vertex)
+            self.apply_ht_dgm_data(new_node, new_vertex=new_vertex)
         elif type_sel == mc.slp:
-            self.apply_slope_dgm_data(node, new_vertex=new_vertex)
+            self.apply_slope_dgm_data(new_node, new_vertex=new_vertex)
 
         if sys_data[1] == 'reflect':
-            for i in range(node, len(self.sys)):
+            for i in range(new_node, len(self.sys)):
                 self.sys[i][mc.indx] = -self.sys[i][mc.indx]
 
-        return node
+        return new_node
 
     def assign_object_to_node(self, node, type_sel, factory, **inputs):
         """ create a new element from `factory` and replace `node` with it """
@@ -401,8 +405,14 @@ class ParaxialModel():
 
         sys[p][tau] = ((ax_ray[p][ht]*pr_ray[c][ht] -
                         ax_ray[c][ht]*pr_ray[p][ht]) / opt_inv)
-        ax_ray[p][slp] = (ax_ray[c][ht] - ax_ray[p][ht])/sys[p][tau]
-        pr_ray[p][slp] = (pr_ray[c][ht] - pr_ray[p][ht])/sys[p][tau]
+        if sys[p][tau] == 0:
+            if (surf > 1):
+                p2 = surf - 2
+                ax_ray[p][slp] = ax_ray[p2][slp]
+                pr_ray[p][slp] = pr_ray[p2][slp]
+        else:
+            ax_ray[p][slp] = (ax_ray[c][ht] - ax_ray[p][ht])/sys[p][tau]
+            pr_ray[p][slp] = (pr_ray[c][ht] - pr_ray[p][ht])/sys[p][tau]
 
         if (surf > 1):
             p2 = surf - 2
@@ -415,10 +425,13 @@ class ParaxialModel():
 
             sys[c][tau] = (ax_ray[c][ht]*pr_ray[s][ht] -
                            ax_ray[s][ht]*pr_ray[c][ht])/opt_inv
-            ax_ray[c][slp] = (ax_ray[s][ht] - ax_ray[c][ht])/sys[c][tau]
-            pr_ray[c][slp] = (pr_ray[s][ht] - pr_ray[c][ht])/sys[c][tau]
-            sys[c][pwr] = (ax_ray[p][slp]*pr_ray[c][slp] -
-                           ax_ray[c][slp]*pr_ray[p][slp])/opt_inv
+            if sys[c][tau] == 0:
+                pass
+            else:
+                ax_ray[c][slp] = (ax_ray[s][ht] - ax_ray[c][ht])/sys[c][tau]
+                pr_ray[c][slp] = (pr_ray[s][ht] - pr_ray[c][ht])/sys[c][tau]
+                sys[c][pwr] = (ax_ray[p][slp]*pr_ray[c][slp] -
+                               ax_ray[c][slp]*pr_ray[p][slp])/opt_inv
 
             if s < nsm1:
                 sys[s][pwr] = (ax_ray[c][slp]*pr_ray[s][slp] -
@@ -463,14 +476,23 @@ class ParaxialModel():
 
             sys[c][pwr] = (ax_ray[p][slp]*pr_ray[c][slp] -
                            ax_ray[c][slp]*pr_ray[p][slp])/opt_inv
-            ax_ray[c][ht] = (ax_ray[p][slp] - ax_ray[c][slp])/sys[c][pwr]
-            pr_ray[c][ht] = (pr_ray[p][slp] - pr_ray[c][slp])/sys[c][pwr]
+            if sys[c][pwr] == 0:
+                ax_ray[c][ht] = ax_ray[p][slp]*sys[p][tau] + ax_ray[p][ht]
+                pr_ray[c][ht] = pr_ray[p][slp]*sys[p][tau] + pr_ray[p][ht]
+            else:
+                ax_ray[c][ht] = (ax_ray[p][slp] - ax_ray[c][slp])/sys[c][pwr]
+                pr_ray[c][ht] = (pr_ray[p][slp] - pr_ray[c][slp])/sys[c][pwr]
             sys[p][tau] = (ax_ray[p][ht]*pr_ray[c][ht] -
                            ax_ray[c][ht]*pr_ray[p][ht])/opt_inv
-           
-            s = surf + 1
-            ax_ray[s][ht] = ax_ray[c][slp]*sys[c][tau] + ax_ray[c][ht]
-            pr_ray[s][ht] = pr_ray[c][slp]*sys[c][tau] + pr_ray[c][ht]
+            # s = surf + 1
+            # ax_ray[s][ht] = ax_ray[c][slp]*sys[c][tau] + ax_ray[c][ht]
+            # pr_ray[s][ht] = pr_ray[c][slp]*sys[c][tau] + pr_ray[c][ht]           
+
+        # elif (surf == nsm1):
+        #     c = surf
+        #     s = surf + 1
+        #     ax_ray[s][ht] = ax_ray[c][slp]*sys[c][tau] + ax_ray[c][ht]
+        #     pr_ray[s][ht] = pr_ray[c][slp]*sys[c][tau] + pr_ray[c][ht]
 
     def process_seq_mapping(self, nodes):
         """The composite `nodes` are mapped and applied to the ifcs layer. """
@@ -488,8 +510,7 @@ class ParaxialModel():
             nodes_ifcs.append(new_node)
 
         # print(f'nodes_ifcs {nodes_ifcs}')
-        seq_nodes = [nodes_ifcs, []]
-        self.opt_model['parax_model'].nodes_to_parax(seq_nodes, mc.ht)
+        self.opt_model['parax_model'].nodes_to_parax(nodes_ifcs, mc.ht)
 
     def update_composite_node_fct(self, type_sel):
         """ returns the appropriate 'apply' fct for the `type_sel`. """            
@@ -650,7 +671,7 @@ class ParaxialModel():
             if gap:
                 n_after = sys[i][mc.indx]
                 slp_after = ax_ray[i][mc.slp]
-                gap.thi = n_after*sys[i][mc.tau]
+                gap.thi = n_after*infinity_guard(sys[i][mc.tau])
 
                 ifc.set_optical_power(sys[i][mc.pwr], n_before, n_after)
                 ifc.from_first_order(slp_before, slp_after, ax_ray[i][mc.ht])
@@ -658,7 +679,7 @@ class ParaxialModel():
                 n_before = n_after
                 slp_before = slp_after
 
-    def lens_from_dgm(self, node: int, bending=0., th=None, sd=1., **kwargs):
+    def lens_from_dgm(self, idx: int, bending=0., th=None, sd=1., **kwargs):
         """ Return single lens constructional parameters from parax_model. 
         
         This method uses a method for thickening a lens element developed by
@@ -685,9 +706,9 @@ class ParaxialModel():
         rndx = med.rindex(nom_wvl)
 
         opt_inv = self.opt_inv
-        z0 = np.array(self.get_pt(node-1, type_sel=mc.ht))
-        z1 = np.array(self.get_pt(node, type_sel=mc.ht))
-        z2 = np.array(self.get_pt(node+1, type_sel=mc.ht))
+        z0 = np.array(self.get_pt(idx-1, type_sel=mc.ht))
+        z1 = np.array(self.get_pt(idx, type_sel=mc.ht))
+        z2 = np.array(self.get_pt(idx+1, type_sel=mc.ht))
     
         To = np.cross(z1, z0)
         Wo = (z1 - z0)/To
@@ -752,9 +773,15 @@ class ParaxialModel():
             y_star = np.inf
             ybar_star = self.pr[idx][mc.ht]
         else:
-            k = (self.ax[idx+1][mc.ht] - self.ax[idx][mc.ht]) / delta_ybar
-            y_star = self.ax[idx][mc.ht] - k*self.pr[idx][mc.ht]
-            ybar_star = self.pr[idx][mc.ht] - self.ax[idx][mc.ht]/k
+            k = (self.ax[idx+1][mc.ht] - self.ax[idx][mc.ht])/delta_ybar
+            y_star = self.ax[idx][mc.ht]
+            if k != 0:
+                y_star -= k*self.pr[idx][mc.ht]
+            else:
+                y_star = self.ax[idx+1][mc.ht]
+            ybar_star = (math.copysign(np.inf, -delta_ybar) if k == 0 
+                         else self.pr[idx][mc.ht] 
+                              - self.ax[idx][mc.ht]/k)
         # print(f"{idx}: y_star={y_star}, ybar_star={ybar_star}, k={k}")
         return y_star, ybar_star
 
@@ -779,39 +806,6 @@ class ParaxialModel():
         return thi
 
     # --- calculations
-    def compute_principle_points(self, seq):
-        """ Returns paraxial p and q rays, plus partial first order data.
-
-        Args:
-            seq: a sequence containing interfaces and gaps to be traced.
-                  for each iteration, the sequence should return a
-                  list containing: **Intfc, Gap, Trfm, Index, Z_Dir**
-
-        Returns:
-            (p_ray, q_ray, (efl, pp1, ppk, ffl, bfl))
-
-            - p_ray: [ht, slp, aoi], [1, 0, -]
-            - q_ray: [ht, slp, aoi], [0, 1, -]
-            - efl: effective focal length
-            - pp1: distance of front principle plane from 1st interface
-            - ppk: distance of rear principle plane from last interface
-            - ffl: front focal length
-            - bfl: back focal length
-        """
-        n_0 = seq[0][mc.Indx]
-        z_dir_before = seq[0][mc.Zdir]
-        n_k = seq[-1][mc.Indx]
-        z_dir_k = seq[-1][mc.Zdir]
-        path = [[Surface(), Gap(), None, n_0, z_dir_before]]
-        path.extend(seq[1:])
-        pp_info = fo.compute_principle_points(iter(path),
-                                              n_0=z_dir_before*n_0,
-                                              n_k=z_dir_k*n_k)
-        pp = pp_info[2]
-        print(f"efl={pp[0]:8.4f}, ffl={pp[3]:8.4f}, bfl={pp[4]:8.4f}, "
-              f"pp1={pp[1]:8.4f}, ppk={pp[2]:8.4f}")
-        return pp_info
-
     def compute_principle_points_from_dgm(self, os_idx=0, is_idx=-2):
         """ Calculate focal points and principal points.
 
@@ -820,47 +814,20 @@ class ParaxialModel():
             is_idx: image space gap index
 
         Returns:
-            (efl, pp1, ppk, ffl, bfl)
+            (power, efl, pp1, ppk, ffl, bfl)
 
+            - power: optical power
             - efl: effective focal length
             - pp1: distance of front principle plane from 1st interface
             - ppk: distance of rear principle plane from last interface
             - ffl: front focal length
             - bfl: back focal length
         """
-        n_o = self.sys[os_idx][mc.indx]
-        n_i = self.sys[is_idx][mc.indx]
-
-        opt_inv = self.opt_inv
-
-        z0 = np.array(self.get_pt(os_idx))
-        z1o = np.array(self.get_pt(os_idx+1))
-        z1i = np.array(self.get_pt(is_idx))
-        z2 = np.array(self.get_pt(is_idx+1))
-
-        z1 = np.array(get_intersect(z0, z1o, z1i, z2))
-
-        To = np.cross(z1, z1o)
-        Wo = (z1 - z1o)/To
-
-        Ti = np.cross(z1i, z1)
-        Wi = (z1i - z1)/Ti
-        Pwr = np.cross(Wi, Wo)
-        
-        zfo = -Wi/Pwr
-        zfi = Wo/Pwr
-
-        power = Pwr*opt_inv
-        pp1 = n_o*To/opt_inv
-        ppk = n_i*Ti/opt_inv
-        efl = 1/power
-        ffl = pp1 - efl
-        bfl = efl - ppk
-        pp_info = efl, pp1, ppk, ffl, bfl
-        # print(f"efl={pp_info[0]:8.4f}, ffl={pp_info[3]:8.4f}, bfl={pp_info[4]:8.4f}, "
-        #       f"pp1={pp_info[1]:8.4f}, ppk={pp_info[2]:8.4f}")
+        pp_info = compute_principle_points_from_dgm(self.ztwp[0], 
+                                                    self.sys, 
+                                                    self.opt_inv, 
+                                                    os_idx, is_idx)
         return pp_info
-
 
     def apply_conjugate_shift(self, nodes, k, mat, line_type):
         sheared_nodes = self.calc_conjugate_shift(nodes, k, mat, line_type)
@@ -979,28 +946,56 @@ class ParaxialModel():
         # print("min_vly:", min_vly, "min_vuy:", min_vuy)
         return min_vly, min_vuy
 
+    def dgm_sketch_to_parax_model(self, Z, opt_inv, *args, **inputs):
+        opm = self.opt_model
+        osp = opm['optical_spec']
+        self.opt_inv = opt_inv
+
+        # handle infinite conjugates, both object and image spaces
+        yo_star, yobar_star = calc_object_and_pupil_from_dgm(Z, 0)
+        Z[0] = [yobar_star, 0]
+        lstk = len(Z)-2
+        yk_star, ybark_star = calc_object_and_pupil_from_dgm(Z, lstk)
+        Z[lstk+1] = [ybark_star, 0]
+
+        # generate normalized diagram from Z
+        Z, T, W, Pwr = update_from_dgm(Z, opt_inv, osp)
+        self.ztwp = Z, T, W, Pwr
+
+        # generate the parax_model from the normalized diagram
+        aps = dgms_to_parax(Z, T, W, Pwr, opt_inv)
+        self.ax, self.pr, self.sys = aps
+
+        # build the other models from the parax_model
+        factory = inputs['factory']
+        populate_model_from_parax(opm, factory, mc.ht)
+        osp.setup_specs_using_dgms(self)
+
 
 def nodes_to_new_model(*args, **inputs):
     """ Sketch a 2d polyline and populate an opt_model from it. """
     opm = inputs['opt_model']
+    osp = opm['optical_spec']
     pm = opm['parax_model']
     fig = inputs['figure']
-    factory = inputs['factory']
+    ele_factory = inputs['factory']
     dgm = fig.diagram
     def on_finished(poly_data, line_artist):
-        pm.init_from_nodes(poly_data, dgm.type_sel)
-        create_seq_from_parax(opm, factory, dgm.type_sel)
-        opm['optical_spec'].sync_to_parax(pm)
+        opt_inv = opt_inv_from_dgm_and_osp(poly_data, osp)
+        pm.dgm_sketch_to_parax_model(poly_data, opt_inv,
+                                     factory=ele_factory)
         fig.refresh_gui(build='rebuild', src_model=pm)
     gui_fct = inputs['gui_fct']
-    gui_fct(figure=fig, do_on_finished=on_finished)
+    gui_fct(*args, figure=fig, do_on_finished=on_finished)
 
 
-def create_seq_from_parax(opt_model, factory, type_sel):
+def populate_model_from_parax(opt_model, factory, type_sel):
     pm = opt_model['parax_model']
     opt_model['seq_model'].reset()
     opt_model['ele_model'].reset()
     opt_model['part_tree'].root_node.children = []
+    opt_model.do_init_postproc()
+
     for i in range(1, len(pm.ax)-1):
         # extract optical properties of node
         n = pm.sys[i][mc.indx]
@@ -1009,45 +1004,46 @@ def create_seq_from_parax(opt_model, factory, type_sel):
         sd = abs(pm.ax[i][mc.ht]) + abs(pm.pr[i][mc.ht])
 
         # create an element with the node's properties
-        
         descriptor = factory(power=power, sd=sd, prx=(pm, i, type_sel))
         seq, ele, e_node, dgm = descriptor
 
-        n_before = pm.sys[i-1][mc.indx]
-        thi_before = n_before*pm.sys[i-1][mc.tau]
+        b4_idx = i-1 if i > 0 else 0
+        n_before = pm.sys[b4_idx][mc.indx]
+        thi_before = n_before*infinity_guard(pm.sys[b4_idx][mc.tau])
 
         # insert the path sequence and elements into the
         #  sequential and element models
-        kwargs = {'idx': i-1, 't': thi, 
+        kwargs = {'idx': b4_idx, 't': infinity_guard(thi), 
                   'insert': True, 'src_model': pm, 'do_update': False}
         opt_model.insert_ifc_gp_ele(*descriptor, **kwargs)
 
-        opt_model['seq_model'].gaps[i-1].thi = thi_before
+        opt_model['seq_model'].gaps[b4_idx].thi = thi_before
 
 
 def create_diagram_for_key(opm, key, type_sel):
-    seq_mapping, nodes = generate_mapping_for_key(opm, key, type_sel)
-    prx_model = build_from_yybar(opm, nodes, type_sel, seq_mapping)
+    seq_mapping, dgm_list = generate_mapping_for_key(opm, key)
+    prx_model = build_from_yybar(opm, dgm_list, type_sel, seq_mapping)
     return key, prx_model    
 
 
 def update_diagram_for_key(opm, key, type_sel):
-    seq_mapping, nodes = generate_mapping_for_key(opm, key, type_sel)
+    seq_mapping, dgm_list = generate_mapping_for_key(opm, key)
     if key in opm['parax_model'].layers:
         prx_model = opm['parax_model'].layers[key]
         prx_model.seq_mapping = seq_mapping
         rndx_and_imode = None
         if key == 'ifcs':
             rndx_and_imode = opm['seq_model'].get_rndx_and_imode()
-        prx_model.init_from_nodes(nodes, type_sel,
-                                  rndx_and_imode=rndx_and_imode)
+        opt_inv = opm['parax_model'].opt_inv
+        prx_model.parax_from_dgms(dgm_list, 
+                                  opt_inv, rndx_and_imode)
     else:
-        prx_model = build_from_yybar(opm, nodes, type_sel, seq_mapping)
+        prx_model = build_from_yybar(opm, dgm_list, type_sel, seq_mapping)
         opm['parax_model'].layers[key] = prx_model
     return key, prx_model    
 
 
-def generate_mapping_for_key(opm, key, type_sel):
+def generate_mapping_for_key(opm, key):
     """ generate all of the mappings, ht and slp, for *key*. """
     
     # generate the node_defs for key
@@ -1072,14 +1068,15 @@ def generate_mapping_for_key(opm, key, type_sel):
     node_defs, ht_nodes = get_valid_ht_nodes(opm['parax_model'], node_defs)
     # print(f'node_defs {node_defs}\nnodes {nodes}')
 
-    map_to_ifcs = gen_ifcs_node_mapping(opm['parax_model'], node_defs, ht_nodes)
+    map_to_ifcs = gen_ifcs_node_mapping(opm['parax_model'], node_defs, 
+                                        ht_nodes)
     # print(f'map_to_ifcs {map_to_ifcs}\n')
 
     slp_nodes = slp_nodes_from_node_defs(opm['parax_model'], node_defs)
 
     seq_mapping = (node_defs, map_to_ifcs)
-    nodes = [np.array(ht_nodes), np.array(slp_nodes)]
-    return seq_mapping, nodes
+    dgm_list = [np.array(ht_nodes), np.array(slp_nodes)]
+    return seq_mapping, dgm_list
 
 
 def air_gaps_to_node_defs(air_gap_list):
@@ -1201,15 +1198,15 @@ def scan_nodes(parax_model, node_defs, nodes):
     return new_node_defs
 
 
-def build_from_yybar(opm, nodes, type_sel, seq_mapping):
+def build_from_yybar(opm, dgm_list, type_sel, seq_mapping):
     """Returns a parax_model for the input nodes and seq_mapping. """
     prx_model = ParaxialModel(opm, opt_inv=opm['pm'].opt_inv,
                               seq_mapping=seq_mapping)
     rndx_and_imode = None
     if seq_mapping is None:
         rndx_and_imode = opm['seq_model'].get_rndx_and_imode()
-    prx_model.init_from_nodes(nodes, type_sel, 
-                              rndx_and_imode=rndx_and_imode)
+    prx_model.parax_from_dgms(dgm_list, prx_model.opt_inv,
+                              rndx_and_imode)
     return prx_model
 
 
@@ -1293,3 +1290,199 @@ def gen_ifcs_node_mapping(parax_model, node_defs, nodes):
                     map_to_ifcs.append((k, i, t1, t2))
 
     return map_to_ifcs
+
+
+def opt_inv_from_dgm_and_osp(Z, osp, efl=1, t=None):
+    """ Use the osp database to update the diagram data """
+    aperture_spec = osp['pupil'].derive_parax_params()
+    pupil_oi_key, pupil_key, pupil_value = aperture_spec
+    field_spec = osp['fov'].derive_parax_params()
+    fov_oi_key, field_key, field_value = field_spec
+
+    y1_star, ybar0_star = calc_object_and_pupil_from_dgm(Z, 0)
+    num_nodes = len(Z)
+    yk_star, ybark_star = calc_object_and_pupil_from_dgm(Z, num_nodes-2)
+
+    opt_inv = 1
+    m = 0 if np.isinf(ybar0_star) else ybark_star/ybar0_star
+    if fov_oi_key == 'object':
+        if pupil_oi_key == 'object':
+            if field_key == 'height' and pupil_key == 'slope':
+                opt_inv = -pupil_value*ybar0_star
+            elif field_key == 'slope' and pupil_key == 'height':
+                opt_inv = y1_star*field_value
+            elif field_key == 'height' and pupil_key == 'height':
+                if t is not None:
+                    opt_inv = -y1_star*ybar0_star/t
+
+        else:  # pupil_oi_key == 'image'
+            if field_key == 'height' and pupil_key == 'slope':
+                opt_inv = -pupil_value*ybark_star
+            elif field_key == 'slope' and pupil_key == 'height':
+                opt_inv = yk_star*field_value
+            elif field_key == 'height' and pupil_key == 'height':
+                if t is not None:
+                    opt_inv = -yk_star*ybark_star/t
+
+    else:  # fov_oi_key == 'image'
+        if pupil_oi_key == 'image':
+            if field_key == 'height' and pupil_key == 'slope':
+                opt_inv = -pupil_value*ybark_star
+            elif field_key == 'slope' and pupil_key == 'height':
+                opt_inv = yk_star*field_value
+            elif field_key == 'height' and pupil_key == 'height':
+                if t is not None:
+                    opt_inv = -yk_star*ybark_star/t
+
+        else:  # pupil_oi_key == 'object'
+            if field_key == 'height' and pupil_key == 'slope':
+                opt_inv = -pupil_value*ybar0_star
+            elif field_key == 'slope' and pupil_key == 'height':
+                opt_inv = y1_star*field_value
+            elif field_key == 'height' and pupil_key == 'height':
+                if t is not None:
+                    opt_inv = -y1_star*ybar0_star/t
+           
+    return opt_inv
+
+
+def calc_object_and_pupil_from_dgm(Z, idx: int):
+    """ calculate axial intercepts of line between idx and idx+1 """
+    y, ybar = 1, 0
+    del_Z = Z[idx+1] - Z[idx]
+    if del_Z[ybar] == 0:
+        y_star = infinity_guard(np.inf)
+        ybar_star = Z[idx][ybar]
+    else:
+        k = del_Z[y] / del_Z[ybar]
+        y_star = Z[idx][y] - k*Z[idx][ybar]
+        if k == 0:
+            inf_direction = -del_Z[ybar] if idx == 0 else del_Z[ybar]
+            ybar_star = infinity_guard(math.copysign(np.inf, inf_direction))
+        else:
+            ybar_star = Z[idx][ybar] - Z[idx][y]/k
+    # print(f"{idx}: y_star={y_star}, ybar_star={ybar_star}, k={k}")
+    return y_star, ybar_star
+
+
+def compute_principle_points_from_dgm(Z, sys, opt_inv, os_idx=0, is_idx=-2):
+    """ Calculate focal points and principal points.
+
+    Args:
+        os_idx: object space gap index
+        is_idx: image space gap index
+
+    Returns:
+        (power, efl, pp1, ppk, ffl, bfl)
+
+        - power: optical power
+        - efl: effective focal length
+        - pp1: distance of front principle plane from 1st interface
+        - ppk: distance of rear principle plane from last interface
+        - ffl: front focal length
+        - bfl: back focal length
+    """
+    n_o = sys[os_idx][mc.indx]
+    n_i = sys[is_idx][mc.indx]
+
+    z0 = Z[os_idx]
+    z1o = Z[os_idx+1]
+    z1i = Z[is_idx]
+    z2 = Z[is_idx+1]
+
+    z1 = np.array(get_intersect(z0, z1o, z1i, z2))
+
+    To = np.cross(z1, z1o)
+    Wo = (z1 - z1o)/To
+
+    Ti = np.cross(z1i, z1)
+    Wi = (z1i - z1)/Ti
+    Pwr = np.cross(Wi, Wo)
+    
+    zfo = -Wi/Pwr
+    zfi = Wo/Pwr
+
+    power = Pwr*opt_inv
+    pp1 = n_o*To/opt_inv
+    ppk = n_i*Ti/opt_inv
+    efl = 1/power
+    ffl = pp1 - efl
+    bfl = efl - ppk
+    pp_info = power, efl, pp1, ppk, ffl, bfl
+    # print(f"efl={pp_info[0]:8.4f}, ffl={pp_info[3]:8.4f}, bfl={pp_info[4]:8.4f}, "
+    #       f"pp1={pp_info[1]:8.4f}, ppk={pp_info[2]:8.4f}")
+    return pp_info
+
+
+def update_from_dgm(Z, opt_inv, osp):
+    """ Given a |ybar| diagram `Z`, generate the dual and params. """
+    y, ybar = 1, 0
+
+    delZo = Z[1] - Z[0]
+    To = np.cross(Z[1], Z[0])
+    if is_kinda_big(delZo[ybar]):
+        field_spec = osp['fov'].derive_parax_params()
+        fov_oi_key, field_key, field_value = field_spec
+        Wo = np.array([field_value/opt_inv, 0.])
+    elif is_kinda_big(delZo[y]):
+        aperture_spec = osp['pupil'].derive_parax_params()
+        pupil_oi_key, pupil_key, pupil_value = aperture_spec
+        Wo = np.array([0, pupil_value])
+    else:
+        Wo = delZo/To
+    T = [To]
+    W = [Wo]
+    Pwr = [np.array(0.)]
+
+    for i in range(1, len(Z)-1):
+        delZ = Z[i+1] - Z[i]
+        Ti = np.cross(Z[i+1], Z[i])
+        if is_kinda_big(delZ[ybar]):
+            Pwr1 = Wo[y]/Z[i][y]
+            Wi = Wo - Pwr1*Z[i]
+        elif is_kinda_big(delZ[y]):
+            Pwr1 = Wo[ybar]/Z[i][ybar]
+            Wi = Wo - Pwr1*Z[i]
+        else:
+            Wi = delZ/Ti
+            Pwr1 = np.cross(Wi, Wo)
+        
+        T.append(Ti)
+        W.append(Wi)
+        Pwr.append(Pwr1)
+        
+        Wo = Wi
+
+    T.append(0)
+    W.append(Wi)
+    Pwr.append(0)
+ 
+    return Z, np.array(T), np.array(W), np.array(Pwr)
+
+
+def parax_to_dgms(ax, pr, sys, opt_inv):
+    Z = []
+    T = []
+    W = []
+    Pwr = []
+    for i in range(len(ax)-1):
+        Z.append(np.array([pr[i][mc.ht], ax[i][mc.ht]]))
+        W.append(np.array([pr[i][mc.slp], ax[i][mc.slp]])/opt_inv)
+        T.append(sys[i][mc.tau]*opt_inv)
+        Pwr.append(sys[i][mc.pwr]/opt_inv)
+    return Z, T, W, Pwr
+
+
+def dgms_to_parax(Z, T, W, Pwr, opt_inv, rndx_and_imode=None):
+    y, ybar = 1, 0
+    ax = []
+    pr = []
+    sys = []
+    if rndx_and_imode is None:
+        rndx_and_imode = [(1., 'transmit') for i in range(len(Z))]
+    for i in range(len(Z)):
+        ax.append([Z[i][y], W[i][y]*opt_inv])
+        pr.append([Z[i][ybar], W[i][ybar]*opt_inv])
+        ni = rndx_and_imode[i]
+        sys.append([Pwr[i]*opt_inv, T[i]/opt_inv, *ni])
+    return ax, pr, sys

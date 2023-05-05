@@ -293,11 +293,13 @@ def create_parax_design_commands(fig):
     dgm.register_commands((), figure=fig)
 
     # draw polyline to define an initial model
+    args = (interactivefigure.snap_to_grid_fct(0.05), True)
     kwargs = {'factory': ele.create_thinlens,
               'opt_model': dgm.opt_model,
-              'gui_fct': interactivefigure.enter_polyline}
+              'gui_fct': interactivefigure.enter_polyline,
+              }
     cmds.append(('Sketch Diagram', (paraxialdesign.nodes_to_new_model, 
-                                          (), kwargs)))
+                                          args, kwargs)))
     # Select an existing point
     cmds.append(('Select', (dgm.register_commands, (), {})))
     # Add thin lens

@@ -2101,7 +2101,8 @@ class ElementModel:
         seq_model = self.opt_model.seq_model
 
         # sort by element reference interface sequential index
-        self.elements.sort(key=lambda e: e.reference_idx())
+        self.elements.sort(key=lambda e: e.reference_idx()+0.5 
+                           if isinstance(e, AirGap) else e.reference_idx())
 
         # Make sure z_dir matches the sequential model. Used to get
         # the correct substrate offset.

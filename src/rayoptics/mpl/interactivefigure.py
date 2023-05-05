@@ -685,7 +685,6 @@ def enter_polyline(point_filter=None, constrain_to_wedge=True, **inputs):
         return polyline
 
     def constrain_point(pt):
-        # nonlocal polyline, pt0
         if point_filter is not None:
             pt = point_filter(pt)
         if constrain_to_wedge:
@@ -777,3 +776,9 @@ def enter_polyline(point_filter=None, constrain_to_wedge=True, **inputs):
     saved_events = fig.disconnect_events()
     fig.connect_events(action_dict=action_dict)
     fig.on_finished = on_finished_clb
+
+
+def snap_to_grid_fct(grid_space: float):
+    def snap_to_grid(pt):
+        return grid_space * np.around(pt/grid_space)
+    return snap_to_grid

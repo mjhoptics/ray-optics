@@ -142,6 +142,80 @@ class OpticalSpecs:
         self.pupil.sync_to_parax(parax_model)
         self.field_of_view.sync_to_parax(parax_model)
 
+    def setup_specs_using_dgms(self, pm):
+        """ Use the parax_model database to update the pupil specs. """
+        def is_kinda_big(x: float, kinda_big=1e8) -> bool:
+            if np.isinf(x):
+                return True
+            elif np.abs(x) > kinda_big:
+                return True
+            else:
+                return False
+
+        num_nodes = pm.get_num_nodes()
+
+        y1_star, ybar0_star = pm.calc_object_and_pupil(0)
+        yk_star, ybark_star = pm.calc_object_and_pupil(num_nodes-2)
+
+        pupil = self['pupil']
+        pupil_oi_key_value = pupil.derive_parax_params()
+        pupil_oi_key, pupil_key, pupil_value = pupil_oi_key_value
+        if pupil_key == 'slope':
+            if pupil_oi_key == 'object':
+                n = pm.sys[0][mc.indx]
+                slope = pm.ax[0][mc.slp]
+                pupil_value = pupil.get_aperture_from_slope(slope, n=n)
+            else:
+                n = pm.sys[-2][mc.indx]
+                slope = pm.ax[-2][mc.slp]
+                pupil_value = pupil.get_aperture_from_slope(slope, n=n)
+            pupil_key = pupil.key[2]
+        else:
+            if is_kinda_big(y1_star):  # telecentric, use angular aperture spec
+                pupil_oi_key = 'object'
+                pupil_key = 'NA'
+                n = pm.sys[0][mc.indx]
+                slope = pm.ax[0][mc.slp]
+                pupil_value = etendue.slp2na(slope, n=n)
+            else:
+                pupil_oi_key = 'object'
+                pupil_key = 'epd'
+                pupil_value = 2*y1_star
+
+        pupil.key = 'aperture', pupil_oi_key, pupil_key
+        pupil.value = pupil_value
+
+        fov = self['fov']
+        fov_oi_key_value = fov.derive_parax_params()
+        fov_oi_key, field_key, field_value = fov_oi_key_value
+        if is_kinda_big(ybar0_star):
+            if is_kinda_big(ybark_star):
+                fov_oi_key = 'object'
+                field_key = 'angle'
+                n = pm.sys[0][mc.indx]
+                slope = pm.pr[0][mc.slp]/n
+                field_value = etendue.slp2ang(slope)
+            else:  # collimated object space
+                if field_key == 'height':
+                    fov_oi_key = 'image'  # force image space height spec for
+                    field_key = 'height'  # infinite objects
+                    field_value = ybark_star
+                else:  # field_key == 'angle'
+                    fov_oi_key = fov.key[1]
+                    field_key = 'angle'
+                    oi_idx = 0 if fov_oi_key == 'object' else num_nodes-2
+                    n = pm.sys[oi_idx][mc.indx]
+                    slope = pm.pr[oi_idx][mc.slp]/n
+                    field_value = etendue.slp2ang(slope)
+
+        else:
+            fov_oi_key = 'object'
+            field_key = 'height'
+            field_value = ybar0_star
+
+        fov.key = 'field', fov_oi_key, field_key
+        fov.value = field_value
+
     def sync_to_restore(self, opt_model):
         self.opt_model = opt_model
         if not hasattr(self, 'do_aiming'):
@@ -157,15 +231,18 @@ class OpticalSpecs:
         self.field_of_view.update_model(**kwargs)
 
     def update_optical_properties(self, **kwargs):
-        if self.opt_model.seq_model.get_num_surfaces() > 2:
-            stop = self.opt_model.seq_model.stop_surface
+        opm = self.opt_model
+        sm = opm['seq_model']
+        if sm.get_num_surfaces() > 2:
+            src = kwargs.get('src_model', None)
+            stop = sm.stop_surface
             wvl = self.spectral_region.central_wvl
-            self.opt_model['analysis_results']['parax_data'] = \
-                compute_first_order(self.opt_model, stop, wvl)
+            parax_pkg = compute_first_order(opm, stop, wvl, src_model=src)
+            opm['analysis_results']['parax_data'] = parax_pkg
 
             if self.do_aiming:
                 for i, fld in enumerate(self.field_of_view.fields):
-                    aim_pt = aim_chief_ray(self.opt_model, fld, wvl)
+                    aim_pt = aim_chief_ray(opm, fld, wvl)
                     fld.aim_pt = aim_pt
 
     def apply_scale_factor(self, scale_factor):
@@ -244,7 +321,8 @@ class OpticalSpecs:
                     slope = -1/(2*fno)
                 
                 hypt = np.sqrt(1 + (pupil[0]*slope)**2 + (pupil[1]*slope)**2)
-                pupil_dir = np.array([slope*pupil[0]/hypt, slope*pupil[1]/hypt])
+                pupil_dir = np.array([slope*pupil[0]/hypt, 
+                                      slope*pupil[1]/hypt])
 
                 pt0 = p0
                 if d0 is not None:
@@ -474,7 +552,7 @@ class PupilSpec:
         elif 'f/#' in pupil_value_key:
             pupil_value = -1/(2*slope)
         elif 'epd' == pupil_value_key:
-            pupil_value = y_star
+            pupil_value = 2*y_star
         self.value = pupil_value
 
     def derive_parax_params(self):
@@ -562,11 +640,18 @@ class FieldSpec:
     """
 
     def __init__(self, parent, key=('object', 'angle'), value=0, flds=None,
-                 is_relative=False, do_init=True, **kwargs):
+                 index_labels=None, is_relative=False, do_init=True, **kwargs):
         self.optical_spec = parent
         self.key = 'field', key[0], key[1]
         self.value = value
         self.is_relative = is_relative
+        if index_labels is None:
+            self.index_labels = [] 
+            self.index_label_type = 'auto'
+        else:
+            self.index_labels = index_labels
+            self.index_label_type = 'user'
+
         if do_init:
             flds = flds if flds is not None else [0., 1.]
             self.set_from_list(flds)
@@ -587,32 +672,53 @@ class FieldSpec:
 
     def sync_to_parax(self, parax_model):
         """ Use the parax_model database to update the field specs. """
-        ape_fld_key, obj_img_key, value_key = self.key
+        ape_fld_key, fov_oi_key, fov_value_key = self.key
         num_nodes = parax_model.get_num_nodes()
-        if obj_img_key == 'object':
+        if fov_oi_key == 'object':
             idx = 0
         else:  # obj_img_key== 'image'
             idx = num_nodes-2
 
         y_star, ybar_star = parax_model.calc_object_and_pupil(idx)
         if ybar_star == np.inf:
-            value_key = 'angle'
+            fov_value_key = 'angle'
         
-        if 'height' in value_key:
-            value = ybar_star
+        if 'height' in fov_value_key:
+            fov_value = ybar_star
 
-        elif 'angle' in value_key:
+        elif 'angle' in fov_value_key:
             n = parax_model.sys[idx][mc.indx]
             slope = parax_model.pr[idx][mc.slp]/n
-            value = etendue.slp2ang(slope)
-        self.key = ape_fld_key, obj_img_key, value_key
-        self.value = value
+            fov_value = etendue.slp2ang(slope)
+        self.key = ape_fld_key, fov_oi_key, fov_value_key
+        self.value = fov_value
+
+    def derive_parax_params(self):
+        """ return field spec as paraxial height or slope value. """
+        
+        _, fov_oi_key, fov_value_key = self.key
+        # guard against zero as a field spec for parax calc
+        fov_value = self.value if self.value != 0 else 1.
+
+        if 'angle' in fov_value_key:
+            slope_bar = etendue.ang2slp(fov_value)
+            field_key = 'slope'
+            field_value = slope_bar
+
+        elif 'height' in fov_value_key:
+            height_bar = fov_value
+            field_key = 'height'
+            field_value = height_bar
+
+        return fov_oi_key, field_key, field_value
 
     def sync_to_restore(self, optical_spec):
         if not hasattr(self, 'is_relative'):
             self.is_relative = False
         if not hasattr(self, 'value'):
             self.value, _ = self.max_field()
+        if not hasattr(self, 'index_label_type'):
+            self.index_label_type = 'auto'
         self.optical_spec = optical_spec
 
     def __str__(self):
@@ -655,20 +761,21 @@ class FieldSpec:
         else:
             field_norm = 1 if self.value == 0 else 1.0/self.value
 
-        self.index_labels = []
-        for f in self.fields:
-            if f.x != 0.0:
-                fldx = '{:5.2f}x'.format(field_norm*f.x)
-            else:
-                fldx = ''
-            if f.y != 0.0:
-                fldy = '{:5.2f}y'.format(field_norm*f.y)
-            else:
-                fldy = ''
-            self.index_labels.append(fldx + fldy)
-        self.index_labels[0] = 'axis'
-        if len(self.index_labels) > 1:
-            self.index_labels[-1] = 'edge'
+        if self.index_label_type == 'auto':
+            self.index_labels = []
+            for f in self.fields:
+                if f.x != 0.0:
+                    fldx = '{:5.2f}x'.format(field_norm*f.x)
+                else:
+                    fldx = ''
+                if f.y != 0.0:
+                    fldy = '{:5.2f}y'.format(field_norm*f.y)
+                else:
+                    fldy = ''
+                self.index_labels.append(fldx + fldy)
+            self.index_labels[0] = 'axis'
+            if len(self.index_labels) > 1:
+                self.index_labels[-1] = 'edge'
         return self
 
     def apply_scale_factor(self, scale_factor):
