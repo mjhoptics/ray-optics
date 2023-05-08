@@ -252,6 +252,8 @@ def iterate_ray(opt_model, ifcx, xy_target, fld, wvl, **kwargs):
         seq_model, ifcx, pt0, dist, wvl, y_target = args
         pt1 = np.array([0., y1, dist])
         dir0 = normalize(pt1 - pt0)
+        if dir0[2] * seq_model.z_dir[0] < 0:
+            dir0 = -dir0
 
         try:
             ray, _, _ = ray_pkg = rt.trace(seq_model, pt0, dir0, wvl)
@@ -269,6 +271,7 @@ def iterate_ray(opt_model, ifcx, xy_target, fld, wvl, **kwargs):
         nonlocal ray_pkg
         seq_model, ifcx, pt0, dist, wvl, target = args
         pt1 = np.array([coord[0], coord[1], dist])
+<<<<<<< HEAD
         dir0 = normalize(pt1 - pt0)
         
         try:
@@ -279,6 +282,8 @@ def iterate_ray(opt_model, ifcx, xy_target, fld, wvl, **kwargs):
             if ray_error.surf < ifcx:
                 raise ray_error
 
+        if dir0[2] * seq_model.z_dir[0] < 0:
+            dir0 = -dir0
         xy_ray = np.array([ray[ifcx][mc.p][0], ray[ifcx][mc.p][1]])
 #        print(coord[0], coord[1], xy_ray[0], xy_ray[1])
         return xy_ray - target
