@@ -232,6 +232,9 @@ def iterate_ray(opt_model, ifcx, xy_target, fld, wvl, **kwargs):
         dir0 = pt1 - pt0
         length = norm(dir0)
         dir0 = dir0/length
+        if dir0[2] * seq_model.z_dir[0] < 0:
+            dir0 = -dir0
+
         try:
             ray, _, _ = rt.trace(seq_model, pt0, dir0, wvl)
         except TraceMissedSurfaceError as ray_miss:
@@ -252,6 +255,8 @@ def iterate_ray(opt_model, ifcx, xy_target, fld, wvl, **kwargs):
         dir0 = pt1 - pt0
         length = norm(dir0)
         dir0 = dir0/length
+        if dir0[2] * seq_model.z_dir[0] < 0:
+            dir0 = -dir0
         ray, _, _ = rt.trace(seq_model, pt0, dir0, wvl)
         xy_ray = np.array([ray[ifcx][mc.p][0], ray[ifcx][mc.p][1]])
 #        print(coord[0], coord[1], xy_ray[0], xy_ray[1])
