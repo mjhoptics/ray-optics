@@ -112,7 +112,7 @@ class InteractiveFigure(StyledFigure):
         'disconnect all the stored connection ids'
         for clbk in self.callback_ids:
             self.canvas.mpl_disconnect(clbk)
-        self.callback_ids = None
+        self.callback_ids = []
         event_dict, self.event_dict = self.event_dict, {}
         return event_dict
 
