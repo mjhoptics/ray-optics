@@ -87,6 +87,63 @@ def list_in_out_dir(path, ray):
     print(f"{i+1:2d}: {b4_dir[0]:10.6f} {b4_dir[1]:10.6f} {b4_dir[2]:10.6f}  |")
 
 
+def trace_ray(opt_model, pupil, fld, wvl, output_filter, rayerr_filter,
+               **kwargs):
+    """ Trace a single ray via pupil, field and wavelength specs.
+    
+    This function traces a single ray, given a wavelength, and pupil and field specification. 
+
+    Ray failures (miss surface, TIR) and aperture clipping are handled via RayError exceptions. If a failure occurs, a second item is returned (if  *rayerr_filter* is set to 'summary' or 'full') that contains information about the failure. Apertures are tested using the :meth:`~.seq.interface.Interface.point_inside` API when *check_apertures* is True. 
+
+    The pupil coordinates by default are normalized to the vignetted pupil extent. Alternatively, the pupil coordinates can be taken as actual coordinates on the pupil plane (and similarly for ray direction).
+
+    The amount of output that is returned can range from the entire ray (default) to the image segment only or even the return from a user-supplied filtering function.
+
+    Args:
+        opt_model: :class:`~.OpticalModel` instance
+        pupil: 2d vector of relative pupil coordinates
+        fld: :class:`~.Field` point for wave aberration calculation
+        wvl: wavelength of ray (nm)
+
+        check_apertures: if True, do point_inside() test on inc_pt
+        apply_vignetting: if True, apply the `fld` vignetting factors to `pupil`
+
+        pupil_type: controls how `pupil` data is interpreted
+            - 'rel pupil': relative pupil coordinates
+            - 'aim pt': aim point on pupil plane
+            - 'aim dir': aim direction in object space
+
+        use_named_tuples: if True, returns data as RayPkg and RaySeg.
+
+        output_filter:
+
+            - if None, append entire ray
+            - if 'last', append the last ray segment only
+            - else treat as callable and append the return value
+
+        rayerr_filter:
+
+            - if None, on ray error append nothing
+            - if 'summary', append the exception without ray data
+            - if 'full', append the exception with ray data up to error
+            - else append nothing
+
+        eps: accuracy tolerance for surface intersection calculation
+
+        Returns a ray_pkg and a trace error or None, if traced successfully
+
+    """
+    unt = True
+    if 'use_named_tuples' in kwargs:
+        unt = kwargs['use_named_tuples']
+    
+    ray_result = trace_safe(opt_model, pupil, fld, wvl, 
+                            output_filter, rayerr_filter, 
+                            use_named_tuples=unt, **kwargs)
+    ray_pkg, ray_err = retrieve_ray(ray_result)
+    return ray_pkg, ray_err
+
+
 def trace_safe(opt_model, pupil, fld, wvl,
                output_filter, rayerr_filter, **kwargs):
     """Wrapper for trace_base that handles exceptions.
