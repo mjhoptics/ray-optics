@@ -399,7 +399,7 @@ class WvlSpec:
     def listobj_str(self):
         wvls = self.wavelengths
         ref_wvl = self.reference_wvl
-        o_str = f"central wavelength={wvls[ref_wvl]} nm\n"
+        o_str = f"central wavelength={wvls[ref_wvl]:10.4f} nm\n"
         o_str += "wavelength (weight) ="
         for i, wlwt in enumerate(zip(wvls, self.spectral_wts)):
             wl, wt = wlwt
