@@ -193,15 +193,15 @@ class Surface(interface.Interface):
 
         return od
 
-    def point_inside(self, x, y):
+    def point_inside(self, x: float, y: float, fuzz: float = 1e-5) -> bool:
         is_inside = True
         if len(self.clear_apertures) > 0:
             for ca in self.clear_apertures:
-                is_inside = is_inside and ca.point_inside(x, y)
+                is_inside = is_inside and ca.point_inside(x, y, fuzz)
                 if not is_inside:
                     return is_inside
         else:
-            return super().point_inside(x, y)
+            return super().point_inside(x, y, fuzz)
 
         return is_inside
 
@@ -377,7 +377,7 @@ class Aperture():
         x, y = self.dimension()
         return sqrt(x*x + y*y)
 
-    def point_inside(self, x, y):
+    def point_inside(self, x: float, y: float, fuzz: float = 1e-5) -> bool:
         pass
 
     def bounding_box(self):
@@ -414,9 +414,9 @@ class Circular(Aperture):
     def max_dimension(self):
         return self.radius
 
-    def point_inside(self, x, y):
+    def point_inside(self, x: float, y: float, fuzz: float = 1e-5) -> bool:
         x, y = self.tform(x, y)
-        return sqrt(x*x + y*y) <= self.radius
+        return sqrt(x*x + y*y) <= self.radius + fuzz
 
     def edge_pt_target(self, rel_dir):
         """ Get a target for ray aiming to aperture boundaries.
@@ -450,9 +450,10 @@ class Rectangular(Aperture):
         self.x_half_width = abs(x)
         self.y_half_width = abs(y)
 
-    def point_inside(self, x, y):
+    def point_inside(self, x: float, y: float, fuzz: float = 1e-5) -> bool:
         x, y = self.tform(x, y)
-        return abs(x) <= self.x_half_width and abs(y) <= self.y_half_width
+        return (abs(x) <= self.x_half_width + fuzz 
+                and abs(y) <= self.y_half_width + fuzz)
 
     def edge_pt_target(self, rel_dir):
         """ Get a target for ray aiming to aperture boundaries. """
