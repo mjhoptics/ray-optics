@@ -10,17 +10,17 @@ appnope==0.1.3
     # via
     #   ipykernel
     #   ipython
-asttokens==2.0.8
+asttokens==2.2.1
     # via stack-data
 backcall==0.2.0
     # via ipython
-certifi==2022.6.15
+certifi==2023.5.7
     # via requests
-charset-normalizer==2.1.1
+charset-normalizer==3.1.0
     # via requests
 cycler==0.11.0
     # via matplotlib
-debugpy==1.6.3
+debugpy==1.6.7
     # via ipykernel
 decorator==5.1.1
     # via ipython
@@ -30,42 +30,42 @@ entrypoints==0.4
     # via jupyter-client
 et-xmlfile==1.1.0
     # via openpyxl
-executing==1.0.0
+executing==1.2.0
     # via stack-data
-fonttools==4.37.1
+fonttools==4.39.4
     # via matplotlib
-idna==3.3
+idna==3.4
     # via requests
-ipykernel==6.15.1
+ipykernel==6.23.1
     # via
     #   ipywidgets
     #   qtconsole
-ipython==8.4.0
+ipython==8.13.2
     # via
     #   ipykernel
     #   ipywidgets
     #   rayoptics (setup.py)
 ipython-genutils==0.2.0
     # via qtconsole
-ipywidgets==8.0.1
+ipywidgets==8.0.6
     # via rayoptics (setup.py)
-jedi==0.18.1
+jedi==0.18.2
     # via ipython
-json-tricks==3.15.5
+json-tricks==3.17.0
     # via rayoptics (setup.py)
-jupyter-client==7.3.5
+jupyter-client==8.2.0
     # via
     #   ipykernel
     #   qtconsole
-jupyter-core==4.11.2
+jupyter-core==5.3.0
     # via
     #   jupyter-client
     #   qtconsole
-jupyterlab-widgets==3.0.2
+jupyterlab-widgets==3.0.7
     # via ipywidgets
 kiwisolver==1.4.4
     # via matplotlib
-matplotlib==3.5.3
+matplotlib==3.7.1
     # via
     #   opticalglass
     #   rayoptics (setup.py)
@@ -73,29 +73,29 @@ matplotlib-inline==0.1.6
     # via
     #   ipykernel
     #   ipython
-nest-asyncio==1.5.5
+nest-asyncio==1.5.6
     # via
     #   ipykernel
     #   jupyter-client
-numpy==1.23.2
+numpy==1.24.3
     # via
     #   matplotlib
     #   opticalglass
     #   pandas
     #   rayoptics (setup.py)
     #   scipy
-openpyxl==3.0.10
+openpyxl==3.1.2
     # via opticalglass
-opticalglass==1.0.3
+opticalglass==1.0.5
     # via rayoptics (setup.py)
-packaging==21.3
+packaging==23.1
     # via
     #   deprecation
     #   ipykernel
     #   matplotlib
     #   qtpy
     #   rayoptics (setup.py)
-pandas==1.4.3
+pandas==2.0.1
     # via
     #   opticalglass
     #   rayoptics (setup.py)
@@ -105,17 +105,17 @@ pexpect==4.8.0
     # via ipython
 pickleshare==0.7.5
     # via ipython
-pillow==9.3.0
+pillow==9.5.0
     # via matplotlib
-prompt-toolkit==3.0.30
+prompt-toolkit==3.0.38
     # via ipython
-psutil==5.9.1
+psutil==5.9.5
     # via ipykernel
 ptyprocess==0.7.0
     # via pexpect
 pure-eval==0.2.2
     # via stack-data
-pygments==2.13.0
+pygments==2.15.1
     # via
     #   ipython
     #   qtconsole
@@ -123,41 +123,41 @@ pyparsing==3.0.9
     # via
     #   matplotlib
     #   packaging
-pyqt5==5.15.7
+pyqt5==5.15.9
     # via
     #   opticalglass
     #   rayoptics (setup.py)
 pyqt5-qt5==5.15.2
     # via pyqt5
-pyqt5-sip==12.11.0
+pyqt5-sip==12.12.1
     # via pyqt5
 python-dateutil==2.8.2
     # via
     #   jupyter-client
     #   matplotlib
     #   pandas
-pytz==2022.2.1
+pytz==2023.3
     # via pandas
 pyyaml==6.0
     # via opticalglass
-pyzmq==23.2.1
+pyzmq==25.0.2
     # via
     #   ipykernel
     #   jupyter-client
     #   qtconsole
 qdarkstyle==3.0.3
     # via rayoptics (setup.py)
-qtconsole==5.3.2
+qtconsole==5.4.3
     # via rayoptics (setup.py)
-qtpy==2.2.0
+qtpy==2.3.1
     # via
     #   qdarkstyle
     #   qtconsole
-requests==2.28.1
+requests==2.30.0
     # via
     #   opticalglass
     #   rayoptics (setup.py)
-scipy==1.9.1
+scipy==1.10.1
     # via
     #   opticalglass
     #   rayoptics (setup.py)
@@ -165,13 +165,13 @@ six==1.16.0
     # via
     #   anytree
     #   python-dateutil
-stack-data==0.5.0
+stack-data==0.6.2
     # via ipython
-tornado==6.2
+tornado==6.3.2
     # via
     #   ipykernel
     #   jupyter-client
-traitlets==5.3.0
+traitlets==5.9.0
     # via
     #   ipykernel
     #   ipython
@@ -181,13 +181,13 @@ traitlets==5.3.0
     #   matplotlib-inline
     #   qtconsole
     #   rayoptics (setup.py)
-transforms3d==0.4
+transforms3d==0.4.1
     # via rayoptics (setup.py)
-urllib3==1.26.12
+urllib3==2.0.2
     # via requests
-wcwidth==0.2.5
+wcwidth==0.2.6
     # via prompt-toolkit
-widgetsnbextension==4.0.2
+widgetsnbextension==4.0.7
     # via ipywidgets
 xlrd==2.0.1
     # via opticalglass
