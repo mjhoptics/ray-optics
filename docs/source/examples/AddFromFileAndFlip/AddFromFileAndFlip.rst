@@ -8,7 +8,6 @@ This notebook shows the steps to follow to open multiple vendor component files 
 
 .. code:: ipython3
 
-    #%matplotlib widget
     %matplotlib inline
 
 .. code:: ipython3
@@ -65,20 +64,18 @@ The usage specifications for the optical system are defined via different proper
 
 .. code:: ipython3
 
-    osp['pupil'].key, osp['pupil'].value
-
-
+    osp.pupil.value=22
+    listobj(osp['pupil'])
 
 
 .. parsed-literal::
 
-    (('aperture', 'object', 'pupil'), 1.0)
-
+    aperture: object epd; value=22
+    
 
 
 .. code:: ipython3
 
-    osp.pupil.value=22
     opm.update_model()
 
 Add first component
@@ -102,7 +99,7 @@ The listing shows the imported part is a cemented lens doublet.
                   c            t        medium     mode   zdr      sd
       Obj:     0.000000  1.00000e+10       air             1      1.0000
     32327:     0.016268      6.00000     N-BK7             1      12.000
-        2:    -0.022401      2.50000     N-SF5             1      12.289
+        2:    -0.022401      2.50000     N-SF5             1      1.0000
         3:    -0.007696      10.0000       air             1      12.000
       Img:     0.000000      0.00000                       1      1.0000
 
@@ -157,14 +154,16 @@ The imported element, CE2, is a triplet with a thin, aspheric, cap.
                   c            t        medium     mode   zdr      sd
       Obj:     0.000000  1.00000e+10       air             1      1.0000
     32327:     0.016268      6.00000     N-BK7             1      12.000
-        2:    -0.022401      2.50000     N-SF5             1      12.289
+        2:    -0.022401      2.50000     N-SF5             1      1.0000
         3:    -0.007696      10.0000       air             1      12.000
     49663:     0.042553      9.00000   S-LAL 8             1      12.629
         5:    -0.027248      2.50000   S-TIH53             1      11.842
-        6:     0.000000    0.0800000   517.520             1      11.004
+        6:     0.000000    0.0800000 517000.520000             1      11.004
         7:    -0.003096      17.8000       air             1      10.990
       Img:     0.000000      0.00000                       1      1.0000
 
+
+opm.update_model()
 
 Use the :func:`~.listobj` function to get formatted output of an object's contents.
 
@@ -215,7 +214,7 @@ Use the :func:`~.listobj` function to get formatted output of an object's conten
 
 
 
-.. image:: output_31_0.png
+.. image:: output_32_0.png
 
 
 Flipping a lens element
@@ -243,7 +242,7 @@ Flip the second cemented element.
 
 
 
-.. image:: output_36_0.png
+.. image:: output_37_0.png
 
 
 Restore the element to its original orientation.
@@ -259,7 +258,7 @@ Restore the element to its original orientation.
 
 
 
-.. image:: output_39_0.png
+.. image:: output_40_0.png
 
 
 Flip operation for a range of Interfaces
@@ -277,11 +276,11 @@ Sometimes it is more convenient to specify a range of interface indices.
                   c            t        medium     mode   zdr      sd
       Obj:     0.000000  1.00000e+10       air             1      1.0000
     32327:     0.016268      6.00000     N-BK7             1      12.000
-        2:    -0.022401      2.50000     N-SF5             1      12.289
+        2:    -0.022401      2.50000     N-SF5             1      1.0000
         3:    -0.007696      10.0000       air             1      12.000
     49663:     0.042553      9.00000   S-LAL 8             1      12.629
         5:    -0.027248      2.50000   S-TIH53             1      11.842
-        6:     0.000000    0.0800000   517.520             1      11.004
+        6:     0.000000    0.0800000 517000.520000             1      11.004
         7:    -0.003096      17.8000       air             1      10.990
       Img:     0.000000      0.00000                       1      1.0000
 
@@ -301,12 +300,12 @@ If we want to flip the lens assembly end for end, we would want to flip the rang
 
                   c            t        medium     mode   zdr      sd
       Obj:     0.000000  1.00000e+10       air             1      1.0000
-        1:     0.003096    0.0800000   517.520             1      10.990
+        1:     0.003096    0.0800000 517000.520000             1      10.990
         2:    -0.000000      2.50000   S-TIH53             1      11.004
         3:     0.027248      9.00000   S-LAL 8             1      11.842
     49663:    -0.042553      10.0000       air             1      12.629
         5:     0.007696      2.50000     N-SF5             1      12.000
-        6:     0.022401      6.00000     N-BK7             1      12.289
+        6:     0.022401      6.00000     N-BK7             1      1.0000
     32327:    -0.016268      17.8000       air             1      12.000
       Img:     0.000000      0.00000                       1      1.0000
 
@@ -318,7 +317,7 @@ If we want to flip the lens assembly end for end, we would want to flip the rang
 
 
 
-.. image:: output_45_0.png
+.. image:: output_46_0.png
 
 
 All of the information is transformed by the :meth:`~.opticalmodel.OpticalModel.flip` operation; this can be seen be using :func:`~.listobj` on the 1st interface of the sequential model.
@@ -334,7 +333,7 @@ All of the information is transformed by the :meth:`~.opticalmodel.OpticalModel.
     profile: EvenPolynomial
     c=0.003095913950326,   r=323.006393602994   conic cnst=0.0
     coefficients: [-0.0, -1.38925111836e-05, 2.08175206307e-08, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0]
-    surface_od=10.990191081085245
+    surface_od=10.990183852239241
     
 
 

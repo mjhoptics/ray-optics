@@ -52,11 +52,11 @@ Setup convenient aliases for using rayoptics functions
 .. parsed-literal::
 
                   r            t        medium     mode   zdr      sd
-      Obj:     0.000000  1.00000e+13       air             1      0.0000
+      Obj:     0.000000  1.00000e+13       air             1      1.0000
     32327:    61.470000      6.00000     N-BK7             1      12.000
-        2:   -44.640000      2.50000     N-SF5             1      12.289
+        2:   -44.640000      2.50000     N-SF5             1      1.0000
         3:  -129.940000      95.9519       air             1      12.000
-      Img:     0.000000      0.00000                       1   0.0046062
+      Img:     0.000000      0.00000                       1      1.0000
 
 
 .. code:: ipython3
@@ -106,7 +106,6 @@ A convenience method in :class:`~.ParaxialModel`, :meth:`~.paraxialdesign.Paraxi
     pp1               1.451
     bfl               95.95
     ppk               4.079
-    f/#               4.001
     m                -1e-11
     red          -9.997e+10
     obj_dist          1e+13
@@ -119,9 +118,11 @@ A convenience method in :class:`~.ParaxialModel`, :meth:`~.paraxialdesign.Paraxi
     img_ht            1.746
     exp_dist         -5.551
     exp_radius        12.68
+    f/# img           4.001
     na img           -0.124
     n img                 1
     optical invariant       0.2182
+    
 
 
 Generate a lens picture

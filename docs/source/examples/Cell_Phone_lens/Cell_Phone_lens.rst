@@ -7,7 +7,6 @@ From U.S. Patent 7,535,658
 .. code:: ipython3
 
     %matplotlib inline
-    #%matplotlib widget
 
 .. code:: ipython3
 
@@ -112,6 +111,7 @@ Update the model
 
     opm.update_model()
 
+
 Turn off automatically resizing apertures based on sequential model ray trace.
 
 .. code:: ipython3
@@ -156,7 +156,6 @@ List the sequential model and the first order properties
     pp1              -1.976
     bfl              0.5678
     ppk               4.987
-    f/#                 3.5
     m            -5.555e-10
     red            -1.8e+09
     obj_dist          1e+10
@@ -169,9 +168,11 @@ List the sequential model and the first order properties
     img_ht              3.5
     exp_dist         -3.602
     exp_radius       0.5854
+    f/# img             3.5
     na img          -0.1414
     n img                 1
     optical invariant          0.5
+    
 
 
 .. code:: ipython3
@@ -279,8 +280,7 @@ Plot a Spot Diagram
                           scale_type=Fit.All_Same, dpi=200, is_dark=isdark).plot()
 
 
-
-.. image:: output_32_0.png
+.. image:: output_32_1.png
 
 
 Save the model

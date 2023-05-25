@@ -15,13 +15,6 @@ This notebook shows the steps to follow to open a Zemax zmx file of a ThorLabs a
     # initialization
     from rayoptics.environment import *
 
-Use the object oriented filesystem interface from Python 3
-----------------------------------------------------------
-
-.. code:: ipython3
-
-    root_pth = Path(rayoptics.__file__).resolve().parent
-
 Read Zemax .zmx file for ThorLabs part 354710-C
 -----------------------------------------------
 
@@ -35,7 +28,7 @@ The webpage for the 354710-C aspheric lens is `here <https://www.thorlabs.com/th
 
 .. code:: ipython3
 
-    opm, info = open_model(root_pth/"zemax/tests/354710-C-Zemax(ZMX).zmx", info=True)
+    opm, info = open_model(Path.cwd() / "354710-C-Zemax(ZMX).zmx", info=True)
 
 info is a tuple of the following items:
 
@@ -52,9 +45,10 @@ info is a tuple of the following items:
 .. parsed-literal::
 
     ({'VERS': '140124 258 36214',
-      'pupil': ('aperture', 'object', 'pupil'),
+      'pupil': ('aperture', 'object', 'epd'),
       'FTYP': '0 0 1 1 0 0 0',
       'STANDARD': 5,
+      '# clear ap': 6,
       'EVENASPH': 1,
       'CONI': 1,
       'conj type': 'infinite',
@@ -63,9 +57,9 @@ info is a tuple of the following items:
       'fov': ('field', 'object', 'angle'),
       '# fields': 1,
       'GCAT': ['LIGHTPATH', 'SCHOTT'],
+      'glass substituted': 2,
       'encoding': 'utf-16'},
-     {'BK7': "create_glass('N-BK7','Schott')",
-      'D-ZK3M': "InterpolatedGlass('D-ZK3M', cat='LightPath', pairs=[(2352.4, 1.555),(1970.1, 1.561),(1529.6, 1.568),(1128.6, 1.573),(1014.0, 1.575),(852.1, 1.578),(706.5, 1.582),(656.3, 1.583),(643.8, 1.584),(632.8, 1.584),(589.3, 1.586),(587.6,1.586),(546.1, 1.589),(486.1, 1.593),(480.0, 1.594),(435.8, 1.598),(404.7, 1.602),(365.0, 1.610)])"})
+     {'D-ZK3M': ('D-ZK3', 'CDGM'), 'BK7': ('BK7', 'Robb1983.SCHOTT')})
 
 
 
@@ -77,7 +71,7 @@ The other glass here isn't in any of the ray-optics catalogs, and it apparently 
 
 One thing of importance is what wavelength this material is going to be used. The usual convenient way of specifying an optical glass with the index and V number is really only adequate in the visible wavelengths. In this case, the lens file is going to be used in the infrared, at 1550 nanometers. Fortunately there are adequate data points for the material definition in the IR.
 
-The best approach to using the available data is to interpolate refractive index values from the refractive index table in the datasheet. There is a material model in the :mod:`~.seq.medium` package called :class:`~.seq.medium.InterpolatedGlass` that takes a glass name, a catalog name, and a list of wavelength/refractive index pairs. The template .smx file is edited with new InterpolatedGlass definition for D-ZK3M and saved with the same name as the .zmx file but with a .smx extender. The template file can be deleted, because it's no longer needed.
+The best approach to using the available data is to interpolate refractive index values from the refractive index table in the datasheet. There is a material model in the :mod:`opticalglass.opticalmedium` package called :class:`opticalglass.opticalmedium.InterpolatedMedium` that takes a glass name, a catalog name, and a list of wavelength/refractive index pairs. The template .smx file is edited with new InterpolatedMedium definition for D-ZK3M and saved with the same name as the .zmx file but with a .smx extender. The template file can be deleted, because it's no longer needed.
 
 The name of this file should be the same as the name of the original Zemax file. But instead of an extender of zmx use an extender of smx, so when we do that, we now have an smx file right next to it. We can delete the template file, because that's no longer needed.
 
@@ -85,7 +79,7 @@ Open the model again.
 
 .. code:: ipython3
 
-    opm, info = open_model(root_pth/"zemax/tests/354710-C-Zemax(ZMX).zmx", info=True)
+    opm, info = open_model(Path.cwd() / "354710-C-Zemax(ZMX).zmx", info=True)
 
 .. code:: ipython3
 
@@ -97,9 +91,10 @@ Open the model again.
 .. parsed-literal::
 
     ({'VERS': '140124 258 36214',
-      'pupil': ('aperture', 'object', 'pupil'),
+      'pupil': ('aperture', 'object', 'epd'),
       'FTYP': '0 0 1 1 0 0 0',
       'STANDARD': 5,
+      '# clear ap': 6,
       'EVENASPH': 1,
       'CONI': 1,
       'conj type': 'infinite',
@@ -110,11 +105,11 @@ Open the model again.
       'GCAT': ['LIGHTPATH', 'SCHOTT'],
       'encoding': 'utf-16'},
      {'BK7': "create_glass('N-BK7','Schott')",
-      'D-ZK3M': "InterpolatedGlass('D-ZK3M', cat='LightPath', pairs=[(2352.4, 1.555),(1970.1, 1.561),(1529.6, 1.568),(1128.6, 1.573),(1014.0, 1.575),(852.1, 1.578),(706.5, 1.582),(656.3, 1.583),(643.8, 1.584),(632.8, 1.584),(589.3, 1.586),(587.6,1.586),(546.1, 1.589),(486.1, 1.593),(480.0, 1.594),(435.8, 1.598),(404.7, 1.602),(365.0, 1.610)])"})
+      'D-ZK3M': "om.InterpolatedMedium('D-ZK3M', cat='LightPath', pairs=[(2352.4, 1.555),(1970.1, 1.561),(1529.6, 1.568),(1128.6, 1.573),(1014.0, 1.575),(852.1, 1.578),(706.5, 1.582),(656.3, 1.583),(643.8, 1.584),(632.8, 1.584),(589.3, 1.586),(587.6,1.586),(546.1, 1.589),(486.1, 1.593),(480.0, 1.594),(435.8, 1.598),(404.7, 1.602),(365.0, 1.610)])"})
 
 
 
-Examining the info, The InterpolatedGlass definition for D-ZK3M is being used as well as the N-BK7 substitution for BK7. All of the flags for glass not found or glass substituted have been resolved.
+Examining the info, the InterpolatedMedium definition for D-ZK3M is being used as well as the N-BK7 substitution for BK7. All of the flags for glass not found or glass substituted have been resolved.
 
 Setup convenient aliases for using rayoptics functions
 
@@ -148,7 +143,7 @@ Setup convenient aliases for using rayoptics functions
 .. parsed-literal::
 
                   c            t        medium     mode   zdr      sd
-      Obj:     0.000000  1.00000e+10       air             1      0.0000
+      Obj:     0.000000  1.00000e+10       air             1      1.0000
      Stop:     1.182174     0.862527    D-ZK3M             1     0.75000
         2:     0.000000     0.523243       air             1     0.57417
         3:     0.000000     0.250000     N-BK7             1     0.24917
@@ -183,7 +178,6 @@ A convenience method in :class:`~.ParaxialModel`, :meth:`~.paraxialdesign.Paraxi
     pp1                  -0
     bfl              0.2499
     ppk                1.24
-    f/#              0.9933
     m             -1.49e-10
     red          -6.712e+09
     obj_dist          1e+10
@@ -196,9 +190,11 @@ A convenience method in :class:`~.ParaxialModel`, :meth:`~.paraxialdesign.Paraxi
     img_ht          0.02601
     exp_dist          -1.24
     exp_radius         0.75
+    f/# img          0.9933
     na img          -0.4496
     n img                 1
     optical invariant      0.01309
+    
 
 
 Generate a lens picture
@@ -214,7 +210,7 @@ All graphics in rayoptics are based on matplotlib.
 
 
 
-.. image:: output_21_0.png
+.. image:: output_19_0.png
 
 
 Draw a transverse ray aberration plot
@@ -229,7 +225,7 @@ This is done using the :mod:`.axisarrayfigure` module.
 
 
 
-.. image:: output_23_0.png
+.. image:: output_21_0.png
 
 
 The model from ThorLabs only had 1 wavelength defined. Use the :class:`~.opticalspec.OpticalSpecs` instance, `osp`, to modify the :attr:`~.opticalspec.OpticalSpecs.spectral_region` in the optical subpackage to add wavelengths in the red and blue. The wavelenghts can be specified directly in nm or by using spectral line designations.
@@ -268,7 +264,7 @@ The aberration plot can be updated by calling :meth:`~.axisarrayfigure.AxisArray
 
 
 
-.. image:: output_30_0.png
+.. image:: output_28_0.png
 
 
 
@@ -282,7 +278,7 @@ List the model, and use an alternate model listing command, list_sg, for "list s
 .. parsed-literal::
 
                   c            t        medium     mode   zdr      sd
-      Obj:     0.000000  1.00000e+10       air             1      0.0000
+      Obj:     0.000000  1.00000e+10       air             1      1.0000
      Stop:     1.182174     0.862527    D-ZK3M             1     0.75000
         2:     0.000000     0.523243       air             1     0.57417
         3:     0.000000     0.250000     N-BK7             1     0.24917
@@ -326,7 +322,7 @@ So we just take a quick look at what the actual surface definition is. We see th
     c=1.1821736792829385,   r=0.8458993949235631   conic cnst=-0.4776343430417
     coefficients: [0.0, -0.006313587842251, -0.009394960901464, -0.01707674864971, 0.008070222726967, -0.02139444912229, 0.0, 0.0]
     surface_od=0.75
-    radius=0.75
+    ca: radius=0.75
     
 
 
@@ -378,7 +374,7 @@ The decenter is defined by a translation, the tilt is defined by alpha, beta, an
     decenter: [0. 0. 0.]
     euler angles: [0. 0. 0.]
     surface_od=0.75
-    radius=0.75
+    ca: radius=0.75
     
 
 
@@ -404,7 +400,7 @@ To laterally offset the lens element in the y direction, say by 0.2 millimeters,
     decenter: [0.  0.2 0. ]
     euler angles: [0. 0. 0.]
     surface_od=0.75
-    radius=0.75
+    ca: radius=0.75
     
 
 
@@ -523,9 +519,9 @@ Add a dummy plane, following the object surface. I'll list the model, and we see
         0:  1.00000e+10          air
         1:      0.00000          air
         2:                                  decenter     0.0000    0.20000     0.0000     0.0000     0.0000
-        2:     0.862527       D-ZK3M
+               0.862527       D-ZK3M
         3:                                   reverse     0.0000    0.20000     0.0000     0.0000     0.0000
-        3:     0.523243          air
+               0.523243          air
         4:     0.250000        N-BK7
         5:     0.249999          air
         6:                     dummy
@@ -544,7 +540,7 @@ Now update the model and redraw the layout. Note that the lens element has shift
 
 
 
-.. image:: output_55_0.png
+.. image:: output_53_0.png
 
 
 
@@ -557,7 +553,7 @@ Now refresh the aberration plot to see what the aberrations look like now. Notic
 
 
 
-.. image:: output_57_0.png
+.. image:: output_55_0.png
 
 
 

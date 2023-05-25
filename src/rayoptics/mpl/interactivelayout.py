@@ -10,11 +10,9 @@
 
 import numpy as np
 
-from rayoptics.gui.util import bbox_from_poly, scale_bounds
-
+import rayoptics
 from rayoptics.mpl.interactivefigure import InteractiveFigure
-
-import rayoptics.elem.layout
+from rayoptics.gui.util import bbox_from_poly, scale_bounds
 
 
 class InteractiveLayout(InteractiveFigure):
