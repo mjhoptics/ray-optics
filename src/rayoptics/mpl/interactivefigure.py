@@ -611,9 +611,9 @@ class ZoomBoxAction():
         self.saved_events = fig.disconnect_events()
         rectprops = dict(edgecolor=fig._rgb['foreground'], fill=False)
         self.rubber_box = widgets.RectangleSelector(
-            fig.ax, on_release, drawtype='box', useblit=False,
+            fig.ax, on_release, useblit=False,
             button=[1, 3],  # don't use middle button
-            minspanx=5, minspany=5, spancoords='pixels', rectprops=rectprops,
+            minspanx=5, minspany=5, spancoords='pixels', props=rectprops,
             interactive=False)
 
 
