@@ -32,15 +32,15 @@ et-xmlfile==1.1.0
     # via openpyxl
 executing==1.2.0
     # via stack-data
-fonttools==4.39.4
+fonttools==4.40.0
     # via matplotlib
 idna==3.4
     # via requests
-ipykernel==6.23.1
+ipykernel==6.23.2
     # via
     #   ipywidgets
     #   qtconsole
-ipython==8.13.2
+ipython==8.14.0
     # via
     #   ipykernel
     #   ipywidgets
@@ -86,7 +86,7 @@ numpy==1.24.3
     #   scipy
 openpyxl==3.1.2
     # via opticalglass
-opticalglass==1.0.5
+opticalglass==1.0.6
     # via rayoptics (setup.py)
 packaging==23.1
     # via
@@ -95,7 +95,7 @@ packaging==23.1
     #   matplotlib
     #   qtpy
     #   rayoptics (setup.py)
-pandas==2.0.1
+pandas==2.0.2
     # via
     #   opticalglass
     #   rayoptics (setup.py)
@@ -140,7 +140,7 @@ pytz==2023.3
     # via pandas
 pyyaml==6.0
     # via opticalglass
-pyzmq==25.0.2
+pyzmq==25.1.0
     # via
     #   ipykernel
     #   jupyter-client
@@ -153,7 +153,7 @@ qtpy==2.3.1
     # via
     #   qdarkstyle
     #   qtconsole
-requests==2.30.0
+requests==2.31.0
     # via
     #   opticalglass
     #   rayoptics (setup.py)
