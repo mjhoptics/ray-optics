@@ -448,8 +448,8 @@ class SequentialModel:
             - blank -> defaults to om.Air
             - **'REFL'** -> set interact_mode to 'reflect'
 
-        The `semi-diameter` entry is optional. It may also be entered using the 
-        `sd` keyword argument.
+        The `semi-diameter` entry is optional. It may also be entered using 
+        the `sd` keyword argument.
 
         """
         radius_mode = self.opt_model.radius_mode
