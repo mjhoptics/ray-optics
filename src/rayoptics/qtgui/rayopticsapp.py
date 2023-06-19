@@ -163,8 +163,9 @@ class MainWindow(QMainWindow):
             # self.open_file(path / "optical/tests/singlet_f3.roa")
             # self.open_file(path / "optical/tests/Nikon Nikkor Z 14-30mm f-4 S.roa")
             # self.open_file(path / "optical/tests/US007277232_Example04P.roa")
+            # self.open_file(path / "optical/tests/US05831776-1.zmx")
 
-            self.cur_dir = path / "models"
+            # self.cur_dir = path / "models"
             # self.open_file(path / "models/Cassegrain.roa")
             # self.open_file(path / "models/collimator.roa")
             # self.open_file(path / "models/Dall-Kirkham.roa")
@@ -172,7 +173,7 @@ class MainWindow(QMainWindow):
             # self.open_file(path / "models/Newtonian with diagonal.roa")
             # self.open_file(path / "models/petzval.roa")
             # self.open_file(path / "models/Ritchey_Chretien.roa")
-            self.open_file(path / "models/Sasian Triplet.roa")
+            # self.open_file(path / "models/Sasian Triplet.roa")
             # self.open_file(path / "models/singlet_f5.roa")
             # self.open_file(path / "models/thinlens.roa")
             # self.open_file(path / "models/telephoto.roa")
@@ -203,6 +204,10 @@ class MainWindow(QMainWindow):
             # self.open_file(path / "zemax/models/PhotoPrime/US04331391-1.zmx")
             # self.open_file(path / "zemax/models/PhotoPrime/US05331467-1.zmx")
             # self.open_file(path / "zemax/models/PhotoPrime/US05331467-1_asm.roa")
+
+            ro_test_files = Path("/Users/Mike/Developer/PyProjects/ro_test_files")
+            self.cur_dir = ro_test_files / "optical"
+            self.open_file(ro_test_files / "optical/Nikon Nikkor Z 14-30mm f-4 S real glasses.roa")
 
     def add_subwindow(self, widget, model_info):
         sub_wind = self.mdi.addSubWindow(widget)
