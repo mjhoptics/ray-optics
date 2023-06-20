@@ -38,12 +38,24 @@ SelectInfo.info.__doc__ = "a dictionary of artist specific details of selection"
 
 
 def display_artist_and_event(callback_str, event, artist):
-    if artist and hasattr(artist, 'shape'):
+    if isinstance(artist, list):
+        artist_list = ""
+        spacer = ''
+        for a in artist:
+            if hasattr(a, 'shape'):
+                shape, handle = a.shape
+                artist_list += spacer + f"{shape.get_label()}.{handle}"
+                spacer = ', '
+            else:
+                artist_list += spacer + f"{type(a).__name__}"
+                spacer = ', '
+
+    elif artist and hasattr(artist, 'shape'):
         shape, handle = artist.shape
-        print('{} {}: shape: {}.{}'.format(callback_str, event.name,
-                                           shape.get_label(), handle))
+        print(f"{callback_str} {event.name}: "
+              f"shape: {shape.get_label()}.{handle}")
     else:
-        print('{} {}: shape: None'.format(callback_str, event.name))
+        print(f"{callback_str} {event.name}: shape: None")
 
 
 class InteractiveFigure(StyledFigure):
@@ -92,12 +104,16 @@ class InteractiveFigure(StyledFigure):
         self.update_data()
         self.view_bbox = view_bbox if view_bbox else self.fit_axis_limits()
 
+        self.connect_events()
+
+
     def connect_events(self, action_dict=None):
         'connect to all the events we need'
         if action_dict is None:
             action_dict = {'motion_notify_event': self.on_motion,
                            'button_press_event': self.on_press,
                            'button_release_event': self.on_release,
+                           'key_press_event': self.on_key_press,
                            # 'button_press_event': self.display_event,
                            # 'button_release_event': self.display_event,
                            # 'pick_event': self.on_select,
@@ -464,7 +480,6 @@ class InteractiveFigure(StyledFigure):
 
         self.draw_axes(self.do_draw_axes)
 
-        self.connect_events()
         self.canvas.draw_idle()
 
         return self
@@ -526,6 +541,9 @@ class InteractiveFigure(StyledFigure):
         #     display_artist_and_event('on_press', event, self.selected.artist)
         self.do_action(event, target_artist, 'press')
 
+    def on_key_press(self, event):
+        pass
+    
     def on_motion(self, event):
         if self.selected is None:
             artists = self.find_artists_at_location(event)
