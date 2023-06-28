@@ -140,14 +140,14 @@ def on_command_clicked(item):
     fct(*args, **kwargs)
 
 
-def create_plot_view(app, fig, title, view_width, view_ht, commands=None,
+def create_plot_view(app, figure, title, view_width, view_ht, commands=None,
                      add_panel_fcts=None, add_nav_toolbar=False,
                      drop_action=None):
     """ create a window hosting a (mpl) figure """
 
-    def create_light_or_dark_callback(fig):
+    def create_light_or_dark_callback(figure):
         def l_or_d(is_dark):
-            fig.sync_light_or_dark(is_dark)
+            figure.sync_light_or_dark(is_dark)
         return l_or_d
 
     # construct the top level widget
@@ -156,16 +156,17 @@ def create_plot_view(app, fig, title, view_width, view_ht, commands=None,
     top_layout = QHBoxLayout(widget)
     # set the layout on the widget
     widget.setLayout(top_layout)
+    widget.figure = figure
 
     if commands:
-        command_panel = create_command_panel(fig, commands)
+        command_panel = create_command_panel(figure, commands)
         top_layout.addWidget(command_panel)
 
     # construct the top level layout
     plot_layout = QVBoxLayout()
     top_layout.addLayout(plot_layout)
 
-    pc = PlotCanvas(app, fig, drop_action=drop_action)
+    pc = PlotCanvas(app, figure, drop_action=drop_action)
     if add_panel_fcts is not None:
         panel_layout = QHBoxLayout()
         plot_layout.addLayout(panel_layout)
@@ -174,9 +175,9 @@ def create_plot_view(app, fig, title, view_width, view_ht, commands=None,
             panel_layout.addWidget(panel)
         panel_layout.addStretch(50)
 
-    mi = ModelInfo(app.app_manager.model, update_figure_view, (fig,))
+    mi = ModelInfo(app.app_manager.model, update_figure_view, (figure,))
     sub_window = app.add_subwindow(widget, mi)
-    sub_window.sync_light_or_dark = create_light_or_dark_callback(fig)
+    sub_window.sync_light_or_dark = create_light_or_dark_callback(figure)
     lens_title = app.app_manager.model.name()
     sub_window.setWindowTitle(title + ': ' + lens_title)
     orig_x, orig_y = app.initial_window_offset()
@@ -206,18 +207,19 @@ def create_glass_map_view(app, glass_db):
     pdt = "Refractive Index"
     # hotwire GlassMapFigure to inherit from StyledFigure
     gm.GlassMapFigure.__bases__ = (StyledFigure,)
-    fig = gm.GlassMapFigure(glass_db, plot_display_type=pdt,
+    figure = gm.GlassMapFigure(glass_db, plot_display_type=pdt,
                             # width=5, height=4,
                             )
 
-    widget, pick_model = gmv.init_UI(app, fig)
+    widget, pick_model = gmv.init_UI(app, figure)
+    widget.figure = figure
 
     def refresh_gui(**kwargs):
-        pick_model.fill_table(fig.pick_list)
-    fig.refresh_gui = refresh_gui
-    mi = ModelInfo(app.app_manager.model, update_figure_view, (fig,))
+        pick_model.fill_table(figure.pick_list)
+    figure.refresh_gui = refresh_gui
+    mi = ModelInfo(app.app_manager.model, update_figure_view, (figure,))
     sub_window = app.add_subwindow(widget, mi)
-    sub_window.sync_light_or_dark = create_light_or_dark_callback(fig)
+    sub_window.sync_light_or_dark = create_light_or_dark_callback(figure)
     sub_window.setWindowTitle(title)
     orig_x, orig_y = app.initial_window_offset()
     sub_window.setGeometry(orig_x, orig_y, width, height)
