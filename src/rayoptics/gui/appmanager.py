@@ -158,7 +158,7 @@ class AppManager:
             if mi.model == self.model:
                 if mi.fct is not None:
                     try:
-                        mi.fct(*mi.args, **mi.kwargs)
+                        mi.fct(*mi.args, **{**kwargs, **mi.kwargs})
                     except RuntimeError:
                         del self.view_dict[view]
 

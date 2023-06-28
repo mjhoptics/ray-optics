@@ -85,8 +85,8 @@ class NullDropAction():
         return False
 
 
-def update_figure_view(plotFigure):
-    plotFigure.refresh()
+def update_figure_view(plotFigure, **kwargs):
+    plotFigure.refresh(**kwargs)
 
 
 class CommandItem(QListWidgetItem):

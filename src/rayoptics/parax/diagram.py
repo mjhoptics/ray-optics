@@ -171,7 +171,11 @@ class Diagram():
         return inputs
 
     def register_commands(self, *args, **inputs):
-        fig = inputs.pop('figure')
+        fig = inputs['figure']
+        gui_fct = inputs.pop('gui_fct', None)
+        if gui_fct is not None:
+            gui_fct(*args, **inputs)
+        inputs.pop('figure')
         self.command_inputs = deepcopy(inputs)
 
         def do_command_action(event, target, event_key):

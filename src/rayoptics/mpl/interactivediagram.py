@@ -72,7 +72,10 @@ class InteractiveDiagram(InteractiveFigure):
 
     def action_complete(self):
         super().action_complete()
-        self.diagram.register_commands((), figure=self)
+        args = tuple()
+        kwargs = {'figure': self,
+                  }
+        self.diagram.register_commands(*args, **kwargs)
 
     def fit_axis_limits(self):
         return self.diagram.fit_axis_limits()

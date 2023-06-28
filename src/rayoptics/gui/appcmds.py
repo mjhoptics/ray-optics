@@ -290,7 +290,10 @@ def create_parax_design_commands(fig):
     cmds = []
     dgm = fig.diagram
     # initialize dgm with a Select command
-    dgm.register_commands((), figure=fig)
+    args = tuple()
+    kwargs = {'figure': fig,
+              }
+    dgm.register_commands(*args, **kwargs)
 
     # draw polyline to define an initial model
     args = (interactivefigure.snap_to_grid_fct(0.05), True)
@@ -300,8 +303,12 @@ def create_parax_design_commands(fig):
               }
     cmds.append(('Sketch Diagram', (paraxialdesign.nodes_to_new_model, 
                                           args, kwargs)))
+
     # Select an existing point
-    cmds.append(('Select', (dgm.register_commands, (), {})))
+    cmds.append(('Select', (dgm.register_commands, (), 
+                            {'figure': fig,
+                             })))
+
     # Add thin lens
     cmds.append(('Add Thin Lens',
                  (dgm.register_add_replace_element, (),
@@ -481,7 +488,7 @@ def create_glass_map_view(opt_model, gui_parent=None):
     plotview.create_glass_map_view(gui_parent, glass_db)
 
 
-def update_table_view(table_view):
+def update_table_view(table_view, **kwargs):
     table_model = table_view.model()
     table_model.endResetModel()
 

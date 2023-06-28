@@ -114,9 +114,6 @@ class InteractiveFigure(StyledFigure):
                            'button_press_event': self.on_press,
                            'button_release_event': self.on_release,
                            'key_press_event': self.on_key_press,
-                           # 'button_press_event': self.display_event,
-                           # 'button_release_event': self.display_event,
-                           # 'pick_event': self.on_select,
                            }
         self.callback_ids = []
         for event, action in action_dict.items():
@@ -555,10 +552,10 @@ class InteractiveFigure(StyledFigure):
             cur_art = self.hilited.artist if self.hilited is not None else None
             nxt_art = next_hilited.artist if next_hilited is not None else None
             if nxt_art is not cur_art:
-                if self.hilited:
+                if self.hilited is not None:
                     self.hilited.artist.unhighlight(self.hilited.artist)
                     self.hilited.artist.figure.canvas.draw()
-                if next_hilited:
+                if next_hilited is not None:
                     next_hilited.artist.highlight(next_hilited.artist)
                     next_hilited.artist.figure.canvas.draw()
                 self.hilited = next_hilited
