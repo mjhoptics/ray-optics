@@ -82,6 +82,10 @@ class OpticalElement():
         self.actions = self.edit_shape_actions()
         self.handle_actions = self.e.handle_actions()
 
+    def listobj_str(self):
+        o_str = f"{type(self).__name__}: {self.get_label()}\n"
+        return o_str
+
     def update_shape(self, view):
         self.e.render_handles(self.opt_model)
         for key, graphics_handle in self.e.handles.items():
@@ -193,7 +197,7 @@ class OpticalElement():
                 action_obj.actions['release'](fig, event)
             self.select_pt = None
             self.move_direction = None
-            fig.refresh_gui(build='rebuild')
+            fig.refresh_gui(build='update')
 
         actions = {}
         actions['press'] = on_select_shape
@@ -216,6 +220,11 @@ class RayBundle():
         self.actions = self.edit_ray_bundle_actions()
         self.handle_actions = {}
         self.ray_table_callback = ray_table_callback
+
+    def listobj_str(self):
+        o_str = f"RayBundle: {self.fld_label}\n"
+        o_str += f"wavelength={self.wvl:10.4f} nm\n"
+        return o_str
 
     def get_label(self):
         return self.fld_label
@@ -307,6 +316,10 @@ class RayFanBundle():
         self.actions = {}
         self.handle_actions = {}
 
+    def listobj_str(self):
+        o_str = f"{type(self).__name__}: {self.get_label()}\n"
+        return o_str
+
     def get_label(self):
         return self.label
 
@@ -362,6 +375,10 @@ class SingleRay():
         self.actions = {}
         self.handle_actions = {}
 
+    def listobj_str(self):
+        o_str = f"{type(self).__name__}: {self.get_label()}\n"
+        return o_str
+
     def get_label(self):
         return self.label
 
@@ -407,6 +424,10 @@ class ParaxialRay():
         self.actions = self.edit_paraxial_layout_actions()
         self.handle_actions = {}
         self.vertex = None
+
+    def listobj_str(self):
+        o_str = f"{type(self).__name__}: {self.get_label()}\n"
+        return o_str
 
     def get_label(self):
         return self.label
@@ -470,7 +491,7 @@ class ParaxialRay():
         def on_release_point(fig, handle, event, info):
             add_event_data(self, event, handle, info)
             self.apply_data(self.vertex, event.lcl_pt)
-            fig.refresh_gui(build='rebuild')
+            fig.refresh_gui(build='update')
             self.vertex = None
             self.tfrm = None
 
@@ -529,7 +550,7 @@ class LensLayout():
                 estimated_length = ele_length + image_thi
             return estimated_length, offset_factor*estimated_length
 
-    def create_element_entities(self, view):
+    def create_element_entities(self, view, part_filter=''):
         opm = self.opt_model
         pt = opm.part_tree
         not_tags = ''
@@ -537,7 +558,7 @@ class LensLayout():
             not_tags = '#object'
         elif opm['ss'].conjugate_type == 'afocal':
             not_tags = '#object#image'
-        e_nodes = pt.nodes_with_tag(tag='#element#dummyifc#airgap',
+        e_nodes = pt.nodes_with_tag(tag=part_filter,
                                     not_tag=not_tags)
         elements = [create_optical_element(opm, e_node.id)
                     for e_node in e_nodes]

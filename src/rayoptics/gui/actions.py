@@ -27,6 +27,9 @@ import math
 
 from opticalglass import glassfactory as gfact
 
+kwupdate = {
+    'build': 'update',
+}
 
 class Action():
     """ Action built on a set/get function pair """
@@ -44,12 +47,12 @@ class Action():
 
         def on_edit(fig, event, new_value):
             setf(self.cur_value, new_value)
-            fig.refresh_gui()
+            fig.refresh_gui(**kwupdate)
         self.actions['drag'] = on_edit
 
         def on_release(fig, event):
             self.new_value = getf()
-            fig.refresh_gui()
+            fig.refresh_gui(**kwupdate)
         self.actions['release'] = on_release
 
 
@@ -71,12 +74,12 @@ class AttrAction():
         def on_edit(fig, event, delta_value):
             setattr(self.object, self.attr, self.cur_value+delta_value)
 #            print('AttrAction.on_edit:', self.attr, self.cur_value+delta_value)
-            fig.refresh_gui()
+            fig.refresh_gui(**kwupdate)
         self.actions['drag'] = on_edit
 
         def on_release(fig, event):
             self.new_value = getattr(self.object, self.attr, None)
-            fig.refresh_gui()
+            fig.refresh_gui(**kwupdate)
         self.actions['release'] = on_release
 
 
@@ -98,12 +101,12 @@ class SagAction():
             self.surf.set_z_sag(value)
 #            cv = self.surf.calc_cv_from_zsag(value)
 #            print('SagAction.on_edit (x, y, cv):', value, cv)
-            fig.refresh_gui()
+            fig.refresh_gui(**kwupdate)
         self.actions['drag'] = on_edit
 
         def on_release(fig, event):
             self.new_value = self.surf.z_sag((event.x, event.ydata))
-            fig.refresh_gui()
+            fig.refresh_gui(**kwupdate)
         self.actions['release'] = on_release
 
 
@@ -145,7 +148,7 @@ class BendAction():
             cv2_new = cv2 + delta_cv
             self.ele.s1.profile_cv = cv1_new
             self.ele.s2.profile_cv = cv2_new
-            fig.refresh_gui()
+            fig.refresh_gui(**kwupdate)
         self.actions['drag'] = on_edit
 
         def on_release(fig, event):
@@ -153,7 +156,7 @@ class BendAction():
             xsag = sag(self.cv_new, event.lcl_pt[1])
 #            print('on_release: {:.3f} {:.3f} {:.5f}'
 #                  .format(event.lcl_pt[0], xsag, self.cv_new))
-            fig.refresh_gui()
+            fig.refresh_gui(**kwupdate)
         self.actions['release'] = on_release
 
 
@@ -178,4 +181,4 @@ class ReplaceGlassAction():
         mat = gfact.create_glass(glass_name, catalog_name)
         self.gap.medium = mat
         if self.update:
-            fig.refresh_gui()
+            fig.refresh_gui(**kwupdate)

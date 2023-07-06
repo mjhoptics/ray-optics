@@ -6,6 +6,7 @@
 
 .. codeauthor: Michael J. Hayford
 """
+import logging
 import math
 import numpy as np
 from copy import deepcopy
@@ -294,6 +295,10 @@ class DiagramNode():
         self.handles = {}
         self.actions = self.handle_actions()
 
+    def listobj_str(self):
+        o_str = f"node{str(self.node):>3}"
+        return o_str
+
     def update_shape(self, view):
         diagram = self.diagram
         # set alpha to 25% -> #40
@@ -391,6 +396,10 @@ class DiagramEdge():
         self.handles = {}
         self.actions = self.handle_actions()
 
+    def listobj_str(self):
+        o_str = f"edge{str(self.node):>3}"
+        return o_str
+
     def update_shape(self, view):
         shape = self.diagram.shape
         dgm_rgb = self.diagram.dgm_rgb
@@ -450,6 +459,10 @@ class BarrelConstraint():
         self.handles = {}
         self.actions = self.handle_actions()
 
+    def listobj_str(self):
+        o_str = "BarrelConstraint"
+        return o_str
+
     def update_shape(self, view):
         dgm_rgb = self.diagram.dgm_rgb
         barrel_radius = self.diagram.barrel_constraint_radius
@@ -494,6 +507,10 @@ class ConjugateLine():
         self.shape_orig = []
         self.handles = {}
         self.actions = self.handle_actions()
+
+    def listobj_str(self):
+        o_str = f"ConjugateLine: {self.line_type}"
+        return o_str
 
     def update_shape(self, view):
         dgm_rgb = self.diagram.dgm_rgb
@@ -676,7 +693,7 @@ class EditNodeAction():
                 if self.constrain_to_wedge:
                     event_data = do_constrain_to_wedge(event_data)
                 diagram.apply_data(self.cur_node, event_data)
-                fig.refresh_gui(build='rebuild', src_model=parax_model)
+                fig.refresh_gui(build='update', src_model=parax_model)
                 self.cur_node = None
 
         self.actions = {}

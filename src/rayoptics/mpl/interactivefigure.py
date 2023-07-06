@@ -36,6 +36,9 @@ SelectInfo.info.__doc__ = "a dictionary of artist specific details of selection"
         info: a dictionary of artist specific details of selection
 """
 
+def artist_str(a):
+    shape, handle = a.shape
+    return f"{a}<{id(a)}>: {shape.listobj_str()}, {handle}, <{id(shape)}>"
 
 def display_artist_and_event(callback_str, event, artist):
     if isinstance(artist, list):
@@ -43,17 +46,14 @@ def display_artist_and_event(callback_str, event, artist):
         spacer = ''
         for a in artist:
             if hasattr(a, 'shape'):
-                shape, handle = a.shape
-                artist_list += spacer + f"{shape.get_label()}.{handle}"
+                artist_list += spacer + artist_str(a)
                 spacer = ', '
             else:
                 artist_list += spacer + f"{type(a).__name__}"
                 spacer = ', '
-
     elif artist and hasattr(artist, 'shape'):
-        shape, handle = artist.shape
         print(f"{callback_str} {event.name}: "
-              f"shape: {shape.get_label()}.{handle}")
+              +artist_str(artist))
     else:
         print(f"{callback_str} {event.name}: shape: None")
 
@@ -89,14 +89,17 @@ class InteractiveFigure(StyledFigure):
         self.do_draw_axes = do_draw_axes
         self.oversize_factor = oversize_factor
         self.aspect = aspect
-        self.hilited = None
-        self.selected = None
+
+        self.hilited_artists: list[SelectInfo] = []
+        self.selected_shape = None
         self.do_scale_bounds = do_scale_bounds
 
         self.artist_filter = None
         self.do_action = self.do_shape_action
         self.event_dict = {}
 
+        self.is_mouse_down = False
+        # self.mouse_down_count = 0
         self.on_finished = None
 
         super().__init__(**kwargs)
@@ -194,14 +197,15 @@ class InteractiveFigure(StyledFigure):
         # print('update_patches')
         for shape in shapes:
             handles = shape.update_shape(self)
-            for key, gui_handle in handles.items():
-                poly, bbox = gui_handle
+            for handle, gui_handle in handles.items():
+                artist, bbox = gui_handle
                 # add shape and handle key as attribute on artist
                 if ~np.isnan(bbox).all():
-                    poly.shape = (shape, key)
+                    # this is the tie between artist and shape
+                    artist.shape = (shape, handle)
                     # print(f'shape: {type(shape).__name__} {key}: '
                     #       f'{type(poly).__name__}')
-                    self.artists.append(poly)
+                    self.artists.append(artist)
                     if len(bbox_list) == 0:
                         bbox_list = bbox
                     else:
@@ -284,12 +288,14 @@ class InteractiveFigure(StyledFigure):
                                 **kwargs)
         p.highlight = highlight
         p.unhighlight = unhighlight
+        # print(f"create_polygon: {p} <{id(p)}>")
         return p
 
     def create_polyline(self, poly,
                         linewidth=0.5, hilite_linewidth=2,
                         **kwargs):
         def highlight(p):
+            # print("highlight: "+artist_str(p))
             lw = p.get_linewidth()
             ls = p.get_linestyle()
             c = p.get_color()
@@ -298,6 +304,7 @@ class InteractiveFigure(StyledFigure):
             p.update(hilite_kwargs)
 
         def unhighlight(p):
+            # print("unhighlight: "+artist_str(p))
             c, lw, ls = p.unhilite
             p.set_linewidth(lw)
             p.set_linestyle(ls)
@@ -335,6 +342,7 @@ class InteractiveFigure(StyledFigure):
 
         p.highlight = highlight
         p.unhighlight = unhighlight
+        # print(f"create_polyline: {p} <{id(p)}>")
         return p
 
     def create_vertex(self, vertex,
@@ -386,7 +394,15 @@ class InteractiveFigure(StyledFigure):
 
         p.highlight = highlight
         p.unhighlight = unhighlight
+        # print(f"create_vertex: {p} <{id(p)}>")
         return p
+
+    def get_artist_for_handle(self, handle) -> SelectInfo:
+        shape, info = handle
+        for a in self.artists:
+            if shape == a.shape:
+                return SelectInfo(a, info)
+        return None
 
     def update_axis_limits(self, bbox):
         self.ax.set_xlim(bbox[0][0], bbox[1][0])
@@ -482,7 +498,7 @@ class InteractiveFigure(StyledFigure):
         return self
 
     # --- interactive actions
-    def find_artists_at_location(self, event):
+    def find_artists_at_location(self, event) -> list[SelectInfo]:
         """Returns a list of shapes in zorder at the event location."""
         artists = []
         for artist in self.ax.get_children():
@@ -508,7 +524,7 @@ class InteractiveFigure(StyledFigure):
         return sorted(artists, key=lambda a: a.artist.get_zorder(),
                       reverse=True)
 
-    def do_shape_action(self, event, target, event_key):
+    def do_shape_action(self, event, target:SelectInfo, event_key):
         """Execute the target shape's action for the event_key.
         
         This is the default function that the do_action callable attribute is
@@ -526,62 +542,94 @@ class InteractiveFigure(StyledFigure):
         artist = event.artist
         display_artist_and_event('on_select', event, artist)
 
-    def display_event(self, event):
-        artist = self.hilited.artist if self.hilited else None
-        display_artist_and_event('display_event', event, artist)
-
-    def on_press(self, event):
-        self.save_do_scale_bounds = self.do_scale_bounds
-        self.do_scale_bounds = False
-        target_artist = self.selected = self.hilited
-        # if target_artist is not None:
-        #     display_artist_and_event('on_press', event, self.selected.artist)
-        self.do_action(event, target_artist, 'press')
-
     def on_key_press(self, event):
         pass
     
     def on_motion(self, event):
-        if self.selected is None:
-            artists = self.find_artists_at_location(event)
-            next_hilited = artists[0] if len(artists) > 0 else None
-            # if next_hilited is not None:
-            #     display_artist_and_event('on_motion ({})'.format(len(artists)),
-            #                              event, next_hilited.artist)
-
-            cur_art = self.hilited.artist if self.hilited is not None else None
-            nxt_art = next_hilited.artist if next_hilited is not None else None
-            if nxt_art is not cur_art:
-                if self.hilited is not None:
-                    self.hilited.artist.unhighlight(self.hilited.artist)
-                    self.hilited.artist.figure.canvas.draw()
-                if next_hilited is not None:
-                    next_hilited.artist.highlight(next_hilited.artist)
-                    next_hilited.artist.figure.canvas.draw()
-                self.hilited = next_hilited
-                if next_hilited is None:
-                    logging.debug("hilite_change: no object found")
-                else:
-                    shape, handle = self.hilited.artist.shape
-                    logging.debug("hilite_change: %s %s %d",
-                                  shape.get_label(), handle,
-                                  self.hilited.artist.get_zorder())
+        # print(f"ifig.on_motion: mouse_down={self.is_mouse_down}")
+        # if self.selected_shape is None:
+        #     print("selected_shape: None")
+        # else:
+        #     print(f"selected_shape: {self.selected_shape[0]}, "
+        #           f"handle={self.selected_shape[1]}")
+        # if self.is_mouse_down:
+        #     self.mouse_down_count += 1
+        # if self.mouse_down_count == 1:
+        #     pass
+        if self.selected_shape is None:
+            artist_infos = self.find_artists_and_hilite(event)
+            # display_artist_and_event(f"on_motion ({len(artist_infos)})", 
+            #                          event, artist_infos)
         else:
-            # display_artist_and_event('on_drag', event, self.selected.artist)
-            self.do_action(event, self.selected, 'drag')
-            shape, handle = self.selected.artist.shape
-            logging.debug("on_drag: %s %s %d", shape.get_label(), handle,
-                          self.selected.artist.get_zorder())
+            if self.is_mouse_down:
+                selected_artist = self.get_artist_for_handle(
+                    self.selected_shape)
+                # display_artist_and_event('on_drag', event, 
+                #                          selected_artist.artist)
+                self.do_action(event, selected_artist, 'drag')
+            else:
+                artist_infos = self.find_artists_and_hilite(event)
+
+    def on_press(self, event):
+        self.save_do_scale_bounds = self.do_scale_bounds
+        self.do_scale_bounds = False
+
+        artist_infos = self.find_artists_and_hilite(event)
+        selected_artist = (artist_infos[0]
+                           if len(artist_infos) > 0 else None)
+
+        self.selected_shape = (selected_artist.artist.shape, 
+                               selected_artist.info)
+        # print(f"selected_shape: {self.selected_shape[0]}, "
+        #       f"handle={self.selected_shape[1]}")
+        self.is_mouse_down = True
+        self.do_action(event, selected_artist, 'press')
+        # print(f"selected_shape: {self.selected_shape[0]}, "
+        #       f"handle={self.selected_shape[1]}")
+
+        # print("selected.artist: "+artist_str(selected_artist))
+        # for i, a in enumerate(self.artists):
+        #     print(f"{i:2d} {artist_str(a)}")
+        # if selected_artist is not None:
+        #     display_artist_and_event('on_press', event, selected_artist)
 
     def on_release(self, event):
         'on release we reset the press data'
-        logging.debug("on_release")
-        # display_artist_and_event('on_release', event, self.selected.artist)
+        selected_artist = self.get_artist_for_handle(self.selected_shape)
+        # display_artist_and_event('on_release', event, selected_artist)
 
-        self.do_action(event, self.selected, 'release')
+        self.do_action(event, selected_artist, 'release')
         self.do_scale_bounds = self.save_do_scale_bounds
-        self.selected = None
+        # print(f"selected_shape: {self.selected_shape[0]}, "
+        #       f"handle={self.selected_shape[1]}")
+        self.selected_shape = None
+        self.is_mouse_down = False
         self.action_complete()
+
+    def find_artists_and_hilite(self, event) -> list[SelectInfo]:
+        """ identify and hilite artists at the mouse event location"""
+        artist_infos = self.find_artists_at_location(event)
+        self.hilited_artists = update_artist_hiliting(
+            self.hilited_artists, artist_infos)
+        return artist_infos
+
+
+def update_artist_hiliting(hilited_artists, new_artists):
+    """ manage artist hiliting in response to mouse event"""
+    hilited_artist_set = {a.artist for a in hilited_artists}
+    new_artists_set = {a.artist for a in new_artists}
+    to_unhilite = list(hilited_artist_set - new_artists_set)
+    for a in to_unhilite:
+        try:
+            a.unhighlight(a)
+            a.figure.canvas.draw()
+        except Exception as e:
+            pass
+    to_hilite = list(new_artists_set - hilited_artist_set)
+    for a in to_hilite:
+        a.highlight(a)
+        a.figure.canvas.draw()
+    return new_artists
 
 
 class PanAction():

@@ -30,6 +30,8 @@ class InteractiveLayout(InteractiveFigure):
 
     def __init__(self, opt_model, refresh_gui=None,
                  offset_factor=0.05,
+                 do_draw_parts=True,
+                 part_filter='#element#dummyifc#airgap',
                  do_draw_rays=True,
                  do_draw_beams=True,
                  do_draw_edge_rays=True,
@@ -42,9 +44,13 @@ class InteractiveLayout(InteractiveFigure):
         is_dark = kwargs['is_dark'] if 'is_dark' in kwargs else False
         self.layout = rayoptics.elem.layout.LensLayout(opt_model, 
                                                        is_dark=is_dark)
+
+        self.do_draw_parts = do_draw_parts
+        self.part_filter = part_filter
+
         if do_draw_rays:
             self.do_draw_beams = do_draw_beams
-            self.do_draw_edge_rays = do_draw_rays
+            self.do_draw_edge_rays = do_draw_edge_rays
         else:
             self.do_draw_beams = False
             self.do_draw_edge_rays = False
@@ -69,10 +75,14 @@ class InteractiveLayout(InteractiveFigure):
         self.artists = []
         concat_bbox = []
         layout = self.layout
+        build = kwargs.get('build', 'rebuild')
 
-        self.ele_shapes = layout.create_element_entities(self)
-        self.ele_bbox = self.update_patches(self.ele_shapes)
-        concat_bbox.append(self.ele_bbox)
+        if self.do_draw_parts:
+            if build == 'rebuild':
+                self.ele_shapes = layout.create_element_entities(
+                    self, self.part_filter)
+            self.ele_bbox = self.update_patches(self.ele_shapes)
+            concat_bbox.append(self.ele_bbox)
 
         # if self.do_draw_beams or self.do_draw_edge_rays or self.do_draw_ray_fans:
         self.sl_so = layout.system_length(self.ele_bbox, 
@@ -80,26 +90,29 @@ class InteractiveLayout(InteractiveFigure):
         system_length, start_offset = self.sl_so
 
         if self.do_draw_beams or self.do_draw_edge_rays:
-            self.ray_shapes = layout.create_ray_entities(self, start_offset)
+            if build == 'rebuild':
+                self.ray_shapes = layout.create_ray_entities(
+                    self, start_offset)
             self.ray_bbox = self.update_patches(self.ray_shapes)
 
         if self.do_draw_ray_fans:
-            self.rayfan_shapes = layout.create_ray_fan_entities(
-                self, start_offset,
-                num_rays=self.num_rays_in_fan
-                )
+            if build == 'rebuild':
+                self.rayfan_shapes = layout.create_ray_fan_entities(
+                    self, start_offset, num_rays=self.num_rays_in_fan)
             self.rayfan_bbox = self.update_patches(self.rayfan_shapes)
 
         if self.do_paraxial_layout:
-            self.parax_shapes = layout.create_paraxial_ray_entities(self)
+            if build == 'rebuild':
+                self.parax_shapes = layout.create_paraxial_ray_entities(self)
             self.parax_bbox = self.update_patches(self.parax_shapes)
         
         for ef in self.entity_factory_list:
             # each entity factory is a tuple of callable, args, and kwargs
             # the callable signature includes the current figure.
-            ef_fct, ef_args, ef_kwargs = ef
-            ef_shapes = ef_fct(self, *ef_args, **ef_kwargs)
-            ef_bbox = self.update_patches(ef_shapes)
+            if build == 'rebuild':
+                ef_fct, ef_args, ef_kwargs = ef
+                self.ef_shapes = ef_fct(self, *ef_args, **ef_kwargs)
+            ef_bbox = self.update_patches(self.ef_shapes)
 
         sys_bbox = np.concatenate(concat_bbox)
         self.sys_bbox = scale_bounds(bbox_from_poly(sys_bbox),
