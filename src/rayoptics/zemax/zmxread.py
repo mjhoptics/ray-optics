@@ -555,7 +555,11 @@ class ZmxGlassHandler(GlassHandlerBase):
             elif name == '___BLANK':
                 nd = float(inputs[3])
                 vd = float(inputs[4])
-                g.medium = mg.ModelGlass(nd, vd, om.glass_encode(nd, vd))
+                if vd == 0:
+                    # Zemax treats Vd=0 as constant index
+                    g.medium = om.ConstantIndex(nd, f"n:{nd:.3f}")
+                else:
+                    g.medium = mg.ModelGlass(nd, vd, om.glass_encode(nd, vd))
                 self.track_contents[name] += 1
                 return True
             elif isanumber(name):
