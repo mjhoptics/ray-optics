@@ -147,22 +147,23 @@ def lens_from_power(power=0., bending=0., th=None, sd=1.,
     if th is None:
         th = sd/5
     
-    if bending == 1:
-        cv1 = power/(rndx - 1)
-        cv2 = 0
-    elif bending == -1:
-        cv2 = -power/(rndx - 1)
-        cv1 = 0
+    if power == 0:
+        cv1 = cv2 = 0
     else:
-        if power == 0:
-            cv1 = cv2 = 0
+        abs_bending = abs(bending)
+        if abs_bending == 1:
+            cv1 = power/(rndx - 1)
+            cv2 = 0
         else:
-            B = (bending - 1)/(bending + 1)
+            B = (abs_bending - 1)/(abs_bending + 1)
             a = (rndx - 1)*(th/rndx)*B
             b = 1 - B
             c = -power/(rndx - 1)
             cv1 = (-b + np.sqrt(b**2 - 4*a*c))/(2*a)
             cv2 = cv1*B
+
+        if bending < 0:
+            cv1, cv2 = -cv2, -cv1
 
     return cv1, cv2, th, rndx, sd
 
