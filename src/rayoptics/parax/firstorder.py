@@ -280,7 +280,6 @@ def compute_first_order(opt_model, stop, wvl):
     ax_ray, pr_ray = paraxial_trace(seq_model.path(wl=wvl), 0, yu, yu_bar)
 
     # Calculate the optical invariant
-    n_0 = seq_model.central_rndx(0)
     opt_inv = n_0*(ax_ray[1][ht]*pr_ray[0][slp] - pr_ray[1][ht]*ax_ray[0][slp])
 
     # Fill in the contents of the FirstOrderData struct
@@ -296,7 +295,7 @@ def compute_first_order(opt_model, stop, wvl):
     else:
         fod.img_dist = img_dist = -ax_ray[img][ht]/ax_ray[img][slp]
         fod.power = -ck1
-        fod.efl = -1.0/ck1
+        fod.efl = -n_k/ck1
         fod.pp1 = (dk1 - 1.0)*(n_0/ck1)
         fod.ppk = (p_ray[-2][ht] - 1.0)*(n_k/ck1)
     fod.ffl = fod.pp1 - fod.efl

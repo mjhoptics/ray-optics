@@ -440,7 +440,7 @@ def elements_from_sequence(ele_model, seq_model, part_tree):
 
     # rename and tag the Image space airgap
     node = part_tree.parent_node((seq_model.gaps[-1], seq_model.z_dir[-1]))
-    if node.name != 'Object space':
+    if node and node.name != 'Object space':
         node.name = node.id.label = 'Image space'
         node.tag += '#image'
 
