@@ -14,6 +14,7 @@ import numpy as np
 import rayoptics.optical.model_constants as mc
 import rayoptics.parax.firstorder as fo
 from rayoptics.parax.idealimager import ideal_imager_setup
+from rayoptics.parax.specsheet import SpecSheet
 from rayoptics.seq.gap import Gap
 from rayoptics.elem.surface import Surface
 
@@ -267,8 +268,14 @@ class ParaxialModel():
 
         if type_sel == mc.ht:
             self.apply_ht_dgm_data(new_node, new_vertex=new_vertex)
+            if self.seq_mapping is not None:
+                ht_nodes = self.parax_to_nodes(mc.ht)
+                self.process_seq_mapping(ht_nodes)
         elif type_sel == mc.slp:
             self.apply_slope_dgm_data(new_node, new_vertex=new_vertex)
+            if self.seq_mapping is not None:
+                ht_nodes = self.parax_to_nodes(mc.ht)
+                self.process_seq_mapping(ht_nodes)
 
         if sys_data[1] == 'reflect':
             for i in range(new_node, len(self.sys)):
@@ -970,7 +977,10 @@ class ParaxialModel():
         factory = inputs['factory']
         populate_model_from_parax(opm, factory, mc.ht)
         osp.setup_specs_using_dgms(self)
-
+        ss = opm['specsheet']
+        if opm['specsheet'] is None:
+            ss = SpecSheet('unknown')
+        specsheet_from_dgm(self, osp, ss)
 
 def nodes_to_new_model(*args, **inputs):
     """ Sketch a 2d polyline and populate an opt_model from it. """
@@ -1414,6 +1424,66 @@ def compute_principle_points_from_dgm(Z, sys, opt_inv, os_idx=0, is_idx=-2):
     return pp_info
 
 
+def specsheet_from_dgm(parax_model, optical_spec, specsheet):
+    """ update specsheet to contents of parax_model, while preserving inputs """
+    opt_inv = parax_model.opt_inv
+    Z, T, W, Pwr = parax_model.ztwp
+
+    y1_star, ybar0_star = calc_object_and_pupil_from_dgm(Z, 0)
+    yk_star, ybark_star = calc_object_and_pupil_from_dgm(Z, -2)
+    m = ybar0_star/ybark_star
+    Pwr_tot = np.cross(W[-2], W[0])
+    efl = 1/(Pwr_tot*opt_inv)
+
+    conj_type = 'finite'
+    if T[0]/opt_inv > 10e8:
+        conj_type = 'infinite'
+
+    specsheet.conjugate_type = conj_type
+
+    # specsheet.imager_inputs contains values of independent variables of
+    # the optical system. Augment these as needed to get a defined imager.
+    imager_inputs = dict(specsheet.imager_inputs)
+    num_imager_inputs = len(imager_inputs)
+    if num_imager_inputs == 0:
+        # no user inputs, use model values
+        if conj_type == 'finite':
+            imager_inputs['m'] = m
+            imager_inputs['f'] = efl
+            specsheet.frozen_imager_inputs = [False]*5
+        else:  # conj_type == 'infinite'
+            imager_inputs['s'] = -math.inf
+            if efl != 0:
+                imager_inputs['f'] = efl
+            specsheet.frozen_imager_inputs = [True, True, True, True, False]
+    elif num_imager_inputs == 1:
+        # some/partial user input specification
+        if conj_type == 'finite':
+            # make sure that m is specified
+            if 'm' in imager_inputs:
+                imager_inputs['f'] = efl
+            else:
+                imager_inputs['m'] = m
+            specsheet.frozen_imager_inputs = [False]*5
+        else:  # conj_type == 'infinite'
+            imager_inputs['s'] = -math.inf
+            if efl != 0:
+                imager_inputs['f'] = efl
+            specsheet.frozen_imager_inputs = [True, True, True, True, False]
+
+    specsheet.imager = ideal_imager_setup(**imager_inputs)
+
+    ape_key, ape_value = optical_spec.pupil.get_input_for_specsheet()
+    fld_key, fld_value = optical_spec.field_of_view.get_input_for_specsheet()
+
+    etendue_inputs = specsheet.etendue_inputs
+    etendue_inputs[ape_key[0]][ape_key[1]][ape_key[2]] = ape_value
+    etendue_inputs[fld_key[0]][fld_key[1]][fld_key[2]] = fld_value
+    specsheet.generate_from_inputs(imager_inputs, etendue_inputs)
+
+    return specsheet
+
+
 def update_from_dgm(Z, opt_inv, osp):
     """ Given a |ybar| diagram `Z`, generate the dual and params. """
     y, ybar = 1, 0
@@ -1465,11 +1535,14 @@ def parax_to_dgms(ax, pr, sys, opt_inv):
     T = []
     W = []
     Pwr = []
-    for i in range(len(ax)-1):
-        Z.append(np.array([pr[i][mc.ht], ax[i][mc.ht]]))
-        W.append(np.array([pr[i][mc.slp], ax[i][mc.slp]])/opt_inv)
-        T.append(sys[i][mc.tau]*opt_inv)
-        Pwr.append(sys[i][mc.pwr]/opt_inv)
+    for pkg in zip(ax, pr, sys):
+        ax_i, pr_i, sys_i = pkg
+        Z.append(np.array([pr_i[mc.ht], ax_i[mc.ht]]))
+        W.append(np.array([pr_i[mc.slp], ax_i[mc.slp]])/opt_inv)
+        T.append(sys_i[mc.tau]*opt_inv)
+        Pwr.append(sys_i[mc.pwr]/opt_inv)
+    del T[-1:]
+    del W[-1:]
     return Z, T, W, Pwr
 
 
@@ -1478,11 +1551,20 @@ def dgms_to_parax(Z, T, W, Pwr, opt_inv, rndx_and_imode=None):
     ax = []
     pr = []
     sys = []
+    len_Z = len(Z)
+    len_W = len_Z - 1
     if rndx_and_imode is None:
-        rndx_and_imode = [(1., 'transmit') for i in range(len(Z))]
-    for i in range(len(Z)):
-        ax.append([Z[i][y], W[i][y]*opt_inv])
-        pr.append([Z[i][ybar], W[i][ybar]*opt_inv])
-        ni = rndx_and_imode[i]
-        sys.append([Pwr[i]*opt_inv, T[i]/opt_inv, *ni])
+        rndx_and_imode = [(1., 'transmit') for i in range(len_Z)]
+    for i in range(len_Z):
+        if i < len_W:
+            W_i = W[i]
+            T_i = T[i]
+            ni = rndx_and_imode[i]
+        else:
+            W_i = W[i-1]
+            T_i = 0
+            ni = rndx_and_imode[i-1]
+        ax.append([Z[i][y], W_i[y]*opt_inv])
+        pr.append([Z[i][ybar], W_i[ybar]*opt_inv])
+        sys.append([Pwr[i]*opt_inv, T_i/opt_inv, *ni])
     return ax, pr, sys
