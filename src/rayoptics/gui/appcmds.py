@@ -56,7 +56,8 @@ from rayoptics.qtgui.plotview import (create_plot_scale_panel,
                                       create_diagram_controls_groupbox,
                                       create_diagram_edge_actions_groupbox,
                                       create_diagram_layers_groupbox,
-                                      create_2d_figure_toolbar)
+                                      create_2d_figure_toolbar,
+                                      )
 
 
 def open_model(file_url, info=False, post_process_imports=True, **kwargs):
@@ -283,7 +284,8 @@ def create_paraxial_design_view_v2(opt_model, dgm_type, gui_parent=None):
     title = "Paraxial Design View"
     plotview.create_plot_view(gui_parent, fig, title, view_width, view_ht,
                               add_panel_fcts=panel_fcts, commands=cmds,
-                              drop_action=diagram.GlassDropAction())
+                              drop_action=diagram.GlassDropAction(),
+                              context_menu=diagram.context_menu_actions())
 
 
 def create_parax_design_commands(fig):
@@ -292,6 +294,7 @@ def create_parax_design_commands(fig):
     # initialize dgm with a Select command
     args = tuple()
     kwargs = {'figure': fig,
+              'gui_fct': diagram.edit_shape,
               }
     dgm.register_commands(*args, **kwargs)
 
@@ -307,6 +310,7 @@ def create_parax_design_commands(fig):
     # Select an existing point
     cmds.append(('Select', (dgm.register_commands, (), 
                             {'figure': fig,
+                             'gui_fct': diagram.edit_shape,
                              })))
 
     # Add thin lens

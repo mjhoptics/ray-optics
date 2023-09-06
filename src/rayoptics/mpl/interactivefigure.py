@@ -558,6 +558,7 @@ class InteractiveFigure(StyledFigure):
         #     pass
         if self.selected_shape is None:
             artist_infos = self.find_artists_and_hilite(event)
+            self.artist_infos = artist_infos
             # display_artist_and_event(f"on_motion ({len(artist_infos)})", 
             #                          event, artist_infos)
         else:
@@ -569,21 +570,26 @@ class InteractiveFigure(StyledFigure):
                 self.do_action(event, selected_artist, 'drag')
             else:
                 artist_infos = self.find_artists_and_hilite(event)
+                self.artist_infos = artist_infos
 
     def on_press(self, event):
         self.save_do_scale_bounds = self.do_scale_bounds
         self.do_scale_bounds = False
 
         artist_infos = self.find_artists_and_hilite(event)
+        self.artist_infos = artist_infos
         selected_artist = (artist_infos[0]
                            if len(artist_infos) > 0 else None)
 
-        self.selected_shape = (selected_artist.artist.shape, 
-                               selected_artist.info)
-        # print(f"selected_shape: {self.selected_shape[0]}, "
-        #       f"handle={self.selected_shape[1]}")
         self.is_mouse_down = True
-        self.do_action(event, selected_artist, 'press')
+        if selected_artist is not None:
+            self.selected_shape = (selected_artist.artist.shape,
+                                   selected_artist.info)
+            # print(f"selected_shape: {self.selected_shape[0]}, "
+            #       f"handle={self.selected_shape[1]}")
+            self.do_action(event, selected_artist, 'press')
+        else:
+            self.selected_shape = None
         # print(f"selected_shape: {self.selected_shape[0]}, "
         #       f"handle={self.selected_shape[1]}")
 
@@ -595,14 +601,15 @@ class InteractiveFigure(StyledFigure):
 
     def on_release(self, event):
         'on release we reset the press data'
-        selected_artist = self.get_artist_for_handle(self.selected_shape)
-        # display_artist_and_event('on_release', event, selected_artist)
+        if self.selected_shape is not None:
+            selected_artist = self.get_artist_for_handle(self.selected_shape)
+            # display_artist_and_event('on_release', event, selected_artist)
 
-        self.do_action(event, selected_artist, 'release')
+            self.do_action(event, selected_artist, 'release')
+            self.selected_shape = None
         self.do_scale_bounds = self.save_do_scale_bounds
         # print(f"selected_shape: {self.selected_shape[0]}, "
         #       f"handle={self.selected_shape[1]}")
-        self.selected_shape = None
         self.is_mouse_down = False
         self.action_complete()
 

@@ -79,8 +79,20 @@ class InteractiveLayout(InteractiveFigure):
 
         if self.do_draw_parts:
             if build == 'rebuild':
-                self.ele_shapes = layout.create_element_entities(
-                    self, self.part_filter)
+                self.ele_shapes = []
+                # self.ele_shapes = layout.create_element_entities(
+                #     self, self.part_filter)
+            e_nodes = layout.renderable_pt_nodes(part_filter=self.part_filter)
+            e_node_set = {e.id for e in e_nodes}
+            ele_shapes_set = {ele.e for ele in self.ele_shapes}
+            to_remove = list(ele_shapes_set - e_node_set)
+            self.ele_shapes = [ele for ele in self.ele_shapes 
+                               if ele.e not in to_remove]
+
+            to_add = list(e_node_set - ele_shapes_set)
+            for e in to_add:
+                ele = layout.create_oe(e)
+                self.ele_shapes.append(ele)
             self.ele_bbox = self.update_patches(self.ele_shapes)
             concat_bbox.append(self.ele_bbox)
 

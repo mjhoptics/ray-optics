@@ -550,7 +550,7 @@ class LensLayout():
                 estimated_length = ele_length + image_thi
             return estimated_length, offset_factor*estimated_length
 
-    def create_element_entities(self, view, part_filter=''):
+    def renderable_pt_nodes(self, part_filter=''):
         opm = self.opt_model
         pt = opm.part_tree
         not_tags = ''
@@ -560,9 +560,17 @@ class LensLayout():
             not_tags = '#object#image'
         e_nodes = pt.nodes_with_tag(tag=part_filter,
                                     not_tag=not_tags)
-        elements = [create_optical_element(opm, e_node.id)
+        return e_nodes
+
+    def create_element_entities(self, view, part_filter=''):
+        e_nodes = self.renderable_pt_nodes(part_filter=part_filter)
+        elements = [create_optical_element(self.opt_model, e_node.id)
                     for e_node in e_nodes]
         return elements
+
+    def create_oe(self, e):
+        """ opaque wrapper for create_optical_element() """
+        return create_optical_element(self.opt_model, e)
 
     def create_ray_entities(self, view, start_offset):
         ray_bundles = []

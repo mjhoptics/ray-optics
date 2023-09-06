@@ -71,9 +71,11 @@ class InteractiveDiagram(InteractiveFigure):
         return self
 
     def action_complete(self):
+        from rayoptics.parax.diagram import edit_shape
         super().action_complete()
         args = tuple()
         kwargs = {'figure': self,
+                  'gui_fct': edit_shape,
                   }
         self.diagram.register_commands(*args, **kwargs)
 

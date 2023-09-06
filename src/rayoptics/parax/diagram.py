@@ -118,44 +118,45 @@ class Diagram():
         if len(self.shape) > 0:
             self.shape_bbox = bbox_from_poly(self.shape)
             build = kwargs.get('build', 'rebuild')
-            if build == 'update':
-                # just a change in node positions - handled above
-                # self.shape = self.render_shape()
-                pass
-            else:
-                # number of nodes have changed, rebuild everything
-                num_nodes = len(parax_model.sys)
-                if self.dgm_type == 'slp':
-                    num_nodes -= 1
-    
+
+            num_nodes = len(parax_model.sys)
+            if self.dgm_type == 'slp':
+                num_nodes -= 1
+
+            if build == 'rebuild':
                 self.node_list = []
-                for i in range(num_nodes):
-                    self.node_list.append(DiagramNode(self, i))
-    
                 self.edge_list = []
-                for i in range(num_nodes-1):
+
+            node_list_len = len(self.node_list)
+            if num_nodes < node_list_len:
+                del self.node_list[num_nodes:]
+                del self.edge_list[num_nodes-1:]
+            elif num_nodes > node_list_len:
+                for i in range(node_list_len, num_nodes):
+                    self.node_list.append(DiagramNode(self, i))
+                for i in range(node_list_len, num_nodes-1):
                     self.edge_list.append(DiagramEdge(self, i))
-    
-                self.object_shift = ConjugateLine(self, 'object_image')
-                if self.opt_model.seq_model.stop_surface is None:
-                    # stop shift conjugate line is only editable for floating stop
-                    self.stop_shift = ConjugateLine(self, 'stop')
-    
-                if self.do_barrel_constraint:
-                    self.barrel_constraint = BarrelConstraint(self)
-                    
-                if self.do_node_annotation:
-                    pass
-    
+
             self.node_bbox = fig.update_patches(self.node_list)
             self.edge_bbox = fig.update_patches(self.edge_list)
-    
+
+            if build == 'rebuild':
+                self.object_shift = ConjugateLine(self, 'object_image')
             self.object_shift_bbox = fig.update_patches([self.object_shift])
+
             if self.opt_model.seq_model.stop_surface is None:
+                # stop shift conjugate line is only editable for floating stop
+                if build == 'rebuild':
+                    self.stop_shift = ConjugateLine(self, 'stop')
                 self.stop_shift_bbox = fig.update_patches([self.stop_shift])
-    
+
             if self.do_barrel_constraint:
+                if build == 'rebuild':
+                    self.barrel_constraint = BarrelConstraint(self)
                 self.barrel_bbox = fig.update_patches([self.barrel_constraint])
+            
+            if self.do_node_annotation:
+                pass
         else:
             self.shape_bbox = np.array([[-1, -1], [1, 1]])
 
@@ -620,7 +621,10 @@ class ConjugateLine():
 class EditNodeAction():
     """ Action to move a diagram node, using an input pt """
 
-    def __init__(self, dgm_node, filter=None, constrain_to_wedge=True):
+    def __init__(self, dgm_node: DiagramNode, 
+                 filter=None, constrain_to_wedge=True):
+        if not isinstance(dgm_node, DiagramNode):
+            raise TypeError
         diagram = dgm_node.diagram
         parax_model = diagram.parax_model
         self.cur_node = None
@@ -709,7 +713,9 @@ class EditLensAction():
     or thickness change, depending on the UI setting.
     """
 
-    def __init__(self, dgm_edge):
+    def __init__(self, dgm_edge: DiagramEdge):
+        if not isinstance(dgm_edge, DiagramEdge):
+            raise TypeError
         diagram = dgm_edge.diagram
         actions = {}
         actions['gap'] = EditThicknessAction(dgm_edge)
@@ -733,7 +739,7 @@ class EditAreaAction():
     or thickness change, depending on the UI setting.
     """
 
-    def __init__(self, dgm_edge):
+    def __init__(self, dgm_edge: DiagramEdge):
         # actions['power'] = EditPowerAction(dgm_edge)
         # actions['bend'] = EditBendingAction(dgm_edge)
 
@@ -758,7 +764,9 @@ class EditThicknessAction():
     the thickness greater than zero and not to interfere with adjacent spaces.
     """
 
-    def __init__(self, dgm_edge):
+    def __init__(self, dgm_edge: DiagramEdge):
+        if not isinstance(dgm_edge, DiagramEdge):
+            raise TypeError
         diagram = dgm_edge.diagram
         parax_model = diagram.parax_model
         self.node = None
@@ -841,7 +849,9 @@ class EditBendingAction():
     object-image properties of the lens.
     """
 
-    def __init__(self, dgm_edge):
+    def __init__(self, dgm_edge: DiagramEdge):
+        if not isinstance(dgm_edge, DiagramEdge):
+            raise TypeError
         diagram = dgm_edge.diagram
         pm = diagram.parax_model
 
@@ -967,10 +977,10 @@ class AddReplaceElementAction():
                     #  'node_init' will currently be a thinlens or a mirror
                     node_init = self.command_inputs['node_init']
                     self.init_inputs = diagram.assign_object_to_node(
-                                            node, node_init,
+                                            self.cur_node, node_init,
                                             insert=True, do_update=False)
                     parax_model.paraxial_lens_to_seq_model()
-                    fig.refresh_gui(build='rebuild', src_model=parax_model)
+                    fig.refresh_gui(build='update', src_model=parax_model)
 
             elif isinstance(shape, DiagramNode):
                 if 'factory' in self.command_inputs:
@@ -998,7 +1008,140 @@ class AddReplaceElementAction():
                     inputs = diagram.assign_object_to_node(
                                   self.cur_node, 
                                   factory)
-                fig.refresh_gui(build='rebuild', src_model=parax_model)
+                fig.refresh_gui(build='update', src_model=parax_model)
+            self.cur_node = None
+
+        self.actions = {}
+        self.actions['press'] = on_press_add_point
+        self.actions['drag'] = on_drag_add_point
+        self.actions['release'] = on_release_add_point
+
+
+class AddElementAction():
+    ''' insert or replace a node with a chunk from a factory fct
+
+    The do_command_action fct registered for this operation passes the shape
+    being operated upon; these can be:
+
+        - DiagramEdge: insert/add the chunk returned by the factory fct
+        - DiagramNode: replace the selected node with the factory fct output
+
+    Inserting is done by splitting the corresponding gap in two. A new gap
+    and an AirGap element are tacked on to the chunk returned from the factory
+    fct.
+    Replacing is done when a DiagramNode is selected. The gaps surrounding the
+    node are retained, and modified as needed to accomodate the chunk.
+    '''
+
+    def __init__(self, dgm_edge: DiagramEdge, **kwargs):
+        if not isinstance(dgm_edge, DiagramEdge):
+            raise TypeError
+        diagram = dgm_edge.diagram
+        parax_model = diagram.parax_model
+
+        self.command_inputs = dict(kwargs)
+        self.cur_node = None
+        self.init_inputs = None
+
+        def on_press_add_point(fig, event):
+            # if we don't have factory functions, skip the command
+            nonlocal self, diagram
+            if 'node_init' in self.command_inputs and \
+                'factory' in self.command_inputs:
+
+                self.cur_node = node = dgm_edge.node
+                event_data = np.array([event.xdata, event.ydata])
+                interact = self.command_inputs['interact_mode']
+                sys_data = [1.0, interact]
+                self.cur_node = parax_model.add_node(node, event_data, 
+                                                     diagram.type_sel, sys_data)
+
+                # create a node for editing during the drag action
+                #  'node_init' will currently be a thinlens or a mirror
+                node_init = self.command_inputs['node_init']
+                self.init_inputs = diagram.assign_object_to_node(
+                                        self.cur_node, node_init,
+                                        insert=True, do_update=False)
+                parax_model.paraxial_lens_to_seq_model()
+                fig.refresh_gui(build='update', src_model=parax_model)
+
+        def on_drag_add_point(fig, event):
+            nonlocal self, diagram
+            if self.cur_node is not None:
+                event_data = np.array([event.xdata, event.ydata])
+                diagram.apply_data(self.cur_node, event_data)
+                fig.refresh_gui(build='update', src_model=parax_model)
+
+        def on_release_add_point(fig, event):
+            nonlocal self, diagram
+            if self.cur_node is not None:
+                factory = self.command_inputs['factory']
+                # if factory and node_init fcts are the same, we're done;
+                # always call factory fct for a node
+                if factory != self.command_inputs['node_init']:
+                    inputs = diagram.assign_object_to_node(
+                        self.cur_node, factory)
+                fig.refresh_gui(build='update', src_model=parax_model)
+            self.cur_node = None
+
+        self.actions = {}
+        self.actions['press'] = on_press_add_point
+        self.actions['drag'] = on_drag_add_point
+        self.actions['release'] = on_release_add_point
+
+
+class ReplaceElementAction():
+    ''' insert or replace a node with a chunk from a factory fct
+
+    The do_command_action fct registered for this operation passes the shape
+    being operated upon; these can be:
+
+        - DiagramEdge: insert/add the chunk returned by the factory fct
+        - DiagramNode: replace the selected node with the factory fct output
+
+    Inserting is done by splitting the corresponding gap in two. A new gap
+    and an AirGap element are tacked on to the chunk returned from the factory
+    fct.
+    Replacing is done when a DiagramNode is selected. The gaps surrounding the
+    node are retained, and modified as needed to accomodate the chunk.
+    '''
+
+    def __init__(self, dgm_node: DiagramNode, **kwargs):
+        if not isinstance(dgm_node, DiagramNode):
+            raise TypeError
+        diagram = dgm_node.diagram
+        parax_model = diagram.parax_model
+        self.command_inputs = dict(kwargs)
+        self.cur_node = None
+        self.init_inputs = None
+
+        def on_press_add_point(fig, event, shape):
+            # if we don't have factory functions, skip the command
+            nonlocal self, diagram
+            if isinstance(shape, DiagramNode):
+                if 'factory' in self.command_inputs:
+                    # replacing a node with a chunk only requires recording
+                    # what chunk corresponds to the current node. There is
+                    # no drag action
+                    self.cur_node = node = shape.node
+                    self.init_inputs = parax_model.get_object_for_node(node)
+
+        def on_drag_add_point(fig, event, shape):
+            nonlocal self, diagram
+            pass
+
+        def on_release_add_point(fig, event, shape):
+            nonlocal self, diagram
+            if self.cur_node is not None:
+                factory = self.command_inputs['factory']
+                # if factory and node_init fcts are the same, we're done;
+                # always call factory fct for a node
+                if factory != self.command_inputs['node_init'] or \
+                              isinstance(shape, DiagramNode):
+                    inputs = diagram.assign_object_to_node(
+                                  self.cur_node, 
+                                  factory)
+                fig.refresh_gui(build='update', src_model=parax_model)
             self.cur_node = None
 
         self.actions = {}
@@ -1045,3 +1188,309 @@ class GlassDropAction():
                 dropped_it = True
         view.figure.artist_filter = None
         return dropped_it
+
+from rayoptics.mpl.interactivefigure import SelectInfo, display_artist_and_event
+def edit_shape_orig(point_filter=None, constrain_to_wedge=True, **inputs):
+    """ Graphical input of a 2d polyline """
+    fig = inputs.pop('figure')
+    selected = fig.selected
+    hilited = fig.hilited
+    is_mouse_down = False
+    do_on_finished = inputs.pop('do_on_finished', None)
+    
+    def do_shape_action(fig, event, target, event_key):
+        """Execute the target shape's action for the event_key.
+        """
+        if target is not None:
+            shape, handle = target.artist.shape
+            try:
+                action = shape.actions[event_key]
+                action(fig, handle, event, target.info)
+            except KeyError:
+                pass
+
+    def on_mouse_move(event):
+        """Callback for mouse movements."""
+        nonlocal selected, hilited, is_mouse_down
+        if selected is None:
+            artists = fig.find_artists_at_location(event)
+            display_artist_and_event(f"on_motion ({len(artists)})", 
+                                     event, artists)
+            next_hilited = artists[0] if len(artists) > 0 else None
+            # if next_hilited is not None:
+                # display_artist_and_event(f"on_motion ({len(artists)})",
+                #                          event, next_hilited.artist)
+
+            cur_art = hilited.artist if hilited is not None else None
+            nxt_art = next_hilited.artist if next_hilited is not None else None
+            if nxt_art is not cur_art:
+                if hilited is not None:
+                    hilited.artist.unhighlight(hilited.artist)
+                    hilited.artist.figure.canvas.draw()
+                if next_hilited is not None:
+                    next_hilited.artist.highlight(next_hilited.artist)
+                    next_hilited.artist.figure.canvas.draw()
+                hilited = next_hilited
+                if next_hilited is None:
+                    logging.debug("hilite_change: no object found")
+                else:
+                    shape, handle = hilited.artist.shape
+                    logging.debug("hilite_change: %s %s %d",
+                                  shape.get_label(), handle,
+                                  hilited.artist.get_zorder())
+        else:
+            if is_mouse_down:
+                # display_artist_and_event('on_drag', event, selected.artist)
+                do_shape_action(fig, event, selected, 'drag')
+                shape, handle = selected.artist.shape
+                logging.debug("on_drag: %s %s %d", shape.get_label(), handle,
+                            selected.artist.get_zorder())
+            else:
+                pass
+
+    def on_button_press(event):
+        """Callback for mouse button presses."""
+        nonlocal selected, hilited, is_mouse_down
+        artists = fig.find_artists_at_location(event)
+        target_artist = selected = hilited
+        if target_artist is not None:
+            display_artist_and_event('on_press', event, selected.artist)
+        is_mouse_down = True
+        do_shape_action(fig, event, target_artist, 'press')
+
+    def on_button_release(event):
+        """Callback for mouse button releases."""
+        nonlocal selected, hilited, is_mouse_down
+        logging.debug("on_release")
+        display_artist_and_event('on_release', event, selected.artist)
+
+        do_shape_action(fig, event, selected, 'release')
+        selected = None
+        is_mouse_down = False
+        fig.action_complete()
+
+    def on_key_press(event):
+        """Callback for key presses."""
+        if not event.inaxes:
+            return
+
+    def on_finished_clb():
+        """Callback for mouse movements."""
+        nonlocal saved_events
+        fig.disconnect_events()
+        fig.connect_events(saved_events)
+        # fig.action_complete()
+
+    action_dict = {'button_press_event': on_button_press,
+                   'button_release_event': on_button_release,
+                   'key_press_event': on_key_press,
+                   'motion_notify_event': on_mouse_move}
+
+    saved_events = fig.disconnect_events()
+    fig.connect_events(action_dict=action_dict)
+    fig.on_finished = on_finished_clb
+
+
+def edit_shape(point_filter=None, constrain_to_wedge=True, **inputs):
+    """ Graphical input of a 2d polyline """
+    fig = inputs.pop('figure')
+    do_on_finished = inputs.pop('do_on_finished', None)
+    
+    def do_shape_action(fig, event, target:"SelectInfo", event_key):
+        """Execute the target shape's action for the event_key.
+        """
+        if target is not None:
+            shape, handle = target.artist.shape
+            try:
+                handle_action_obj = shape.actions[handle]
+                if isinstance(handle_action_obj, dict):
+                    handle_action_obj[event_key](fig, event)
+                else:
+                    handle_action_obj.actions[event_key](fig, event)
+            except KeyError:
+                pass
+    
+    def do_selected_shape_action(fig, event, selected_shape, event_key):
+        """Execute the target shape's action for the event_key.
+        """
+        shape, handle = selected_shape[0]
+        try:
+            handle_action_obj = shape.actions[handle]
+            handle_action_obj.actions[event_key](fig, event)
+        except KeyError:
+            pass
+
+    def on_mouse_move(event):
+        if fig.selected_shape is None:
+            artist_infos = fig.find_artists_and_hilite(event)
+            fig.artist_infos = artist_infos
+        else:
+            if fig.is_mouse_down:
+                selected_artist = fig.get_artist_for_handle(fig.selected_shape)
+                do_shape_action(fig, event, selected_artist, 'drag')
+            else:
+                artist_infos = fig.find_artists_and_hilite(event)
+                fig.artist_infos = artist_infos
+
+    def on_button_press(event):
+        fig.save_do_scale_bounds = fig.do_scale_bounds
+        fig.do_scale_bounds = False
+
+        artist_infos = fig.find_artists_and_hilite(event)
+        fig.artist_infos = artist_infos
+        selected_artist = (artist_infos[0]
+                           if len(artist_infos) > 0 else None)
+
+        fig.is_mouse_down = True
+        if fig.selected_shape is None and selected_artist is not None:
+            fig.selected_shape = (selected_artist.artist.shape, 
+                                  selected_artist.info)
+            do_shape_action(fig, event, selected_artist, 'press')
+        elif fig.selected_shape is not None:
+            do_selected_shape_action(fig, event, fig.selected_shape, 'press')
+        else:
+            fig.selected_shape = None
+
+    def on_button_release(event):
+        'on release we reset the press data'
+        if fig.selected_shape is not None:
+            do_selected_shape_action(fig, event, fig.selected_shape, 'release')
+            # selected_artist = fig.get_artist_for_handle(fig.selected_shape)
+            # do_shape_action(fig, event, selected_artist, 'release')
+            fig.selected_shape = None
+        fig.do_scale_bounds = fig.save_do_scale_bounds
+        fig.is_mouse_down = False
+        fig.action_complete()
+
+    def on_key_press(event):
+        """Callback for key presses."""
+        if not event.inaxes:
+            return
+
+    def on_finished_clb():
+        """Callback for mouse movements."""
+        nonlocal saved_events
+        if do_on_finished is not None:
+            do_on_finished()
+        fig.disconnect_events()
+        fig.connect_events(saved_events)
+
+    action_dict = {'button_press_event': on_button_press,
+                   'button_release_event': on_button_release,
+                   'key_press_event': on_key_press,
+                   'motion_notify_event': on_mouse_move}
+
+    saved_events = fig.disconnect_events()
+    fig.connect_events(action_dict=action_dict)
+    fig.on_finished = on_finished_clb
+
+
+def add_shape(point_filter=None, constrain_to_wedge=True, **inputs):
+    """ Graphical input of a 2d polyline """
+    fig = inputs.pop('figure')
+    do_on_finished = inputs.pop('do_on_finished', None)
+    
+    def do_shape_action(fig, event, target:"SelectInfo", event_key):
+        """Execute the target shape's action for the event_key.
+        """
+        if target is not None:
+            shape, handle = target.artist.shape
+            try:
+                handle_action_obj = shape.actions[handle]
+                if isinstance(handle_action_obj, dict):
+                    handle_action_obj[event_key](fig, event)
+                else:
+                    handle_action_obj.actions[event_key](fig, event)
+            except KeyError:
+                pass
+    
+    def do_selected_shape_action(fig, event, selected_shape, event_key):
+        """Execute the target shape's action for the event_key.
+        """
+        shape, handle = selected_shape[0]
+        try:
+            handle_action_obj = shape.actions[handle]
+            handle_action_obj.actions[event_key](fig, event)
+        except KeyError:
+            pass
+
+    def do_command_action(fig, event, target, event_key):
+        shape, handle = target.artist.shape
+        if isinstance(shape, DiagramNode) or \
+            isinstance(shape, DiagramEdge):
+            try:
+                action_obj.actions[event_key](fig, event, shape)
+            except KeyError:
+                pass
+
+    def on_mouse_move(event):
+        if fig.selected_shape is None:
+            artist_infos = fig.find_artists_and_hilite(event)
+            fig.artist_infos = artist_infos
+        else:
+            if fig.is_mouse_down:
+                selected_artist = fig.get_artist_for_handle(fig.selected_shape)
+                do_shape_action(fig, event, selected_artist, 'drag')
+            else:
+                artist_infos = fig.find_artists_and_hilite(event)
+                fig.artist_infos = artist_infos
+
+    def on_button_press(event):
+        fig.save_do_scale_bounds = fig.do_scale_bounds
+        fig.do_scale_bounds = False
+
+        artist_infos = fig.find_artists_and_hilite(event)
+        fig.artist_infos = artist_infos
+        selected_artist = (artist_infos[0]
+                           if len(artist_infos) > 0 else None)
+
+        fig.is_mouse_down = True
+        if fig.selected_shape is None and selected_artist is not None:
+            fig.selected_shape = (selected_artist.artist.shape, 
+                                  selected_artist.info)
+            do_shape_action(fig, event, selected_artist, 'press')
+        elif fig.selected_shape is not None:
+            do_selected_shape_action(fig, event, fig.selected_shape, 'press')
+        else:
+            fig.selected_shape = None
+
+    def on_button_release(event):
+        'on release we reset the press data'
+        if fig.selected_shape is not None:
+            do_selected_shape_action(fig, event, fig.selected_shape, 'release')
+            # selected_artist = fig.get_artist_for_handle(fig.selected_shape)
+            # do_shape_action(fig, event, selected_artist, 'release')
+            fig.selected_shape = None
+        fig.do_scale_bounds = fig.save_do_scale_bounds
+        fig.is_mouse_down = False
+        fig.action_complete()
+
+    def on_key_press(event):
+        """Callback for key presses."""
+        if not event.inaxes:
+            return
+
+    def on_finished_clb():
+        """Callback for mouse movements."""
+        nonlocal saved_events
+        if do_on_finished is not None:
+            do_on_finished()
+        fig.disconnect_events()
+        fig.connect_events(saved_events)
+
+    action_dict = {'button_press_event': on_button_press,
+                   'button_release_event': on_button_release,
+                   'key_press_event': on_key_press,
+                   'motion_notify_event': on_mouse_move}
+
+    saved_events = fig.disconnect_events()
+    fig.connect_events(action_dict=action_dict)
+    fig.on_finished = on_finished_clb
+
+def context_menu_actions():
+    """ return list of action_desc, action_handle, action """
+    menu_defs = []
+    menu_defs.append(("Add node", 'add', AddElementAction))
+    menu_defs.append(("Bend element", 'bend', EditBendingAction))
+    menu_defs.append(("Thicken element", 'gap', EditThicknessAction))
+    return menu_defs
