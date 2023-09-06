@@ -2075,8 +2075,17 @@ class ElementModel:
             e.parent = None
 
         self.elements = elements
+        # if the number of elements have changed, update the
+        # links to the seq_model indices. issue 127
+        if len(added_ele) > 0 or len(removed_ele) > 0:
+            seq_model = self.opt_model['seq_model']
+            for e in elements:
+                e.sync_to_seq(seq_model)
+        
+        # use the seq_model to sort the element_model list
         self.sequence_elements()
 
+        # unless updated by the ele_model, sync it to the seq_model.
         src_model = kwargs.get('src_model', None)
         if src_model is not self:
             self.sync_to_seq(self.opt_model['seq_model'])
@@ -2087,6 +2096,7 @@ class ElementModel:
         self.sync_to_seq(seq_model)
 
     def sync_to_seq(self, seq_model):
+        """ Update element positions and ref_idx using the sequential model. """
         tfrms = seq_model.compute_global_coords(1)
 
         # update the elements
