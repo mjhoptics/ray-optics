@@ -25,6 +25,7 @@ import rayoptics
 from rayoptics import listobj
 
 from rayoptics.gui.appmanager import AppManager, ModelInfo
+import rayoptics.gui.appcmds as cmds
 from rayoptics.gui.appcmds import (create_new_model, open_model,
                                    set_apertures, set_vignetting, set_pupil)
 
