@@ -14,7 +14,7 @@ from PyQt5.QtCore import QSize
 from PyQt5 import QtGui
 from PyQt5.QtWidgets import (QHBoxLayout, QVBoxLayout, QWidget, QLineEdit,
                              QRadioButton, QGroupBox, QSizePolicy, QCheckBox,
-                             QListWidget, QListWidgetItem, QToolBar)
+                             QListWidget, QListWidgetItem, QToolBar, QMenu)
 
 from matplotlib.backends.backend_qt5agg \
      import (NavigationToolbar2QT as NavigationToolbar)
@@ -142,7 +142,7 @@ def on_command_clicked(item):
 
 def create_plot_view(app, figure, title, view_width, view_ht, commands=None,
                      add_panel_fcts=None, add_nav_toolbar=False,
-                     drop_action=None):
+                     drop_action=None, context_menu=None):
     """ create a window hosting a (mpl) figure """
 
     def create_light_or_dark_callback(figure):
@@ -175,6 +175,10 @@ def create_plot_view(app, figure, title, view_width, view_ht, commands=None,
             panel_layout.addWidget(panel)
         panel_layout.addStretch(50)
 
+    if context_menu is not None:
+        handle_context_menu = create_handle_context_menu(app, pc, context_menu)
+        pc.setContextMenuPolicy(qt.CustomContextMenu)
+        pc.customContextMenuRequested.connect(handle_context_menu)
     mi = ModelInfo(app.app_manager.model, update_figure_view, (figure,))
     sub_window = app.add_subwindow(widget, mi)
     sub_window.sync_light_or_dark = create_light_or_dark_callback(figure)
@@ -546,3 +550,56 @@ def create_diagram_layers_groupbox(app, pc):
     groupBox.setLayout(vbox)
 
     return groupBox
+
+
+def create_handle_context_menu(app, pc, menu_actions):
+    """ Create a (Qt) context menu for a (mpl) figure. 
+    
+    Args:
+
+    - app: the Qt main app
+    - pc: the Qt-specific backend for mpl, CanvasFigure
+    - menu_actions: list of potential context menu actions
+
+    each menu action is a tuple consisting of:
+
+        - action_desc:str the menu item text
+        - action_handle:str the key in the actions dict for the action
+        - action: the action class to be instantiated if picked
+
+    The fig.selected_shape is what the actions are built against. The action 
+    should raise a TypeError if an incompatible shape is supplied.
+    """
+    fig = pc.figure
+
+    def do_action(fig, shape, handle, action, info):
+        shape.actions[handle] = action
+        fig.selected_shape = (shape, handle), info
+
+    def handle_context_menu(point):
+        # show menu about the row
+        menu = QMenu(app)
+        if fig.selected_shape is None:
+            selected_artist = (fig.artist_infos[0] 
+                               if len(fig.artist_infos) > 0 else None)
+            if selected_artist is not None:
+                selected_shape, info = (selected_artist.artist.shape, 
+                                        selected_artist.info)
+        else:
+            selected_shape, info = fig.selected_shape
+
+        for ma in menu_actions:
+            action_desc, action_handle, action = ma
+            try:
+                action_obj = action(selected_shape[0])
+            except TypeError as e:
+                pass
+            else:
+                menu.addAction(action_desc,
+                               lambda: do_action(fig, selected_shape[0], 
+                                                 action_handle, action_obj,
+                                                 info))
+
+        menu.popup(pc.mapToGlobal(point))
+
+    return handle_context_menu
