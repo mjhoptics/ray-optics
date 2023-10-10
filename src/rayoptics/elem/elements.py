@@ -756,6 +756,14 @@ class Element(Part):
     def gap_list(self):
         return [self.gap]
 
+    def get_power(self, nom_wvl='d'):
+        cv1 = self.s1.profile_cv
+        cv2 = self.s2.profile_cv
+        rndx = self.gap.medium.rindex(nom_wvl)
+        th = self.gap.thi
+        power = (rndx - 1)*(cv1 - cv2 + th*cv1*cv2*(rndx - 1)/rndx)
+        return power
+
     def get_bending(self):
         cv1 = self.s1.profile_cv
         cv2 = self.s2.profile_cv
@@ -766,11 +774,11 @@ class Element(Part):
         return bending
 
     def set_bending(self, bending):
-        cv1 = self.s1.profile_cv
-        cv2 = self.s2.profile_cv
-        delta_cv = cv1 - cv2
-        cv2_new = 0.5*(bending - 1.)*delta_cv
-        cv1_new = bending*delta_cv - cv2_new
+        power = self.get_power()
+        lens = lens_from_power(power=power, bending=bending, th=self.gap.thi,
+                               med=self.gap.medium)
+        cv1_new, cv2_new, _ = lens
+
         self.s1.profile_cv = cv1_new
         self.s2.profile_cv = cv2_new
 
