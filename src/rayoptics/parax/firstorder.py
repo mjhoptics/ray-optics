@@ -37,13 +37,21 @@ class FirstOrderData:
 
     Attributes:
         opt_inv: optical invariant
+        power: optical power of system
         efl: effective focal length
-        pp1: distance of front principle plane from 1st interface
-        ppk: distance of rear principle plane from last interface
-        ffl: front focal length
-        bfl: back focal length
+        fl_obj: object space focal length, f
+        fl_img: image space focal length, f'
+        pp1: distance from the 1st interface to the front principle plane
+        ppk: distance from the last interface to the rear principle plane
+        pp_sep: distance from the front principle plane to the rear principle 
+                plane
+        ffl: front focal length, distance from the 1st interface to the front 
+             focal point
+        bfl: back focal length, distance from the last interface to the back
+             focal point
         fno: focal ratio at working conjugates, f/#
-        red: reduction ratio
+        m: transverse magnification
+        red: reduction ratio, -1/m
         n_obj: refractive index at central wavelength in object space
         n_img: refractive index at central wavelength in image space
         obj_dist: object distance
@@ -62,8 +70,11 @@ class FirstOrderData:
         self.opt_inv = None
         self.power = None
         self.efl = None
+        self.fl_obj = None
+        self.fl_img = None
         self.pp1 = None
         self.ppk = None
+        self.pp_sep = None
         self.ffl = None
         self.bfl = None
         self.fno = None
@@ -82,34 +93,32 @@ class FirstOrderData:
         self.obj_na = None
         self.img_na = None
 
-    def listobj_str(self):
-        """ list the first order properties """
-        o_str = (f"efl        {self.efl:12.4g}\n"
-                 f"ffl        {self.ffl:12.4g}\n"
-                 f"pp1        {self.pp1:12.4g}\n"
-                 f"bfl        {self.bfl:12.4g}\n"
-                 f"ppk        {self.ppk:12.4g}\n"
-                 f"m          {self.m:12.4g}\n"
-                 f"red        {self.red:12.4g}\n"
-                 f"obj_dist   {self.obj_dist:12.4g}\n"
-                 f"obj_ang    {self.obj_ang:12.4g}\n"
-                 f"enp_dist   {self.enp_dist:12.4g}\n"
-                 f"enp_radius {self.enp_radius:12.4g}\n"
-                 f"na obj     {self.obj_na:12.4g}\n"
-                 f"n obj      {self.n_obj:12.4g}\n"
-                 f"img_dist   {self.img_dist:12.4g}\n"
-                 f"img_ht     {self.img_ht:12.4g}\n"
-                 f"exp_dist   {self.exp_dist:12.4g}\n"
-                 f"exp_radius {self.exp_radius:12.4g}\n"
-                 f"f/# img    {self.fno:12.4g}\n"
-                 f"na img     {self.img_na:12.4g}\n"
-                 f"n img      {self.n_img:12.4g}\n"
-                 f"optical invariant {self.opt_inv:12.4g}\n")
-        return o_str
-
     def list_first_order_data(self):
         """ list the first order properties """
-        print(self.listobj_str())
+        print("efl        {:12.4g}".format(self.efl))
+        print("f          {:12.4g}".format(self.fl_obj))
+        print("f'         {:12.4g}".format(self.fl_img))
+        print("ffl        {:12.4g}".format(self.ffl))
+        print("pp1        {:12.4g}".format(self.pp1))
+        print("bfl        {:12.4g}".format(self.bfl))
+        print("ppk        {:12.4g}".format(self.ppk))
+        print("pp sep     {:12.4g}".format(self.pp_sep))
+        print("f/#        {:12.4g}".format(self.fno))
+        print("m          {:12.4g}".format(self.m))
+        print("red        {:12.4g}".format(self.red))
+        print("obj_dist   {:12.4g}".format(self.obj_dist))
+        print("obj_ang    {:12.4g}".format(self.obj_ang))
+        print("enp_dist   {:12.4g}".format(self.enp_dist))
+        print("enp_radius {:12.4g}".format(self.enp_radius))
+        print("na obj     {:12.4g}".format(self.obj_na))
+        print("n obj      {:12.4g}".format(self.n_obj))
+        print("img_dist   {:12.4g}".format(self.img_dist))
+        print("img_ht     {:12.4g}".format(self.img_ht))
+        print("exp_dist   {:12.4g}".format(self.exp_dist))
+        print("exp_radius {:12.4g}".format(self.exp_radius))
+        print("na img     {:12.4g}".format(self.img_na))
+        print("n img      {:12.4g}".format(self.n_img))
+        print("optical invariant {:12.4g}".format(self.opt_inv))
 
 
 # paraxial_trace() - This routine performs a paraxial raytrace from object
@@ -203,10 +212,11 @@ def compute_first_order(opt_model, stop, wvl, src_model=None):
     sm = opt_model['seq_model']
     osp = opt_model['optical_spec']
     start = 1
+    oal = sm.overall_length()
     n_0 = sm.z_dir[start-1]*sm.central_rndx(start-1)
     n_k = sm.z_dir[-1]*sm.central_rndx(-1)
-    p_ray, q_ray, ff = compute_principle_points(sm.path(wl=wvl), 
-                                                n_0, n_k)
+    p_ray, q_ray, pp_info = compute_principle_points(sm.path(wl=wvl), 
+                                                     oal, n_0, n_k)
     img = -2 if sm.get_num_surfaces() > 2 else -1
     ak1 = p_ray[img][ht]
     bk1 = q_ray[img][ht]
@@ -311,18 +321,25 @@ def compute_first_order(opt_model, stop, wvl, src_model=None):
     fod.obj_dist = obj_dist = sm.gaps[0].thi
     if ck1 == 0.0:
         fod.img_dist = img_dist = 1e10
-        fod.power = 0.0
+        fod.power = power = 0.0
+        fod.fl_obj = fl_obj = 0.0
+        fod.fl_img = fl_img = 0.0
         fod.efl = 0.0
         fod.pp1 = 0.0
         fod.ppk = 0.0
     else:
         fod.img_dist = img_dist = -ax_ray[img][ht]/ax_ray[img][slp]
-        fod.power = -ck1
-        fod.efl = -n_k/ck1
-        fod.pp1 = (dk1 - 1.0)*(n_0/ck1)
-        fod.ppk = (p_ray[-2][ht] - 1.0)*(n_k/ck1)
-    fod.ffl = fod.pp1 - fod.efl
-    fod.bfl = fod.efl - fod.ppk
+        fod.power = power = -ck1
+        fod.fl_obj = fl_obj = n_0/power
+        fod.fl_img = fl_img = n_k/power
+        fod.efl = fl_img
+        fod.pp1 = (1.0 - dk1)*(fl_obj)
+        fod.ppk = (ak1 - 1.0)*(fl_img)
+
+    fod.ffl = fod.pp1 + (-fl_obj)
+    fod.bfl = fod.ppk + fl_img
+    fod.pp_sep = oal - fod.pp1 + fod.ppk
+
     fod.fno = -1.0/(2.0*n_k*ax_ray[-1][slp])
 
     fod.m = ak1 + ck1*img_dist/n_k
@@ -353,32 +370,39 @@ def compute_first_order(opt_model, stop, wvl, src_model=None):
     return ParaxData(ax_ray, pr_ray, fod)
 
 
-def compute_principle_points(path, n_0=1.0, n_k=1.0):
+def compute_principle_points(path, oal, n_0=1.0, n_k=1.0):
     """ Returns paraxial p and q rays, plus partial first order data.
 
     Args:
         path: an iterator containing interfaces and gaps to be traced.
               for each iteration, the sequence or generator should return a
               list containing: **Intfc, Gap, Trfm, Index, Z_Dir**
+        oal: overall geometric length of the gaps in `path`
         n_0: refractive index preceding the first interface
         n_k: refractive index following last interface
 
     Returns:
-        (p_ray, q_ray, (power, efl, pp1, ppk, ffl, bfl))
+        (p_ray, q_ray, (efl, fl_obj, fl_img, pp1, ppk, ffl, bfl))
 
         - p_ray: [ht, slp, aoi], [1, 0, -]
         - q_ray: [ht, slp, aoi], [0, 1, -]
-        - power: optical power
+        - power: optical power of system
         - efl: effective focal length
-        - pp1: distance of front principle plane from 1st interface
-        - ppk: distance of rear principle plane from last interface
-        - ffl: front focal length
-        - bfl: back focal length
+        - fl_obj: object space focal length, f
+        - fl_img: image space focal length, f'
+        - pp1: distance from the 1st interface to the front principle plane
+        - ppk: distance from the last interface to the rear principle plane
+        - pp_sep: distance from the front principle plane to the rear 
+                  principle plane
+        - ffl: front focal length, distance from the 1st interface to the 
+               front focal point
+        - bfl: back focal length, distance from the last interface to the back
+               focal point
     """
     uq0 = 1/n_0
     p_ray, q_ray = paraxial_trace(path, 1, [1., 0.], [0., uq0])
 
-    img = -1
+    img = -2 if len(p_ray) > 2 else -1
     ak1 = p_ray[img][ht]
     bk1 = q_ray[img][ht]
     ck1 = n_k*p_ray[img][slp]
@@ -389,18 +413,25 @@ def compute_principle_points(path, n_0=1.0, n_k=1.0):
 
     if ck1 == 0.0:
         power = 0.0
+        fl_obj = 0.0
+        fl_img = 0.0
         efl = 0.0
         pp1 = 0.0
         ppk = 0.0
     else:
         power = -ck1
-        efl = 1/power
-        pp1 = (dk1 - 1.0)*(n_0/ck1)
-        ppk = (ak1 - 1.0)*(n_k/ck1)
-    ffl = pp1 - efl
-    bfl = efl - ppk
+        fl_obj = n_0/power
+        fl_img = n_k/power
+        efl = fl_img
+        pp1 = (1.0 - dk1)*(fl_obj)
+        ppk = (ak1 - 1.0)*(fl_img)
 
-    return p_ray, q_ray, (power, efl, pp1, ppk, ffl, bfl)
+    ffl = pp1 + (-fl_obj)
+    bfl = ppk + fl_img
+    pp_sep = oal - pp1 + ppk
+
+    return p_ray, q_ray, (power, efl, fl_obj, fl_img, 
+                          pp1, ppk, pp_sep, ffl, bfl)
 
 
 def list_parax_trace(opt_model, reduced=False):

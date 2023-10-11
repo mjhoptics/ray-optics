@@ -627,6 +627,30 @@ class SequentialModel:
         rndx_and_imode += [(n, imode)]
         return rndx_and_imode
 
+    def overall_length(self, os_idx=1, is_idx=-1):
+        """ Sum gap thicknesses from `os_idx` to `is_idx` 
+        
+        The default arguments return the thickness sum between the 1st and last surfaces.
+
+        To include the image surface, is_idx=len(sm.gaps)
+
+        Args:
+            os_idx: starting gap index
+            is_idx: final gap index
+
+        Returns:
+            oal: float, overal length of gap range
+        """
+        oal = 0
+        for g in self.gaps[os_idx:is_idx]:
+            oal += g.thi
+            # print(f"{oal}    +{g.thi}")
+        return oal
+    
+    def total_track(self):
+        """ Total track length, distance from object to image. """
+        return self.overall_length(0, len(self.gaps))
+
     def surface_label_list(self):
         """ list of surface labels or surface number, if no label """
         labels = []

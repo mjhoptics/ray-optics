@@ -337,7 +337,7 @@ class ParaxialModel():
             sys[node] = sys_seq[0]
         else:
             opt_inv = self.opt_inv
-            efl, pp1, ppk, ffl, bfl = pp_info[2]
+            power, efl, fl_obj, fl_img, pp1, ppk, pp_sep, ffl, bfl = pp_info[2]
             sys[node-1][mc.tau] -= pp1/sys[node-1][mc.indx]
     
             # sys_seq[-1][tau] = sys[node][tau] - ppk/sys_seq[-1][indx]
@@ -821,14 +821,20 @@ class ParaxialModel():
             is_idx: image space gap index
 
         Returns:
-            (power, efl, pp1, ppk, ffl, bfl)
+            (power, efl, fl_obj, fl_img, pp1, ppk, pp_sep, ffl, bfl)
 
-            - power: optical power
+            - power: optical power of system
             - efl: effective focal length
-            - pp1: distance of front principle plane from 1st interface
-            - ppk: distance of rear principle plane from last interface
-            - ffl: front focal length
-            - bfl: back focal length
+            - fl_obj: object space focal length, f
+            - fl_img: image space focal length, f'
+            - pp1: distance from the 1st interface to the front principle plane
+            - ppk: distance from the last interface to the rear principle plane
+            - pp_sep: distance from the front principle plane to the rear 
+                    principle plane
+            - ffl: front focal length, distance from the 1st interface to the 
+                front focal point
+            - bfl: back focal length, distance from the last interface to the back
+                focal point
         """
         pp_info = compute_principle_points_from_dgm(self.ztwp[0], 
                                                     self.sys, 
@@ -899,7 +905,7 @@ class ParaxialModel():
         Wo = (z1 - z0)/To
 
         pp_info = self.compute_principle_points_from_dgm()
-        efl, pp1, ppk, ffl, bfl = pp_info
+        power, efl, fl_obj, fl_img, pp1, ppk, pp_sep, ffl, bfl = pp_info
         T_pp1 = pp1 * opt_inv
         To_new = To - T_pp1
         z1_new = z0 + To_new * Wo
@@ -1379,19 +1385,34 @@ def compute_principle_points_from_dgm(Z, sys, opt_inv, os_idx=0, is_idx=-2):
     """ Calculate focal points and principal points.
 
     Args:
+        Z: array of diagram points
+        sys: the system data for the diagram
+        opt_inv: optical invariant
         os_idx: object space gap index
         is_idx: image space gap index
 
     Returns:
-        (power, efl, pp1, ppk, ffl, bfl)
+        (power, efl, fl_obj, fl_img, pp1, ppk, pp_sep, ffl, bfl)
 
-        - power: optical power
+        - power: optical power of system
         - efl: effective focal length
-        - pp1: distance of front principle plane from 1st interface
-        - ppk: distance of rear principle plane from last interface
-        - ffl: front focal length
-        - bfl: back focal length
+        - fl_obj: object space focal length, f
+        - fl_img: image space focal length, f'
+        - pp1: distance from the 1st interface to the front principle plane
+        - ppk: distance from the last interface to the rear principle plane
+        - pp_sep: distance from the front principle plane to the rear 
+                  principle plane
+        - ffl: front focal length, distance from the 1st interface to the 
+               front focal point
+        - bfl: back focal length, distance from the last interface to the back
+               focal point
     """
+    def oal():
+        oal = 0
+        for s in sys:
+            oal += s[mc.indx]*s[mc.tau]
+        return oal
+    
     n_o = sys[os_idx][mc.indx]
     n_i = sys[is_idx][mc.indx]
 
@@ -1405,8 +1426,8 @@ def compute_principle_points_from_dgm(Z, sys, opt_inv, os_idx=0, is_idx=-2):
     To = np.cross(z1, z1o)
     Wo = (z1 - z1o)/To
 
-    Ti = np.cross(z1i, z1)
-    Wi = (z1i - z1)/Ti
+    Ti = np.cross(z1, z1i)
+    Wi = (z1 - z1i)/Ti
     Pwr = np.cross(Wi, Wo)
     
     zfo = -Wi/Pwr
@@ -1415,10 +1436,14 @@ def compute_principle_points_from_dgm(Z, sys, opt_inv, os_idx=0, is_idx=-2):
     power = Pwr*opt_inv
     pp1 = n_o*To/opt_inv
     ppk = n_i*Ti/opt_inv
-    efl = 1/power
-    ffl = pp1 - efl
-    bfl = efl - ppk
-    pp_info = power, efl, pp1, ppk, ffl, bfl
+    fl_obj = n_o/power
+    fl_img = n_i/power
+    efl = fl_img
+    ffl = pp1 + (-fl_obj)
+    bfl = ppk + fl_img
+    pp_sep = oal() - pp1 + ppk
+
+    pp_info = power, efl, fl_obj, fl_img, pp1, ppk, pp_sep, ffl, bfl
     # print(f"efl={pp_info[0]:8.4f}, ffl={pp_info[3]:8.4f}, bfl={pp_info[4]:8.4f}, "
     #       f"pp1={pp_info[1]:8.4f}, ppk={pp_info[2]:8.4f}")
     return pp_info
