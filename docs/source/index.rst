@@ -59,6 +59,7 @@ RayOptics is a Python geometrical optics and image forming optics library. It pr
 
    devguide/index
    Module Reference <api/rayoptics>
+   devguide/roa_file_definition
 
 .. _misc-items:
 
