@@ -72,6 +72,16 @@ class Interface:
     def interface_type(self):
         return type(self).__name__
 
+    def ifc_token(self):
+        tkn = ''
+        if self.interact_mode == 'transmit':
+            tkn = 'i'
+        elif self.interact_mode == 'reflect':
+            tkn = 'r'
+        elif self.interact_mode == 'dummy':
+            tkn = 'd'
+        return tkn
+
     def sync_to_restore(self, opt_model):
         if not hasattr(self, 'max_aperture'):
             self.max_aperture = 1.0

@@ -234,6 +234,54 @@ class PartTree():
     def list_model(self, tag='#element#assembly#dummyifc'):
         self.list_tree(childiter=self.get_child_filter(tag=tag))
 
+    def list_sg_ele(self, sm):
+        seq_str = ''
+        ele_list = []
+        for i, sgz in enumerate(zip_longest(sm.ifcs, sm.gaps, sm.z_dir)):
+            s, g, z_dir = sgz
+
+            s_str = s.ifc_token()
+            s_parent_node = self.parent_node(s)
+            if s_parent_node is not None:
+                s_parent = s_parent_node.name
+            else:
+                s_parent = " "
+            seq_str += s_str
+            ele_list.append(s_parent)
+            if g is not None:
+                g_str = 'a' if g.medium.name() == 'air' else 't'
+                g_parent_node = self.parent_node((g, z_dir))
+                if g_parent_node is not None:
+                    g_parent = g_parent_node.name
+                else:
+                    g_parent = " "
+                seq_str += g_str
+                ele_list.append(g_parent)
+            else:
+                g_str = " "
+                g_parent = " "
+            print(f"{s_str}{g_str}      {s_parent:10s} {g_parent}")
+        return seq_str, ele_list
+
+    def list_ele_sg(self, sm):
+        def guarded_gap_idx(g):
+            try:
+                return sm.gaps.index(g)
+            except ValueError:
+                return str(id(g))
+        part_tag = '#element#airgap#dummyifc'
+        nodes = self.nodes_with_tag(tag=part_tag)
+        elements = [n.id for n in nodes]
+        ele_list = []
+        ele_dict = {}
+        for e in elements:
+            ele_type = type(e).__name__
+            idx_list = tuple(i for i in e.idx_list())
+            gap_list = tuple(guarded_gap_idx(g) for g in e.gap_list())
+            ele_list.append((ele_type, idx_list, gap_list))
+            ele_dict[(ele_type, idx_list, gap_list)] = e
+            print(f"{e.label}: {ele_type} {idx_list} {gap_list}")
+        return ele_list, ele_dict
 
 def sync_part_tree_on_restore(opt_model, ele_model, seq_model, root_node):
     ele_dict = {e.label: e for e in ele_model.elements}

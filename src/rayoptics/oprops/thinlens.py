@@ -48,6 +48,9 @@ class ThinLens(Interface):
 
         return o_str
 
+    def ifc_token(self):
+        return 'l'
+
     def update(self):
         super().update()
 

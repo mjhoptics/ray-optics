@@ -86,7 +86,7 @@ numpy==1.24.3
     #   scipy
 openpyxl==3.1.2
     # via opticalglass
-opticalglass==1.0.6
+opticalglass==1.0.7
     # via rayoptics (setup.py)
 packaging==23.1
     # via
@@ -98,6 +98,9 @@ packaging==23.1
 pandas==2.0.2
     # via
     #   opticalglass
+    #   rayoptics (setup.py)
+parsimonious==0.10.0
+    # via
     #   rayoptics (setup.py)
 parso==0.8.3
     # via jedi
@@ -153,6 +156,9 @@ qtpy==2.3.1
     # via
     #   qdarkstyle
     #   qtconsole
+regex==2023.10.3
+    # via
+    #   parsimonious
 requests==2.31.0
     # via
     #   opticalglass

@@ -740,8 +740,14 @@ class Element(Part):
 
     def idx_list(self):
         seq_model = self.parent.opt_model['seq_model']
-        self.s1_indx = seq_model.ifcs.index(self.s1)
-        self.s2_indx = seq_model.ifcs.index(self.s2)
+        try:
+            self.s1_indx = seq_model.ifcs.index(self.s1)
+        except ValueError:
+            self.s1_indx = str(self.s1_indx)
+        try:
+            self.s2_indx = seq_model.ifcs.index(self.s2)
+        except ValueError:
+            self.s2_indx = str(self.s2_indx)
         return [self.s1_indx, self.s2_indx]
 
     def reference_idx(self):
@@ -934,21 +940,19 @@ class Element(Part):
 
         return self.actions
 
+class SurfaceInterface(Part):
 
-class Mirror(Part):
-
-    label_format = 'M{}'
+    label_format = 'S{}'
     serial_number = 0
 
-    def __init__(self, ifc, tfrm=None, idx=0, sd=1., thi=None, z_dir=1.0,
-                 label=None):
+    def __init__(self, ifc, tfrm=None, idx=0, sd=1., z_dir=1.0, label=None):
         if label is None:
-            Mirror.serial_number += 1
-            self.label = Mirror.label_format.format(Mirror.serial_number)
+            SurfaceInterface.serial_number += 1
+            self.label = SurfaceInterface.label_format.format(
+                SurfaceInterface.serial_number)
         else:
             self.label = label
 
-        self.render_color = (158, 158, 158, 64)
         if tfrm is not None:
             self.tfrm = tfrm
         else:
@@ -961,16 +965,9 @@ class Mirror(Part):
         self.hole_sd = None
         self.flat = None
         self.do_flat = 'if concave'
-        self.thi = thi
-        self.medium_name = 'Mirror'
+        self.medium_name = 'Surface'
         self.handles = {}
         self.actions = {}
-
-    def get_thi(self):
-        thi = self.thi
-        if self.thi is None:
-            thi = 0.05*self.sd
-        return thi
 
     def __json_encode__(self):
         attrs = dict(vars(self))
@@ -984,14 +981,12 @@ class Mirror(Part):
         return attrs
 
     def __str__(self):
-        thi = self.get_thi()
-        fmt = 'Mirror: {!r}, t={:.4f}, sd={:.4f}'
-        return fmt.format(self.profile, thi, self.sd)
+        return f"Surface: {self.profile:!r}, sd={self.sd:.4f}"
 
     def listobj_str(self):
         o_str = f"part: {type(self).__name__}, "
         o_str += self.profile.listobj_str()
-        o_str += f"t={self.get_thi():.4f}, sd={self.sd:.4f}\n"
+        o_str += f"sd={self.sd:.4f}\n"
         return o_str
 
     def sync_to_restore(self, ele_model, surfs, gaps, tfrms, 
@@ -1002,7 +997,7 @@ class Mirror(Part):
         self.s = surfs[self.s_indx]
         sync_obj_reference(self, 'profile', profile_dict, self.s.profile)
         if not hasattr(self, 'medium_name'):
-            self.medium_name = 'Mirror'
+            self.medium_name = 'Surface'
         if not hasattr(self, 'hole_sd'):
             self.hole_sd = None
         self.handles = {}
@@ -1013,7 +1008,7 @@ class Mirror(Part):
         self.profile = self.s.profile
 
     def tree(self, **kwargs):
-        default_tag = '#element#mirror'
+        default_tag = kwargs.get('default_tag', '#element#surface')
         tag = default_tag + kwargs.get('tag', '')
         # Interface branch
         m = Node('M', id=self, tag=tag)
@@ -1177,6 +1172,52 @@ class Mirror(Part):
         self.actions['sd_lwr'] = sd_lwr_action
 
         return self.actions
+
+
+class Mirror(SurfaceInterface):
+
+    label_format = 'M{}'
+    serial_number = 0
+
+    def __init__(self, ifc, tfrm=None, idx=0, sd=1., thi=None, z_dir=1.0,
+                 label=None):
+        if label is None:
+            Mirror.serial_number += 1
+            label = Mirror.label_format.format(Mirror.serial_number)
+
+        super().__init__(ifc, tfrm, idx, sd, z_dir, label)
+
+        self.render_color = (158, 158, 158, 64)
+        self.thi = thi
+        self.medium_name = 'Mirror'
+    
+    def __str__(self):
+        thi = self.get_thi()
+        fmt = 'Mirror: {!r}, t={:.4f}, sd={:.4f}'
+        return fmt.format(self.profile, thi, self.sd)
+
+    def listobj_str(self):
+        o_str = f"part: {type(self).__name__}, "
+        o_str += self.profile.listobj_str()
+        o_str += f"t={self.get_thi():.4f}, sd={self.sd:.4f}\n"
+        return o_str
+    
+    def sync_to_restore(self, ele_model, surfs, gaps, tfrms, 
+                        profile_dict, parts_dict):
+        if not hasattr(self, 'medium_name'):
+            self.medium_name = 'Mirror'
+        super().sync_to_restore(ele_model, surfs, gaps, tfrms, 
+                                profile_dict, parts_dict)
+
+    def get_thi(self):
+        thi = self.thi
+        if self.thi is None:
+            thi = 0.05*self.sd
+        return thi
+    
+    def tree(self, **kwargs):
+        kwargs['default_tag'] = '#element#mirror'
+        return super().tree(**kwargs)
 
 
 class CementedElement(Part):
@@ -1737,15 +1778,15 @@ class DummyInterface(Part):
         return self.actions
 
 
-class AirGap(Part):
+class Space(Part):
 
-    label_format = 'AG{}'
+    label_format = 'SP{}'
     serial_number = 0
 
     def __init__(self, g, idx=0, tfrm=None, label=None, z_dir=1, **kwargs):
         if label is None:
-            AirGap.serial_number += 1
-            self.label = AirGap.label_format.format(AirGap.serial_number)
+            Space.serial_number += 1
+            self.label = Space.label_format.format(Space.serial_number)
         else:
             self.label = label
 
@@ -1786,23 +1827,18 @@ class AirGap(Part):
         self.handles = {}
         self.actions = {}
 
-        ro_version = ele_model.opt_model.ro_version
-        if version.parse(ro_version) < version.parse("0.7.0a"):
-            AirGap.serial_number += 1
-            self.label = AirGap.label_format.format(AirGap.serial_number)
-
     def sync_to_seq(self, seq_model):
         self.idx = seq_model.gaps.index(self.gap)
         self.z_dir = seq_model.z_dir[self.idx]
 
     def tree(self, **kwargs):
-        default_tag = '#airgap'
+        default_tag = kwargs.get('default_tag', '#gap')
         tag = default_tag + kwargs.get('tag', '')
-        ag = Node(self.label, id=self, tag=tag)
-        t = Node('t', id=self.gap, tag='#thic', parent=ag)
+        sp = Node(self.label, id=self, tag=tag)
+        t = Node('t', id=self.gap, tag='#thic', parent=sp)
         zdir = kwargs.get('z_dir', self.z_dir)
         Node(f'g{self.idx}', id=(self.gap, zdir), tag='#gap', parent=t)
-        return ag
+        return sp
 
     def reference_interface(self):
         return None
@@ -1866,6 +1902,21 @@ class AirGap(Part):
         self.actions['ct'] = ct_action
 
         return self.actions
+
+
+class AirGap(Space):
+    label_format = 'AG{}'
+    serial_number = 0
+
+    def __init__(self, g, idx=0, tfrm=None, label=None, z_dir=1, **kwargs):
+        if label is None:
+            AirGap.serial_number += 1
+            label = AirGap.label_format.format(AirGap.serial_number)
+        super().__init__(g, idx, tfrm, label, z_dir, **kwargs)
+
+    def tree(self, **kwargs):
+        kwargs['default_tag'] = '#airgap'
+        return super().tree(**kwargs)
 
 
 class Assembly(Part):

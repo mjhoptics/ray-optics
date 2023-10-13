@@ -16,5 +16,6 @@ Submodules
    rayoptics.elem.layout
    rayoptics.elem.parttree
    rayoptics.elem.profiles
+   rayoptics.elem.sgz2ele
    rayoptics.elem.surface
    rayoptics.elem.transform
