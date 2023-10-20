@@ -309,13 +309,22 @@ class Spherical(SurfaceProfile):
 
         This function implements Spencer's eq 25, with kappa=1 (i.e. spherical).
 
-        Note that np.dot(p, p) expands to rho**2 + Z**2, in Spencer's 
-        notation.
+        To see this, start with the code: 
+        F = p[2] - 0.5*cv*(np.dot(p, p))
+
+        Expand np.dot(p, p):
+        F = p[2] - 0.5*cv*(p[0]*p[0] + p[1]*p[1] + p[2]*p[2])
+
+        in Spencer's notation:
+        rho**2 = p[0]*p[0] + p[1]*p[1]
+        Z = p[2]
+
+        Substituting notation, the result is:
+        F = Z - 0.5*cv*(rho**2 + Z**2)
+
+        which is Spencer's eq 25.
         """
         return p[2] - 0.5*self.cv*(np.dot(p, p))
-        # return p[2] - 0.5*self.cv*(p[0]*p[0] +
-        #                            p[1]*p[1] + 
-        #                            p[2]*p[2])
 
     def df(self, p):
         return np.array(
@@ -523,7 +532,7 @@ class Conic(SurfaceProfile):
         """ surface function for Conic profile
 
         This function implements Spencer's eq 25, with 
-        kappa = 1 + cc
+        kappa = ec = 1 + cc
         """
         return p[2] - 0.5*self.cv*(p[0]*p[0] +
                                    p[1]*p[1] +
