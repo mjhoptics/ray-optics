@@ -33,7 +33,7 @@ from parsimonious.nodes import NodeVisitor
 sgz2ele_spec =  \
     r"""
     seq_model   = object space optics image
-    optics      = (part space)+
+    optics      = (part space)*
 
     part        = mangin / cemented / lens / mirror / surface / dummy / thin_lens
     space        = ~r"a|t"
@@ -54,16 +54,28 @@ sgz2ele_spec =  \
 sgz2ele_grammar = Grammar(sgz2ele_spec)
 
 
-def flatten_visit(elements, output):
-    for i,o in enumerate(output):
+def flatten_visit(visit_output):
+    elements = []
+    _flatten_visit_(elements, visit_output)
+    return elements
+
+
+def _flatten_visit_(elements, visit_output):
+    for i,o in enumerate(visit_output):
         if isinstance(o, tuple):
             elements.append(o)
         if isinstance(o, list):
-            flatten_visit(elements, o)
+            _flatten_visit_(elements, o)
+
 
 class SMVisitor(NodeVisitor):
+
+    def __init__(self, do_print_visit=False):
+        self.do_print_visit = do_print_visit
+
     def print_visit(self, node, part_name, idx_list, gap_list):
-        print(f"{part_name[0]}: {part_name[1]} {idx_list} {gap_list}")
+        if self.do_print_visit:
+            print(f"{part_name[0]}: {part_name[1]} {idx_list} {gap_list}")
 #        print(f"{part_name} {idx_list} {gap_list} {node.start} {node.end}")
 
     def visit_seq_model(self, node, visited_children):

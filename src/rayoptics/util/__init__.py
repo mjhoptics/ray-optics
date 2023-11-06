@@ -12,3 +12,19 @@
           in :mod:`~.spectral_lines`
         - a 2D dict with M x N keys, :mod:`~.dict2d`
 """
+
+import importlib
+import logging
+
+def str_to_class(module_name:str, class_name:str, **kwargs):
+    """Return a class instance from a string reference"""
+    try:
+        module_ = importlib.import_module(module_name)
+        try:
+            class_ = getattr(module_, class_name)(**kwargs)
+        # except AttributeError:
+        except Exception as err:
+            logging.error(f'Class "{class_name}" does not exist')
+    except ImportError:
+        logging.error(f'Module "{module_name}" does not exist')
+    return class_ or None

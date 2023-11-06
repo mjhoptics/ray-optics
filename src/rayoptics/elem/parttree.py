@@ -135,6 +135,12 @@ class PartTree():
                 dup_node.parent = None
         e_node.parent = self.root_node
         return e_node
+    
+    def remove_element_from_tree(self, e, **kwargs):
+        e_node = self.node(e)
+        e_node.children = []
+        e_node.parent = None
+        return e_node
 
     def node(self, obj):
         """ Return the node paired with `obj`. """
@@ -263,7 +269,7 @@ class PartTree():
             print(f"{s_str}{g_str}      {s_parent:10s} {g_parent}")
         return seq_str, ele_list
 
-    def list_ele_sg(self, sm):
+    def build_ele_sg_lists(self, sm):
         def guarded_gap_idx(g):
             try:
                 return sm.gaps.index(g)
@@ -271,17 +277,24 @@ class PartTree():
                 return str(id(g))
         part_tag = '#element#airgap#dummyifc'
         nodes = self.nodes_with_tag(tag=part_tag)
-        elements = [n.id for n in nodes]
+        eles = [n.id for n in nodes]
         ele_list = []
         ele_dict = {}
-        for e in elements:
+        for e in eles:
             ele_type = type(e).__name__
             idx_list = tuple(i for i in e.idx_list())
             gap_list = tuple(guarded_gap_idx(g) for g in e.gap_list())
             ele_list.append((ele_type, idx_list, gap_list))
             ele_dict[(ele_type, idx_list, gap_list)] = e
-            print(f"{e.label}: {ele_type} {idx_list} {gap_list}")
         return ele_list, ele_dict
+
+    def list_ele_sg(self, sm):
+        ele_list, ele_dict = self.build_ele_sg_lists(self, sm)
+        for elem in ele_list:
+            ele_type, idx_list, gap_list = elem
+            e = ele_dict[elem]
+            print(f"{e.label}: {ele_type} {idx_list} {gap_list}")
+
 
 def sync_part_tree_on_restore(opt_model, ele_model, seq_model, root_node):
     ele_dict = {e.label: e for e in ele_model.elements}
@@ -588,3 +601,4 @@ def list_tree_from_node(node, *args, **kwargs):
     """
     tag_filter = kwargs.pop('childiter', list)
     print(RenderTree(node, childiter=tag_filter).by_attr(*args, **kwargs))
+

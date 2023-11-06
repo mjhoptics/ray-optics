@@ -202,6 +202,20 @@ class SequentialModel:
                                      z_dir)
         return path
 
+    def seq_str(self):
+        seq_str = ''
+        for sg in itertools.zip_longest(self.ifcs, self.gaps):
+            s, g = sg
+
+            s_str = s.ifc_token()
+            seq_str += s_str
+
+            if g is not None:
+                g_str = 'a' if g.medium.name() == 'air' else 't'
+                seq_str += g_str
+
+        return seq_str
+
     def calc_ref_indices_for_spectrum(self, wvls):
         """ returns a list with refractive indices for all **wvls**
 

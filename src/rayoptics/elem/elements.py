@@ -65,7 +65,7 @@ rot_around_y = np.array([[-1, 0, 0], [0, 1, 0], [0, 0, -1]])
 # --- Factory functions
 def create_thinlens(power=0., indx=1.5, sd=None, **kwargs):
     tl = thinlens.ThinLens(power=power, ref_index=indx, max_ap=sd, **kwargs)
-    tle = ThinElement(tl)
+    tle = ThinElement(ifc=tl)
     tree = tle.tree()
 
     if 'prx' in kwargs:
@@ -122,7 +122,7 @@ def create_mirror(c=0.0, r=None, cc=0.0, ec=None,
     m = Surface(profile=prf, interact_mode='reflect', max_ap=sd,
                 delta_n=delta_n, **kwargs)
     ele_kwargs = {'label': kwargs['label']} if 'label' in kwargs else {}
-    me = Mirror(m, sd=sd, **ele_kwargs)
+    me = Mirror(ifc=m, sd=sd, **ele_kwargs)
 
     tree = me.tree()
 
@@ -205,7 +205,7 @@ def _create_lens(power=0., bending=0., th=None, sd=1., med=None,
     s1 = Surface(profile=Spherical(c=cv1), max_ap=sd, delta_n=(rndx - 1))
     s2 = Surface(profile=Spherical(c=cv2), max_ap=sd, delta_n=(1 - rndx))
     g = Gap(t=th, med=mat)
-    le = Element(s1, s2, g, sd=sd)
+    le = Element(sg_def=(s1, s2, g), sd=sd)
     tree = le.tree()
 
     return [[s1, g, None, rndx, 1], [s2, None, None, 1, 1]], [le], tree
@@ -309,7 +309,7 @@ def create_cemented_doublet(power=0., bending=0., th=None, sd=1.,
     ifc_list.append([0, s1, g1, 1, g_tfrm])
     ifc_list.append([1, s2, g2, 1, g_tfrm])
     ifc_list.append([2, s3, None, 1, g_tfrm])
-    ce = CementedElement(ifc_list)
+    ce = CementedElement(ifc_list=ifc_list)
     tree = ce.tree()
 
     return [[s1, g1, None, rndx_a, 1],
@@ -319,7 +319,7 @@ def create_cemented_doublet(power=0., bending=0., th=None, sd=1.,
 
 def create_dummy_plane(sd=1., **kwargs):
     s = Surface(interact_mode='dummy', max_ap=sd, **kwargs)
-    se = DummyInterface(s, sd=sd)
+    se = DummyInterface(ifc=s, sd=sd)
     tree = se.tree()
 
     if 'prx' in kwargs:
@@ -335,7 +335,7 @@ def create_dummy_plane(sd=1., **kwargs):
 
 def create_air_gap(t=0., **kwargs):
     g = Gap(t=t)
-    ag = AirGap(g, **kwargs)
+    ag = AirGap(g=g, **kwargs)
     kwargs.pop('label', None)
     tree = ag.tree(**kwargs)
     return g, ag, tree, None
@@ -535,6 +535,14 @@ class Part(Protocol):
         raise NotImplementedError
 
     @abstractmethod
+    def sync_to_ele_def(self, seq_model, ele_def):
+        """ Update idx_list and gap_list according to ele_def.
+        
+        ele_def: (ele_type, idx_list, gap_list)
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def tree(self, **kwargs) -> Node:
         raise NotImplementedError
 
@@ -621,8 +629,8 @@ class Element(Part):
     label_format = 'E{}'
     serial_number = 0
 
-    def __init__(self, s1, s2, g, tfrm=None, idx=0, idx2=1, sd=1.,
-                 label=None):
+    def __init__(self, sg_def=None, ele_def_pkg=None, tfrm=None, 
+                 idx=0, idx2=1, sd=1., label=None):
         if label is None:
             Element.serial_number += 1
             self.label = Element.label_format.format(Element.serial_number)
@@ -632,14 +640,21 @@ class Element(Part):
             self.tfrm = tfrm
         else:
             self.tfrm = (np.identity(3), np.array([0., 0., 0.]))
-        self.s1 = s1
-        self.profile1 = s1.profile
-        self.s1_indx = idx
-        self.s2 = s2
-        self.s2_indx = idx2
-        self.profile2 = s2.profile
-        self.gap = g
-        self.medium_name = self.gap.medium.name()
+
+        if sg_def is not None:
+            s1, s2, g = sg_def
+            self.s1 = s1
+            self.profile1 = s1.profile
+            self.s1_indx = idx
+            self.s2 = s2
+            self.s2_indx = idx2
+            self.profile2 = s2.profile
+            self.gap = g
+            self.medium_name = self.gap.medium.name()
+        elif ele_def_pkg is not None:
+            seq_model, ele_def = ele_def_pkg
+            self.sync_to_ele_def(seq_model, ele_def)
+
         self._sd = sd
         self.hole_sd = None
         self.flat1 = None
@@ -716,6 +731,17 @@ class Element(Part):
         self.profile2 = self.s2.profile
         self.medium_name = self.gap.medium.name()
 
+    def sync_to_ele_def(self, seq_model, ele_def):
+        ele_type, idx_list, gap_list = ele_def
+        self.s1_indx = idx_list[0]
+        self.s2_indx = idx_list[1]
+        self.s1 = seq_model.ifcs[self.s1_indx]
+        self.s2 = seq_model.ifcs[self.s2_indx]
+        self.profile1 = self.s1.profile
+        self.profile2 = self.s2.profile
+        self.gap = seq_model.gaps[gap_list[0]]
+        self.medium_name = self.gap.medium.name()
+
     def tree(self, **kwargs):
         """Build tree linking sequence to element model. """
 
@@ -739,16 +765,19 @@ class Element(Part):
         return e
 
     def idx_list(self):
-        seq_model = self.parent.opt_model['seq_model']
-        try:
-            self.s1_indx = seq_model.ifcs.index(self.s1)
-        except ValueError:
-            self.s1_indx = str(self.s1_indx)
-        try:
-            self.s2_indx = seq_model.ifcs.index(self.s2)
-        except ValueError:
-            self.s2_indx = str(self.s2_indx)
-        return [self.s1_indx, self.s2_indx]
+        if hasattr(self, 'parent'):
+            seq_model = self.parent.opt_model['seq_model']
+            try:
+                self.s1_indx = seq_model.ifcs.index(self.s1)
+            except ValueError:
+                self.s1_indx = str(self.s1_indx)
+            try:
+                self.s2_indx = seq_model.ifcs.index(self.s2)
+            except ValueError:
+                self.s2_indx = str(self.s2_indx)
+            return [self.s1_indx, self.s2_indx]
+        else:
+            print(f"idx_list: {self.label}")
 
     def reference_idx(self):
         return self.s1_indx
@@ -945,7 +974,8 @@ class SurfaceInterface(Part):
     label_format = 'S{}'
     serial_number = 0
 
-    def __init__(self, ifc, tfrm=None, idx=0, sd=1., z_dir=1.0, label=None):
+    def __init__(self, ifc=None, ele_def_pkg=None, tfrm=None, idx=0, sd=1., 
+                 z_dir=1.0, label=None):
         if label is None:
             SurfaceInterface.serial_number += 1
             self.label = SurfaceInterface.label_format.format(
@@ -957,9 +987,15 @@ class SurfaceInterface(Part):
             self.tfrm = tfrm
         else:
             self.tfrm = (np.identity(3), np.array([0., 0., 0.]))
-        self.s = ifc
-        self.s_indx = idx
-        self.profile = ifc.profile
+        
+        if ifc is not None:
+            self.s = ifc
+            self.s_indx = idx
+            self.profile = ifc.profile
+        elif ele_def_pkg is not None:
+            seq_model, ele_def = ele_def_pkg
+            self.sync_to_ele_def(seq_model, ele_def)
+            
         self.z_dir = z_dir
         self.sd = sd
         self.hole_sd = None
@@ -1007,11 +1043,18 @@ class SurfaceInterface(Part):
         self.s_indx = seq_model.ifcs.index(self.s)
         self.profile = self.s.profile
 
+    def sync_to_ele_def(self, seq_model, ele_def):
+        ele_type, idx_list, gap_list = ele_def
+        self.s_indx = idx_list[0]
+        self.s = seq_model.ifcs[idx_list[0]]
+        self.profile = self.s.profile
+
     def tree(self, **kwargs):
+        default_label_prefix = kwargs.get('default_label_prefix', 'S')
         default_tag = kwargs.get('default_tag', '#element#surface')
         tag = default_tag + kwargs.get('tag', '')
         # Interface branch
-        m = Node('M', id=self, tag=tag)
+        m = Node(default_label_prefix, id=self, tag=tag)
         p = Node('p', id=self.profile, tag='#profile', parent=m)
         Node(f'i{self.s_indx}', id=self.s, tag='#ifc', parent=p)
 
@@ -1216,6 +1259,7 @@ class Mirror(SurfaceInterface):
         return thi
     
     def tree(self, **kwargs):
+        kwargs['default_label_prefix'] = 'M'
         kwargs['default_tag'] = '#element#mirror'
         return super().tree(**kwargs)
 
@@ -1242,7 +1286,7 @@ class CementedElement(Part):
     label_format = 'CE{}'
     serial_number = 0
 
-    def __init__(self, ifc_list, label=None):
+    def __init__(self, ifc_list=None, ele_def_pkg=None, label=None):
         if label is None:
             CementedElement.serial_number += 1
             self.label = CementedElement.label_format.format(
@@ -1250,30 +1294,30 @@ class CementedElement(Part):
         else:
             self.label = label
 
-        g_tfrm = ifc_list[0][4]
-        if g_tfrm is not None:
-            self.tfrm = g_tfrm
-        else:
+        if ifc_list is not None:
+            g_tfrm = ifc_list[0][4]
+            if g_tfrm is not None:
+                self.tfrm = g_tfrm
+            else:
+                self.tfrm = (np.identity(3), np.array([0., 0., 0.]))
+            self.idxs = []
+            self.ifcs = []
+            self.profiles = []
+            self.gaps = []
+            for interface in ifc_list:
+                i, ifc, g, z_dir, g_tfrm = interface
+                self.idxs.append(i)
+                self.ifcs.append(ifc)
+                self.profiles.append(ifc.profile)
+                if g is not None:
+                    self.gaps.append(g)
+            if len(self.gaps) == len(self.ifcs):
+                self.gaps.pop()
+            self.medium_name = self._construct_medium_name()
+        elif ele_def_pkg is not None:
+            seq_model, ele_def = ele_def_pkg
+            self.sync_to_ele_def(seq_model, ele_def)
             self.tfrm = (np.identity(3), np.array([0., 0., 0.]))
-        self.idxs = []
-        self.ifcs = []
-        self.profiles = []
-        self.gaps = []
-        self.medium_name = ''
-        for interface in ifc_list:
-            i, ifc, g, z_dir, g_tfrm = interface
-            self.idxs.append(i)
-            self.ifcs.append(ifc)
-            self.profiles.append(ifc.profile)
-            if g is not None:
-                self.gaps.append(g)
-                if self.medium_name != '':
-                    self.medium_name += ', '
-                self.medium_name += g.medium.name()
-
-        if len(self.gaps) == len(self.ifcs):
-            self.gaps.pop()
-            self.medium_name = self.medium_name.rpartition(',')[0]
 
         self._sd = self.update_size()
         self.flats = [None]*len(self.ifcs)
@@ -1312,6 +1356,14 @@ class CementedElement(Part):
         fmt = 'CementedElement: {}'
         return fmt.format(self.idxs)
 
+    def _construct_medium_name(self):
+        medium_name = ''
+        for g in self.gaps:
+            if medium_name != '':
+                medium_name += ', '
+            medium_name += g.medium.name()
+        return medium_name
+
     def sync_to_restore(self, ele_model, surfs, gaps, tfrms, 
                         profile_dict, parts_dict):
         # when restoring, we want to use the stored indices to look up the
@@ -1338,7 +1390,7 @@ class CementedElement(Part):
         if not hasattr(self, 'do_flat_k'):
             self.do_flat_k = 'if concave'
         if not hasattr(self, 'medium_name'):
-            self.medium_name = self.gap.medium.name()
+            self.medium_name = self._construct_medium_name()
         self.handles = {}
         self.actions = {}
 
@@ -1348,6 +1400,16 @@ class CementedElement(Part):
         # deletion of interfaces)
         self.idxs = [seq_model.ifcs.index(ifc) for ifc in self.ifcs]
         self.profiles = [ifc.profile for ifc in self.ifcs]
+
+    def sync_to_ele_def(self, seq_model, ele_def):
+        ele_type, idx_list, gap_list = ele_def
+
+        self.idxs = [ifc for ifc in idx_list]
+        self.ifcs = [seq_model.ifcs[ifc] for ifc in idx_list]
+        self.profiles = [ifc.profile for ifc in self.ifcs]
+
+        self.gaps = [seq_model.gaps[i] for i in gap_list]
+        self.medium_name = self._construct_medium_name()
 
     def tree(self, **kwargs):
         default_tag = '#element#cemented'
@@ -1421,7 +1483,7 @@ class CementedElement(Part):
             if c == 0.:
                 return sd
             else:
-                R = 1/c
+                R = abs(1/c)
                 try:
                     zone = sqrt(2*sag*R - sag**2)
                 except ValueError:
@@ -1536,7 +1598,8 @@ class ThinElement(Part):
     label_format = 'TL{}'
     serial_number = 0
 
-    def __init__(self, ifc, tfrm=None, idx=0, sd=None, label=None):
+    def __init__(self, ifc=None, ele_def_pkg=None, tfrm=None, idx=0, sd=None,
+                 label=None):
         if label is None:
             ThinElement.serial_number += 1
             self.label = ThinElement.label_format.format(
@@ -1544,14 +1607,19 @@ class ThinElement(Part):
         else:
             self.label = label
 
+        if ifc is not None:
+            self.intrfc = ifc
+            self.intrfc_indx = idx
+            self.medium_name = 'Thin Element'
+        elif ele_def_pkg is not None:
+            seq_model, ele_def = ele_def_pkg
+            self.sync_to_ele_def(seq_model, ele_def)
+
         self.render_color = (192, 192, 192)
         if tfrm is not None:
             self.tfrm = tfrm
         else:
             self.tfrm = (np.identity(3), np.array([0., 0., 0.]))
-        self.intrfc = ifc
-        self.intrfc_indx = idx
-        self.medium_name = 'Thin Element'
         if sd is not None:
             self.sd = sd
         else:
@@ -1595,6 +1663,11 @@ class ThinElement(Part):
 
     def sync_to_seq(self, seq_model):
         self.intrfc_indx = seq_model.ifcs.index(self.intrfc)
+
+    def sync_to_ele_def(self, seq_model, ele_def):
+        ele_type, idx_list, gap_list = ele_def
+        self.intrfc_indx = idx_list[0]
+        self.intrfc = seq_model.ifcs[idx_list[0]]
 
     def reference_interface(self):
         return self.intrfc
@@ -1645,7 +1718,8 @@ class DummyInterface(Part):
     label_format = 'D{}'
     serial_number = 0
 
-    def __init__(self, ifc, idx=0, sd=None, tfrm=None, label=None):
+    def __init__(self, ifc=None, ele_def_pkg=None, idx=0, sd=None, tfrm=None,
+                 label=None):
         if label is None:
             DummyInterface.serial_number += 1
             self.label = DummyInterface.label_format.format(
@@ -1658,14 +1732,20 @@ class DummyInterface(Part):
             self.tfrm = tfrm
         else:
             self.tfrm = (np.identity(3), np.array([0., 0., 0.]))
-        self.ref_ifc = ifc
-        self.idx = idx
-        self.profile = ifc.profile
+
+        if ifc is not None:
+            self.ref_ifc = ifc
+            self.idx = idx
+            self.profile = ifc.profile
+        elif ele_def_pkg is not None:
+            seq_model, ele_def = ele_def_pkg
+            self.sync_to_ele_def(seq_model, ele_def)
+
         self.medium_name = 'Interface'
         if sd is not None:
             self.sd = sd
         else:
-            self.sd = ifc.max_aperture
+            self.sd = self.ref_ifc.max_aperture
         self.handles = {}
         self.actions = {}
 
@@ -1695,6 +1775,12 @@ class DummyInterface(Part):
 
     def sync_to_seq(self, seq_model):
         self.idx = seq_model.ifcs.index(self.ref_ifc)
+        self.profile = self.ref_ifc.profile
+
+    def sync_to_ele_def(self, seq_model, ele_def):
+        ele_type, idx_list, gap_list = ele_def
+        self.idx = idx_list[0]
+        self.ref_ifc = seq_model.ifcs[self.idx]
         self.profile = self.ref_ifc.profile
 
     def tree(self, **kwargs):
@@ -1783,7 +1869,8 @@ class Space(Part):
     label_format = 'SP{}'
     serial_number = 0
 
-    def __init__(self, g, idx=0, tfrm=None, label=None, z_dir=1, **kwargs):
+    def __init__(self, label=None, g=None, ele_def_pkg=None, idx=0, tfrm=None, 
+                 z_dir=1, **kwargs):
         if label is None:
             Space.serial_number += 1
             self.label = Space.label_format.format(Space.serial_number)
@@ -1795,10 +1882,15 @@ class Space(Part):
         else:
             self.tfrm = (np.identity(3), np.array([0., 0., 0.]))
 
+        if g is not None:
+            self.gap = g
+            self.medium_name = self.gap.medium.name()
+        elif ele_def_pkg is not None:
+            seq_model, ele_def = ele_def_pkg
+            self.sync_to_ele_def(seq_model, ele_def)
+            
         self.render_color = (237, 243, 254, 64)  # light blue
-        self.gap = g
         self.z_dir = z_dir
-        self.medium_name = self.gap.medium.name()
         self.idx = idx
         self.handles = {}
         self.actions = {}
@@ -1831,10 +1923,17 @@ class Space(Part):
         self.idx = seq_model.gaps.index(self.gap)
         self.z_dir = seq_model.z_dir[self.idx]
 
+    def sync_to_ele_def(self, seq_model, ele_def):
+        ele_type, idx_list, gap_list = ele_def
+        self.idx = gap_list[0]
+        self.gap = seq_model.gaps[self.idx]
+        self.medium_name = self.gap.medium.name()
+
     def tree(self, **kwargs):
+        default_label_prefix = kwargs.get('default_label_prefix', 'SP')
         default_tag = kwargs.get('default_tag', '#gap')
         tag = default_tag + kwargs.get('tag', '')
-        sp = Node(self.label, id=self, tag=tag)
+        sp = Node(default_label_prefix, id=self, tag=tag)
         t = Node('t', id=self.gap, tag='#thic', parent=sp)
         zdir = kwargs.get('z_dir', self.z_dir)
         Node(f'g{self.idx}', id=(self.gap, zdir), tag='#gap', parent=t)
@@ -1908,13 +2007,14 @@ class AirGap(Space):
     label_format = 'AG{}'
     serial_number = 0
 
-    def __init__(self, g, idx=0, tfrm=None, label=None, z_dir=1, **kwargs):
+    def __init__(self, label=None, **kwargs):
         if label is None:
             AirGap.serial_number += 1
             label = AirGap.label_format.format(AirGap.serial_number)
-        super().__init__(g, idx, tfrm, label, z_dir, **kwargs)
+        super().__init__(label, **kwargs)
 
     def tree(self, **kwargs):
+        kwargs['default_label_prefix'] = 'AG'
         kwargs['default_tag'] = '#airgap'
         return super().tree(**kwargs)
 
@@ -2111,7 +2211,7 @@ class ElementModel:
 
         s = seq_model.ifcs[-1]
         idx = seq_model.get_num_surfaces() - 1
-        di = DummyInterface(s, sd=s.surface_od(), tfrm=tfrms[-1], idx=idx,
+        di = DummyInterface(ifc=s, sd=s.surface_od(), tfrm=tfrms[-1], idx=idx,
                             label='Image')
         self.opt_model.part_tree.add_element_to_tree(di, tag='#image')
         self.add_element(di)
