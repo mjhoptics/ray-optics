@@ -401,6 +401,60 @@ def create_assembly_from_seq(opt_model, idx1, idx2, **kwargs):
     return asm, asm_node
 
 
+def render_lens_shape(s1, profile1, s2, profile2, thi, extent, sd, is_flipped, 
+                      hole_sd=None, flat1_pkg=None, flat2_pkg=None):
+    is_concave_s1 = s1.profile_cv < 0.0
+    is_concave_s2 = s2.profile_cv > 0.0
+    
+    profile_polys = []
+
+    if flat1_pkg is not None:
+        do_flat1, flat1 = flat1_pkg
+        if use_flat(do_flat1, is_concave_s1):
+            if flat1 is None:
+                flat = flat1 = compute_flat(s1, sd)
+            else:
+                flat = flat1
+    else:
+        flat = None
+
+    poly1 = full_profile(profile1, is_flipped, extent, 
+                         flat, hole_id=hole_sd)
+    profile_polys.append(poly1)
+
+    if flat2_pkg is not None:
+        do_flat2, flat2 = flat2_pkg
+        if use_flat(do_flat2, is_concave_s2):
+            if flat2 is None:
+                flat = flat2 = compute_flat(s2, sd)
+            else:
+                flat = flat2
+    else:
+        flat = None
+
+    poly2 = full_profile(profile2, is_flipped, extent,
+                         flat, hole_id=hole_sd, dir=-1)
+    profile_polys.append(poly2)
+
+    if hole_sd is None:
+        for p in poly2:
+            p[0] += thi
+        poly1 += poly2
+        poly1.append(poly1[0])
+        poly = poly1
+    else:
+        poly = []
+        for p1, p2 in zip(poly1, poly2):
+            for p in p2:
+                p[0] += thi
+            p1 += p2
+            p1.append(p1[0])
+            poly.append(p1)
+        poly = tuple(poly)
+
+    return poly
+
+
 def full_profile(profile, is_flipped, edge_extent,
                  flat_id=None, hole_id=None, dir=1, steps=6):
     """Produce a 2d segmented approximation to the *profile*. 
@@ -1099,6 +1153,126 @@ class SurfaceInterface(Part):
             self.edge_extent = self.s.get_y_aperture_extent()
             return self.edge_extent
 
+    def render_shape(self):
+        is_concave_s = self.s.profile_cv < 0.0
+        
+        self.profile_polys = []
+
+        computed_flat = compute_flat(self.s, self.sd)
+        if use_flat(self.do_flat, is_concave_s):
+            if self.flat is None:
+                flat = computed_flat
+            else:
+                flat = self.flat
+        else:
+            flat = None
+        poly = full_profile(self.profile, self.is_flipped, self.extent(), 
+                            flat, hole_id=self.hole_sd)
+        self.profile_polys.append(poly)
+
+        return poly
+
+    def render_handles(self, opt_model):
+        self.handles = {}
+
+        render_color = (158, 158, 158, 64)
+        self.handles['shape'] = GraphicsHandle(self.render_shape(), self.tfrm,
+                                               'polyline', render_color)
+        extent = self.extent()
+
+        poly_s1 = self.profile_polys[0]
+        gh1 = GraphicsHandle(poly_s1, self.tfrm, 'polyline')
+        self.handles['s_profile'] = gh1
+
+        if self.hole_sd is None:
+            poly_sd_upr = []
+            poly_sd_upr.append([poly_s1[-1][0], extent[1]])
+            self.handles['sd_upr'] = GraphicsHandle(poly_sd_upr, self.tfrm,
+                                                    'polyline')
+            poly_sd_lwr = []
+            poly_sd_lwr.append([poly_s1[0][0], extent[0]])
+            self.handles['sd_lwr'] = GraphicsHandle(poly_sd_lwr, self.tfrm,
+                                                    'polyline')
+        else:
+            poly_s1_lwr, poly_s1_upr = poly_s1
+            poly_sd_upr = []
+            poly_sd_upr.append([poly_s1_upr[-1][0], extent[1]])
+            self.handles['sd_upr'] = GraphicsHandle(poly_sd_upr, self.tfrm,
+                                                    'polyline')
+            poly_sd_lwr = []
+            poly_sd_lwr.append([poly_s1_lwr[0][0], extent[0]])
+            self.handles['sd_lwr'] = GraphicsHandle(poly_sd_lwr, self.tfrm,
+                                                    'polyline')
+        return self.handles
+
+    def handle_actions(self):
+        self.actions = {}
+
+        shape_actions = {}
+        shape_actions['pt'] = SagAction(self.s)
+        self.actions['shape'] = shape_actions
+
+        s_prof_actions = {}
+        s_prof_actions['pt'] = SagAction(self.s)
+        self.actions['s_profile'] = s_prof_actions
+
+        sd_upr_action = {}
+        sd_upr_action['y'] = AttrAction(self, 'edge_extent[1]')
+        self.actions['sd_upr'] = sd_upr_action
+
+        sd_lwr_action = {}
+        sd_lwr_action['y'] = AttrAction(self, 'edge_extent[0]')
+        self.actions['sd_lwr'] = sd_lwr_action
+
+        return self.actions
+
+
+class Mirror(SurfaceInterface):
+
+    label_format = 'M{}'
+    serial_number = 0
+
+    def __init__(self, ifc, tfrm=None, idx=0, sd=1., thi=None, z_dir=1.0,
+                 label=None):
+        if label is None:
+            Mirror.serial_number += 1
+            label = Mirror.label_format.format(Mirror.serial_number)
+
+        super().__init__(ifc, tfrm, idx, sd, z_dir, label)
+
+        self.render_color = (158, 158, 158, 64)
+        self.thi = thi
+        self.medium_name = 'Mirror'
+    
+    def __str__(self):
+        thi = self.get_thi()
+        fmt = 'Mirror: {!r}, t={:.4f}, sd={:.4f}'
+        return fmt.format(self.profile, thi, self.sd)
+
+    def listobj_str(self):
+        o_str = f"part: {type(self).__name__}, "
+        o_str += self.profile.listobj_str()
+        o_str += f"t={self.get_thi():.4f}, sd={self.sd:.4f}\n"
+        return o_str
+    
+    def sync_to_restore(self, ele_model, surfs, gaps, tfrms, 
+                        profile_dict, parts_dict):
+        if not hasattr(self, 'medium_name'):
+            self.medium_name = 'Mirror'
+        super().sync_to_restore(ele_model, surfs, gaps, tfrms, 
+                                profile_dict, parts_dict)
+
+    def get_thi(self):
+        thi = self.thi
+        if self.thi is None:
+            thi = 0.05*self.sd
+        return thi
+    
+    def tree(self, **kwargs):
+        kwargs['default_label_prefix'] = 'M'
+        kwargs['default_tag'] = '#element#mirror'
+        return super().tree(**kwargs)
+
     def substrate_offset(self):
         thi = self.get_thi()
         # We want to extend the mirror substrate along the same direction
@@ -1195,74 +1369,6 @@ class SurfaceInterface(Part):
                                                     'polyline')
         return self.handles
 
-    def handle_actions(self):
-        self.actions = {}
-
-        shape_actions = {}
-        shape_actions['pt'] = SagAction(self.s)
-        self.actions['shape'] = shape_actions
-
-        s_prof_actions = {}
-        s_prof_actions['pt'] = SagAction(self.s)
-        self.actions['s_profile'] = s_prof_actions
-
-        sd_upr_action = {}
-        sd_upr_action['y'] = AttrAction(self, 'edge_extent[1]')
-        self.actions['sd_upr'] = sd_upr_action
-
-        sd_lwr_action = {}
-        sd_lwr_action['y'] = AttrAction(self, 'edge_extent[0]')
-        self.actions['sd_lwr'] = sd_lwr_action
-
-        return self.actions
-
-
-class Mirror(SurfaceInterface):
-
-    label_format = 'M{}'
-    serial_number = 0
-
-    def __init__(self, ifc, tfrm=None, idx=0, sd=1., thi=None, z_dir=1.0,
-                 label=None):
-        if label is None:
-            Mirror.serial_number += 1
-            label = Mirror.label_format.format(Mirror.serial_number)
-
-        super().__init__(ifc, tfrm, idx, sd, z_dir, label)
-
-        self.render_color = (158, 158, 158, 64)
-        self.thi = thi
-        self.medium_name = 'Mirror'
-    
-    def __str__(self):
-        thi = self.get_thi()
-        fmt = 'Mirror: {!r}, t={:.4f}, sd={:.4f}'
-        return fmt.format(self.profile, thi, self.sd)
-
-    def listobj_str(self):
-        o_str = f"part: {type(self).__name__}, "
-        o_str += self.profile.listobj_str()
-        o_str += f"t={self.get_thi():.4f}, sd={self.sd:.4f}\n"
-        return o_str
-    
-    def sync_to_restore(self, ele_model, surfs, gaps, tfrms, 
-                        profile_dict, parts_dict):
-        if not hasattr(self, 'medium_name'):
-            self.medium_name = 'Mirror'
-        super().sync_to_restore(ele_model, surfs, gaps, tfrms, 
-                                profile_dict, parts_dict)
-
-    def get_thi(self):
-        thi = self.thi
-        if self.thi is None:
-            thi = 0.05*self.sd
-        return thi
-    
-    def tree(self, **kwargs):
-        kwargs['default_label_prefix'] = 'M'
-        kwargs['default_tag'] = '#element#mirror'
-        return super().tree(**kwargs)
-
 
 class CementedElement(Part):
     """Cemented element domain model. Manage rendering and selection/editing.
@@ -1320,6 +1426,7 @@ class CementedElement(Part):
             self.tfrm = (np.identity(3), np.array([0., 0., 0.]))
 
         self._sd = self.update_size()
+        self.hole_sd = None
         self.flats = [None]*len(self.ifcs)
         self.do_flat_0 = 'if concave'  # alternatives are 'never', 'always',
         self.do_flat_k = 'if concave'  # or 'if convex'
@@ -1389,6 +1496,8 @@ class CementedElement(Part):
             self.do_flat_0 = 'if concave'
         if not hasattr(self, 'do_flat_k'):
             self.do_flat_k = 'if concave'
+        if not hasattr(self, 'hole_sd'):
+            self.hole_sd = None
         if not hasattr(self, 'medium_name'):
             self.medium_name = self._construct_medium_name()
         self.handles = {}
@@ -1549,7 +1658,7 @@ class CementedElement(Part):
         sense = 1
         for profile, flat in zip(self.profiles, self.flats):
             poly = full_profile(profile, self.is_flipped, self.extent(), 
-                                flat, dir=sense)
+                                flat, hole_id=self.hole_sd, dir=sense)
             self.profile_polys.append(poly)
             sense = -sense
 
@@ -1560,6 +1669,27 @@ class CementedElement(Part):
             for p in poly_profile:
                 p[0] += thi
 
+        if self.hole_sd is None:
+            thi = 0
+            for i, poly_profile in enumerate(self.profile_polys[1:]):
+                thi += self.gaps[i].thi
+                for p in poly_profile:
+                    p[0] += thi
+            # for p in poly2:
+            #     p[0] += self.gap.thi
+            # poly1 += poly2
+            # poly1.append(poly1[0])
+            # poly = poly1
+        else:
+            poly = []
+            for p1, p2 in zip(poly1, poly2):
+                for p in p2:
+                    p[0] += self.gap.thi
+                p1 += p2
+                p1.append(p1[0])
+                poly.append(p1)
+            poly = tuple(poly)
+
         # just return outline
         poly_shape = []
         poly_shape += self.profile_polys[0]
@@ -1568,7 +1698,7 @@ class CementedElement(Part):
         else:
             poly_shape += self.profile_polys[-1]
         poly_shape.append(poly_shape[0])
-
+        
         return poly_shape
 
     def render_handles(self, opt_model):
@@ -1623,7 +1753,7 @@ class ThinElement(Part):
         if sd is not None:
             self.sd = sd
         else:
-            self.sd = ifc.max_aperture
+            self.sd = self.intrfc.max_aperture
         self.handles = {}
         self.actions = {}
 
@@ -1884,20 +2014,26 @@ class Space(Part):
 
         if g is not None:
             self.gap = g
+            self.idx = idx
+            self.s1 = None
+            self.s2 = None
             self.medium_name = self.gap.medium.name()
         elif ele_def_pkg is not None:
             seq_model, ele_def = ele_def_pkg
             self.sync_to_ele_def(seq_model, ele_def)
             
-        self.render_color = (237, 243, 254, 64)  # light blue
+        # self.render_color = (237, 243, 254, 64)  # light blue
+        self.render_color = (0, 243, 0, 64)  # light blue
         self.z_dir = z_dir
-        self.idx = idx
+
         self.handles = {}
         self.actions = {}
 
     def __json_encode__(self):
         attrs = dict(vars(self))
         del attrs['parent']
+        del attrs['s1']
+        del attrs['s2']
         del attrs['gap']
         del attrs['handles']
         del attrs['actions']
@@ -1910,6 +2046,8 @@ class Space(Part):
                         profile_dict, parts_dict):
         self.parent = ele_model
         self.gap = gaps[self.idx]
+        self.s1 = surfs[self.idx]
+        self.s2 = surfs[self.idx+1]
         if not hasattr(self, 'tfrm'):
             self.tfrm = tfrms[self.idx]
         if not hasattr(self, 'render_color'):
@@ -1920,14 +2058,18 @@ class Space(Part):
         self.actions = {}
 
     def sync_to_seq(self, seq_model):
-        self.idx = seq_model.gaps.index(self.gap)
+        self.idx = idx = seq_model.gaps.index(self.gap)
         self.z_dir = seq_model.z_dir[self.idx]
+        self.s1 = seq_model.ifcs[idx]
+        self.s2 = seq_model.ifcs[idx+1]
 
     def sync_to_ele_def(self, seq_model, ele_def):
         ele_type, idx_list, gap_list = ele_def
-        self.idx = gap_list[0]
+        self.idx = idx = gap_list[0]
         self.gap = seq_model.gaps[self.idx]
         self.medium_name = self.gap.medium.name()
+        self.s1 = seq_model.ifcs[idx]
+        self.s2 = seq_model.ifcs[idx+1]
 
     def tree(self, **kwargs):
         default_label_prefix = kwargs.get('default_label_prefix', 'SP')
@@ -1966,13 +2108,35 @@ class Space(Part):
         self.tfrm = r_new, t_new
 
     def update_size(self):
-        pass
+        if self.s1 is not None and self.s2 is not None:
+            extents = np.union1d(self.s1.get_y_aperture_extent(),
+                                self.s2.get_y_aperture_extent())
+            self.edge_extent = (extents[0], extents[-1])
+            self.sd = max(self.s1.surface_od(), self.s2.surface_od())
+            return self.sd
+        else:
+            return None
+
+    def extent(self):
+        if hasattr(self, 'edge_extent'):
+            return self.edge_extent
+        else:
+            return (-self.sd, self.sd)
 
     def render_shape(self):
-        pass
+        s1 = self.s1
+        s2 = self.s2
+        poly = render_lens_shape(s1, s1.profile, s2, s2.profile, self.gap.thi, 
+                                 self.extent(), self.sd, self.is_flipped)
+        return poly
 
     def render_handles(self, opt_model):
         self.handles = {}
+
+        shape = self.render_shape()
+        color = calc_render_color_for_material(self.gap.medium)
+        self.handles['shape'] = GraphicsHandle(shape, self.tfrm, 'polygon',
+                                               color)
 
         poly_ct = []
         poly_ct.append([0., 0.])
@@ -2018,6 +2182,27 @@ class AirGap(Space):
         kwargs['default_tag'] = '#airgap'
         return super().tree(**kwargs)
 
+    def render_handles(self, opt_model):
+        self.handles = {}
+
+        poly_ct = []
+        poly_ct.append([0., 0.])
+        poly_ct.append([self.gap.thi, 0.])
+
+        # Modify the tfrm to account for any decenters following
+        #  the reference ifc.
+        tfrm = self.tfrm
+        decenter = opt_model.seq_model.ifcs[self.idx].decenter
+        if decenter is not None:
+            r_global, t_global = tfrm
+            r_after_ifc, t_after_ifc = decenter.tform_after_surf()
+            t = r_global.dot(t_after_ifc) + t_global
+            r = r_global if r_after_ifc is None else r_global.dot(r_after_ifc)
+            tfrm = r, t
+
+        self.handles['ct'] = GraphicsHandle(poly_ct, tfrm, 'polyline')
+
+        return self.handles
 
 class Assembly(Part):
 
