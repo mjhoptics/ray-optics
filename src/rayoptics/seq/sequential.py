@@ -203,6 +203,7 @@ class SequentialModel:
         return path
 
     def seq_str(self):
+        """ return a character encoding of `ifcs` and `gaps` """
         seq_str = ''
         for sg in itertools.zip_longest(self.ifcs, self.gaps):
             s, g = sg
@@ -817,6 +818,36 @@ class SequentialModel:
                 print(self.ifcs[i].profile,
                       self.ifcs[i+1].profile,
                       gp)
+
+    def list_sg_ele(self, part_tree):
+        seq_str = ''
+        ele_list = []
+        for i, sgz in enumerate(
+            itertools.zip_longest(self.ifcs, self.gaps, self.z_dir)):
+            s, g, z_dir = sgz
+
+            s_str = s.ifc_token()
+            s_parent_node = part_tree.parent_node(s)
+            if s_parent_node is not None:
+                s_parent = s_parent_node.name
+            else:
+                s_parent = " "
+            seq_str += s_str
+            ele_list.append(s_parent)
+            if g is not None:
+                g_str = 'a' if g.medium.name() == 'air' else 't'
+                g_parent_node = part_tree.parent_node((g, z_dir))
+                if g_parent_node is not None:
+                    g_parent = g_parent_node.name
+                else:
+                    g_parent = " "
+                seq_str += g_str
+                ele_list.append(g_parent)
+            else:
+                g_str = " "
+                g_parent = " "
+            print(f"{s_str}{g_str}      {s_parent:10s} {g_parent}")
+        return seq_str, ele_list
 
     def listobj_str(self):
         o_str = ""

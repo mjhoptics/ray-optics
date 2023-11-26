@@ -31,7 +31,7 @@ class InteractiveLayout(InteractiveFigure):
     def __init__(self, opt_model, refresh_gui=None,
                  offset_factor=0.05,
                  do_draw_parts=True,
-                 part_filter='#element#dummyifc#airgap',
+                 part_filter='#element#dummyifc#space#airgap',
                  do_draw_rays=True,
                  do_draw_beams=True,
                  do_draw_edge_rays=True,
@@ -80,8 +80,6 @@ class InteractiveLayout(InteractiveFigure):
         if self.do_draw_parts:
             if build == 'rebuild':
                 self.ele_shapes = []
-                # self.ele_shapes = layout.create_element_entities(
-                #     self, self.part_filter)
             e_nodes = layout.renderable_pt_nodes(part_filter=self.part_filter)
             e_node_set = {e.id for e in e_nodes}
             ele_shapes_set = {ele.e for ele in self.ele_shapes}
@@ -96,7 +94,9 @@ class InteractiveLayout(InteractiveFigure):
             self.ele_bbox = self.update_patches(self.ele_shapes)
             concat_bbox.append(self.ele_bbox)
 
-        # if self.do_draw_beams or self.do_draw_edge_rays or self.do_draw_ray_fans:
+        # if self.do_draw_beams 
+        #  or self.do_draw_edge_rays 
+        #  or self.do_draw_ray_fans:
         self.sl_so = layout.system_length(self.ele_bbox, 
                                           offset_factor=self.offset_factor)
         system_length, start_offset = self.sl_so

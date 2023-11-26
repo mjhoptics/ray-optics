@@ -14,8 +14,10 @@ from anytree.exporter import DictExporter
 from anytree.importer import DictImporter
 from anytree.search import find_by_attr
 
-import rayoptics.elem.elements as elements
+import rayoptics.elem.elements as ele_module
+import rayoptics.elem.sgz2ele as sgz2ele
 import rayoptics.oprops.thinlens as thinlens
+from rayoptics.util import str_to_class
 
 
 class PartTree():
@@ -103,7 +105,7 @@ class PartTree():
                 # path2root = ifc_node.path[:-2]
                 path2root = self.nodes_with_tag(
                     node_list=ifc_node.path, 
-                    tag='#element#airgap#dummyifc#group')
+                    tag='#element#space#airgap#dummyifc#group')
 
                 parse_path(path2root, groups)
         
@@ -113,7 +115,7 @@ class PartTree():
                     # path2root = gap_node.path[:-2]
                     path2root = self.nodes_with_tag(
                         node_list=gap_node.path, 
-                        tag='#element#airgap#dummyifc#group')
+                        tag='#element#space#airgap#dummyifc#group')
                     parse_path(path2root, groups)
 
         for group_node, child_list in groups.items():
@@ -167,7 +169,7 @@ class PartTree():
                 parent_node = leaf_node.parent
                 leaf_node.parent = None
 
-    def parent_node(self, obj, tag='#element#airgap#dummyifc'):
+    def parent_node(self, obj, tag='#element#space#dummyifc'):
         """ Return the parent node for `obj`, filtered by `tag`. """
         tags = tag.split('#')[1:]
         leaf_node = self.node(obj)
@@ -179,7 +181,7 @@ class PartTree():
             parent_node = parent_node.parent
         return parent_node
 
-    def parent_object(self, obj, tag='#element#airgap#dummyifc'):
+    def parent_object(self, obj, tag='#element#space#dummyifc'):
         """ Return the parent object (and node) for `obj`, filtered by `tag`. """
         parent_node = self.parent_node(obj, tag)
         parent = parent_node.id if parent_node else None
@@ -239,61 +241,6 @@ class PartTree():
 
     def list_model(self, tag='#element#assembly#dummyifc'):
         self.list_tree(childiter=self.get_child_filter(tag=tag))
-
-    def list_sg_ele(self, sm):
-        seq_str = ''
-        ele_list = []
-        for i, sgz in enumerate(zip_longest(sm.ifcs, sm.gaps, sm.z_dir)):
-            s, g, z_dir = sgz
-
-            s_str = s.ifc_token()
-            s_parent_node = self.parent_node(s)
-            if s_parent_node is not None:
-                s_parent = s_parent_node.name
-            else:
-                s_parent = " "
-            seq_str += s_str
-            ele_list.append(s_parent)
-            if g is not None:
-                g_str = 'a' if g.medium.name() == 'air' else 't'
-                g_parent_node = self.parent_node((g, z_dir))
-                if g_parent_node is not None:
-                    g_parent = g_parent_node.name
-                else:
-                    g_parent = " "
-                seq_str += g_str
-                ele_list.append(g_parent)
-            else:
-                g_str = " "
-                g_parent = " "
-            print(f"{s_str}{g_str}      {s_parent:10s} {g_parent}")
-        return seq_str, ele_list
-
-    def build_ele_sg_lists(self, sm):
-        def guarded_gap_idx(g):
-            try:
-                return sm.gaps.index(g)
-            except ValueError:
-                return str(id(g))
-        part_tag = '#element#airgap#dummyifc'
-        nodes = self.nodes_with_tag(tag=part_tag)
-        eles = [n.id for n in nodes]
-        ele_list = []
-        ele_dict = {}
-        for e in eles:
-            ele_type = type(e).__name__
-            idx_list = tuple(i for i in e.idx_list())
-            gap_list = tuple(guarded_gap_idx(g) for g in e.gap_list())
-            ele_list.append((ele_type, idx_list, gap_list))
-            ele_dict[(ele_type, idx_list, gap_list)] = e
-        return ele_list, ele_dict
-
-    def list_ele_sg(self, sm):
-        ele_list, ele_dict = self.build_ele_sg_lists(self, sm)
-        for elem in ele_list:
-            ele_type, idx_list, gap_list = elem
-            e = ele_dict[elem]
-            print(f"{e.label}: {ele_type} {idx_list} {gap_list}")
 
 
 def sync_part_tree_on_restore(opt_model, ele_model, seq_model, root_node):
@@ -402,6 +349,93 @@ def sync_part_tree_on_update(ele_model, seq_model, root_node):
 
 
 def elements_from_sequence(ele_model, seq_model, part_tree):
+    """ Parse the seq_model into elements and update ele_model accordingly. """
+    chg_list, sme, eme = find_ele_changes(seq_model, ele_model)
+    common_ele, added_ele, removed_ele, modified_ele = chg_list
+    sme_list, seq_str = sme
+    eme_list, eme_dict = eme
+
+    # now the lists represent the 3 possible actions: adding, deleting,
+    #  and modifying an existing element
+
+    # elements in the added_ele list are created from the `ele_type`
+    for ae in added_ele:
+        (ele_token, ele_module, ele_class), *_ = ae
+        e = str_to_class(ele_module, ele_class, 
+                         ele_def_pkg=(seq_model, ae))
+        ele_model.add_element(e)
+        idx = e.reference_idx()
+        z_dirs = seq_model.z_dir
+        z_dir = z_dirs[idx] if idx < len(z_dirs) else z_dirs[idx-1]
+        part_tree.add_element_to_tree(e, z_dir=z_dir)
+
+    # items in the removed_ele list are removed from the ele_model 
+    #  and part_tree
+    for re in removed_ele:
+        relem = eme_dict[re]
+        ele_model.remove_element(relem)
+        part_tree.remove_element_from_tree(relem)
+
+    # modified elements use the `sync_to_ele_def` protocol to update an
+    # existing element to a new ele_def
+    for me in modified_ele:
+        existing_ele, new_ele = me
+        eme_dict[existing_ele].sync_to_ele_def(seq_model, new_ele)
+
+    return (common_ele, added_ele, removed_ele, modified_ele)
+
+
+def find_ele_changes(seq_model, ele_model, print_visit=False):
+    """ Parse the seq_model into elements and categorize the changes. 
+    
+    Returns:
+        common_ele: list of ele_defs in common between sm and pt
+        added_ele: list of ele_defs for new elements to be created 
+        removed_ele: list of ele_defs to be removed 
+        modified_ele: list of existing elements to be updated from new ele_defs  
+        sme_list: ele_defs obtained by parsing the seq_model
+        seq_str: character encoding of seq_model ifcs and gaps
+        eme_list: ele_defs for current elements in the element model
+        eme_dict: ele_defs for current elements in the element model
+    """
+    # get sequential model "parse string"
+    seq_str = seq_model.seq_str()
+    if seq_str != '':
+        sgz2ele_tree = sgz2ele.sgz2ele_grammar.parse(seq_str)
+        
+        sgz2ele_sm = sgz2ele.SMVisitor()
+        sgz2ele_sm.do_print_visit = print_visit
+        sgz2ele_visit = sgz2ele_sm.visit(sgz2ele_tree)
+        
+        sme_list = sgz2ele.flatten_visit(sgz2ele_visit)
+        
+        eme_list, eme_dict = ele_model.build_ele_sg_lists()
+        
+        eme_set = set(eme_list)
+        sme_set = set(sme_list)
+        
+        common_ele = list(sme_set.intersection(eme_set))
+        added_ele = list(sme_set.difference(eme_set))
+        removed_ele = list(eme_set.difference(sme_set))
+
+        # the modified element list is constructed from ele_defs with the same
+        #  entity type and whose first gap indices match. 
+        modified_ele = [(re, ae) for ae in added_ele for re in removed_ele 
+                        if (ae[0][2] == re[0][2] and ae[2][0] == re[2][0])]
+        # remove the modified_eles from their original lists 
+        for me in modified_ele:
+            re, ae = me
+            added_ele.remove(ae)
+            removed_ele.remove(re)    
+
+        return ((common_ele, added_ele, removed_ele, modified_ele), 
+                (sme_list, seq_str),
+                (eme_list, eme_dict))
+    else:
+        return (([], [], [], []), ([], ''), ([], {}))
+
+
+def elements_from_sequence_gen1(ele_model, seq_model, part_tree):
     """ generate an element list from a sequential model """
 
     if len(part_tree.root_node.children) == 0:
@@ -413,7 +447,8 @@ def elements_from_sequence(ele_model, seq_model, part_tree):
     path = seq_model.path()
     for i, seg in enumerate(path):
         ifc, g, tfrm, rindx, z_dir = seg
-        if part_tree.parent_node(ifc) is None:
+        e_node = part_tree.parent_node(ifc)
+        if e_node is None:
             g_tfrm = g_tfrms[i]
     
             if g is not None:
@@ -432,10 +467,12 @@ def elements_from_sequence(ele_model, seq_model, part_tree):
                         if num_eles == 1:
                             i1, s1, g1, z_dir1, g_tfrm1 = eles[0]
                             sd = max(s1.surface_od(), ifc.surface_od())
-                            e = elements.Element(s1, ifc, g1, sd=sd, tfrm=g_tfrm1,
-                                                 idx=i1, idx2=i)
+                            e = ele_module.Element(sg_def=(s1, ifc, g1), 
+                                                   sd=sd, tfrm=g_tfrm1,
+                                                   idx=i1, idx2=i)
     
-                            e_node = part_tree.add_element_to_tree(e, z_dir=z_dir1)
+                            e_node = part_tree.add_element_to_tree(
+                                e, z_dir=z_dir1)
                             ele_model.add_element(e)
                             if buried_reflector is True:
                                 ifc2 = eles[-1][1]
@@ -454,13 +491,15 @@ def elements_from_sequence(ele_model, seq_model, part_tree):
                         elif num_eles > 1:
                             if not buried_reflector:
                                 eles.append((i, ifc, g, z_dir, g_tfrm))
-                            e = elements.CementedElement(eles[:num_eles+1])
+                            e = ele_module.CementedElement(
+                                ifcs_list=eles[:num_eles+1])
     
-                            e_node = part_tree.add_element_to_tree(e, z_dir=z_dir)
+                            e_node = part_tree.add_element_to_tree(e, 
+                                                                   z_dir=z_dir)
                             ele_model.add_element(e)
                             if buried_reflector is True:
-                                for i, j in enumerate(range(-1, -num_eles-1, -1),
-                                                      start=1):
+                                for i, j in enumerate(
+                                    range(-1, -num_eles-1, -1), start=1):
                                     ifc = eles[j][1]
                                     ifc_node = part_tree.node(ifc)
                                     pid = f'p{i}'
@@ -481,7 +520,7 @@ def elements_from_sequence(ele_model, seq_model, part_tree):
                             i, ifc, g, z_dir, g_tfrm = eles[-1]
     
                         # add an AirGap
-                        ag = elements.AirGap(g, idx=i, tfrm=g_tfrm)
+                        ag = ele_module.AirGap(g=g, idx=i, tfrm=g_tfrm)
                         ag_node = part_tree.add_element_to_tree(ag, z_dir=z_dir)
                         ag_node.leaves[0].id = (g, z_dir)
                         ele_model.add_element(ag)
@@ -498,6 +537,8 @@ def elements_from_sequence(ele_model, seq_model, part_tree):
             else:
                 process_airgap(ele_model, seq_model, part_tree,
                                i, g, z_dir, ifc, g_tfrm)
+        else:  # e_node isn't None
+            pass
 
     # rename and tag the Image space airgap
     node = part_tree.parent_node((seq_model.gaps[-1], seq_model.z_dir[-1]))
@@ -514,11 +555,11 @@ def process_airgap(ele_model, seq_model, part_tree, i, g, z_dir, s, g_tfrm,
     if s.interact_mode == 'reflect' and add_ele:
         sd = s.surface_od()
         z_dir = seq_model.z_dir[i]
-        m = elements.Mirror(s, sd=sd, tfrm=g_tfrm, idx=i, z_dir=z_dir)
+        m = ele_module.Mirror(ifc=s, sd=sd, tfrm=g_tfrm, idx=i, z_dir=z_dir)
         part_tree.add_element_to_tree(m)
         ele_model.add_element(m)
     elif isinstance(s, thinlens.ThinLens) and add_ele:
-        te = elements.ThinElement(s, tfrm=g_tfrm, idx=i)
+        te = ele_module.ThinElement(ifc=s, tfrm=g_tfrm, idx=i)
         part_tree.add_element_to_tree(te)
         ele_model.add_element(te)
     elif (s.interact_mode == 'dummy' or s.interact_mode == 'transmit'):
@@ -542,7 +583,7 @@ def process_airgap(ele_model, seq_model, part_tree, i, g, z_dir, s, g_tfrm,
                     dummy_tag = '#stop'
         if add_dummy:
             sd = s.surface_od()
-            di = elements.DummyInterface(s, sd=sd, tfrm=g_tfrm, idx=i,
+            di = ele_module.DummyInterface(ifc=s, sd=sd, tfrm=g_tfrm, idx=i,
                                          label=dummy_label)
             part_tree.add_element_to_tree(di, tag=dummy_tag)
             ele_model.add_element(di)
@@ -555,7 +596,7 @@ def process_airgap(ele_model, seq_model, part_tree, i, g, z_dir, s, g_tfrm,
         else:  # i > 0
             gap_label = None
             gap_tag = ''
-        ag = elements.AirGap(g, idx=i, tfrm=g_tfrm, label=gap_label)
+        ag = ele_module.AirGap(g=g, idx=i, tfrm=g_tfrm, label=gap_label)
         ag_node = part_tree.add_element_to_tree(ag, z_dir=z_dir, tag=gap_tag)
         ag_node.leaves[0].id = (g, z_dir)
         ele_model.add_element(ag)

@@ -21,7 +21,8 @@ def str_to_class(module_name:str, class_name:str, **kwargs):
     try:
         module_ = importlib.import_module(module_name)
         try:
-            class_ = getattr(module_, class_name)(**kwargs)
+            class_obj = getattr(module_, class_name)
+            class_ = class_obj(**kwargs)
         # except AttributeError:
         except Exception as err:
             logging.error(f'Class "{class_name}" does not exist')

@@ -147,6 +147,11 @@ class Interface:
         """ max_ap is the max aperture radius """
         self.max_aperture = max_ap
 
+    def get_y_aperture_extent(self):
+        """ default behavior is returning +/-max_aperture """
+        od = [-self.max_aperture, self.max_aperture]
+        return od
+
     def intersect(self, p0, d, eps=1.0e-12, z_dir=1):
         ''' Intersect an :class:`~.Interface`, starting from an arbitrary point.
 

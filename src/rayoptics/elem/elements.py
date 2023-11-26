@@ -10,11 +10,11 @@
 
 from collections import namedtuple
 import itertools
+from itertools import zip_longest
 from packaging import version
 
 from abc import abstractmethod
 from typing import Protocol, ClassVar, List, Dict, Any, runtime_checkable
-
 
 from math import sqrt
 import numpy as np
@@ -341,8 +341,6 @@ def create_air_gap(t=0., **kwargs):
     return g, ag, tree, None
 
 
-
-
 def create_from_file(filename, **kwargs):
     opm_file = cmds.open_model(filename, post_process_imports=False)
     sm_file = opm_file['seq_model']
@@ -568,6 +566,7 @@ class Part(Protocol):
     label: str
     parent: Any
     is_flipped: bool = False
+    ele_token: str
 
     def flip(self):
         """Called by opt_model.flip when a Part is flipped. """
@@ -682,6 +681,7 @@ class Element(Part):
 
     label_format = 'E{}'
     serial_number = 0
+    default_ele_token = 'lens'
 
     def __init__(self, sg_def=None, ele_def_pkg=None, tfrm=None, 
                  idx=0, idx2=1, sd=1., label=None):
@@ -705,6 +705,7 @@ class Element(Part):
             self.profile2 = s2.profile
             self.gap = g
             self.medium_name = self.gap.medium.name()
+            self.ele_token = Element.default_ele_token
         elif ele_def_pkg is not None:
             seq_model, ele_def = ele_def_pkg
             self.sync_to_ele_def(seq_model, ele_def)
@@ -741,11 +742,22 @@ class Element(Part):
         if hasattr(self, 'profile_polys'):
             del attrs['profile_polys']
         return attrs
-        
+
     def __str__(self):
         fmt = 'Element: {!r}, {!r}, t={:.4f}, sd={:.4f}, glass: {}'
         return fmt.format(self.s1.profile, self.s2.profile, self.gap.thi,
                           self.sd, self.gap.medium.name())
+
+    def listobj_str(self):
+        ele_type = self.ele_token, type(self).__module__, type(self).__name__
+        idx_list = tuple(i for i in self.idx_list())
+        gap_list = tuple(guarded_gap_idx(g) for g in self.gap_list())
+
+        o_str = f"{ele_type[0]}: {ele_type[2]}\n"
+        o_str += f"idx={idx_list},   gaps={gap_list}   conic cnst={self.cc}\n"
+        o_str += f"coefficients: {self.coefs}\n"
+        return o_str
+        fmt = f"Element: {self.s1.profile:!r}, {self.s2.profile:!r}, t={self.gap.thi:.4f}, sd={self.sd:.4f}, glass: {self.gap.medium.name()}"
 
     def sync_to_restore(self, ele_model, surfs, gaps, tfrms, 
                         profile_dict, parts_dict):
@@ -766,6 +778,9 @@ class Element(Part):
 
         if not hasattr(self, 'medium_name'):
             self.medium_name = self.gap.medium.name()
+        if not hasattr(self, 'ele_token'):
+            self.ele_token = Element.default_ele_token
+
         if not hasattr(self, 'do_flat1'):
             self.do_flat1 = 'if concave'
         if not hasattr(self, 'do_flat2'):
@@ -787,6 +802,8 @@ class Element(Part):
 
     def sync_to_ele_def(self, seq_model, ele_def):
         ele_type, idx_list, gap_list = ele_def
+        ele_token, ele_module, ele_class = ele_type
+        self.ele_token = ele_token
         self.s1_indx = idx_list[0]
         self.s2_indx = idx_list[1]
         self.s1 = seq_model.ifcs[self.s1_indx]
@@ -1027,6 +1044,7 @@ class SurfaceInterface(Part):
 
     label_format = 'S{}'
     serial_number = 0
+    default_ele_token = 'surface'
 
     def __init__(self, ifc=None, ele_def_pkg=None, tfrm=None, idx=0, sd=1., 
                  z_dir=1.0, label=None):
@@ -1046,6 +1064,7 @@ class SurfaceInterface(Part):
             self.s = ifc
             self.s_indx = idx
             self.profile = ifc.profile
+            self.ele_token = SurfaceInterface.default_ele_token
         elif ele_def_pkg is not None:
             seq_model, ele_def = ele_def_pkg
             self.sync_to_ele_def(seq_model, ele_def)
@@ -1088,6 +1107,8 @@ class SurfaceInterface(Part):
         sync_obj_reference(self, 'profile', profile_dict, self.s.profile)
         if not hasattr(self, 'medium_name'):
             self.medium_name = 'Surface'
+        if not hasattr(self, 'ele_token'):
+            self.ele_token = SurfaceInterface.default_ele_token
         if not hasattr(self, 'hole_sd'):
             self.hole_sd = None
         self.handles = {}
@@ -1099,6 +1120,8 @@ class SurfaceInterface(Part):
 
     def sync_to_ele_def(self, seq_model, ele_def):
         ele_type, idx_list, gap_list = ele_def
+        ele_token, ele_module, ele_class = ele_type
+        self.ele_token = ele_token
         self.s_indx = idx_list[0]
         self.s = seq_model.ifcs[idx_list[0]]
         self.profile = self.s.profile
@@ -1231,14 +1254,19 @@ class Mirror(SurfaceInterface):
 
     label_format = 'M{}'
     serial_number = 0
+    default_ele_token = 'mirror'
 
-    def __init__(self, ifc, tfrm=None, idx=0, sd=1., thi=None, z_dir=1.0,
-                 label=None):
+    def __init__(self, ifc=None, ele_def_pkg=None, 
+                 thi=None, label=None, **kwargs):
         if label is None:
             Mirror.serial_number += 1
             label = Mirror.label_format.format(Mirror.serial_number)
-
-        super().__init__(ifc, tfrm, idx, sd, z_dir, label)
+        
+        if ifc is not None:
+            super().__init__(ifc=ifc, label=label, **kwargs)
+            self.ele_token = Mirror.default_ele_token
+        elif ele_def_pkg is not None:
+            super().__init__(ele_def_pkg=ele_def_pkg, label=label, **kwargs)
 
         self.render_color = (158, 158, 158, 64)
         self.thi = thi
@@ -1259,6 +1287,8 @@ class Mirror(SurfaceInterface):
                         profile_dict, parts_dict):
         if not hasattr(self, 'medium_name'):
             self.medium_name = 'Mirror'
+        if not hasattr(self, 'ele_token'):
+            self.ele_token = Mirror.default_ele_token
         super().sync_to_restore(ele_model, surfs, gaps, tfrms, 
                                 profile_dict, parts_dict)
 
@@ -1391,6 +1421,7 @@ class CementedElement(Part):
 
     label_format = 'CE{}'
     serial_number = 0
+    default_ele_token = 'cemented'
 
     def __init__(self, ifc_list=None, ele_def_pkg=None, label=None):
         if label is None:
@@ -1420,6 +1451,7 @@ class CementedElement(Part):
             if len(self.gaps) == len(self.ifcs):
                 self.gaps.pop()
             self.medium_name = self._construct_medium_name()
+            self.ele_token = CementedElement.default_ele_token
         elif ele_def_pkg is not None:
             seq_model, ele_def = ele_def_pkg
             self.sync_to_ele_def(seq_model, ele_def)
@@ -1500,6 +1532,8 @@ class CementedElement(Part):
             self.hole_sd = None
         if not hasattr(self, 'medium_name'):
             self.medium_name = self._construct_medium_name()
+        if not hasattr(self, 'ele_token'):
+            self.ele_token = CementedElement.default_ele_token
         self.handles = {}
         self.actions = {}
 
@@ -1512,30 +1546,70 @@ class CementedElement(Part):
 
     def sync_to_ele_def(self, seq_model, ele_def):
         ele_type, idx_list, gap_list = ele_def
+        ele_token, ele_module, ele_class = ele_type
+        self.ele_token = ele_token
 
-        self.idxs = [ifc for ifc in idx_list]
-        self.ifcs = [seq_model.ifcs[ifc] for ifc in idx_list]
-        self.profiles = [ifc.profile for ifc in self.ifcs]
+        if self.ele_token == 'cemented':
+            self.idxs = [idx for idx in idx_list]
+            self.ifcs = [seq_model.ifcs[idx] for idx in idx_list]
+            self.profiles = [ifc.profile for ifc in self.ifcs]
 
-        self.gaps = [seq_model.gaps[i] for i in gap_list]
-        self.medium_name = self._construct_medium_name()
+            self.gaps = [seq_model.gaps[i] for i in gap_list]
+            self.medium_name = self._construct_medium_name()
+
+        elif self.ele_token == 'mangin':
+            num_gaps = (idx_list[-1] - idx_list[0])>>1
+            self.idxs = [idx for idx in idx_list]
+            self.ifcs = [seq_model.ifcs[idx] for idx in idx_list]
+            self.profiles = [ifc.profile for ifc in self.ifcs[:num_gaps+1]]
+
+            self.gaps = [seq_model.gaps[i] for i in gap_list]
+            self.medium_name = self._construct_medium_name()
 
     def tree(self, **kwargs):
         default_tag = '#element#cemented'
         tag = default_tag + kwargs.get('tag', '')
         zdir = kwargs.get('z_dir', 1)
         ce = Node(self.label, id=self, tag=tag)
-        for i, sg in enumerate(itertools.zip_longest(self.ifcs, self.gaps)):
-            i1 = i + 1
-            ifc, gap = sg
-            pid = f'p{i1}'
-            p = Node(pid, id=self.profiles[i], tag='#profile', parent=ce)
-            Node(f'i{self.idxs[i]}', id=ifc, tag='#ifc', parent=p)
-            # Gap branch
-            if gap is not None:
-                t = Node(f't{i1}', id=gap, tag='#thic', parent=ce)
-                Node(f'g{self.idxs[i]}', id=(gap, zdir),
-                     tag='#gap', parent=t)
+        if self.ele_token == 'cemented':
+            for i, sg in enumerate(zip_longest(self.ifcs, self.gaps)):
+                i1 = i + 1
+                ifc, gap = sg
+                pid = f'p{i1}'
+                p = Node(pid, id=self.profiles[i], tag='#profile', parent=ce)
+                Node(f'i{self.idxs[i]}', id=ifc, tag='#ifc', parent=p)
+                # Gap branch
+                if gap is not None:
+                    t = Node(f't{i1}', id=gap, tag='#thic', parent=ce)
+                    Node(f'g{self.idxs[i]}', id=(gap, zdir),
+                        tag='#gap', parent=t)
+        elif self.ele_token == 'mangin':
+            idx1 = self.idxs[0]
+            idxk = self.idxs[-1]
+            len_ifcs = len(self.ifcs)
+            len_gaps = len(self.gaps)
+            num_gaps = (idxk-idx1)>>1
+            for i in range(num_gaps):
+                i1 = i + 1
+                ifc = self.ifcs[i]
+                gap = self.gaps[i]
+                pid = f'p{i1}'
+                p = Node(pid, id=self.profiles[i], tag='#profile', parent=ce)
+                Node(f'i{self.idxs[i]}', id=self.ifcs[i], tag='#ifc', parent=p)
+                i2 = len_ifcs - i1
+                Node(f'i{self.idxs[i2]}', id=self.ifcs[i2], 
+                     tag='#ifc', parent=p)
+                # Gap branch
+                t = Node(f't{i1}', id=self.gaps[i], tag='#thic', parent=ce)
+                Node(f'g{self.idxs[i]}', id=(self.gaps[i], zdir),
+                    tag='#gap', parent=t)
+                i2 = len_gaps - i1
+                Node(f'g{self.idxs[i2]}', id=(self.gaps[i2], -zdir),
+                    tag='#gap', parent=t)
+            i += 1
+            i1 += 1
+            p = Node(f'p{i1}', id=self.profiles[i], tag='#profile', parent=ce)
+            Node(f'i{self.idxs[i]}', id=self.ifcs[i], tag='#ifc', parent=p)
 
         return ce
 
@@ -1727,6 +1801,7 @@ class ThinElement(Part):
 
     label_format = 'TL{}'
     serial_number = 0
+    default_ele_token = 'thin_lens'
 
     def __init__(self, ifc=None, ele_def_pkg=None, tfrm=None, idx=0, sd=None,
                  label=None):
@@ -1741,6 +1816,7 @@ class ThinElement(Part):
             self.intrfc = ifc
             self.intrfc_indx = idx
             self.medium_name = 'Thin Element'
+            self.ele_token = ThinElement.default_ele_token
         elif ele_def_pkg is not None:
             seq_model, ele_def = ele_def_pkg
             self.sync_to_ele_def(seq_model, ele_def)
@@ -1783,6 +1859,8 @@ class ThinElement(Part):
         self.intrfc = surfs[self.intrfc_indx]
         if not hasattr(self, 'medium_name'):
             self.medium_name = 'Thin Element'
+        if not hasattr(self, 'ele_token'):
+            self.ele_token = ThinElement.default_ele_token
         self.handles = {}
         self.actions = {}
 
@@ -1796,6 +1874,8 @@ class ThinElement(Part):
 
     def sync_to_ele_def(self, seq_model, ele_def):
         ele_type, idx_list, gap_list = ele_def
+        ele_token, ele_module, ele_class = ele_type
+        self.ele_token = ele_token
         self.intrfc_indx = idx_list[0]
         self.intrfc = seq_model.ifcs[idx_list[0]]
 
@@ -1847,6 +1927,7 @@ class DummyInterface(Part):
 
     label_format = 'D{}'
     serial_number = 0
+    default_ele_token = 'dummy'
 
     def __init__(self, ifc=None, ele_def_pkg=None, idx=0, sd=None, tfrm=None,
                  label=None):
@@ -1863,6 +1944,7 @@ class DummyInterface(Part):
         else:
             self.tfrm = (np.identity(3), np.array([0., 0., 0.]))
 
+        self.ele_token = DummyInterface.default_ele_token
         if ifc is not None:
             self.ref_ifc = ifc
             self.idx = idx
@@ -1900,6 +1982,13 @@ class DummyInterface(Part):
         sync_obj_reference(self, 'profile', profile_dict, self.ref_ifc.profile)
         if not hasattr(self, 'medium_name'):
             self.medium_name = 'Interface'
+        if not hasattr(self, 'ele_token'):
+            if self.label == 'Object':
+                self.ele_token = 'object'
+            elif self.label == 'Image':
+                self.ele_token = 'image'
+            else:
+                self.ele_token = DummyInterface.default_ele_token
         self.handles = {}
         self.actions = {}
 
@@ -1909,12 +1998,22 @@ class DummyInterface(Part):
 
     def sync_to_ele_def(self, seq_model, ele_def):
         ele_type, idx_list, gap_list = ele_def
+        ele_token, ele_module, ele_class = ele_type
+        self.ele_token = ele_token
+        if ele_token == 'object':
+            self.label = 'Object'
+        elif ele_token == 'image':
+            self.label = 'Image'
         self.idx = idx_list[0]
         self.ref_ifc = seq_model.ifcs[self.idx]
         self.profile = self.ref_ifc.profile
 
     def tree(self, **kwargs):
         default_tag = '#dummyifc'
+        if self.ele_token == 'object':
+            default_tag += '#object'
+        elif self.ele_token == 'image':
+            default_tag += '#image'
         tag = default_tag + kwargs.get('tag', '')
         di = Node('DI', id=self, tag=tag)
         p = Node('p', id=self.profile, tag='#profile', parent=di)
@@ -1998,6 +2097,7 @@ class Space(Part):
 
     label_format = 'SP{}'
     serial_number = 0
+    default_ele_token = 'space'
 
     def __init__(self, label=None, g=None, ele_def_pkg=None, idx=0, tfrm=None, 
                  z_dir=1, **kwargs):
@@ -2018,6 +2118,7 @@ class Space(Part):
             self.s1 = None
             self.s2 = None
             self.medium_name = self.gap.medium.name()
+            self.ele_token = Space.default_ele_token
         elif ele_def_pkg is not None:
             seq_model, ele_def = ele_def_pkg
             self.sync_to_ele_def(seq_model, ele_def)
@@ -2054,6 +2155,8 @@ class Space(Part):
             self.render_color = (237, 243, 254, 64)  # light blue
         if not hasattr(self, 'medium_name'):
             self.medium_name = self.gap.medium.name()
+        if not hasattr(self, 'ele_token'):
+            self.ele_token = Space.default_ele_token
         self.handles = {}
         self.actions = {}
 
@@ -2065,15 +2168,27 @@ class Space(Part):
 
     def sync_to_ele_def(self, seq_model, ele_def):
         ele_type, idx_list, gap_list = ele_def
+        ele_token, ele_module, ele_class = ele_type
+        self.ele_token = ele_token
         self.idx = idx = gap_list[0]
         self.gap = seq_model.gaps[self.idx]
         self.medium_name = self.gap.medium.name()
+        if idx == 0:
+            self.label = 'Object space'
+        elif idx == len(seq_model.gaps)-1:
+            self.label = 'Image space'
         self.s1 = seq_model.ifcs[idx]
         self.s2 = seq_model.ifcs[idx+1]
 
     def tree(self, **kwargs):
         default_label_prefix = kwargs.get('default_label_prefix', 'SP')
-        default_tag = kwargs.get('default_tag', '#gap')
+        default_tag = kwargs.get('default_tag', '#space')
+        if hasattr(self, 'parent'):
+            seq_model = self.parent.opt_model['seq_model']
+            if self.idx == 0:
+                default_tag += '#object'
+            elif self.idx == len(seq_model.gaps)-1:
+                default_tag += '#image'
         tag = default_tag + kwargs.get('tag', '')
         sp = Node(default_label_prefix, id=self, tag=tag)
         t = Node('t', id=self.gap, tag='#thic', parent=sp)
@@ -2170,16 +2285,28 @@ class Space(Part):
 class AirGap(Space):
     label_format = 'AG{}'
     serial_number = 0
+    default_ele_token = 'air'
 
-    def __init__(self, label=None, **kwargs):
+    def __init__(self, g=None, ele_def_pkg=None, label=None, **kwargs):
         if label is None:
             AirGap.serial_number += 1
             label = AirGap.label_format.format(AirGap.serial_number)
-        super().__init__(label, **kwargs)
-
+        
+        self.ele_token = AirGap.default_ele_token
+        if g is not None:
+            super().__init__(g=g, label=label, **kwargs)
+        elif ele_def_pkg is not None:
+            super().__init__(ele_def_pkg=ele_def_pkg, label=label, **kwargs)
+    
+    def sync_to_restore(self, ele_model, surfs, gaps, tfrms, 
+                        profile_dict, parts_dict):
+        if not hasattr(self, 'ele_token'):
+            self.ele_token = AirGap.default_ele_token
+        super().sync_to_restore(ele_model, surfs, gaps, tfrms, 
+                                profile_dict, parts_dict)
     def tree(self, **kwargs):
         kwargs['default_label_prefix'] = 'AG'
-        kwargs['default_tag'] = '#airgap'
+        kwargs['default_tag'] = '#space#airgap'
         return super().tree(**kwargs)
 
     def render_handles(self, opt_model):
@@ -2208,6 +2335,7 @@ class Assembly(Part):
 
     label_format = 'ASM{}'
     serial_number = 0
+    default_ele_token = 'asm'
 
     def __init__(self, part_list, idx=0, tfrm=None, label=None):
         if label is None:
@@ -2223,6 +2351,7 @@ class Assembly(Part):
 
         self.parts = part_list
         self.idx = idx
+        self.ele_token = Assembly.default_ele_token
         self.handles = {}
         self.actions = {}
 
@@ -2250,6 +2379,9 @@ class Assembly(Part):
 
     def sync_to_seq(self, seq_model):
         self.tfrm = seq_model.gbl_tfrms[self.reference_idx()]
+
+    def sync_to_ele_def(self, seq_model, ele_def):
+        self.ele_token = ele_def[0][0]
 
     def tree(self, **kwargs):
         if 'part_tree' in kwargs:
@@ -2403,28 +2535,9 @@ class ElementModel:
 
     def update_model(self, **kwargs):
         """ dynamically build element list from part_tree. """
-        part_tree = self.opt_model['part_tree']
-        part_tag = '#element#airgap#dummyifc#assembly'
-        nodes = part_tree.nodes_with_tag(tag=part_tag)
-        elements = [n.id for n in nodes]
-
-        # hook or unhook elements from ele_model
-        cur_set = set(self.elements)
-        new_set = set(elements)
-        added_ele = list(new_set.difference(cur_set))
-        for e in added_ele:
-            e.parent = self
-        removed_ele = list(cur_set.difference(new_set))
-        for e in removed_ele:
-            e.parent = None
-
-        self.elements = elements
-        # if the number of elements have changed, update the
-        # links to the seq_model indices. issue 127
-        if len(added_ele) > 0 or len(removed_ele) > 0:
-            seq_model = self.opt_model['seq_model']
-            for e in elements:
-                e.sync_to_seq(seq_model)
+        opm = self.opt_model
+    
+        parttree.elements_from_sequence(opm['em'], opm['sm'], opm['pt'])
         
         # use the seq_model to sort the element_model list
         self.sequence_elements()
@@ -2432,7 +2545,7 @@ class ElementModel:
         # unless updated by the ele_model, sync it to the seq_model.
         src_model = kwargs.get('src_model', None)
         if src_model is not self:
-            self.sync_to_seq(self.opt_model['seq_model'])
+            self.sync_to_seq(opm['sm'])
 
     def apply_scale_factor(self, scale_factor):
         """ Apply scale factor by resyncing with the sequential model. """
@@ -2457,7 +2570,7 @@ class ElementModel:
 
         # sort by element reference interface sequential index
         self.elements.sort(key=lambda e: e.reference_idx()+0.5 
-                           if isinstance(e, AirGap) else e.reference_idx())
+                           if isinstance(e, Space) else e.reference_idx())
 
         # Make sure z_dir matches the sequential model. Used to get
         # the correct substrate offset.
@@ -2506,3 +2619,35 @@ class ElementModel:
 
     def element_type(self, i):
         return type(self.elements[i]).__name__
+
+    def build_ele_sg_lists(self):
+        part_tag = '#element#space#airgap#dummyifc'
+        nodes = self.opt_model['part_tree'].nodes_with_tag(tag=part_tag)
+        eles = [n.id for n in nodes]
+        ele_list = []
+        ele_dict = {}
+        seq_model = self.opt_model['seq_model']
+        for e in eles:
+            ele_type, idx_list, gap_list = build_ele_def(e, seq_model)
+            ele_list.append((ele_type, idx_list, gap_list))
+            ele_dict[(ele_type, idx_list, gap_list)] = e
+        return ele_list, ele_dict
+
+    def list_ele_sg(self, part_tree, seq_model):
+        ele_list, ele_dict = self.build_ele_sg_lists(part_tree, seq_model)
+        for elem in ele_list:
+            ele_type, idx_list, gap_list = elem
+            e = ele_dict[elem]
+            print(f"{e.label}: {ele_type[0]} {idx_list} {gap_list}")
+
+
+def build_ele_def(e, seq_model):
+    def guarded_gap_idx(g):
+        try:
+            return seq_model.gaps.index(g)
+        except ValueError:
+            return str(id(g))
+    ele_type = e.ele_token, type(e).__module__, type(e).__name__
+    idx_list = tuple(i for i in e.idx_list())
+    gap_list = tuple(guarded_gap_idx(g) for g in e.gap_list())
+    return ele_type, idx_list, gap_list

@@ -136,9 +136,7 @@ class OpticalModel:
     def do_init_postproc(self, **kwargs):
         """ Initialize the element and part tree from the seq_model. """
         self.seq_model.update_model()
-        elements_from_sequence(self.ele_model,
-                                self.seq_model,
-                                self.part_tree)
+        elements_from_sequence(self.ele_model, self.seq_model, self.part_tree)
 
     def map_submodels(self, **kwargs):
         """Setup machinery for model mapping api. 
@@ -340,11 +338,6 @@ class OpticalModel:
         sm = self['seq_model']
         em = self['ele_model']
         pt = self['part_tree']
-        # generate elements if there are standalone interfaces (or no elements)
-        if (len(pt.nodes_with_tag(tag='#element')) == 0 or
-            len([ifc for ifc in sm.ifcs 
-                 if pt.parent_node(ifc) is None]) > 0):
-            elements_from_sequence(em, sm, pt)
 
         self['ele_model'].update_model(**kwargs)
         self['part_tree'].update_model(**kwargs)

@@ -75,119 +75,105 @@ class SMVisitor(NodeVisitor):
 
     def print_visit(self, node, part_name, idx_list, gap_list):
         if self.do_print_visit:
-            print(f"{part_name[0]}: {part_name[1]} {idx_list} {gap_list}")
-#        print(f"{part_name} {idx_list} {gap_list} {node.start} {node.end}")
+            # print(f"{part_name[0]}: {part_name[2]} {idx_list} {gap_list}")
+            print(f"{part_name} {idx_list} {gap_list} {node.start} {node.end}")
 
     def visit_seq_model(self, node, visited_children):
         """ Returns the overall output. """
-        output = []
+        sg2ele_visit = []
         for child in visited_children:
-            output.append(child)
-        return output
+            sg2ele_visit.append(child)
+        return sg2ele_visit
+
+    def _visit_surface_(self, node, part_name):
+        """ handle single interface tokens. """
+        idx_list = (node.start >> 1,)
+        gap_list = ()
+        self.print_visit(node, part_name, idx_list, gap_list)
+        part_def = part_name, idx_list, gap_list
+        return part_def
+
+    def _visit_space_(self, node, part_name):
+        """ handle space tokens. """
+        idx_list = ()
+        gap_list = (node.start >> 1,)
+        self.print_visit(node, part_name, idx_list, gap_list)
+        part_def = part_name, idx_list, gap_list
+        return part_def
+
+    def _visit_element_(self, node, part_name):
+        """ handle multi-surface, element, tokens. """
+        idx1 = node.start >> 1
+        idxk = node.end >> 1
+        idx_list = tuple(idx for idx in range(idx1, idxk+1))
+        gap_list = tuple(idx for idx in range(idx1, idxk))
+        self.print_visit(node, part_name, idx_list, gap_list)
+        part_def = part_name, idx_list, gap_list
+        return part_def
 
     def visit_space(self, node, visited_children):
         """ Gets each key/value pair, returns a tuple. """
-        idx_list = ()
-        gap_list = (node.start >> 1,)
         space_token = node.full_text[node.start]
-        part_name = 'space', ('AirGap' if space_token == 'a' else 'Space')
-        self.print_visit(node, part_name, idx_list, gap_list)
-        part_def = part_name[1], idx_list, gap_list
-        return part_def
+        if space_token == 'a':
+            part_name = 'air', 'rayoptics.elem.elements', 'AirGap'
+        else:
+            part_name = 'space', 'rayoptics.elem.elements', 'Space'
+        return self._visit_space_(node, part_name)
 
     def visit_surface(self, node, visited_children):
         """ Gets each key/value pair, returns a tuple. """
-        part_name = 'surface', 'SurfaceInterface'
-        idx_list = (node.start >> 1,)
-        gap_list = ()
-        self.print_visit(node, part_name, idx_list, gap_list)
-        part_def = part_name[1], idx_list, gap_list
-        return part_def
+        part_name = 'surface', 'rayoptics.elem.elements', 'SurfaceInterface'
+        return self._visit_surface_(node, part_name)
     
     def visit_lens(self, node, visited_children):
         """ Gets each key/value pair, returns a tuple. """
-        part_name = 'lens', 'Element'
-        idx_list = (idx1 := node.start >> 1, node.end >> 1)
-        gap_list = (idx1,)
-        self.print_visit(node, part_name, idx_list, gap_list)
-        part_def = part_name[1], idx_list, gap_list
-        return part_def
+        part_name = 'lens', 'rayoptics.elem.elements', 'Element'
+        return self._visit_element_(node, part_name)
 
     def visit_mirror(self, node, visited_children):
         """ Gets each key/value pair, returns a tuple. """
-        part_name = 'mirror', 'Mirror'
-        idx_list = (idx := node.start >> 1,)
-        gap_list = (idx,)
-        self.print_visit(node, part_name, idx_list, gap_list)
-        part_def = part_name[1], idx_list, gap_list
-        return part_def
+        part_name = 'mirror', 'rayoptics.elem.elements', 'Mirror'
+        return self._visit_surface_(node, part_name)
 
     def visit_air(self, node, visited_children):
         """ Gets each key/value pair, returns a tuple. """
-        part_name = 'air', 'AirGap'
-        idx_list = ()
-        gap_list = (node.start >> 1,)
-        self.print_visit(node, part_name, idx_list, gap_list)
-        part_def = part_name[1], idx_list, gap_list
-        return part_def
+        part_name = 'air', 'rayoptics.elem.elements', 'AirGap'
+        return self._visit_space_(node, part_name)
 
     def visit_cemented(self, node, visited_children):
         """ Gets each key/value pair, returns a tuple. """
-        part_name = 'cemented', 'CementedElement'
-        idx1 = node.start >> 1
-        idxk = node.end >> 1
-        idx_list = (idx for idx in range(idx1, idxk+1))
-        gap_list = (idx for idx in range(idx1, idxk))
-        self.print_visit(node, part_name, idx_list, gap_list)
-        part_def = part_name[1], idx_list, gap_list
-        return part_def
+        part_name = 'cemented', 'rayoptics.elem.elements', 'CementedElement'
+        return self._visit_element_(node, part_name)
 
     def visit_mangin(self, node, visited_children):
         """ Gets each key/value pair, returns a tuple. """
-        part_name = 'mangin', 'CementedElement'
-        idx1 = node.start >> 1
-        idxk = node.end >> 1
-        idx_list = (idx for idx in range(idx1, idxk+1))
-        gap_list = (idx for idx in range(idx1, idxk))
-        self.print_visit(node, part_name, idx_list, gap_list)
-        part_def = part_name[1], idx_list, gap_list
-        return part_def
+        part_name = 'mangin', 'rayoptics.elem.elements', 'CementedElement'
+        return self._visit_element_(node, part_name)
 
     def visit_thin_lens(self, node, visited_children):
         """ Gets each key/value pair, returns a tuple. """
-        part_name = 'thin_lens', 'ThinElement'
-        idx_list = (node.start >> 1,)
-        gap_list = ()
-        self.print_visit(node, part_name, idx_list, gap_list)
-        part_def = part_name[1], idx_list, gap_list
-        return part_def
+        part_name = 'thin_lens', 'rayoptics.elem.elements', 'ThinElement'
+        return self._visit_surface_(node, part_name)
 
     def visit_dummy(self, node, visited_children):
         """ Gets each key/value pair, returns a tuple. """
-        part_name = 'dummy', 'DummyInterface'
-        idx_list = (node.start >> 1,)
-        gap_list = ()
-        self.print_visit(node, part_name, idx_list, gap_list)
-        part_def = part_name[1], idx_list, gap_list
-        return part_def
+        part_name = 'dummy', 'rayoptics.elem.elements', 'DummyInterface'
+        return self._visit_surface_(node, part_name)
 
     def visit_object(self, node, visited_children):
         """ Gets each key/value pair, returns a tuple. """
-        part_name = 'object', 'DummyInterface'
-        idx_list = (node.start >> 1,)
-        gap_list = ()
-        self.print_visit(node, part_name, idx_list, gap_list)
-        part_def = part_name[1], idx_list, gap_list
-        return part_def
+        part_name = 'object', 'rayoptics.elem.elements', 'DummyInterface'
+        return self._visit_surface_(node, part_name)
 
     def visit_image(self, node, visited_children):
         """ Gets each key/value pair, returns a tuple. """
-        part_name = 'image', 'DummyInterface'
-        idx_list = (node.start >> 1,)
-        gap_list = ()
-        self.print_visit(node, part_name, idx_list, gap_list)
-        part_def = part_name[1], idx_list, gap_list
-        return part_def
+        part_name = 'image', 'rayoptics.elem.elements', 'DummyInterface'
+        # idx_list = (-1,)
+        # gap_list = ()
+        # self.print_visit(node, part_name, idx_list, gap_list)
+        # part_def = part_name, idx_list, gap_list
+        # return part_def
+        return self._visit_surface_(node, part_name)
 
     def generic_visit(self, node, visited_children):
         """ The generic visit method. """
