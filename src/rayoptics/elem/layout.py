@@ -517,7 +517,7 @@ class LensLayout():
         ele_model = self.opt_model['ele_model']
         part_tree = self.opt_model['part_tree']
         if len(part_tree.nodes_with_tag(tag='#element')) == 0:
-            parttree.elements_from_sequence(ele_model, seq_model, part_tree)
+            parttree.sequence_to_elements(seq_model, ele_model, part_tree)
 
     def sync_light_or_dark(self, is_dark):
         global lo_rgb

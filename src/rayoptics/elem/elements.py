@@ -350,7 +350,7 @@ def create_from_file(filename, **kwargs):
     pt_file = opm_file['part_tree']
     ar_file = opm_file['analysis_results']
     if len(pt_file.nodes_with_tag(tag='#element')) == 0:
-        parttree.elements_from_sequence(em_file, sm_file, pt_file)
+        parttree.sequence_to_elements(sm_file, em_file, pt_file)
 
     if 'power' in kwargs:
         desired_power = kwargs['power']
@@ -751,7 +751,7 @@ class Element(Part):
     def listobj_str(self):
         ele_type = self.ele_token, type(self).__module__, type(self).__name__
         idx_list = tuple(i for i in self.idx_list())
-        gap_list = tuple(guarded_gap_idx(g) for g in self.gap_list())
+        gap_list = tuple(idx_list[i] for i, g in enumerate(self.gap_list()))
 
         o_str = f"{ele_type[0]}: {ele_type[2]}\n"
         o_str += f"idx={idx_list},   gaps={gap_list}   conic cnst={self.cc}\n"
@@ -836,7 +836,7 @@ class Element(Part):
         return e
 
     def idx_list(self):
-        if hasattr(self, 'parent'):
+        if hasattr(self, 'parent') and self.parent is not None:
             seq_model = self.parent.opt_model['seq_model']
             try:
                 self.s1_indx = seq_model.ifcs.index(self.s1)
@@ -849,6 +849,7 @@ class Element(Part):
             return [self.s1_indx, self.s2_indx]
         else:
             print(f"idx_list: {self.label}")
+            return []
 
     def reference_idx(self):
         return self.s1_indx
@@ -2374,6 +2375,8 @@ class Assembly(Part):
         self.parent = ele_model
         self.parts = [parts_dict[pid] for pid in self.part_ids]
         delattr(self, 'part_ids')
+        if not hasattr(self, 'ele_token'):
+            self.ele_token = Assembly.default_ele_token
         self.handles = {}
         self.actions = {}
 
@@ -2479,7 +2482,9 @@ class ElementModel:
         parts_dict = {}
         if not hasattr(self, 'elements'):
             if hasattr(opt_model, 'parts_dict'):
-                self.elements = [e for e in opt_model.parts_dict.values()]
+                self.elements = []
+                for e in opt_model.parts_dict.values():
+                    self.add_element(e)
                 parts_dict = opt_model.parts_dict
 
         seq_model = opt_model.seq_model
@@ -2537,7 +2542,7 @@ class ElementModel:
         """ dynamically build element list from part_tree. """
         opm = self.opt_model
     
-        parttree.elements_from_sequence(opm['em'], opm['sm'], opm['pt'])
+        info = parttree.sequence_to_elements(opm['sm'], opm['em'], opm['pt'])
         
         # use the seq_model to sort the element_model list
         self.sequence_elements()
@@ -2634,7 +2639,7 @@ class ElementModel:
         return ele_list, ele_dict
 
     def list_ele_sg(self, part_tree, seq_model):
-        ele_list, ele_dict = self.build_ele_sg_lists(part_tree, seq_model)
+        ele_list, ele_dict = self.build_ele_sg_lists()
         for elem in ele_list:
             ele_type, idx_list, gap_list = elem
             e = ele_dict[elem]

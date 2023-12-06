@@ -97,9 +97,7 @@ def open_model(file_url, info=False, post_process_imports=True, **kwargs):
             create_specsheet_from_model(opm)
             # create element model and part_tree
             opm.ele_model.reset_serial_numbers()
-            pt.elements_from_sequence(opm.ele_model,
-                                      opm.seq_model,
-                                      opm.part_tree)
+            pt.sequence_to_elements(opm['sm'], opm['em'], opm['pt'])
         if info:
             return opm, import_info
     return opm

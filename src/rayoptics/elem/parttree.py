@@ -73,6 +73,14 @@ class PartTree():
         else:
             return False
 
+    def check_consistency(self, seq_model, ele_model):
+        chg_list, sme, eme, ame = find_ele_changes(seq_model, ele_model, self)
+        common_ele, added_ele, removed_ele, modified_ele = chg_list
+        if len(added_ele)==0 and len(removed_ele)==0 and len(modified_ele)==0:
+            return True
+        else:
+            return False
+
     def init_from_sequence(self, seq_model):
         """Initialize part tree using a *seq_model*. """
         root_node = self.root_node
@@ -242,6 +250,41 @@ class PartTree():
     def list_model(self, tag='#element#assembly#dummyifc'):
         self.list_tree(childiter=self.get_child_filter(tag=tag))
 
+    def build_pt_sg_lists(self):
+        part_tag = '#assembly'
+        nodes = self.nodes_with_tag(tag=part_tag)
+        asms = [n.id for n in nodes]
+        asms_list = []
+        asm_dict = {}
+        seq_model = self.opt_model['seq_model']
+        for asm in asms:
+            asm_list = []
+            for p in asm.parts:
+                ele_type, idx_list, gap_list = build_ele_def(p, seq_model)
+                asm_list.append((ele_type, idx_list, gap_list))
+                asm_dict[(ele_type, idx_list, gap_list)] = asm
+        return asms_list, asm_dict
+
+    def list_pt_sg(self, part_tree, seq_model):
+        ele_list, ele_dict = self.build_pt_sg_lists()
+        for elem in ele_list:
+            ele_type, idx_list, gap_list = elem
+            e = ele_dict[elem]
+            print(f"{e.label}: {ele_type[0]} {idx_list} {gap_list}")
+
+
+def build_ele_def(e_node, seq_model):
+    def guarded_gap_idx(g):
+        try:
+            return seq_model.gaps.index(g)
+        except ValueError:
+            return str(id(g))
+    e = e_node.id
+    ele_type = e.ele_token, type(e).__module__, type(e).__name__
+    idx_list = tuple(i for i in e.idx_list())
+    gap_list = tuple(guarded_gap_idx(g) for g in e.gap_list())
+    return ele_type, idx_list, gap_list
+
 
 def sync_part_tree_on_restore(opt_model, ele_model, seq_model, root_node):
     ele_dict = {e.label: e for e in ele_model.elements}
@@ -348,44 +391,55 @@ def sync_part_tree_on_update(ele_model, seq_model, root_node):
                 print(f"sync_part_tree_on_update: No id attribute: {node.name}, {node.tag}")
 
 
-def elements_from_sequence(ele_model, seq_model, part_tree):
+def sequence_to_elements(seq_model, ele_model, part_tree):
     """ Parse the seq_model into elements and update ele_model accordingly. """
-    chg_list, sme, eme = find_ele_changes(seq_model, ele_model)
+    print("sequence_to_elements")
+    chg_list, sme, eme, ame = find_ele_changes(seq_model, ele_model, part_tree)
     common_ele, added_ele, removed_ele, modified_ele = chg_list
     sme_list, seq_str = sme
     eme_list, eme_dict = eme
+    if len(added_ele)==0 and len(removed_ele)==0 and len(modified_ele)==0:
+        # no additions, deletions or modifications to existing elements 
+        # are necessary
+        is_consistent = True
 
-    # now the lists represent the 3 possible actions: adding, deleting,
-    #  and modifying an existing element
+    else:
+        # now the lists represent the 3 possible actions: adding, deleting,
+        #  and modifying an existing element
 
-    # elements in the added_ele list are created from the `ele_type`
-    for ae in added_ele:
-        (ele_token, ele_module, ele_class), *_ = ae
-        e = str_to_class(ele_module, ele_class, 
-                         ele_def_pkg=(seq_model, ae))
-        ele_model.add_element(e)
-        idx = e.reference_idx()
-        z_dirs = seq_model.z_dir
-        z_dir = z_dirs[idx] if idx < len(z_dirs) else z_dirs[idx-1]
-        part_tree.add_element_to_tree(e, z_dir=z_dir)
+        # elements in the added_ele list are created from the `ele_type`
+        if len(added_ele) > 1:
+            added_ele.sort(key=lambda ae: ae[1][0] 
+                           if len(ae[1])>0 else ae[2][0])
 
-    # items in the removed_ele list are removed from the ele_model 
-    #  and part_tree
-    for re in removed_ele:
-        relem = eme_dict[re]
-        ele_model.remove_element(relem)
-        part_tree.remove_element_from_tree(relem)
+        for ae in added_ele:
+            (ele_token, ele_module, ele_class), *_ = ae
+            e = str_to_class(ele_module, ele_class, 
+                            ele_def_pkg=(seq_model, ae))
+            ele_model.add_element(e)
+            idx = e.reference_idx()
+            z_dirs = seq_model.z_dir
+            z_dir = z_dirs[idx] if idx < len(z_dirs) else z_dirs[idx-1]
+            part_tree.add_element_to_tree(e, z_dir=z_dir)
 
-    # modified elements use the `sync_to_ele_def` protocol to update an
-    # existing element to a new ele_def
-    for me in modified_ele:
-        existing_ele, new_ele = me
-        eme_dict[existing_ele].sync_to_ele_def(seq_model, new_ele)
+        # items in the removed_ele list are removed from the ele_model 
+        #  and part_tree
+        for re in removed_ele:
+            relem = eme_dict[re]
+            ele_model.remove_element(relem)
+            part_tree.remove_element_from_tree(relem)
 
-    return (common_ele, added_ele, removed_ele, modified_ele)
+        # modified elements use the `sync_to_ele_def` protocol to update an
+        # existing element to a new ele_def
+        for me in modified_ele:
+            existing_ele, new_ele = me
+            eme_dict[existing_ele].sync_to_ele_def(seq_model, new_ele)
+        is_consistent = False
+
+    return (is_consistent, chg_list, sme, eme)
 
 
-def find_ele_changes(seq_model, ele_model, print_visit=False):
+def find_ele_changes(seq_model, ele_model, part_tree, print_visit=False):
     """ Parse the seq_model into elements and categorize the changes. 
     
     Returns:
@@ -427,15 +481,18 @@ def find_ele_changes(seq_model, ele_model, print_visit=False):
             re, ae = me
             added_ele.remove(ae)
             removed_ele.remove(re)    
+        
+        asm_list, asm_dict = part_tree.build_pt_sg_lists()
 
         return ((common_ele, added_ele, removed_ele, modified_ele), 
                 (sme_list, seq_str),
-                (eme_list, eme_dict))
+                (eme_list, eme_dict),
+                (asm_list, asm_dict))
     else:
-        return (([], [], [], []), ([], ''), ([], {}))
+        return (([], [], [], []), ([], ''), ([], {}), ([], {}))
 
 
-def elements_from_sequence_gen1(ele_model, seq_model, part_tree):
+def elements_from_sequence(ele_model, seq_model, part_tree):
     """ generate an element list from a sequential model """
 
     if len(part_tree.root_node.children) == 0:

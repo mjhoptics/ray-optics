@@ -19,7 +19,7 @@ import rayoptics.optical.model_constants as mc
 
 #from rayoptics.elem import elements
 from rayoptics.elem import parttree
-from rayoptics.elem.parttree import (PartTree, elements_from_sequence)
+from rayoptics.elem.parttree import (PartTree, sequence_to_elements)
 from rayoptics.parax.paraxialdesign import ParaxialModel
 from rayoptics.seq.sequential import SequentialModel
 from rayoptics.raytr.opticalspec import OpticalSpecs
@@ -136,7 +136,7 @@ class OpticalModel:
     def do_init_postproc(self, **kwargs):
         """ Initialize the element and part tree from the seq_model. """
         self.seq_model.update_model()
-        elements_from_sequence(self.ele_model, self.seq_model, self.part_tree)
+        sequence_to_elements(self.seq_model, self.ele_model, self.part_tree)
 
     def map_submodels(self, **kwargs):
         """Setup machinery for model mapping api. 
@@ -368,6 +368,9 @@ class OpticalModel:
 
     def add_part(self, factory_fct, *args, **kwargs):
         """Use a factory_fct to create a new part and insert into optical model. """
+        # check for pending seq_model updates
+        sequence_to_elements(self['sm'], self['em'], self['pt'])
+
         descriptor = factory_fct(*args, **kwargs)
         kwargs['insert'] = True
         self.insert_ifc_gp_ele(*descriptor, **kwargs)
@@ -430,7 +433,7 @@ class OpticalModel:
         """
         self['em'].elements = []
         self['pt'].root_node.children = []
-        elements_from_sequence(self['em'], self['sm'], self['pt'])
+        sequence_to_elements(self['sm'], self['em'], self['pt'])
 
     def apply_scale_factor(self, scale_factor):
         self['seq_model'].apply_scale_factor(scale_factor)
@@ -551,8 +554,8 @@ class OpticalModel:
                 gap_label = None
                 gap_tag = ''
                 img_nodes = pt.nodes_with_tag(tag='#image')
-                ig_node = pt.nodes_with_tag(tag='#airgap', 
-                                            node_list=img_nodes)[0]
+                ig_node = pt.nodes_with_tag(tag='#airgap', node_list=img_nodes)
+                ig_node = ig_node[0] if len(ig_node)>0 else None
 
             g, ag, ag_node, _ = ele.create_air_gap(t=t_after, label=gap_label,
                                                    z_dir=seq[-1][mc.Zdir], 
