@@ -2468,6 +2468,7 @@ class ElementModel:
 
     def __json_encode__(self):
         attrs = dict(vars(self))
+        attrs['serial_numbers'] = self.save_serial_numbers()
         del attrs['opt_model']
         del attrs['elements']
         return attrs
@@ -2492,7 +2493,12 @@ class ElementModel:
         gaps = seq_model.gaps
         tfrms = seq_model.compute_global_coords(1)
 
-        self.reset_serial_numbers()
+        if hasattr(self, 'serial_numbers'):
+            self.restore_serial_numbers(self.serial_numbers)
+            delattr(self, 'serial_numbers')
+        else:
+            self.reset_serial_numbers()
+
         for i, e in enumerate(self.elements, start=1):
             e.sync_to_restore(self, surfs, gaps, tfrms, 
                               profile_dict, parts_dict)
@@ -2506,9 +2512,38 @@ class ElementModel:
         Mirror.serial_number = 0
         CementedElement.serial_number = 0
         ThinElement.serial_number = 0
+        SurfaceInterface.serial_number = 0
         DummyInterface.serial_number = 0
+        Space.serial_number = 0
         AirGap.serial_number = 0
         Assembly.serial_number = 0
+
+    def save_serial_numbers(self)->dict:
+        serial_numbers = {
+            'Element': Element.serial_number,
+            'Mirror': Mirror.serial_number,
+            'CementedElement': CementedElement.serial_number,
+            'ThinElement': ThinElement.serial_number,
+            'SurfaceInterface': SurfaceInterface.serial_number,
+            'DummyInterface': DummyInterface.serial_number,
+            'Space': Space.serial_number,
+            'AirGap': AirGap.serial_number,
+            'Assembly': Assembly.serial_number,
+        }
+        return serial_numbers
+
+    def restore_serial_numbers(self, serial_numbers):
+        Element.serial_number = serial_numbers.get('Element', 0)
+        Mirror.serial_number = serial_numbers.get('Mirror', 0)
+        CementedElement.serial_number = \
+            serial_numbers.get('CementedElement', 0)
+        ThinElement.serial_number = serial_numbers.get('ThinElement', 0)
+        SurfaceInterface.serial_number = \
+            serial_numbers.get('SurfaceInterface', 0)
+        DummyInterface.serial_number = serial_numbers.get('DummyInterface', 0)
+        Space.serial_number = serial_numbers.get('Space', 0)
+        AirGap.serial_number = serial_numbers.get('AirGap', 0)
+        Assembly.serial_number = serial_numbers.get('Assembly', 0)
 
     def airgaps_from_sequence(self, seq_model, tfrms):
         """ add airgaps and dummy interfaces to an older version model """

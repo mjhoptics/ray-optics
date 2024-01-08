@@ -393,7 +393,6 @@ def sync_part_tree_on_update(ele_model, seq_model, root_node):
 
 def sequence_to_elements(seq_model, ele_model, part_tree):
     """ Parse the seq_model into elements and update ele_model accordingly. """
-    print("sequence_to_elements")
     chg_list, sme, eme, ame = find_ele_changes(seq_model, ele_model, part_tree)
     common_ele, added_ele, removed_ele, modified_ele = chg_list
     sme_list, seq_str = sme
