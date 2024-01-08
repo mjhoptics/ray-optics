@@ -334,11 +334,11 @@ class Spherical(SurfaceProfile):
         if self.cv != 0.0:
             r = 1/self.cv
             try:
-                adj = sqrt(r*r - x*x - y*y)
+                adj = np.sqrt(r*r - x*x - y*y)
             except ValueError:
                 raise TraceMissedSurfaceError(self, (x, y))
             else:
-                return r*(1 - abs(adj/r))
+                return r*(1 - np.abs(adj/r))
         else:
             return 0
 
