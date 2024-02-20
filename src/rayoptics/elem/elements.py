@@ -9,6 +9,7 @@
 """
 
 from collections import namedtuple
+from copy import deepcopy
 import itertools
 from itertools import zip_longest
 from packaging import version
@@ -403,8 +404,6 @@ def render_lens_shape(s1, profile1, s2, profile2, thi, extent, sd, is_flipped,
                       hole_sd=None, flat1_pkg=None, flat2_pkg=None):
     is_concave_s1 = s1.profile_cv < 0.0
     is_concave_s2 = s2.profile_cv > 0.0
-    
-    profile_polys = []
 
     if flat1_pkg is not None:
         do_flat1, flat1 = flat1_pkg
@@ -418,7 +417,6 @@ def render_lens_shape(s1, profile1, s2, profile2, thi, extent, sd, is_flipped,
 
     poly1 = full_profile(profile1, is_flipped, extent, 
                          flat, hole_id=hole_sd)
-    profile_polys.append(poly1)
 
     if flat2_pkg is not None:
         do_flat2, flat2 = flat2_pkg
@@ -432,23 +430,28 @@ def render_lens_shape(s1, profile1, s2, profile2, thi, extent, sd, is_flipped,
 
     poly2 = full_profile(profile2, is_flipped, extent,
                          flat, hole_id=hole_sd, dir=-1)
-    profile_polys.append(poly2)
 
     if hole_sd is None:
-        for p in poly2:
-            p[0] += thi
-        poly1 += poly2
-        poly1.append(poly1[0])
-        poly = poly1
-    else:
         poly = []
+        poly += poly1[0]
+        orig_pt = deepcopy(poly1[0][0])
+        for p in poly2[0]:
+            p[0] += thi
+        poly += poly2[0]
+        poly.append(orig_pt)
+        poly = poly,
+    else:
+        poly_list = []
         for p1, p2 in zip(poly1, poly2):
+            poly = []
+            poly += p1
+            orig_pt = deepcopy(p1[0])
             for p in p2:
                 p[0] += thi
-            p1 += p2
-            p1.append(p1[0])
-            poly.append(p1)
-        poly = tuple(poly)
+            poly += p2
+            poly.append(orig_pt)
+            poly_list.append(poly)
+        poly = tuple(poly_list)
 
     return poly
 
@@ -467,6 +470,9 @@ def full_profile(profile, is_flipped, edge_extent,
         dir: sampling direction, +1 for up, -1 for down
         steps: number of profile curve samples
 
+    Returns:
+        a tuple of 2d coord lists. a tuple is returned even in the case of a single coord list
+
     """
     from rayoptics.raytr.traceerror import TraceError
     def flip_profile(prf):
@@ -481,7 +487,7 @@ def full_profile(profile, is_flipped, edge_extent,
 
     if flat_id is None:
         if hole_id is None:
-            prf = profile.profile((sd_lwr, sd_upr), dir, steps)
+            prf = profile.profile((sd_lwr, sd_upr), dir, steps),
         else:
             prf_lwr = profile.profile((sd_lwr, -hole_id), dir, steps)
             prf_upr = profile.profile((hole_id, sd_upr), dir, steps)
@@ -504,10 +510,11 @@ def full_profile(profile, is_flipped, edge_extent,
                 sd_upr_pt = [sag, sd_lwr]
 
         if hole_id is None:
-            prf = [sd_lwr_pt]
-            prf += profile.profile((flat_id,), dir, steps)
+            prf_full = [sd_lwr_pt]
+            prf_full += profile.profile((flat_id,), dir, steps)
             if sag is not None:
-                prf.append(sd_upr_pt)
+                prf_full.append(sd_upr_pt)
+            prf = prf_full,
         else:
             prf_lwr = [sd_lwr_pt]
             prf_lwr += profile.profile((-flat_id, -hole_id), dir, steps)
@@ -518,7 +525,7 @@ def full_profile(profile, is_flipped, edge_extent,
 
     if is_flipped:
         if hole_id is None:
-            prf = flip_profile(prf)
+            prf = flip_profile(prf_full),
         else:
             prf = flip_profile(prf_lwr), flip_profile(prf_upr)
 
@@ -942,11 +949,14 @@ class Element(Part):
         self.profile_polys.append(poly2)
 
         if self.hole_sd is None:
-            for p in poly2:
+            poly = []
+            poly += poly1[0]
+            orig_pt = deepcopy(poly1[0][0])
+            for p in poly2[0]:
                 p[0] += self.gap.thi
-            poly1 += poly2
-            poly1.append(poly1[0])
-            poly = poly1
+            poly += poly2[0]
+            poly.append(orig_pt)
+            poly = poly,
         else:
             poly = []
             for p1, p2 in zip(poly1, poly2):
@@ -965,20 +975,25 @@ class Element(Part):
 
         shape = self.render_shape()
         color = calc_render_color_for_material(self.gap.medium)
-        self.handles['shape'] = GraphicsHandle(shape, self.tfrm, 'polygon',
-                                               color)
+
+        for i, poly in enumerate(shape):
+            self.handles['shape'+str(i+1)] = GraphicsHandle(
+                poly, self.tfrm, 'polygon', color
+                )
 
         extent = self.extent()
 
-        poly_s1 = self.profile_polys[0]
-        gh1 = GraphicsHandle(poly_s1, self.tfrm, 'polyline')
-        self.handles['s1_profile'] = gh1
+        for i, poly_segs in enumerate(self.profile_polys, start=1):
+            for poly_seg in poly_segs:
+                gh = GraphicsHandle(poly_seg, self.tfrm, 'polyline')
+                self.handles[f's{i}_profile'] = gh
 
+        poly_s1 = self.profile_polys[0]
         poly_s2 = self.profile_polys[1]
-        gh2 = GraphicsHandle(poly_s2, self.tfrm, 'polyline')
-        self.handles['s2_profile'] = gh2
 
         if self.hole_sd is None:
+            poly_s1 = poly_s1[0]
+            poly_s2 = poly_s2[0]
             poly_sd_upr = []
             poly_sd_upr.append([poly_s1[-1][0], extent[1]])
             poly_sd_upr.append([poly_s2[0][0], extent[1]])
@@ -1200,33 +1215,34 @@ class SurfaceInterface(Part):
         self.handles = {}
 
         render_color = (158, 158, 158, 64)
-        self.handles['shape'] = GraphicsHandle(self.render_shape(), self.tfrm,
-                                               'polyline', render_color)
+        shape = self.render_shape()
+        for i, poly in enumerate(shape):
+            self.handles['shape'+str(i+1)] = GraphicsHandle(
+                poly, self.tfrm, 'polygon', render_color
+                )
+
         extent = self.extent()
 
         poly_s1 = self.profile_polys[0]
-        gh1 = GraphicsHandle(poly_s1, self.tfrm, 'polyline')
-        self.handles['s_profile'] = gh1
+        for poly_seg in poly_s1:
+            gh1 = GraphicsHandle(poly_seg, self.tfrm, 'polyline')
+            self.handles['s_profile'] = gh1
 
         if self.hole_sd is None:
-            poly_sd_upr = []
-            poly_sd_upr.append([poly_s1[-1][0], extent[1]])
-            self.handles['sd_upr'] = GraphicsHandle(poly_sd_upr, self.tfrm,
-                                                    'polyline')
-            poly_sd_lwr = []
-            poly_sd_lwr.append([poly_s1[0][0], extent[0]])
-            self.handles['sd_lwr'] = GraphicsHandle(poly_sd_lwr, self.tfrm,
-                                                    'polyline')
+            pt_sd_upr = deepcopy(poly_s1[-1][0])
+            self.handles['sd_upr'] = GraphicsHandle(pt_sd_upr, self.tfrm,
+                                                    'vertex')
+            pt_sd_lwr = deepcopy(poly_s1[0][0])
+            self.handles['sd_lwr'] = GraphicsHandle(pt_sd_lwr, self.tfrm,
+                                                    'vertex')
         else:
             poly_s1_lwr, poly_s1_upr = poly_s1
-            poly_sd_upr = []
-            poly_sd_upr.append([poly_s1_upr[-1][0], extent[1]])
-            self.handles['sd_upr'] = GraphicsHandle(poly_sd_upr, self.tfrm,
-                                                    'polyline')
-            poly_sd_lwr = []
-            poly_sd_lwr.append([poly_s1_lwr[0][0], extent[0]])
-            self.handles['sd_lwr'] = GraphicsHandle(poly_sd_lwr, self.tfrm,
-                                                    'polyline')
+            pt_sd_upr = deepcopy(poly_s1_upr[-1][0])
+            self.handles['sd_upr'] = GraphicsHandle(pt_sd_upr, self.tfrm,
+                                                    'vertex')
+            pt_sd_lwr = deepcopy(poly_s1_lwr[0][0])
+            self.handles['sd_lwr'] = GraphicsHandle(pt_sd_lwr, self.tfrm,
+                                                    'vertex')
         return self.handles
 
     def handle_actions(self):
@@ -1344,11 +1360,14 @@ class Mirror(SurfaceInterface):
         offset = self.substrate_offset()
 
         if self.hole_sd is None:
-            for p in poly2:
+            poly = []
+            poly += poly1[0]
+            orig_pt = deepcopy(poly1[0][0])
+            for p in poly2[0]:
                 p[0] += offset
-            poly1 += poly2
-            poly1.append(poly1[0])
-            poly = poly1
+            poly += poly2[0]
+            poly.append(orig_pt)
+            poly = poly,
         else:
             poly = []
             for p1, p2 in zip(poly1, poly2):
@@ -1364,17 +1383,24 @@ class Mirror(SurfaceInterface):
     def render_handles(self, opt_model):
         self.handles = {}
 
-        self.handles['shape'] = GraphicsHandle(self.render_shape(), self.tfrm,
-                                               'polygon', self.render_color)
+        shape = self.render_shape()
+        for i, poly in enumerate(shape):
+            self.handles['shape'+str(i+1)] = GraphicsHandle(
+                poly, self.tfrm, 'polygon', self.render_color
+                )
+
         extent = self.extent()
 
         poly_s1 = self.profile_polys[0]
-        gh1 = GraphicsHandle(poly_s1, self.tfrm, 'polyline')
-        self.handles['s_profile'] = gh1
+        for poly_seg in poly_s1:
+            gh1 = GraphicsHandle(poly_seg, self.tfrm, 'polyline')
+            self.handles['s_profile'] = gh1
 
         poly_s2 = self.profile_polys[1]
 
         if self.hole_sd is None:
+            poly_s1 = poly_s1[0]
+            poly_s2 = poly_s2[0]
             poly_sd_upr = []
             poly_sd_upr.append([poly_s1[-1][0], extent[1]])
             poly_sd_upr.append([poly_s2[0][0], extent[1]])
@@ -1503,6 +1529,16 @@ class CementedElement(Part):
                 medium_name += ', '
             medium_name += g.medium.name()
         return medium_name
+
+    def listobj_str(self):
+        ele_type = self.ele_token, type(self).__module__, type(self).__name__
+        idx_list = tuple(i for i in self.idx_list())
+        gap_list = tuple(idx_list[i] for i, g in enumerate(self.gap_list()))
+
+        o_str = f"{ele_type[0]}: {ele_type[2]}\n"
+        o_str += f"idx={idx_list},   gaps={gap_list}\n"
+        return o_str
+        fmt = f"Element: {self.s1.profile:!r}, {self.s2.profile:!r}, t={self.gap.thi:.4f}, sd={self.sd:.4f}, glass: {self.gap.medium.name()}"
 
     def sync_to_restore(self, ele_model, surfs, gaps, tfrms, 
                         profile_dict, parts_dict):
@@ -1706,7 +1742,7 @@ class CementedElement(Part):
         else:
             return (-self.sd, self.sd)
 
-    def render_shape(self):
+    def render_shape_orig(self):
         '''return a polyline that is representative of the cemented element. '''
         # examine all profiles for possible (or required) flats.
         # only consider first profile for a flat if it is concave
@@ -1737,33 +1773,20 @@ class CementedElement(Part):
             self.profile_polys.append(poly)
             sense = -sense
 
-        # offset the profiles wrt the element origin
-        thi = 0
-        for i, poly_profile in enumerate(self.profile_polys[1:]):
-            thi += self.gaps[i].thi
-            for p in poly_profile:
-                p[0] += thi
-
         if self.hole_sd is None:
+            # offset the profiles wrt the element origin
             thi = 0
             for i, poly_profile in enumerate(self.profile_polys[1:]):
                 thi += self.gaps[i].thi
                 for p in poly_profile:
                     p[0] += thi
-            # for p in poly2:
-            #     p[0] += self.gap.thi
-            # poly1 += poly2
-            # poly1.append(poly1[0])
-            # poly = poly1
         else:
-            poly = []
-            for p1, p2 in zip(poly1, poly2):
-                for p in p2:
-                    p[0] += self.gap.thi
-                p1 += p2
-                p1.append(p1[0])
-                poly.append(p1)
-            poly = tuple(poly)
+            thi = 0
+            for i, poly_profile in enumerate(self.profile_polys[1:]):
+                thi += self.gaps[i].thi
+                for poly_seg in poly_profile:
+                    for p in poly_seg:
+                        p[0] += thi
 
         # just return outline
         poly_shape = []
@@ -1776,7 +1799,7 @@ class CementedElement(Part):
         
         return poly_shape
 
-    def render_handles(self, opt_model):
+    def render_handles_orig(self, opt_model):
         self.handles = {}
 
         shape = self.render_shape()
@@ -1792,6 +1815,67 @@ class CementedElement(Part):
                                                             'polygon', color)
         return self.handles
 
+    def render_shape(self):
+        '''return a polyline that is representative of the cemented element. '''
+        ifcs = self.ifcs
+        profiles = self.profiles
+        gaps = self.gaps
+        polygon_list = []
+        thi = 0
+        # examine all profiles for possible (or required) flats.
+        # only consider first profile for a flat if it is concave
+        is_concave_0 = self.profiles[0].cv < 0.0
+        if use_flat(self.do_flat_0, is_concave_0):
+            self.flats[0] = compute_flat(self.ifcs[0], self.sd)
+        else:
+            self.flats[0] = None
+
+        # only consider last profile for a flat if it is concave
+        is_concave_k = self.profiles[-1].cv > 0.0
+        if use_flat(self.do_flat_k, is_concave_k):
+            self.flats[-1] = compute_flat(self.ifcs[-1], self.sd)
+        else:
+            self.flats[-1] = None
+
+        flat1_pkg = 'always', self.flats[0]
+        for i, gap in enumerate(gaps):
+            # compute flats for inner profiles that intersect outer flats
+            if i+1<len(gaps):
+                self.flats[i+1] = self.compute_inner_flat(i+1, self.sd)
+
+            if self.flats[i+1] is not None:
+                flat2_pkg = 'always', self.flats[i+1]
+            else:
+                flat2_pkg = None
+
+            poly_list = render_lens_shape(ifcs[i], profiles[i], 
+                                     ifcs[i+1], profiles[i+1], gap.thi, 
+                                     self.extent(), self.sd, self.is_flipped,
+                                     hole_sd=self.hole_sd, flat1_pkg=flat1_pkg, flat2_pkg=flat2_pkg)
+            for poly in poly_list:
+                for p in poly:
+                    p[0] += thi
+            thi += gap.thi
+            polygon_list.append(poly_list)
+            flat1_pkg = flat2_pkg
+
+        return tuple(polygon_list)
+
+    def render_handles(self, opt_model):
+        self.handles = {}
+
+        shape = self.render_shape()
+        self.handles['shape'] = GraphicsHandle(shape, self.tfrm, 'polyline')
+
+        for i, gap in enumerate(self.gaps):
+            polygon_list = shape[i]
+            color = calc_render_color_for_material(gap.medium)
+            for j, poly in enumerate(polygon_list):
+                self.handles['shape'+f"{i+1}"+f"{j+1}"] = GraphicsHandle(
+                    poly, self.tfrm, 'polygon', color
+                    )
+        return self.handles
+    
     def handle_actions(self):
         self.actions = {}
 
@@ -1916,8 +2000,10 @@ class ThinElement(Part):
     def render_handles(self, opt_model):
         self.handles = {}
         shape = self.render_shape()
-        self.handles['shape'] = GraphicsHandle(shape, self.tfrm, 'polygon',
-                                               self.render_color)
+        for i, poly in enumerate(shape):
+            self.handles['shape'+str(i+1)] = GraphicsHandle(
+                poly, self.tfrm, 'polygon', self.render_color
+                )
         return self.handles
 
     def handle_actions(self):
@@ -2060,8 +2146,11 @@ class DummyInterface(Part):
     def render_handles(self, opt_model):
         self.handles = {}
 
-        self.handles['shape'] = GraphicsHandle(self.render_shape(), self.tfrm,
-                                               'polyline')
+        shape = self.render_shape()
+        for i, poly in enumerate(shape):
+            self.handles['shape'+str(i+1)] = GraphicsHandle(
+                poly, self.tfrm, 'polyline'
+                )
 
         return self.handles
 
@@ -2384,7 +2473,16 @@ class Assembly(Part):
         self.tfrm = seq_model.gbl_tfrms[self.reference_idx()]
 
     def sync_to_ele_def(self, seq_model, ele_def):
-        self.ele_token = ele_def[0][0]
+        ele_type, idx_list, gap_list = ele_def
+        ele_token, ele_module, ele_class = ele_type
+        self.ele_token = ele_token
+        part_tree = self.parent.opt_model['part_tree']
+
+        ref_idx = idx_list[0] if len(idx_list)>0 else gap_list[0]
+        for p in self.parts:
+            if ref_idx == p.reference_idx():
+                p_node = part_tree.node(p)
+        self.medium_name = self._construct_medium_name()
 
     def tree(self, **kwargs):
         if 'part_tree' in kwargs:

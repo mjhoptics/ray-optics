@@ -32,9 +32,15 @@ def transform_ray_seg(poly, r, tfrm):
 
 
 def bbox_from_poly(poly):
-    minx, miny = np.min(poly, axis=0)
-    maxx, maxy = np.max(poly, axis=0)
-    return np.array([[minx, miny], [maxx, maxy]])
+    if len(np.array(poly).shape) > 1:
+        minx, miny = np.min(poly, axis=0)
+        maxx, maxy = np.max(poly, axis=0)
+        bbox = np.array([[minx, miny], [maxx, maxy]])
+    else:
+        x = poly[0]
+        y = poly[1]
+        bbox = np.array([[x, y], [x, y]])
+    return bbox
 
 
 def scale_bounds(bbox, oversize_factor):
@@ -56,8 +62,7 @@ def transform_poly(tfrm, poly):
 
     # flip coordinates back to 2D plot coordinates, +y points up
     poly = np.matmul(poly, coord_flip)
-    bbox = bbox_from_poly(poly)
-    return poly, bbox
+    return poly
 
 
 def inv_transform_poly(tfrm, poly):

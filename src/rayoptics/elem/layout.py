@@ -89,21 +89,28 @@ class OpticalElement():
     def update_shape(self, view):
         self.e.render_handles(self.opt_model)
         for key, graphics_handle in self.e.handles.items():
-            if isinstance(graphics_handle.polydata, tuple):
+            poly_data = graphics_handle.polydata 
+            # print(self.listobj_str()
+            #       +f"{type(poly_data).__name__}, # polys={len(poly_data)}, {key} {graphics_handle.polytype}")
+            if isinstance(poly_data, tuple):
                 polys = []
-                for poly_seg in graphics_handle.polydata:
-                    poly = np.array(poly_seg)
-                    poly_gbl, bbox = transform_poly(graphics_handle.tfrm, poly)
-                    polys.append(np.array(poly_gbl))
+                for poly_list in poly_data:
+                    for poly_seg in poly_list:
+                        poly = np.array(poly_seg)
+                        poly_gbl = transform_poly(graphics_handle.tfrm, poly)
+                        bbox = bbox_from_poly(poly_gbl)
+                        polys.append(np.array(poly_gbl))
                 poly_gbl = tuple(polys)
             else:
-                poly = np.array(graphics_handle.polydata)
-                poly_gbl, bbox = transform_poly(graphics_handle.tfrm, poly)
+                poly = np.array(poly_data)
+                poly_gbl = transform_poly(graphics_handle.tfrm, poly)
+                bbox = bbox_from_poly(poly_gbl)
 
             if graphics_handle.polytype == 'polygon':
                 p = view.create_polygon(poly_gbl,
                                         fill_color=graphics_handle.color,
                                         zorder=2.5)
+
             elif graphics_handle.polytype == 'polyline':
                 hilite_kwargs = {
                     'color': lo_rgb['profile'],
@@ -111,13 +118,21 @@ class OpticalElement():
                     'linestyle': '-'
                     }
                 priority = 2.
-
                 if key == 'ct':
                     priority = 3.
                     hilite_kwargs['color'] = lo_rgb['ct']
                 p = view.create_polyline(poly_gbl,
                                          hilite=hilite_kwargs,
                                          zorder=priority)
+
+            elif graphics_handle.polytype == 'vertex':
+                hilite_kwargs = {
+                    'color': lo_rgb['edge'],
+                    }
+                priority = 2.
+                p = view.create_vertex(poly_gbl,
+                                       hilite=hilite_kwargs,
+                                       zorder=priority)
             else:
                 break
             self.handles[key] = GUIHandle(p, bbox)

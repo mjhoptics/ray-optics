@@ -12,6 +12,7 @@ import logging
 from collections import namedtuple
 
 import numpy as np
+from matplotlib import collections
 from matplotlib import lines
 from matplotlib import patches
 from matplotlib import widgets
@@ -267,20 +268,9 @@ class InteractiveFigure(StyledFigure):
             fill_color = rgb2mpl.rgb2mpl(fill_color)
 
         if isinstance(poly, tuple):
-            poly_pts = poly_seg = poly[0]
-            codes = np.full(len(poly_seg), Path.LINETO)
-            codes[0] = Path.MOVETO
-            codes[len(poly_seg)-1] = Path.CLOSEPOLY
-            for poly_seg in poly[1:]:
-                poly_pts = np.concatenate((poly_pts, poly_seg))
-                code_seg = np.full(len(poly_seg), Path.LINETO)
-                code_seg[0] = Path.MOVETO
-                code_seg[len(poly_seg)-1] = Path.CLOSEPOLY
-                codes = np.concatenate((codes, code_seg))
-            path = Path(poly_pts, codes)
-            p = PathPatch(path, facecolor=fill_color, 
-                          edgecolor=self._rgb['foreground'], 
-                          **kwargs)
+            p = collections.PolyCollection(poly, closed=True,
+                                           facecolor=fill_color, 
+                                           edgecolor=self._rgb['foreground'], **kwargs)
         else:
             p = patches.Polygon(poly, closed=True,
                                 facecolor=fill_color,
@@ -325,16 +315,7 @@ class InteractiveFigure(StyledFigure):
 
         kwargs['linewidth'] = linewidth
         if isinstance(poly, tuple):
-            poly_pts = poly_seg = poly[0]
-            codes = np.full(len(poly_seg), Path.LINETO)
-            codes[0] = Path.MOVETO
-            for poly_seg in poly[1:]:
-                poly_pts = np.concatenate((poly_pts, poly_seg))
-                code_seg = np.full(len(poly_seg), Path.LINETO)
-                code_seg[0] = Path.MOVETO
-                codes = np.concatenate((codes, code_seg))
-            path = Path(poly_pts, codes)
-            p = PathPatch(path, **kwargs)
+            p = collections.LineCollection(poly, **kwargs)
         else:
             x = poly.T[0]
             y = poly.T[1]
