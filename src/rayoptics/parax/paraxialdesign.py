@@ -223,6 +223,9 @@ class ParaxialModel():
     def get_pt(self, idx, type_sel=mc.ht):
         return [self.pr[idx][type_sel], self.ax[idx][type_sel]]
 
+    def get_pt_np(self, idx, type_sel=mc.ht):
+        return np.array([self.pr[idx][type_sel], self.ax[idx][type_sel]])
+
     def set_pt(self, idx, pt, type_sel=mc.ht):
         self.pr[idx][type_sel] = pt[0]
         self.ax[idx][type_sel] = pt[1]
@@ -1142,10 +1145,18 @@ def ht_nodes_from_node_defs(parax_model, node_defs):
             nodes.append(parax_model.get_pt(kernel[0], type_sel=mc.ht))
         elif len(kernel) == 2:
             prev_gap_idx, after_gap_idx = kernel
-            l1_pt1 = parax_model.get_pt(prev_gap_idx)
-            l1_pt2 = parax_model.get_pt(prev_gap_idx+1)
-            l2_pt1 = parax_model.get_pt(after_gap_idx)
-            l2_pt2 = parax_model.get_pt(after_gap_idx+1)
+            l1_pt1 = parax_model.get_pt_np(prev_gap_idx)
+            l1_pt2 = parax_model.get_pt_np(prev_gap_idx+1)
+            if np.linalg.norm(l1_pt2-l1_pt1) == 0:
+                l1_pt2 = l1_pt1 + parax_model.get_pt_np(prev_gap_idx, 
+                                                        type_sel=mc.slp)
+
+            l2_pt1 = parax_model.get_pt_np(after_gap_idx)
+            l2_pt2 = parax_model.get_pt_np(after_gap_idx+1)
+            if np.linalg.norm(l2_pt2-l2_pt1) == 0:
+                l2_pt2 = l2_pt1 + parax_model.get_pt_np(after_gap_idx, 
+                                                        type_sel=mc.slp)
+
             new_node = get_intersect(l1_pt1, l1_pt2, l2_pt1, l2_pt2)
             nodes.append(new_node)
         elif len(kernel) == 3:
