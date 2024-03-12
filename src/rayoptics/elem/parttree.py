@@ -254,36 +254,23 @@ class PartTree():
         part_tag = '#assembly'
         nodes = self.nodes_with_tag(tag=part_tag)
         asms = [n.id for n in nodes]
-        asms_list = []
+        asm_list = []
         asm_dict = {}
         seq_model = self.opt_model['seq_model']
         for asm in asms:
             asm_list = []
             for p in asm.parts:
-                ele_type, idx_list, gap_list = build_ele_def(p, seq_model)
-                asm_list.append((ele_type, idx_list, gap_list))
-                asm_dict[(ele_type, idx_list, gap_list)] = asm
-        return asms_list, asm_dict
+                ele_def = ele_module.build_ele_def(p, seq_model)
+                asm_list.append(ele_def)
+                asm_dict[ele_def] = asm
+        return asm_list, asm_dict
 
-    def list_pt_sg(self, part_tree, seq_model):
+    def list_pt_sg(self):
         ele_list, ele_dict = self.build_pt_sg_lists()
         for elem in ele_list:
             ele_type, idx_list, gap_list = elem
             e = ele_dict[elem]
             print(f"{e.label}: {ele_type[0]} {idx_list} {gap_list}")
-
-
-def build_ele_def(e_node, seq_model):
-    def guarded_gap_idx(g):
-        try:
-            return seq_model.gaps.index(g)
-        except ValueError:
-            return str(id(g))
-    e = e_node.id
-    ele_type = e.ele_token, type(e).__module__, type(e).__name__
-    idx_list = tuple(i for i in e.idx_list())
-    gap_list = tuple(guarded_gap_idx(g) for g in e.gap_list())
-    return ele_type, idx_list, gap_list
 
 
 def sync_part_tree_on_restore(opt_model, ele_model, seq_model, root_node):
