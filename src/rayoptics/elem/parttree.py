@@ -258,7 +258,6 @@ class PartTree():
         asm_dict = {}
         seq_model = self.opt_model['seq_model']
         for asm in asms:
-            asm_list = []
             for p in asm.parts:
                 ele_def = ele_module.build_ele_def(p, seq_model)
                 asm_list.append(ele_def)
