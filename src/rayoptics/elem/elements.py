@@ -525,8 +525,9 @@ def full_profile(profile, is_flipped, edge_extent,
 
     if is_flipped:
         if hole_id is None:
-            prf = flip_profile(prf_full),
+            prf = flip_profile(prf[0]),
         else:
+            prf_lwr, prf_upr = prf
             prf = flip_profile(prf_lwr), flip_profile(prf_upr)
 
     return prf
@@ -2780,6 +2781,7 @@ class ElementModel:
 
 
 def build_ele_def(e, seq_model):
+    """Package defining element info, including effect of flipping. """
     def guarded_gap_idx(g):
         try:
             return seq_model.gaps.index(g)
@@ -2788,4 +2790,8 @@ def build_ele_def(e, seq_model):
     ele_type = e.ele_token, type(e).__module__, type(e).__name__
     idx_list = tuple(i for i in e.idx_list())
     gap_list = tuple(guarded_gap_idx(g) for g in e.gap_list())
+    if e.is_flipped:
+        # reverse the list contents to match sequential order
+        idx_list = tuple(idx for idx in idx_list[::-1])
+        gap_list = tuple(g for g in gap_list[::-1])
     return ele_type, idx_list, gap_list
