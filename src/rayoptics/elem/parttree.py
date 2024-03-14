@@ -435,7 +435,9 @@ def find_ele_changes(seq_model, ele_model, part_tree, print_visit=False):
         sme_list: ele_defs obtained by parsing the seq_model
         seq_str: character encoding of seq_model ifcs and gaps
         eme_list: ele_defs for current elements in the element model
-        eme_dict: ele_defs for current elements in the element model
+        eme_dict: key: ele_def returns the value: element
+        asm_list: ele_defs for current assemblies in the element/part model
+        asm_dict: key: ele_def the value: assembly
     """
     # get sequential model "parse string"
     seq_str = seq_model.seq_str()
