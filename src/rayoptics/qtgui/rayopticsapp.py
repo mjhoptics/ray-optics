@@ -64,8 +64,7 @@ class MainWindow(QMainWindow):
         file_menu = bar.addMenu("File")
         file_menu.addAction("New")
         file_menu.addAction("New Diagram")
-        file_menu.addAction("New Spec Sheet")
-        file_menu.addAction("New Console")
+        # file_menu.addAction("New Spec Sheet")
         file_menu.addAction("Open...")
         file_menu.addSeparator()
         file_menu.addAction("Save")
@@ -126,12 +125,12 @@ class MainWindow(QMainWindow):
         path = Path(rayoptics.__file__).parent
         self.cur_dir = path / "models"
 
-        if False:
+        if True:
             # create new model
             # self.new_model()
-            self.new_model_via_diagram()
+            # self.new_model_via_diagram()
             # self.new_model_via_specsheet()
-            # self.new_console_empty_model()
+            self.new_empty_model()
 
         else:
             # restore a default model
@@ -248,16 +247,13 @@ class MainWindow(QMainWindow):
 
     def file_action(self, action):
         if action == "New":
-            self.new_model()
+            self.new_empty_model()
 
         if action == "New Diagram":
             self.new_model_via_diagram()
 
-        if action == "New Spec Sheet":
-            self.new_model_via_specsheet()
-
-        if action == "New Console":
-            self.new_console_empty_model()
+        # if action == "New Spec Sheet":
+        #     self.new_model_via_specsheet()
 
         if action == "Open...":
             options = QFileDialog.Options()
@@ -303,25 +299,29 @@ class MainWindow(QMainWindow):
         cmds.create_paraxial_design_view_v2(opt_model, 'ht',
                                             gui_parent=self)
         self.refresh_gui()
-        self.add_ipython_subwindow(opt_model)
-        self.refresh_app_ui()
+
+        self.new_ipython_console(opt_model)
+
+    def new_empty_model(self, **kwargs):
+        opt_model = cmds.create_empty_model(**kwargs)
+        self.app_manager.set_model(opt_model)
+        self.new_ipython_console(opt_model)
 
     def new_model_via_specsheet(self):
         cmds.create_new_ideal_imager_dialog(gui_parent=self,
                                             conjugate_type='infinite')
-        self.new_console_empty_model()
+        self.new_ipython_console(None)
 
     def new_model_via_diagram(self, **kwargs):
         """ Define a new model using a |ybar| diagram. """
-        from rayoptics.optical import opticalmodel
-        opt_model = opticalmodel.OpticalModel(**kwargs)
+        opt_model = cmds.create_empty_model(**kwargs)
         self.app_manager.set_model(opt_model)
 
         cmds.create_paraxial_design_view_v2(opt_model, 'ht', gui_parent=self)
-        self.new_console_empty_model()
+        self.new_ipython_console(opt_model)
 
-    def new_console_empty_model(self):
-        self.add_ipython_subwindow(None)
+    def new_ipython_console(self, opt_model):
+        self.add_ipython_subwindow(opt_model)
         self.refresh_app_ui()
 
     def open_file(self, file_name, **kwargs):

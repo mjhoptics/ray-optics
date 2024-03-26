@@ -106,7 +106,7 @@ def create_ipython_console(gui_parent, opt_model, title, view_width, view_ht,
     button_panel_layout.addWidget(cmd_button_1)
 
     cmd_button_2 = QPushButton("setup opm")
-    opt_model = gui_parent.app_manager.model
+    opt_model = opt_model if opt_model else gui_parent.app_manager.model
     opm_vars = {
                 'opm': opt_model,
                 'sm': opt_model['seq_model'],

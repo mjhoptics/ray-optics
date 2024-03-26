@@ -103,6 +103,12 @@ def open_model(file_url, info=False, post_process_imports=True, **kwargs):
     return opm
 
 
+def create_empty_model(**kwargs):
+    """ factory function returns an instance of OpticalModel """
+    opt_model = opticalmodel.OpticalModel(**kwargs)
+    return opt_model
+
+
 def create_new_model():
     return create_new_optical_system()
 
