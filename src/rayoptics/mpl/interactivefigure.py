@@ -23,6 +23,7 @@ from rayoptics.mpl.styledfigure import StyledFigure
 from rayoptics.gui import util
 from rayoptics.util import rgb2mpl
 
+logger = logging.getLogger(__name__)
 
 SelectInfo = namedtuple('SelectInfo', ['artist', 'info'])
 SelectInfo.artist.__doc__ = "the artist"
@@ -484,12 +485,12 @@ class InteractiveFigure(StyledFigure):
 
                     artists.append(SelectInfo(artist, info))
                     if 'ind' in info:
-                        logging.debug("on motion, artist {}: {}.{}, z={}, "
+                        logger.debug("on motion, artist {}: {}.{}, z={}, "
                                       "hits={}".format(len(artists),
                                       shape.get_label(), handle,
                                       artist.get_zorder(), info['ind']))
                     else:
-                        logging.debug("on motion, artist {}: {}.{}, z={}"
+                        logger.debug("on motion, artist {}: {}.{}, z={}"
                                       .format(len(artists), shape.get_label(),
                                               handle, artist.get_zorder()))
 
@@ -545,22 +546,22 @@ class InteractiveFigure(StyledFigure):
                     next_hilited.artist.figure.canvas.draw()
                 self.hilited = next_hilited
                 if next_hilited is None:
-                    logging.debug("hilite_change: no object found")
+                    logger.debug("hilite_change: no object found")
                 else:
                     shape, handle = self.hilited.artist.shape
-                    logging.debug("hilite_change: %s %s %d",
+                    logger.debug("hilite_change: %s %s %d",
                                   shape.get_label(), handle,
                                   self.hilited.artist.get_zorder())
         else:
             # display_artist_and_event('on_drag', event, self.selected.artist)
             self.do_action(event, self.selected, 'drag')
             shape, handle = self.selected.artist.shape
-            logging.debug("on_drag: %s %s %d", shape.get_label(), handle,
+            logger.debug("on_drag: %s %s %d", shape.get_label(), handle,
                           self.selected.artist.get_zorder())
 
     def on_release(self, event):
         'on release we reset the press data'
-        logging.debug("on_release")
+        logger.debug("on_release")
         # display_artist_and_event('on_release', event, self.selected.artist)
 
         self.do_action(event, self.selected, 'release')
