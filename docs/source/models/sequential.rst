@@ -35,7 +35,7 @@ Structure
              \  /    \  /  
              GObj    GImg
 
-    The Object space consists of an object interface and object gap, with Image space similarly constituted. Note that the Image gap is associated with the Image surface, not the final System interface. This makes editing operations such as inserting or replacing elements straightforward. The user view (e.g. :meth:`~seq.sequential.SequentialModel.list_model` still groups the image thickness with the final interface, with no loss of generality.
+    The Object space consists of an object interface and object gap, with Image space similarly constituted. Note that the Image gap is associated with the Image surface, not the final System interface. This makes editing operations such as inserting or replacing elements straightforward. The user view (e.g. :meth:`~seq.sequential.SequentialModel.list_model`) still groups the image thickness with the final interface, with no loss of generality.
 
     Sub-assemblies are defined by N interfaces and N-1 gaps. The low level view of System looks like this::
 

@@ -3,24 +3,24 @@
 # Copyright © 2023 Michael J. Hayford
 """ Module for parsing a sequential model into elements
 
-The grammar is as follows:
+The grammar is as follows::
 
-seq_model   = object space optics image
-optics      = (part space)+
+    seq_model   = object space optics image
+    optics      = (part space)+
 
-part        = mangin / cemented / lens / mirror / surface / dummy / thin_lens
-space        = ~r"a|t"
+    part        = mangin / cemented / lens / mirror / surface / dummy / thin_lens
+    space        = ~r"a|t"
 
-surface      = "i"
-lens         = "iti"
-mirror       = "r"
-air          = "a"
-cemented     = "ititi"("ti")*
-mangin       = ~r"it(?:r|(?R))*ti"
-thin_lens    = "l"
-dummy        = "d"
-object       = ~r"^d"
-image        = ~r"d$"
+    surface      = "i"
+    lens         = "iti"
+    mirror       = "r"
+    air          = "a"
+    cemented     = "ititi"("ti")*
+    mangin       = ~r"it(?:r|(?R))*ti"
+    thin_lens    = "l"
+    dummy        = "d"
+    object       = ~r"^d"
+    image        = ~r"d$"
 
 .. Created on Sun Sep 27 22:10:01 2023
 
