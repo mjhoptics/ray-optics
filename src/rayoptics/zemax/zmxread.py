@@ -27,6 +27,12 @@ from opticalglass import opticalmedium as om
 from opticalglass import glasserror
 from opticalglass import util
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+_fh = logging.FileHandler('zmx_read_lens.log', mode='w')
+_fh.setLevel(logging.INFO)
+logger.addHandler(_fh)
+
 _glass_handler = None
 _cmd_not_handled = None
 _track_contents = None
@@ -90,9 +96,6 @@ def read_lens(filename, inpt, **kwargs):
     global _glass_handler, _cmd_not_handled, _track_contents
     _cmd_not_handled = util.Counter()
     _track_contents = util.Counter()
-    logging.basicConfig(filename='zmx_read_lens.log',
-                        filemode='w',
-                        level=logging.INFO)
 
     # create an empty optical model; all surfaces will come from .zmx file
     opt_model = opticalmodel.OpticalModel(do_init=False)
@@ -208,7 +211,7 @@ def process_line(opt_model, line, line_no):
                  "TCMM", "FLOA", "PMAG", "TOTR", "SLAB",
                  "POPS", "COMM", "PZUP", "LANG", "FIMP", "COAT",
                  ):
-        logging.info('Line %d: Command %s not supported', line_no, cmd)
+        logger.info('Line %d: Command %s not supported', line_no, cmd)
     else:
         # don't recognize this cmd, record # of times encountered
         _cmd_not_handled[cmd] += 1
@@ -278,7 +281,7 @@ def post_process_input(opt_model, filename, **kwargs):
 
 
 def log_cmd(label, cmd, inputs):
-    logging.debug("%s: %s %s", label, cmd, str(inputs))
+    logger.debug("%s: %s %s", label, cmd, str(inputs))
 
 
 def handle_types_and_params(optm, cur, cmd, inputs):
@@ -369,7 +372,7 @@ def handle_types_and_params(optm, cur, cmd, inputs):
             elif i == 2:
                 normalizing_radius = param_val
                 if normalizing_radius != 1.0:
-                    logging.info('Normalizing radius not supported on extended surfaces')
+                    logger.info('Normalizing radius not supported on extended surfaces')
             elif i >= 3:
                 ifc.profile.coefs.append(param_val)
     else:
@@ -390,7 +393,7 @@ def handle_aperture_data(optm, cur, cmd, inputs):
         ca_val = float(items[0])
         if ca_val == 0.0:
             ca_val = 1.0
-            logging.info(f"Surf {cur}: zero value on DIAM input.")
+            logger.info(f"Surf {cur}: zero value on DIAM input.")
         ca_type = int(items[1])
         if hasattr(ifc, 'clear_apertures'):
             ca_list = ifc.clear_apertures

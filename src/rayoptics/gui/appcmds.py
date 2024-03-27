@@ -57,6 +57,8 @@ from rayoptics.qtgui.plotview import (create_plot_scale_panel,
                                       create_diagram_layers_groupbox,
                                       create_2d_figure_toolbar)
 
+logger = logging.getLogger(__name__)
+
 
 def open_model(file_url, info=False, post_process_imports=True, **kwargs):
     """ open a file or url and populate an optical model with the data
@@ -322,7 +324,7 @@ def create_parax_design_commands(fig):
     try:
         rayoptics_pos = pth.parts.index('rayoptics')
     except ValueError:
-        logging.debug("Can't find rayoptics: path is %s", pth)
+        logger.debug("Can't find rayoptics: path is %s", pth)
     else:
         # models_dir = rayoptics/models
         models_dir = pathlib.Path(*pth.parts[:rayoptics_pos+1]) / 'models'
