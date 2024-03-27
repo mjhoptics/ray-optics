@@ -14,6 +14,8 @@ from PyQt5.QtCore import pyqtSignal
 
 from rayoptics.util.misc_math import isanumber
 
+logger = logging.getLogger(__name__)
+
 
 class PyTableModel(QAbstractTableModel):
     """Table model supporting data content via python eval() fct.
@@ -137,7 +139,7 @@ class PyTableModel(QAbstractTableModel):
             except IndexError:
                 return False
             except SyntaxError:
-                logging.info('Syntax error: "%s"', value)
+                logger.info('Syntax error: "%s"', value)
                 return False
         else:
             return False

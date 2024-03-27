@@ -25,6 +25,8 @@ from rayoptics.gui import util
 from rayoptics.util import rgb2mpl
 from rayoptics.util import misc_math
 
+logger = logging.getLogger(__name__)
+
 SelectInfo = namedtuple('SelectInfo', ['artist', 'info'])
 SelectInfo.artist.__doc__ = "the artist"
 SelectInfo.info.__doc__ = "a dictionary of artist specific details of selection"
@@ -493,14 +495,14 @@ class InteractiveFigure(StyledFigure):
 
                     artists.append(SelectInfo(artist, info))
                     if 'ind' in info:
-                        logging.debug("on motion, artist {}: {}.{}, z={}, "
-                                      "hits={}".format(len(artists),
-                                      shape.get_label(), handle,
-                                      artist.get_zorder(), info['ind']))
+                        logger.debug("on motion, artist {}: {}.{}, z={}, "
+                                     "hits={}".format(len(artists),
+                                     shape.get_label(), handle,
+                                     artist.get_zorder(), info['ind']))
                     else:
-                        logging.debug("on motion, artist {}: {}.{}, z={}"
-                                      .format(len(artists), shape.get_label(),
-                                              handle, artist.get_zorder()))
+                        logger.debug("on motion, artist {}: {}.{}, z={}"
+                                     .format(len(artists), shape.get_label(),
+                                             handle, artist.get_zorder()))
 
         return sorted(artists, key=lambda a: a.artist.get_zorder(),
                       reverse=True)
@@ -584,7 +586,8 @@ class InteractiveFigure(StyledFigure):
         'on release we reset the press data'
         if self.selected_shape is not None:
             selected_artist = self.get_artist_for_handle(self.selected_shape)
-            # display_artist_and_event('on_release', event, selected_artist)
+            logger.debug("on_release")
+            # display_artist_and_event('on_release', event, selected.artist)
 
             self.do_action(event, selected_artist, 'release')
             self.selected_shape = None

@@ -26,6 +26,12 @@ from opticalglass import util
 from opticalglass import opticalmedium as om
 from opticalglass import modelglass as mg
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+_fh = logging.FileHandler('cv_cmd_proc.log', mode='w')
+_fh.setLevel(logging.DEBUG)
+logger.addHandler(_fh)
+
 _tla = tla.MapTLA()
 
 # Support for CODE V private catalog materials.
@@ -60,9 +66,6 @@ def read_lens(filename, **kwargs):
     import rayoptics.optical.opticalmodel as opticalmodel
     global _glass_handler, _track_contents
     global _reading_private_catalog
-    logging.basicConfig(filename='cv_cmd_proc.log',
-                        filemode='w',
-                        level=logging.DEBUG)
     _reading_private_catalog = False
     _track_contents = util.Counter()
     opt_model = opticalmodel.OpticalModel(do_init=False)
@@ -74,7 +77,7 @@ def read_lens(filename, **kwargs):
             eval_str = cmd_fct + '(opt_model, tla, qlist, dlist)'
             eval(eval_str)
         else:
-            logging.info('Line %d: Command %s not supported', i+1, c[0])
+            logger.info('Line %d: Command %s not supported', i+1, c[0])
 
     post_process_input(opt_model, filename, **kwargs)
     _glass_handler.save_replacements()
@@ -145,7 +148,7 @@ def process_command(cmd):
 
 
 def log_cmd(label, tla, qlist, dlist):
-    logging.debug("%s: %s %s %s", label, tla, str(qlist), str(dlist))
+    logger.debug("%s: %s %s %s", label, tla, str(qlist), str(dlist))
 
 
 def post_process_input(opt_model, filename, **kwargs):
@@ -210,7 +213,7 @@ def pupil_spec_data(optm, tla, qlist, dlist):
         pupil.key = 'aperture', 'image', 'f/#'
 
     pupil.value = dlist[0]
-    logging.debug("pupil_spec_data: %s %f", tla, dlist[0])
+    logger.debug("pupil_spec_data: %s %f", tla, dlist[0])
 
 
 def field_spec_data(optm, tla, qlist, dlist):

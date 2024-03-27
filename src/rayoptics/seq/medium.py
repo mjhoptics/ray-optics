@@ -30,6 +30,8 @@ from opticalglass import opticalmedium as om
 from opticalglass import modelglass as mg
 from opticalglass import rindexinfo as rii
 
+logger = logging.getLogger(__name__)
+
 
 def glass_encode(n: float, v: float) -> str:
     return f'{int(1000*round((n - 1), 3)):3d}.{int(round(10*v, 3)):3d}'
@@ -58,7 +60,7 @@ def decode_medium(*inputs, **kwargs):
         cat = None
     mat = None
 
-    logging.debug(f"num inputs = {len(inputs)}, inputs[0] = {inputs[0]}, "
+    logger.debug(f"num inputs = {len(inputs)}, inputs[0] = {inputs[0]}, "
                   f"{type(inputs[0])}")
     if isanumber(inputs[0]):  # assume all args are numeric
         if len(inputs) <= 1:
@@ -96,17 +98,17 @@ def decode_medium(*inputs, **kwargs):
             try:
                 mat = gfact.create_glass(name, cat)
             except glasserror.GlassNotFoundError as gerr:
-                logging.info('%s glass data type %s not found',
+                logger.info('%s glass data type %s not found',
                              gerr.catalog,
                              gerr.name)
-                logging.info('Replacing material with air.')
+                logger.info('Replacing material with air.')
                 mat = om.Air()
     # glass instance args. if they respond to `rindex`, they're in
     elif hasattr(inputs[0], 'rindex'):
         mat = inputs[0]
 
     if mat:
-        logging.info(f"mat = {mat.name()}, {mat.catalog_name()}, {type(mat)}")
+        logger.info(f"mat = {mat.name()}, {mat.catalog_name()}, {type(mat)}")
     return mat
 
 

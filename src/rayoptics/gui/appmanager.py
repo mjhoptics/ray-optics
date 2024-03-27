@@ -11,6 +11,8 @@ import logging
 
 from collections import namedtuple
 
+logger = logging.getLogger(__name__)
+
 ModelInfo = namedtuple('ModelInfo', ['model', 'fct', 'args', 'kwargs'])
 ModelInfo.__new__.__defaults__ = (None, (), {})
 ModelInfo.model.__doc__ = "object associated with view update function"
@@ -113,9 +115,9 @@ class AppManager:
         Args:
             view: view being closed by user
         """
-        logging.debug(f"AppManager.delete_view: {view.windowTitle()} ["
-                      f"x: {view.x()}, y: {view.y()}, " 
-                      f"w: {view.width()}, h: {view.height()}]")
+        logger.debug(f"AppManager.delete_view: {view.windowTitle()} ["
+                     f"x: {view.x()}, y: {view.y()}, "
+                     f"w: {view.width()}, h: {view.height()}]")
         self.view_dict.pop(view, None)
 
     def close_model(self, view_close_fct=None):
@@ -197,18 +199,18 @@ class AppManager:
             try:
                 info = self.view_dict[view]
             except KeyError:
-                logging.debug('view "%s" not in view_dict',
-                              view.windowTitle())
+                logger.debug('view "%s" not in view_dict',
+                             view.windowTitle())
             else:
                 mi = info[1]
                 model = mi.model
                 if model:
-                    logging.debug("on_view_activated: %s, %s" %
-                                  (model.name(), view.windowTitle()))
+                    logger.debug("on_view_activated: %s, %s" %
+                                 (model.name(), view.windowTitle()))
                 if model and model != self.model:
                     self.model = model
                     self.refresh_views()
-                    logging.debug("switch model to", model.name())
+                    logger.debug("switch model to", model.name())
 
     def sync_light_or_dark(self, is_dark):
         """ Tells views to update to a light or dark color scheme """

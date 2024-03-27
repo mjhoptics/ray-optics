@@ -37,6 +37,8 @@ from rayoptics.parax import firstorder
 from rayoptics.raytr import trace
 from rayoptics.raytr import traceerror as terr
 
+logger = logging.getLogger(__name__)
+
 
 class MainWindow(QMainWindow):
     count = 0
@@ -227,8 +229,8 @@ class MainWindow(QMainWindow):
                 title_bar = title_bar + opt_model.name()
             create_ipython_console(self, opt_model, title_bar, 900, 600)
         except MultipleInstanceError:
-            logging.debug("Unable to open iPython console. "
-                          "MultipleInstanceError")
+            logger.debug("Unable to open iPython console. "
+                         "MultipleInstanceError")
         except Exception as inst:
             print(type(inst))    # the exception instance
             print(inst.args)     # arguments stored in .args
@@ -268,7 +270,7 @@ class MainWindow(QMainWindow):
                           "Zemax files (*.zmx)",
                           options=options)
             if fileName:
-                logging.debug("open file: %s", fileName)
+                logger.debug("open file: %s", fileName)
                 filename = Path(fileName)
                 self.cur_dir = filename.parent
                 self.open_file(filename)
@@ -283,7 +285,7 @@ class MainWindow(QMainWindow):
                           "Ray-Optics Files (*.roa);;All Files (*)",
                           options=options)
             if fileName:
-                logging.debug("save file: %s", fileName)
+                logger.debug("save file: %s", fileName)
                 self.save_file(fileName)
 
         if action == "Close":
@@ -547,7 +549,7 @@ class MainWindow(QMainWindow):
     def eventFilter(self, obj, event):
         """Used by subwindows in response to installEventFilter."""
         if (event.type() == QEvent.Close):
-            logging.debug(f"close event received: {obj}")
+            logger.debug(f"close event received: {obj}")
             self.delete_subwindow(obj)
         return False
 
