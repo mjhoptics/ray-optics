@@ -219,10 +219,10 @@ def wave_abr_pre_calc(fod, fld, wvl, foc, ray_pkg, chief_ray_pkg, ref_sphere):
 
     if is_kinda_big(ref_sphere_radius):
         pre_opd_pkg = wave_abr_pre_calc_inf_ref(fod, fld, wvl, foc, ray_pkg,
-                                         chief_ray_pkg, ref_sphere)
+                                                chief_ray_pkg, ref_sphere)
     else:
         pre_opd_pkg = wave_abr_pre_calc_finite_pup(fod, fld, wvl, foc, ray_pkg,
-                                chief_ray_pkg, ref_sphere)
+                                                   chief_ray_pkg, ref_sphere)
 
     return pre_opd_pkg
 

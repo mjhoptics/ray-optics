@@ -91,11 +91,11 @@ def trace_ray(opt_model, pupil, fld, wvl, output_filter, rayerr_filter,
                **kwargs):
     """ Trace a single ray via pupil, field and wavelength specs.
     
-    This function traces a single ray, given a wavelength, and pupil and field specification. 
+    This function traces a single ray at a given wavelength, pupil and field specification. 
 
     Ray failures (miss surface, TIR) and aperture clipping are handled via RayError exceptions. If a failure occurs, a second item is returned (if  *rayerr_filter* is set to 'summary' or 'full') that contains information about the failure. Apertures are tested using the :meth:`~.seq.interface.Interface.point_inside` API when *check_apertures* is True. 
 
-    The pupil coordinates by default are normalized to the vignetted pupil extent. Alternatively, the pupil coordinates can be taken as actual coordinates on the pupil plane (and similarly for ray direction).
+    The pupil coordinates by default are normalized to the vignetted pupil extent. Alternatively, the pupil coordinates can be taken as actual coordinates on the pupil plane (and similarly for ray direction) using the **pupil_type** keyword argument.
 
     The amount of output that is returned can range from the entire ray (default) to the image segment only or even the return from a user-supplied filtering function.
 
@@ -106,22 +106,23 @@ def trace_ray(opt_model, pupil, fld, wvl, output_filter, rayerr_filter,
         wvl: wavelength of ray (nm)
 
         check_apertures: if True, do point_inside() test on inc_pt
-        apply_vignetting: if True, apply the `fld` vignetting factors to `pupil`
+        apply_vignetting: if True, apply the `fld` vignetting factors to **pupil**
 
-        pupil_type: controls how `pupil` data is interpreted
+        pupil_type: ::
+
             - 'rel pupil': relative pupil coordinates
             - 'aim pt': aim point on pupil plane
             - 'aim dir': aim direction in object space
 
         use_named_tuples: if True, returns data as RayPkg and RaySeg.
 
-        output_filter:
+        output_filter: ::
 
             - if None, append entire ray
             - if 'last', append the last ray segment only
             - else treat as callable and append the return value
 
-        rayerr_filter:
+        rayerr_filter: ::
 
             - if None, on ray error append nothing
             - if 'summary', append the exception without ray data
@@ -130,7 +131,8 @@ def trace_ray(opt_model, pupil, fld, wvl, output_filter, rayerr_filter,
 
         eps: accuracy tolerance for surface intersection calculation
 
-        Returns a ray_pkg and a trace error or None, if traced successfully
+    Returns:
+        tuple: ray_pkg, trace_error | None
 
     """
     unt = True
@@ -153,13 +155,13 @@ def trace_safe(opt_model, pupil, fld, wvl,
         pupil: 2d vector of relative pupil coordinates
         fld: :class:`~.Field` point for wave aberration calculation
         wvl: wavelength of ray (nm)
-        output_filter:
+        output_filter: ::
 
             - if None, append entire ray
             - if 'last', append the last ray segment only
             - else treat as callable and append the return value
 
-        rayerr_filter:
+        rayerr_filter: ::
 
             - if None, on ray error append nothing
             - if 'summary', append the exception without ray data
@@ -255,17 +257,21 @@ def trace_base(opt_model, pupil, fld, wvl,
                apply_vignetting=True, pupil_type='rel pupil', 
                **kwargs):
     """Trace ray specified by relative aperture and field point.
+    
+    `pupil_type` controls how `pupil` data is interpreted when calculating the starting ray coordinates.
 
     Args:
         opt_model: instance of :class:`~.OpticalModel` to trace
         pupil: aperture coordinates of ray
         fld: instance of :class:`~.Field`
         wvl: ray trace wavelength in nm
-        apply_vignetting: if True, apply the `fld` vignetting factors to `pupil`
-        pupil_type: controls how `pupil` data is interpreted
+        apply_vignetting: if True, apply the `fld` vignetting factors to **pupil**
+        pupil_type: ::
+
             - 'rel pupil': relative pupil coordinates
             - 'aim pt': aim point on pupil plane
             - 'aim dir': aim direction in object space
+    
         **kwargs: keyword arguments
 
     Returns:
@@ -484,7 +490,14 @@ def trace_all_fields(opt_model):
 
 
 def trace_chief_ray(opt_model, fld, wvl, foc):
-    """Trace a chief ray for fld and wvl, returning the ray_pkg and exit pupil segment."""
+    """Trace a chief ray at fld and wvl.
+
+    Returns:
+        tuple: **chief_ray**, **cr_exp_seg**
+    
+            - **chief_ray**: RayPkg of chief ray
+            - **cr_exp_seg**: exp_pt, exp_dir, exp_dst, ifc, b4_pt, b4_dir
+    """
     fod = opt_model['analysis_results']['parax_data'].fod
 
     ray_result = trace_safe(opt_model, [0., 0.], fld, wvl,
@@ -575,6 +588,14 @@ def trace_grid(opt_model, grid_rng, fld, wvl, foc, img_filter=None,
 
 def setup_pupil_coords(opt_model, fld, wvl, foc, 
                        image_pt=None, image_delta=None):
+    """Trace chief ray and setup reference sphere for `fld`.
+
+    Returns:
+        tuple: **ref_sphere**, **chief_ray_pkg**
+
+            - **ref_sphere**: image_pt, ref_dir, ref_sphere_radius, lcl_tfrm_last
+            - **chief_ray_pkg**: chief_ray, cr_exp_seg
+    """
     chief_ray_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
     image_pt_2d = None if image_pt is None else image_pt[:2]
     ref_sphere = calculate_reference_sphere(opt_model, fld, wvl, foc,
@@ -621,10 +642,10 @@ def get_chief_ray_pkg(opt_model, fld, wvl, foc):
         foc: defocus amount
 
     Returns:
-        chief_ray_pkg: tuple of chief_ray, cr_exp_seg
+        tuple: **chief_ray**, **cr_exp_seg**
 
-            - chief_ray: chief_ray, chief_ray_op, wvl
-            - cr_exp_seg: chief ray exit pupil segment (pt, dir, dist)
+            - **chief_ray**: chief_ray, chief_ray_op, wvl
+            - **cr_exp_seg**: chief ray exit pupil segment (pt, dir, dist)
 
                 - pt: chief ray intersection with exit pupil plane
                 - dir: direction cosine of the chief ray in exit pupil space
