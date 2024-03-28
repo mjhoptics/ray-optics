@@ -29,7 +29,7 @@ from opticalglass import util
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-_fh = logging.FileHandler('zmx_read_lens.log', mode='w')
+_fh = logging.FileHandler('zmx_read_lens.log', mode='w', delay=True)
 _fh.setLevel(logging.INFO)
 logger.addHandler(_fh)
 
