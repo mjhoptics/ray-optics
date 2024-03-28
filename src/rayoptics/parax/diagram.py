@@ -1316,7 +1316,10 @@ def edit_shape(point_filter=None, constrain_to_wedge=True, **inputs):
         shape, handle = selected_shape[0]
         try:
             handle_action_obj = shape.actions[handle]
-            handle_action_obj.actions[event_key](fig, event)
+            if isinstance(handle_action_obj, dict):
+                handle_action_obj[event_key](fig, event)
+            else:
+                handle_action_obj.actions[event_key](fig, event)
         except KeyError:
             pass
 

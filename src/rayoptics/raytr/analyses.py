@@ -292,7 +292,8 @@ def trace_fan(opt_model, fld, wvl, foc, xy,
         pupil_x, pupil_y, ray_pkg = fi
         if ray_pkg is not None and not isinstance(ray_pkg, terr.TraceError):
             pre_opd_pkg = waveabr.wave_abr_pre_calc(fod, fld, wvl, foc,
-                                                    ray_pkg, cr_pkg)
+                                                    ray_pkg, cr_pkg, 
+                                                    ref_sphere)
             return pre_opd_pkg
         else:
             return None
@@ -703,7 +704,8 @@ def trace_wavefront(opt_model, fld, wvl, foc,
         pupil_x, pupil_y, ray_pkg = gij
         if ray_pkg is not None:
             pre_opd_pkg = waveabr.wave_abr_pre_calc(fod, fld, wvl, foc,
-                                                    ray_pkg, cr_pkg)
+                                                    ray_pkg, cr_pkg, 
+                                                    ref_sphere)
             return pre_opd_pkg
         else:
             return None

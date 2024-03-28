@@ -885,10 +885,21 @@ class ParaxialModel():
         # update height and slope values over the diagram
         for i, sheared_node in enumerate(sheared_nodes[1:-1], start=1):
             pr[i][mc.ht], ax[i][mc.ht] = sheared_node
-            pr[i-1][mc.slp] = (
-                (pr[i][mc.ht] - pr[i-1][mc.ht]) / sys[i-1][mc.tau])
-            ax[i-1][mc.slp] = (
-                (ax[i][mc.ht] - ax[i-1][mc.ht]) / sys[i-1][mc.tau])
+            if sys[i-1][mc.tau] == 0:
+                if i>1:
+                    ax[i-1][mc.slp] = (
+                        ax[i-2][mc.slp] - ax[i-1][mc.ht]*sys[i-1][mc.pwr])
+                    pr[i-1][mc.slp] = (
+                        pr[i-2][mc.slp] - pr[i-1][mc.ht]*sys[i-1][mc.pwr])
+                else:
+                    ax[i-1][mc.slp] = ax[i-1][mc.slp]
+                    pr[i-1][mc.slp] = pr[i-1][mc.slp]
+
+            else:
+                pr[i-1][mc.slp] = (
+                    (pr[i][mc.ht] - pr[i-1][mc.ht]) / sys[i-1][mc.tau])
+                ax[i-1][mc.slp] = (
+                    (ax[i][mc.ht] - ax[i-1][mc.ht]) / sys[i-1][mc.tau])
 
         # update final slope values
         pr[i][mc.slp] = (pr[i+1][mc.ht] - pr[i][mc.ht]) / sys[i][mc.tau]
