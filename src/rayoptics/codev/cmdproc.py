@@ -28,7 +28,7 @@ from opticalglass import modelglass as mg
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-_fh = logging.FileHandler('cv_cmd_proc.log', mode='w')
+_fh = logging.FileHandler('cv_cmd_proc.log', mode='w', delay=True)
 _fh.setLevel(logging.DEBUG)
 logger.addHandler(_fh)
 
