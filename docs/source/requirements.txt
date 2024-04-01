@@ -30,7 +30,7 @@ numpy==1.24.4
     #   pandas
     #   rayoptics (setup.py)
     #   scipy
-opticalglass==1.0.8
+opticalglass
     # via rayoptics (setup.py)
 packaging==24.0
     # via
