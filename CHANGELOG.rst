@@ -4,6 +4,13 @@
 Changelog
 =========
 
+Version 0.8.6
+=============
+Implement a :class:`~.oprops.doe.DiffractionGrating` with ray trace and opd calculations. Add ability to draw single rays and control their color. Fix issues 102 (defocus application), 107 (Zemax import), 110 (defocus and image shift), 114 (Zemax import), 115 (ray aiming), 124 (immersed image), 125 (Zemax constant index), 127 (model modifications), 138 (local loggers).
+There were a variety of small fixes and improvements, e.g. to :func:`~listobj`.
+Thanks to @mpetroff and @dominikonysz for their contributions to **ray-optics**.
+
+
 Version 0.8.5
 =============
 Fix crashing issue #101. Adjustments to the :mod:`~.medium` package. Remove many work files that weren't in the repo.
