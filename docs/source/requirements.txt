@@ -9,7 +9,7 @@ anytree==2.12.1
     # via rayoptics (setup.py)
 deprecation==2.1.0
     # via rayoptics (setup.py)
-ipython==8.23.0
+ipython==8.12.3
     # via
     #   ipykernel
     #   ipywidgets
