@@ -27,7 +27,7 @@ sys.path.insert(0, os.path.join(__location__, '../../src'))
 # -- Project information -----------------------------------------------------
 
 project = u'ray-optics'
-copyright = u'2017-2022, Michael J. Hayford'
+copyright = u'2017-2024, Michael J. Hayford'
 author = u'Michael J. Hayford'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -87,7 +87,7 @@ rst_prolog = """
 .. |ybar| replace:: :math:`y-\overline{y}`
 .. |nubar| replace:: :math:`\omega-\overline{\omega}`
 .. |minimum_python_version| replace:: 3.8
-.. |minimum_numpy_version| replace:: 1.21.5
+.. |minimum_numpy_version| replace:: 1.26.4
 .. |Series| replace:: :class:`pandas.Series`
 .. |DataFrame| replace:: :class:`pandas.DataFrame`
 """
