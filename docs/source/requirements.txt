@@ -73,7 +73,7 @@ traitlets==5.14.2
 transforms3d==0.4.1
     # via rayoptics (setup.py)
 
-sphinx==7.2.6
+sphinx==7.1.2
 sphinx_rtd_theme==2.0.0
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
