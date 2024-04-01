@@ -18,11 +18,11 @@ ipywidgets==8.1.2
     # via rayoptics (setup.py)
 json-tricks==3.17.3
     # via rayoptics (setup.py)
-matplotlib==3.7.5
+matplotlib==3.7.1
     # via
     #   opticalglass
     #   rayoptics (setup.py)
-numpy==1.24.4
+numpy==1.24.3
     # via
     #   contourpy
     #   matplotlib
@@ -30,7 +30,7 @@ numpy==1.24.4
     #   pandas
     #   rayoptics (setup.py)
     #   scipy
-opticalglass
+opticalglass==1.0.6
     # via rayoptics (setup.py)
 packaging==24.0
     # via
