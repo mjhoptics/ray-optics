@@ -5,11 +5,11 @@
 #    pip-compile --output-file=./docs/source/requirements.txt
 #    pip-compile --output-file=./docs/source/requirements_cur.txt setup.py
 #
-anytree==2.12.1
+anytree==2.8.0
     # via rayoptics (setup.py)
 deprecation==2.1.0
     # via rayoptics (setup.py)
-ipython==8.12.3
+ipython==8.12.2
     # via
     #   ipykernel
     #   ipywidgets
@@ -18,11 +18,11 @@ ipywidgets==8.1.2
     # via rayoptics (setup.py)
 json-tricks==3.17.3
     # via rayoptics (setup.py)
-matplotlib==3.7.1
+matplotlib==3.7.3
     # via
     #   opticalglass
     #   rayoptics (setup.py)
-numpy==1.24.3
+numpy==1.24.4
     # via
     #   contourpy
     #   matplotlib
@@ -30,7 +30,7 @@ numpy==1.24.3
     #   pandas
     #   rayoptics (setup.py)
     #   scipy
-opticalglass==1.0.6
+opticalglass==1.0.7
     # via rayoptics (setup.py)
 packaging==24.0
     # via
@@ -39,7 +39,7 @@ packaging==24.0
     #   matplotlib
     #   qtpy
     #   rayoptics (setup.py)
-pandas==2.0.2
+pandas==2.0.3
     # via
     #   opticalglass
     #   rayoptics (setup.py)
