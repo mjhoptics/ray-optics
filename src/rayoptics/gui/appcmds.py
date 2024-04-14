@@ -87,7 +87,7 @@ def open_model(file_url, info=False, post_process_imports=True, **kwargs):
         opm = open_roa(file_url_pth, **kwargs)
     else:
         # if we're importing another program's file, collect import info
-        if len(file_url_pth.parts) > 0 and file_url_pth.parts[1] == 'www.photonstophotos.net':
+        if 'www.photonstophotos.net' in str(file_url_pth):
             opm, import_info = obench.read_obench_url(file_url, **kwargs)
         elif file_extension == '.seq':
             opm, import_info = cmdproc.read_lens(file_url_pth, **kwargs)
