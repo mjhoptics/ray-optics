@@ -16,13 +16,12 @@
 """
 import requests
 
-import rayoptics.parax.specsheet as ss
 from rayoptics.optical.opticalmodel import OpticalModel
 from rayoptics.elem.profiles import (EvenPolynomial, RadialPolynomial)
 from rayoptics.oprops import doe
 from rayoptics.oprops.doe import DiffractiveElement
 from rayoptics.raytr.opticalspec import WvlSpec
-from rayoptics.util.misc_math import isanumber
+from rayoptics.util.misc_math import isanumber, is_kinda_big
 
 from opticalglass import util
 
@@ -90,42 +89,27 @@ def read_lens(inpts):
         thi_obj = read_float(var_dists['d0'][0])
         if thi_obj == float('inf'):
             thi_obj = 1.0e10
+
     conj_type = 'finite'
-    if thi_obj > 1.0e8:
+    if is_kinda_big(thi_obj):
         conj_type = 'infinite'
     _track_contents['conj type'] = conj_type
 
-    specsheet = ss.create_specsheet(conj_type)
+    opt_model = OpticalModel(do_init=True, radius_mode=True)
 
-    imager_inputs = dict(specsheet.imager_inputs)
-    if conj_type == 'finite':
-        imager_inputs['m'] = read_float(var_dists['Magnification'][0])
-        specsheet.frozen_imager_inputs = [False]*5
-    else:  # conj_type == 'infinite'
-        imager_inputs['s'] = -float('inf')
-        efl = read_float(var_dists['Focal Length'][0])
-        if efl != 0:
-            imager_inputs['f'] = efl
-        specsheet.frozen_imager_inputs = [True, True, True, True, False]
-
-    etendue_inputs = specsheet.etendue_inputs
-    ape_key = ('aperture', 'image', 'f/#')
-    ape_value = read_float(var_dists['F-Number'][0])
-    etendue_inputs[ape_key[0]][ape_key[1]][ape_key[2]] = ape_value
-
-    fld_key = ('field', 'image', 'height')
-    fld_value = read_float(var_dists['Image Height'][0])/2
-    etendue_inputs[fld_key[0]][fld_key[1]][fld_key[2]] = fld_value
-    specsheet.generate_from_inputs(imager_inputs, etendue_inputs)
-
-    opt_model = OpticalModel(do_init=True, radius_mode=True, specsheet=specsheet)
     sm = opt_model['sm']
     sm.do_apertures = False
     sm.gaps[0].thi = thi_obj
 
     osp = opt_model['osp']
+    osp['pupil'].key = ('aperture', 'image', 'f/#')
+    osp['pupil'].value = read_float(var_dists['F-Number'][0])
+
+    osp['fov'].key = ('field', 'image', 'height')
+    osp['fov'].value = read_float(var_dists['Image Height'][0])/2
     osp['fov'].is_relative = True
     osp['fov'].set_from_list([0., .707, 1.])
+
     osp['wvls'] = WvlSpec(wlwts=[('F', .5), ('d', 1.), ('C', .5)], ref_wl=1)
 
     if 'lens data' in inpts:
@@ -188,9 +172,11 @@ def read_lens(inpts):
             sm.ifcs[idx].phase_element = dif_elem
     if 'descriptive data' in inpts:
         input_lines = inpts['descriptive data']
-        descripts = {input_line[0]: input_line[1:] for input_line in input_lines}
+        descripts = {input_line[0]: input_line[1:] 
+                     for input_line in input_lines}
+
         if 'title' in descripts:
             opt_model['sys'].title = descripts['title'][0]
-    
+
     opt_model.update_model()
     return opt_model
