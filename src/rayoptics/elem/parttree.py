@@ -61,9 +61,9 @@ class PartTree():
                                           self.root_node)
 
     def update_model(self, **kwargs):
-        sync_part_tree_on_update(self.opt_model.ele_model,
-                                 self.opt_model.seq_model,
-                                 self.root_node)
+        self.sync_part_tree_on_update(self.opt_model.ele_model,
+                                      self.opt_model.seq_model,
+                                      self.root_node)
         self.sort_tree_using_sequence(self.opt_model.seq_model)
 
     def is_empty(self):
@@ -271,6 +271,72 @@ class PartTree():
             e = ele_dict[elem]
             print(f"{e.label}: {ele_type[0]} {idx_list} {gap_list}")
 
+    def sync_part_tree_on_update(self, ele_model, seq_model, root_node):
+        """Update node names to track element labels. """
+        ele_dict = {e.label: e for e in ele_model.elements}
+        if 'Object space' not in ele_dict:
+            obj, node = self.parent_object(seq_model.gaps[0])
+            obj.label = 'Object space'
+            ele_dict['Object space'] = obj
+            node.tag = (node.tag if '#object' in node.tag else 
+                        node.tag + '#object')
+        if 'Image space' not in ele_dict:
+            img, node = self.parent_object(seq_model.gaps[-1])
+            img.label = 'Image space'
+            ele_dict['Image space'] = img
+            node.tag = (node.tag if '#image' in node.tag else 
+                        node.tag + '#image')
+        else:
+            node = self.node(ele_dict['Image space'])
+            self.handle_image_space_label(ele_model, seq_model, node)
+
+        for node in PreOrderIter(root_node):
+            name = node.name
+            if name[0] == 'i':
+                idx = seq_model.ifcs.index(node.id)
+                node.name = f'i{idx}'
+            elif name[0] == 'g':
+                gap, z_dir = node.id
+                idx = seq_model.gaps.index(gap)
+                z_dir = seq_model.z_dir[idx]
+                node.id = (gap, z_dir)
+                node.name = f'g{idx}'
+            elif name[0] == 'p':
+                p_name = node.parent.name
+                e = ele_dict[p_name]
+                idx = int(name[1:])-1 if len(name) > 1 else 0
+                num_idxs = len(e.idx_list())
+                idx = (num_idxs-idx-1) if e.is_flipped else idx
+                node.id = e.profile_list()[idx]
+            elif name[:2] == 'tl':
+                p_name = node.parent.name
+                e = ele_dict[p_name]
+                node.id = e.intrfc
+                idx = seq_model.ifcs.index(node.id)
+                node.name = f'tl{idx}'
+            elif name[0] == 't':
+                p_name = node.parent.name
+                e = ele_dict[p_name]
+                idx = int(name[1:])-1 if len(name) > 1 else 0
+                node.id = e.gap_list()[idx]
+            elif name == 'root':
+                pass
+            else:
+                if hasattr(node, 'id'):
+                    if hasattr(node.id, 'label'):
+                        node.name = node.id.label
+                else:
+                    print(f"sync_part_tree_on_update: No id attribute: {node.name}, {node.tag}")
+
+    def handle_image_space_label(self, ele_model, seq_model, node):
+        ig_node = self.parent_node(seq_model.gaps[-1])
+        if node != ig_node:
+            node.name = node.id.label = ig_node.id.label
+            ig_node.name = ig_node.id.label = 'Image space'
+            if '#image' not in ig_node.tag:
+                ig_node.tag += '#image'
+            node.tag.replace('#image', '')
+
 
 def sync_part_tree_on_restore(opt_model, ele_model, seq_model, root_node):
     ele_dict = {e.label: e for e in ele_model.elements}
@@ -333,48 +399,6 @@ def sync_part_tree_on_restore_idkey(opt_model, ele_model, seq_model, root_node):
 
     for node in PreOrderIter(root_node):
         delattr(node, 'id_key')
-
-
-def sync_part_tree_on_update(ele_model, seq_model, root_node):
-    """Update node names to track element labels. """
-    ele_dict = {e.label: e for e in ele_model.elements}
-    for node in PreOrderIter(root_node):
-        name = node.name
-        if name[0] == 'i':
-            idx = seq_model.ifcs.index(node.id)
-            node.name = f'i{idx}'
-        elif name[0] == 'g':
-            gap, z_dir = node.id
-            idx = seq_model.gaps.index(gap)
-            z_dir = seq_model.z_dir[idx]
-            node.id = (gap, z_dir)
-            node.name = f'g{idx}'
-        elif name[0] == 'p':
-            p_name = node.parent.name
-            e = ele_dict[p_name]
-            idx = int(name[1:])-1 if len(name) > 1 else 0
-            num_idxs = len(e.idx_list())
-            idx = (num_idxs-idx-1) if e.is_flipped else idx
-            node.id = e.profile_list()[idx]
-        elif name[:2] == 'tl':
-            p_name = node.parent.name
-            e = ele_dict[p_name]
-            node.id = e.intrfc
-            idx = seq_model.ifcs.index(node.id)
-            node.name = f'tl{idx}'
-        elif name[0] == 't':
-            p_name = node.parent.name
-            e = ele_dict[p_name]
-            idx = int(name[1:])-1 if len(name) > 1 else 0
-            node.id = e.gap_list()[idx]
-        elif name == 'root':
-            pass
-        else:
-            if hasattr(node, 'id'):
-                if hasattr(node.id, 'label'):
-                    node.name = node.id.label
-            else:
-                print(f"sync_part_tree_on_update: No id attribute: {node.name}, {node.tag}")
 
 
 def sequence_to_elements(seq_model, ele_model, part_tree):

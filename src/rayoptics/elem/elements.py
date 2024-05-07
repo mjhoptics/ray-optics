@@ -2264,10 +2264,6 @@ class Space(Part):
         self.idx = idx = gap_list[0]
         self.gap = seq_model.gaps[self.idx]
         self.medium_name = self.gap.medium.name()
-        if idx == 0:
-            self.label = 'Object space'
-        elif idx == len(seq_model.gaps)-1:
-            self.label = 'Image space'
         self.s1 = seq_model.ifcs[idx]
         self.s2 = seq_model.ifcs[idx+1]
 
