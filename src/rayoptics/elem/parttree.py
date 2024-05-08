@@ -287,8 +287,8 @@ class PartTree():
             node.tag = (node.tag if '#image' in node.tag else 
                         node.tag + '#image')
         else:
-            node = self.node(ele_dict['Image space'])
-            self.handle_image_space_label(ele_model, seq_model, node)
+            cur_ig_node = self.node(ele_dict['Image space'])
+            self.handle_image_space_label(ele_model, seq_model, cur_ig_node)
 
         for node in PreOrderIter(root_node):
             name = node.name
@@ -328,14 +328,14 @@ class PartTree():
                 else:
                     print(f"sync_part_tree_on_update: No id attribute: {node.name}, {node.tag}")
 
-    def handle_image_space_label(self, ele_model, seq_model, node):
+    def handle_image_space_label(self, ele_model, seq_model, cur_ig_node):
         ig_node = self.parent_node(seq_model.gaps[-1])
-        if node != ig_node:
-            node.name = node.id.label = ig_node.id.label
+        if cur_ig_node != ig_node:
+            cur_ig_node.name = cur_ig_node.id.label = ig_node.id.label
             ig_node.name = ig_node.id.label = 'Image space'
             if '#image' not in ig_node.tag:
                 ig_node.tag += '#image'
-            node.tag.replace('#image', '')
+            cur_ig_node.tag = cur_ig_node.tag.replace('#image', '')
 
 
 def sync_part_tree_on_restore(opt_model, ele_model, seq_model, root_node):
