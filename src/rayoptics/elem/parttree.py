@@ -61,10 +61,12 @@ class PartTree():
                                           self.root_node)
 
     def update_model(self, **kwargs):
+        seq_model = self.opt_model.seq_model
+        self.handle_object_image_tags(seq_model)
         self.sync_part_tree_on_update(self.opt_model.ele_model,
-                                      self.opt_model.seq_model,
+                                      seq_model,
                                       self.root_node)
-        self.sort_tree_using_sequence(self.opt_model.seq_model)
+        self.sort_tree_using_sequence(seq_model)
 
     def is_empty(self):
         if (isinstance(self.root_node, Node) and 
@@ -274,21 +276,6 @@ class PartTree():
     def sync_part_tree_on_update(self, ele_model, seq_model, root_node):
         """Update node names to track element labels. """
         ele_dict = {e.label: e for e in ele_model.elements}
-        if 'Object space' not in ele_dict:
-            obj, node = self.parent_object(seq_model.gaps[0])
-            obj.label = 'Object space'
-            ele_dict['Object space'] = obj
-            node.tag = (node.tag if '#object' in node.tag else 
-                        node.tag + '#object')
-        if 'Image space' not in ele_dict:
-            img, node = self.parent_object(seq_model.gaps[-1])
-            img.label = 'Image space'
-            ele_dict['Image space'] = img
-            node.tag = (node.tag if '#image' in node.tag else 
-                        node.tag + '#image')
-        else:
-            cur_ig_node = self.node(ele_dict['Image space'])
-            self.handle_image_space_label(ele_model, seq_model, cur_ig_node)
 
         for node in PreOrderIter(root_node):
             name = node.name
@@ -328,14 +315,29 @@ class PartTree():
                 else:
                     print(f"sync_part_tree_on_update: No id attribute: {node.name}, {node.tag}")
 
-    def handle_image_space_label(self, ele_model, seq_model, cur_ig_node):
-        ig_node = self.parent_node(seq_model.gaps[-1])
-        if cur_ig_node != ig_node:
-            cur_ig_node.name = cur_ig_node.id.label = ig_node.id.label
-            ig_node.name = ig_node.id.label = 'Image space'
-            if '#image' not in ig_node.tag:
-                ig_node.tag += '#image'
-            cur_ig_node.tag = cur_ig_node.tag.replace('#image', '')
+    def handle_object_image_tags(self, seq_model):
+        """ Ensure nodes for object and image ifcs and gaps are tagged. """
+        self._handle_object_image_tag(seq_model.ifcs, '#object', 
+                                      not_tag='#space#airgap')
+        self._handle_object_image_tag(seq_model.gaps, '#object',
+                                      not_tag='#dummyifc#surface')
+        self._handle_object_image_tag(seq_model.ifcs, '#image', 
+                                      not_tag='#space#airgap')
+        self._handle_object_image_tag(seq_model.gaps, '#image',
+                                      not_tag='#dummyifc#surface')
+
+    def _handle_object_image_tag(self, param_list, oi_tag, not_tag=''):
+        nodes = self.nodes_with_tag(tag=oi_tag, not_tag=not_tag)
+        oi_idx = 0 if oi_tag == '#object' else -1
+        oi_node = self.parent_node(param_list[oi_idx])
+        found_it = False
+        for n in nodes:
+            if n != oi_node:
+                n.tag = n.tag.replace(oi_tag, '')
+            else:
+                found_it = True
+        if not found_it:
+            oi_node.tag += oi_tag
 
 
 def sync_part_tree_on_restore(opt_model, ele_model, seq_model, root_node):
