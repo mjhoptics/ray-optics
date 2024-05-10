@@ -62,7 +62,7 @@ from rayoptics.qtgui.plotview import (create_plot_scale_panel,
 logger = logging.getLogger(__name__)
 
 
-def open_model(file_url, info=False, post_process_imports=True, **kwargs):
+def open_model(file_url, info=False, **kwargs):
     """ open a file or url and populate an optical model with the data
 
     Args:
@@ -73,7 +73,6 @@ def open_model(file_url, info=False, post_process_imports=True, **kwargs):
             - .zmx - a Zemax (TM) lens file
             - a URL from the www.photonstophotos.net OpticalBench database
         info (bool): if true, return an info tuple with import statistics
-        post_process_imports (bool): for lens design program file import,
         kwargs (dict): keyword args passed to the reader functions
 
     Returns:
@@ -93,13 +92,9 @@ def open_model(file_url, info=False, post_process_imports=True, **kwargs):
             opm, import_info = cmdproc.read_lens(file_url_pth, **kwargs)
         elif file_extension == '.zmx':
             opm, import_info = zmxread.read_lens_file(file_url_pth, **kwargs)
-        # At this point we have seq_model, opticalspec and sys_model.
-        # Generate the remaining databases and relations unless declined.
-        if post_process_imports:
-            create_specsheet_from_model(opm)
-            # create element model and part_tree
-            opm.ele_model.reset_serial_numbers()
-            pt.sequence_to_elements(opm['sm'], opm['em'], opm['pt'])
+        
+        # At this point we have a complete opt_model; 
+        #  all of the above call opm.update_model()
         if info:
             return opm, import_info
     return opm
