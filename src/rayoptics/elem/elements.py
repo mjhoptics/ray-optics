@@ -404,7 +404,10 @@ def render_lens_shape(s1, profile1, s2, profile2, thi, extent, sd, is_flipped,
                       hole_sd=None, flat1_pkg=None, flat2_pkg=None):
     is_concave_s1 = s1.profile_cv < 0.0
     is_concave_s2 = s2.profile_cv > 0.0
+        
+    profile_polys = []
 
+    flat = None
     if flat1_pkg is not None:
         do_flat1, flat1 = flat1_pkg
         if use_flat(do_flat1, is_concave_s1):
@@ -412,12 +415,12 @@ def render_lens_shape(s1, profile1, s2, profile2, thi, extent, sd, is_flipped,
                 flat = flat1 = compute_flat(s1, sd)
             else:
                 flat = flat1
-    else:
-        flat = None
 
     poly1 = full_profile(profile1, is_flipped, extent, 
                          flat, hole_id=hole_sd)
+    profile_polys.append(poly1)
 
+    flat = None
     if flat2_pkg is not None:
         do_flat2, flat2 = flat2_pkg
         if use_flat(do_flat2, is_concave_s2):
@@ -425,11 +428,10 @@ def render_lens_shape(s1, profile1, s2, profile2, thi, extent, sd, is_flipped,
                 flat = flat2 = compute_flat(s2, sd)
             else:
                 flat = flat2
-    else:
-        flat = None
 
     poly2 = full_profile(profile2, is_flipped, extent,
                          flat, hole_id=hole_sd, dir=-1)
+    profile_polys.append(poly2)
 
     if hole_sd is None:
         poly = []
@@ -453,7 +455,7 @@ def render_lens_shape(s1, profile1, s2, profile2, thi, extent, sd, is_flipped,
             poly_list.append(poly)
         poly = tuple(poly_list)
 
-    return poly
+    return poly, profile_polys
 
 
 def full_profile(profile, is_flipped, edge_extent,
@@ -510,13 +512,13 @@ def full_profile(profile, is_flipped, edge_extent,
                 sd_upr_pt = [sag, sd_lwr]
 
         if hole_id is None:
-            prf_full = [sd_lwr_pt]
+            prf_full = [sd_lwr_pt] if sag is not None else []
             prf_full += profile.profile((flat_id,), dir, steps)
             if sag is not None:
                 prf_full.append(sd_upr_pt)
             prf = prf_full,
         else:
-            prf_lwr = [sd_lwr_pt]
+            prf_lwr = [sd_lwr_pt] if sag is not None else []
             prf_lwr += profile.profile((-flat_id, -hole_id), dir, steps)
             prf_upr = profile.profile((hole_id, flat_id), dir, steps)
             if sag is not None:
@@ -922,51 +924,15 @@ class Element(Part):
             return (-self.sd, self.sd)
 
     def render_shape(self):
-        is_concave_s1 = self.s1.profile_cv < 0.0
-        is_concave_s2 = self.s2.profile_cv > 0.0
-        
-        self.profile_polys = []
+        s1 = self.s1
+        s2 = self.s2
+        flat1_pkg = self.do_flat1, self.flat1
+        flat2_pkg = self.do_flat2, self.flat2
 
-        if use_flat(self.do_flat1, is_concave_s1):
-            if self.flat1 is None:
-                flat1 = self.flat1 = compute_flat(self.s1, self.sd)
-            else:
-                flat1 = self.flat1
-        else:
-            flat1 = None
-        poly1 = full_profile(self.profile1, self.is_flipped, self.extent(), 
-                            flat1, hole_id=self.hole_sd)
-        self.profile_polys.append(poly1)
-
-        if use_flat(self.do_flat2, is_concave_s2):
-            if self.flat2 is None:
-                flat2 = self.flat2 = compute_flat(self.s2, self.sd)
-            else:
-                flat2 = self.flat2
-        else:
-            flat2 = None
-        poly2 = full_profile(self.profile2, self.is_flipped, self.extent(),
-                             flat2, hole_id=self.hole_sd, dir=-1)
-        self.profile_polys.append(poly2)
-
-        if self.hole_sd is None:
-            poly = []
-            poly += poly1[0]
-            orig_pt = deepcopy(poly1[0][0])
-            for p in poly2[0]:
-                p[0] += self.gap.thi
-            poly += poly2[0]
-            poly.append(orig_pt)
-            poly = poly,
-        else:
-            poly = []
-            for p1, p2 in zip(poly1, poly2):
-                for p in p2:
-                    p[0] += self.gap.thi
-                p1 += p2
-                p1.append(p1[0])
-                poly.append(p1)
-            poly = tuple(poly)
+        poly, self.profile_polys = render_lens_shape(
+            s1, s1.profile, s2, s2.profile, self.gap.thi, 
+            self.extent(), self.sd, self.is_flipped, 
+            hole_sd=self.hole_sd, flat1_pkg=flat1_pkg, flat2_pkg=flat2_pkg)
 
         return poly
 
@@ -1325,54 +1291,14 @@ class Mirror(SurfaceInterface):
         return offset
 
     def render_shape(self):
-        is_concave_s1 = self.s.profile_cv < 0.0
-        is_concave_s2 = self.s.profile_cv > 0.0
-        
-        self.profile_polys = []
+        s = self.s
+        thi = self.substrate_offset()
+        flat_pkg = self.do_flat, self.flat
 
-        computed_flat = compute_flat(self.s, self.sd)
-        if use_flat(self.do_flat, is_concave_s1):
-            if self.flat is None:
-                flat = computed_flat
-            else:
-                flat = self.flat
-        else:
-            flat = None
-        poly1 = full_profile(self.profile, self.is_flipped, self.extent(), 
-                             flat, hole_id=self.hole_sd)
-        self.profile_polys.append(poly1)
-
-        if use_flat(self.do_flat, is_concave_s2):
-            if self.flat is None:
-                flat = computed_flat
-            else:
-                flat = self.flat
-        else:
-            flat = None
-        poly2 = full_profile(self.profile, self.is_flipped, self.extent(),
-                             flat, hole_id=self.hole_sd, dir=-1)
-        self.profile_polys.append(poly2)
-
-        offset = self.substrate_offset()
-
-        if self.hole_sd is None:
-            poly = []
-            poly += poly1[0]
-            orig_pt = deepcopy(poly1[0][0])
-            for p in poly2[0]:
-                p[0] += offset
-            poly += poly2[0]
-            poly.append(orig_pt)
-            poly = poly,
-        else:
-            poly = []
-            for p1, p2 in zip(poly1, poly2):
-                for p in p2:
-                    p[0] += offset
-                p1 += p2
-                p1.append(p1[0])
-                poly.append(p1)
-            poly = tuple(poly)
+        poly, self.profile_polys = render_lens_shape(
+            s, s.profile, s, s.profile, thi, 
+            self.extent(), self.sd, self.is_flipped, 
+            hole_sd=self.hole_sd, flat1_pkg=flat_pkg, flat2_pkg=flat_pkg)
 
         return poly
 
@@ -1738,79 +1664,6 @@ class CementedElement(Part):
         else:
             return (-self.sd, self.sd)
 
-    def render_shape_orig(self):
-        '''return a polyline that is representative of the cemented element. '''
-        # examine all profiles for possible (or required) flats.
-        # only consider first profile for a flat if it is concave
-        is_concave_0 = self.profiles[0].cv < 0.0
-
-        if use_flat(self.do_flat_0, is_concave_0):
-            self.flats[0] = compute_flat(self.ifcs[0], self.sd)
-        else:
-            self.flats[0] = None
-
-        # only consider last profile for a flat if it is concave
-        is_concave_k = self.profiles[-1].cv > 0.0
-        if use_flat(self.do_flat_k, is_concave_k):
-            self.flats[-1] = compute_flat(self.ifcs[-1], self.sd)
-        else:
-            self.flats[-1] = None
-
-        # compute flats for inner profiles that intersect outer flats
-        for i, p in enumerate(self.profiles[1:-1], start=1):
-            self.flats[i] = self.compute_inner_flat(i, self.sd)
-                    
-        # generate the profile polylines
-        self.profile_polys = []
-        sense = 1
-        for profile, flat in zip(self.profiles, self.flats):
-            poly = full_profile(profile, self.is_flipped, self.extent(), 
-                                flat, hole_id=self.hole_sd, dir=sense)
-            self.profile_polys.append(poly)
-            sense = -sense
-
-        if self.hole_sd is None:
-            # offset the profiles wrt the element origin
-            thi = 0
-            for i, poly_profile in enumerate(self.profile_polys[1:]):
-                thi += self.gaps[i].thi
-                for p in poly_profile:
-                    p[0] += thi
-        else:
-            thi = 0
-            for i, poly_profile in enumerate(self.profile_polys[1:]):
-                thi += self.gaps[i].thi
-                for poly_seg in poly_profile:
-                    for p in poly_seg:
-                        p[0] += thi
-
-        # just return outline
-        poly_shape = []
-        poly_shape += self.profile_polys[0]
-        if sense == -1:
-            poly_shape += self.profile_polys[-1][-1::-1]
-        else:
-            poly_shape += self.profile_polys[-1]
-        poly_shape.append(poly_shape[0])
-        
-        return poly_shape
-
-    def render_handles_orig(self, opt_model):
-        self.handles = {}
-
-        shape = self.render_shape()
-        self.handles['shape'] = GraphicsHandle(shape, self.tfrm, 'polyline')
-
-        for i, gap in enumerate(self.gaps):
-            poly = []
-            poly += self.profile_polys[i]
-            poly += self.profile_polys[i+1]
-            poly.append(self.profile_polys[i][0])
-            color = calc_render_color_for_material(gap.medium)
-            self.handles['shape'+str(i+1)] = GraphicsHandle(poly, self.tfrm,
-                                                            'polygon', color)
-        return self.handles
-
     def render_shape(self):
         '''return a polyline that is representative of the cemented element. '''
         ifcs = self.ifcs
@@ -1844,10 +1697,11 @@ class CementedElement(Part):
             else:
                 flat2_pkg = None
 
-            poly_list = render_lens_shape(ifcs[i], profiles[i], 
-                                     ifcs[i+1], profiles[i+1], gap.thi, 
-                                     self.extent(), self.sd, self.is_flipped,
-                                     hole_sd=self.hole_sd, flat1_pkg=flat1_pkg, flat2_pkg=flat2_pkg)
+            poly_list, profile_polys = render_lens_shape(
+                ifcs[i], profiles[i], ifcs[i+1], profiles[i+1], gap.thi, 
+                self.extent(), self.sd, self.is_flipped, hole_sd=self.hole_sd, 
+                flat1_pkg=flat1_pkg, flat2_pkg=flat2_pkg
+                )
             for poly in poly_list:
                 for p in poly:
                     p[0] += thi
@@ -2323,9 +2177,11 @@ class Space(Part):
     def render_shape(self):
         s1 = self.s1
         s2 = self.s2
-        poly, = render_lens_shape(s1, s1.profile, s2, s2.profile, 
-                                  self.gap.thi, self.extent(), self.sd, 
-                                  self.is_flipped)
+        poly_pkg, profile_polys = render_lens_shape(
+            s1, s1.profile, s2, s2.profile, self.gap.thi, 
+            self.extent(), self.sd, self.is_flipped
+            )
+        poly, = poly_pkg
         return poly
 
     def render_handles(self, opt_model):
