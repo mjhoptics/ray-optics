@@ -336,7 +336,7 @@ class PartTree():
                 n.tag = n.tag.replace(oi_tag, '')
             else:
                 found_it = True
-        if not found_it:
+        if not found_it and oi_node is not None:
             oi_node.tag += oi_tag
 
 

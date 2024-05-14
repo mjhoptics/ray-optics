@@ -1206,8 +1206,8 @@ class SurfaceInterface(Part):
                 flat = self.flat
         else:
             flat = None
-        poly = full_profile(self.profile, self.is_flipped, self.extent(), 
-                            flat, hole_id=self.hole_sd)
+        poly, = full_profile(self.profile, self.is_flipped, self.extent(), 
+                             flat, hole_id=self.hole_sd)
         self.profile_polys.append(poly)
 
         return poly
@@ -1217,31 +1217,26 @@ class SurfaceInterface(Part):
 
         render_color = (158, 158, 158, 64)
         shape = self.render_shape()
-        for i, poly in enumerate(shape):
-            self.handles['shape'+str(i+1)] = GraphicsHandle(
-                poly, self.tfrm, 'polygon', render_color
-                )
 
-        extent = self.extent()
+        self.handles['shape'] = GraphicsHandle(
+            shape, self.tfrm, 'polyline', render_color
+            )
 
         poly_s1 = self.profile_polys[0]
-        for poly_seg in poly_s1:
-            gh1 = GraphicsHandle(poly_seg, self.tfrm, 'polyline')
-            self.handles['s_profile'] = gh1
 
         if self.hole_sd is None:
-            pt_sd_upr = deepcopy(poly_s1[-1][0])
+            pt_sd_upr = deepcopy(poly_s1[-1])
             self.handles['sd_upr'] = GraphicsHandle(pt_sd_upr, self.tfrm,
                                                     'vertex')
-            pt_sd_lwr = deepcopy(poly_s1[0][0])
+            pt_sd_lwr = deepcopy(poly_s1[0])
             self.handles['sd_lwr'] = GraphicsHandle(pt_sd_lwr, self.tfrm,
                                                     'vertex')
         else:
             poly_s1_lwr, poly_s1_upr = poly_s1
-            pt_sd_upr = deepcopy(poly_s1_upr[-1][0])
+            pt_sd_upr = deepcopy(poly_s1_upr[-1])
             self.handles['sd_upr'] = GraphicsHandle(pt_sd_upr, self.tfrm,
                                                     'vertex')
-            pt_sd_lwr = deepcopy(poly_s1_lwr[0][0])
+            pt_sd_lwr = deepcopy(poly_s1_lwr[0])
             self.handles['sd_lwr'] = GraphicsHandle(pt_sd_lwr, self.tfrm,
                                                     'vertex')
         return self.handles
@@ -2328,8 +2323,9 @@ class Space(Part):
     def render_shape(self):
         s1 = self.s1
         s2 = self.s2
-        poly = render_lens_shape(s1, s1.profile, s2, s2.profile, self.gap.thi, 
-                                 self.extent(), self.sd, self.is_flipped)
+        poly, = render_lens_shape(s1, s1.profile, s2, s2.profile, 
+                                  self.gap.thi, self.extent(), self.sd, 
+                                  self.is_flipped)
         return poly
 
     def render_handles(self, opt_model):
