@@ -1850,10 +1850,8 @@ class ThinElement(Part):
     def render_handles(self, opt_model):
         self.handles = {}
         shape = self.render_shape()
-        for i, poly in enumerate(shape):
-            self.handles['shape'+str(i+1)] = GraphicsHandle(
-                poly, self.tfrm, 'polygon', self.render_color
-                )
+        self.handles['shape'] = GraphicsHandle(shape, self.tfrm, 'polyline', 
+                                               self.render_color)
         return self.handles
 
     def handle_actions(self):
@@ -1990,17 +1988,15 @@ class DummyInterface(Part):
         return self.sd
 
     def render_shape(self):
-        poly = full_profile(self.profile, self.is_flipped, (-self.sd, self.sd))
+        poly, = full_profile(self.profile, self.is_flipped, 
+                             (-self.sd, self.sd))
         return poly
 
     def render_handles(self, opt_model):
         self.handles = {}
 
         shape = self.render_shape()
-        for i, poly in enumerate(shape):
-            self.handles['shape'+str(i+1)] = GraphicsHandle(
-                poly, self.tfrm, 'polyline'
-                )
+        self.handles['shape'] = GraphicsHandle(shape, self.tfrm, 'polyline')
 
         return self.handles
 
