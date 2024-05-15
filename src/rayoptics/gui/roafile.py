@@ -9,8 +9,11 @@
 """
 
 import json_tricks
+import logging
 from packaging import version
+from pathlib import Path
 
+logger = logging.getLogger(__name__)
 
 module_repl_050 = {
     'rayoptics.optical.elements': 'rayoptics.elem.elements',
@@ -53,12 +56,14 @@ def preprocess_roa(file_name, str_replacements):
     return contents
 
 
-def postprocess_roa(opt_model, **kwargs):
+def postprocess_roa(opt_model, file_path, **kwargs):
     """Post processing for raw optical_model, including sync_to_restore. """
 
-    # Force rebuild of ele_model for pre-0.7 models.
+    # Force rebuild of ele_model for pre-0.8.5 models.
+    old_version = False
     if (not hasattr(opt_model, 'ro_version') or
-        version.parse(opt_model.ro_version) < version.parse("0.7.0a")):
+        version.parse(opt_model.ro_version) < version.parse("0.8.5")):
+        old_version = True
         opt_model.ele_model.elements = []
         if hasattr(opt_model, 'part_tree'):
             delattr(opt_model, 'part_tree')
@@ -68,7 +73,28 @@ def postprocess_roa(opt_model, **kwargs):
             g.medium = g.medium.convert_to_OG()
 
     opt_model.sync_to_restore()
+    if old_version:
+        save_updated_roa(file_path, opt_model)
     return opt_model
+
+
+def save_updated_roa(file_path: Path, opt_model):
+    """ rename file_path to file_path_version# and save new file_path version """
+
+    forig = file_path.stem
+    cur_vers =  version.parse(opt_model.ro_version).public
+    fname_archive = forig + "_v" + cur_vers.replace('.', '')
+    f_archive = str(file_path).replace(forig, fname_archive)
+    file_path.rename(Path(f_archive))
+    msg1 = f" Archived original file as {Path(f_archive).name}"
+    print(msg1)
+    logger.info(msg1)
+
+    opt_model.save_model(file_path, version="0.9.0a1")
+    new_vers =  version.parse(opt_model.ro_version).public
+    msg2 = f" Updated {file_path.name} from version {cur_vers} -> {new_vers}."
+    print(msg2)
+    logger.info(msg2)
 
 
 def open_roa(file_name, mapping=None, **kwargs):
@@ -87,5 +113,5 @@ def open_roa(file_name, mapping=None, **kwargs):
     obj_dict = json_tricks.loads(contents)
     if 'optical_model' in obj_dict:
         opt_model = obj_dict['optical_model']
-        postprocess_roa(opt_model, **kwargs)
+        postprocess_roa(opt_model, file_name, **kwargs)
     return opt_model

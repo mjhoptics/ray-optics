@@ -337,7 +337,7 @@ class MainWindow(QMainWindow):
         self.refresh_app_ui()
 
     def save_file(self, file_name):
-        self.app_manager.model.save_model(file_name)
+        self.app_manager.model.save_model(file_name, version="0.9.0a1")
         self.cur_filename = file_name
         self.is_changed = False
 
