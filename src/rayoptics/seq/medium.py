@@ -289,6 +289,8 @@ class Medium:
 
     def convert_to_OG(self):
         """ returns an equivalent material from the :mod:`opticalglass` package. """
+        if not hasattr(self, '_catalog_name'):
+            self._catalog_name = ''
         return om.ConstantIndex(self.n, self.label, cat=self._catalog_name)
 
     def name(self):
@@ -359,6 +361,8 @@ class Glass(Medium):
 
     def convert_to_OG(self):
         """ returns an equivalent material from the :mod:`opticalglass` package. """
+        if not hasattr(self, '_catalog_name'):
+            self._catalog_name = ''
         return mg.ModelGlass(self.n, self.v, 
                              self.label, cat=self._catalog_name)
 
@@ -420,6 +424,8 @@ class InterpolatedGlass():
 
     def convert_to_OG(self):
         """ returns an equivalent material from the :mod:`opticalglass` package. """
+        if not hasattr(self, '_catalog_name'):
+            self._catalog_name = ''
         return om.InterpolatedMedium(self.label, 
                                      rndx=self.rndx, wvls=self.wvls, 
                                      cat=self._catalog)

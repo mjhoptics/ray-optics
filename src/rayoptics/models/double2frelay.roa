@@ -39,7 +39,7 @@
         "clear_apertures":[],
         "edge_apertures":[],
         "interact_mode":"dummy",
-        "profile_id":"140246538924624"
+        "profile_id":"5394649856"
        }
       },
       {
@@ -55,7 +55,7 @@
         "clear_apertures":[],
         "edge_apertures":[],
         "interact_mode":"transmit",
-        "profile_id":"140246538927120"
+        "profile_id":"5394649808"
        }
       },
       {
@@ -71,7 +71,7 @@
         "clear_apertures":[],
         "edge_apertures":[],
         "interact_mode":"reflect",
-        "profile_id":"140246273204128"
+        "profile_id":"5394654992"
        }
       },
       {
@@ -87,7 +87,7 @@
         "clear_apertures":[],
         "edge_apertures":[],
         "interact_mode":"reflect",
-        "profile_id":"140246273200480"
+        "profile_id":"5402399776"
        }
       },
       {
@@ -103,7 +103,7 @@
         "clear_apertures":[],
         "edge_apertures":[],
         "interact_mode":"reflect",
-        "profile_id":"140246273200432"
+        "profile_id":"5402400160"
        }
       },
       {
@@ -119,7 +119,7 @@
         "clear_apertures":[],
         "edge_apertures":[],
         "interact_mode":"reflect",
-        "profile_id":"140246273203504"
+        "profile_id":"5402400112"
        }
       },
       {
@@ -135,7 +135,7 @@
         "clear_apertures":[],
         "edge_apertures":[],
         "interact_mode":"reflect",
-        "profile_id":"140246273203024"
+        "profile_id":"5402400256"
        }
       },
       {
@@ -151,7 +151,7 @@
         "clear_apertures":[],
         "edge_apertures":[],
         "interact_mode":"dummy",
-        "profile_id":"140246272497504"
+        "profile_id":"5402400352"
        }
       }
      ],
@@ -165,13 +165,11 @@
         "thi":1e+19,
         "medium":{
          "__instance_type__":[
-          "rayoptics.seq.medium",
+          "opticalglass.opticalmedium",
           "Air"
          ],
-         "attributes":{
-          "label":"air",
-          "n":1.0
-         }
+         "slots":{},
+         "attributes":{}
         }
        }
       },
@@ -184,13 +182,11 @@
         "thi":4.0,
         "medium":{
          "__instance_type__":[
-          "rayoptics.seq.medium",
+          "opticalglass.opticalmedium",
           "Air"
          ],
-         "attributes":{
-          "label":"air",
-          "n":1.0
-         }
+         "slots":{},
+         "attributes":{}
         }
        }
       },
@@ -203,13 +199,11 @@
         "thi":-8.0,
         "medium":{
          "__instance_type__":[
-          "rayoptics.seq.medium",
+          "opticalglass.opticalmedium",
           "Air"
          ],
-         "attributes":{
-          "label":"air",
-          "n":1.0
-         }
+         "slots":{},
+         "attributes":{}
         }
        }
       },
@@ -222,13 +216,11 @@
         "thi":8.0,
         "medium":{
          "__instance_type__":[
-          "rayoptics.seq.medium",
+          "opticalglass.opticalmedium",
           "Air"
          ],
-         "attributes":{
-          "label":"air",
-          "n":1.0
-         }
+         "slots":{},
+         "attributes":{}
         }
        }
       },
@@ -241,13 +233,11 @@
         "thi":-8.0,
         "medium":{
          "__instance_type__":[
-          "rayoptics.seq.medium",
+          "opticalglass.opticalmedium",
           "Air"
          ],
-         "attributes":{
-          "label":"air",
-          "n":1.0
-         }
+         "slots":{},
+         "attributes":{}
         }
        }
       },
@@ -260,13 +250,11 @@
         "thi":4,
         "medium":{
          "__instance_type__":[
-          "rayoptics.seq.medium",
+          "opticalglass.opticalmedium",
           "Air"
          ],
-         "attributes":{
-          "label":"air",
-          "n":1.0
-         }
+         "slots":{},
+         "attributes":{}
         }
        }
       },
@@ -279,13 +267,11 @@
         "thi":-4,
         "medium":{
          "__instance_type__":[
-          "rayoptics.seq.medium",
+          "opticalglass.opticalmedium",
           "Air"
          ],
-         "attributes":{
-          "label":"air",
-          "n":1.0
-         }
+         "slots":{},
+         "attributes":{}
         }
        }
       }
@@ -293,13 +279,13 @@
      "stop_surface":1,
      "cur_surface":6,
      "z_dir":[
-      1.0,
-      1.0,
-      -1.0,
-      1.0,
-      -1.0,
-      1.0,
-      -1.0
+      1,
+      1,
+      -1,
+      1,
+      -1,
+      1,
+      -1
      ],
      "do_apertures":true
     }
@@ -365,10 +351,10 @@
         "+Y",
         "-Y"
        ],
-       "key":[
+       "_key":[
         "aperture",
         "object",
-        "pupil"
+        "epd"
        ]
       }
      },
@@ -441,7 +427,8 @@
         "object",
         "angle"
        ],
-       "is_relative":false
+       "is_relative":false,
+       "index_label_type":"auto"
       }
      },
      "defocus":{
@@ -461,9 +448,21 @@
      "rayoptics.elem.elements",
      "ElementModel"
     ],
-    "attributes":{}
+    "attributes":{
+     "serial_numbers":{
+      "Element":0,
+      "Mirror":5,
+      "CementedElement":0,
+      "ThinElement":0,
+      "SurfaceInterface":1,
+      "DummyInterface":2,
+      "Space":0,
+      "AirGap":7,
+      "Assembly":0
+     }
+    }
    },
-   "ro_version":"0.8.3a2",
+   "ro_version":"0.9.0a1",
    "parax_model":{
     "__instance_type__":[
      "rayoptics.parax.paraxialdesign",
@@ -589,7 +588,184 @@
       ]
      ],
      "opt_inv":0.017455064928217585,
-     "seq_mapping":null
+     "seq_mapping":null,
+     "y_star":1.0,
+     "ybar_star":-1.7455064928217584e+17,
+     "ztwp":[
+      [
+       {
+        "__ndarray__":[
+         -1.7455064928217584e+17,
+         0.0
+        ],
+        "dtype":"float64",
+        "shape":[
+         2
+        ]
+       },
+       {
+        "__ndarray__":[
+         0.0,
+         1.0
+        ],
+        "dtype":"float64",
+        "shape":[
+         2
+        ]
+       },
+       {
+        "__ndarray__":[
+         0.06982025971287034,
+         1.0
+        ],
+        "dtype":"float64",
+        "shape":[
+         2
+        ]
+       },
+       {
+        "__ndarray__":[
+         0.06982025971287034,
+         -1.0
+        ],
+        "dtype":"float64",
+        "shape":[
+         2
+        ]
+       },
+       {
+        "__ndarray__":[
+         -0.06982025971287034,
+         -1.0
+        ],
+        "dtype":"float64",
+        "shape":[
+         2
+        ]
+       },
+       {
+        "__ndarray__":[
+         -0.06982025971287034,
+         1.0
+        ],
+        "dtype":"float64",
+        "shape":[
+         2
+        ]
+       },
+       {
+        "__ndarray__":[
+         0.0,
+         1.0
+        ],
+        "dtype":"float64",
+        "shape":[
+         2
+        ]
+       },
+       {
+        "__ndarray__":[
+         0.06982025971287034,
+         0.0
+        ],
+        "dtype":"float64",
+        "shape":[
+         2
+        ]
+       }
+      ],
+      [
+       1.7455064928217584e+17,
+       0.06982025971287034,
+       0.13964051942574068,
+       0.13964051942574068,
+       0.13964051942574068,
+       0.06982025971287034,
+       0.06982025971287034
+      ],
+      [
+       {
+        "__ndarray__":[
+         1.0,
+         5.728996163075942e-18
+        ],
+        "dtype":"float64",
+        "shape":[
+         2
+        ]
+       },
+       {
+        "__ndarray__":[
+         1.0,
+         5.728996163075942e-18
+        ],
+        "dtype":"float64",
+        "shape":[
+         2
+        ]
+       },
+       {
+        "__ndarray__":[
+         -0.0,
+         -14.322490407689857
+        ],
+        "dtype":"float64",
+        "shape":[
+         2
+        ]
+       },
+       {
+        "__ndarray__":[
+         -1.0,
+         0.0
+        ],
+        "dtype":"float64",
+        "shape":[
+         2
+        ]
+       },
+       {
+        "__ndarray__":[
+         -0.0,
+         14.322490407689857
+        ],
+        "dtype":"float64",
+        "shape":[
+         2
+        ]
+       },
+       {
+        "__ndarray__":[
+         1.0,
+         0.0
+        ],
+        "dtype":"float64",
+        "shape":[
+         2
+        ]
+       },
+       {
+        "__ndarray__":[
+         1.0,
+         -14.322490407689857
+        ],
+        "dtype":"float64",
+        "shape":[
+         2
+        ]
+       }
+      ],
+      [
+       0.0,
+       0.0,
+       14.322490407689857,
+       14.322490407689857,
+       14.322490407689857,
+       14.322490407689857,
+       14.322490407689857,
+       0.0
+      ]
+     ]
     }
    },
    "specsheet":{
@@ -625,7 +801,7 @@
       },
       "aperture":{
        "object":{
-        "pupil":2.0
+        "epd":2.0
        },
        "image":{}
       }
@@ -641,14 +817,14 @@
       },
       "aperture":{
        "object":{
-        "pupil":2.0,
         "NA":0,
-        "f/#":0
+        "f/#":0,
+        "epd":2.0
        },
        "image":{
         "f/#":-2.0,
         "NA":0.24253562503633297,
-        "pupil":-2.0
+        "epd":-2.0
        }
       }
      }
@@ -661,22 +837,22 @@
     ],
     "attributes":{
      "root_node":{
-      "id_key":"140246538799760",
+      "id_key":"5401721152",
       "tag":"#group#root",
       "name":"root",
       "children":[
        {
-        "id_key":"140246538927312",
+        "id_key":"5394654128",
         "tag":"#dummyifc#object",
         "name":"Object",
         "children":[
          {
-          "id_key":"140246538924624",
+          "id_key":"5394649856",
           "tag":"#profile",
           "name":"p",
           "children":[
            {
-            "id_key":"140246538926208",
+            "id_key":"5394657680",
             "tag":"#ifc",
             "name":"i0"
            }
@@ -685,17 +861,17 @@
         ]
        },
        {
-        "id_key":"140246538927552",
-        "tag":"#airgap#object",
-        "name":"Object space",
+        "id_key":"5394653600",
+        "tag":"#space#airgap#object",
+        "name":"AG1",
         "children":[
          {
-          "id_key":"140246272653776",
+          "id_key":"5394655568",
           "tag":"#thic",
           "name":"t",
           "children":[
            {
-            "id_key":"140246810605184",
+            "id_key":"5402458688",
             "tag":"#gap",
             "name":"g0"
            }
@@ -704,17 +880,17 @@
         ]
        },
        {
-        "id_key":"140246538927216",
-        "tag":"#dummyifc#stop",
-        "name":"Stop",
+        "id_key":"5394655280",
+        "tag":"#element#surface",
+        "name":"S1",
         "children":[
          {
-          "id_key":"140246538927120",
+          "id_key":"5394649808",
           "tag":"#profile",
           "name":"p",
           "children":[
            {
-            "id_key":"140246273201056",
+            "id_key":"5394654272",
             "tag":"#ifc",
             "name":"i1"
            }
@@ -723,17 +899,17 @@
         ]
        },
        {
-        "id_key":"140245474448336",
-        "tag":"#airgap",
-        "name":"AG1",
+        "id_key":"5394653696",
+        "tag":"#space#airgap",
+        "name":"AG2",
         "children":[
          {
-          "id_key":"140246273025360",
+          "id_key":"5394649424",
           "tag":"#thic",
           "name":"t",
           "children":[
            {
-            "id_key":"140245474924736",
+            "id_key":"5402459008",
             "tag":"#gap",
             "name":"g1"
            }
@@ -742,17 +918,17 @@
         ]
        },
        {
-        "id_key":"140245474450640",
+        "id_key":"5402400016",
         "tag":"#element#mirror",
         "name":"M1",
         "children":[
          {
-          "id_key":"140246273204128",
+          "id_key":"5394654992",
           "tag":"#profile",
           "name":"p",
           "children":[
            {
-            "id_key":"140246273200336",
+            "id_key":"5394657728",
             "tag":"#ifc",
             "name":"i2"
            }
@@ -761,17 +937,17 @@
         ]
        },
        {
-        "id_key":"140245474447952",
-        "tag":"#airgap",
-        "name":"AG2",
+        "id_key":"5394654608",
+        "tag":"#space#airgap",
+        "name":"AG3",
         "children":[
          {
-          "id_key":"140246273025072",
+          "id_key":"5394650096",
           "tag":"#thic",
           "name":"t",
           "children":[
            {
-            "id_key":"140245474385024",
+            "id_key":"5401624768",
             "tag":"#gap",
             "name":"g2"
            }
@@ -780,17 +956,17 @@
         ]
        },
        {
-        "id_key":"140245474450112",
+        "id_key":"5402401264",
         "tag":"#element#mirror",
         "name":"M2",
         "children":[
          {
-          "id_key":"140246273200480",
+          "id_key":"5402399776",
           "tag":"#profile",
           "name":"p",
           "children":[
            {
-            "id_key":"140246273201200",
+            "id_key":"5394655088",
             "tag":"#ifc",
             "name":"i3"
            }
@@ -799,17 +975,17 @@
         ]
        },
        {
-        "id_key":"140245474449056",
-        "tag":"#airgap",
-        "name":"AG3",
+        "id_key":"5402402416",
+        "tag":"#space#airgap",
+        "name":"AG4",
         "children":[
          {
-          "id_key":"140246273025312",
+          "id_key":"5394652256",
           "tag":"#thic",
           "name":"t",
           "children":[
            {
-            "id_key":"140246810624512",
+            "id_key":"5392343296",
             "tag":"#gap",
             "name":"g3"
            }
@@ -818,17 +994,17 @@
         ]
        },
        {
-        "id_key":"140245474451216",
+        "id_key":"5402394736",
         "tag":"#element#mirror",
         "name":"M3",
         "children":[
          {
-          "id_key":"140246273200432",
+          "id_key":"5402400160",
           "tag":"#profile",
           "name":"p",
           "children":[
            {
-            "id_key":"140246273200528",
+            "id_key":"5394655040",
             "tag":"#ifc",
             "name":"i4"
            }
@@ -837,17 +1013,17 @@
         ]
        },
        {
-        "id_key":"140246272542128",
-        "tag":"#airgap",
-        "name":"AG4",
+        "id_key":"5402401552",
+        "tag":"#space#airgap",
+        "name":"AG5",
         "children":[
          {
-          "id_key":"140246273026032",
+          "id_key":"5394652400",
           "tag":"#thic",
           "name":"t",
           "children":[
            {
-            "id_key":"140246810687744",
+            "id_key":"5401738112",
             "tag":"#gap",
             "name":"g4"
            }
@@ -856,17 +1032,17 @@
         ]
        },
        {
-        "id_key":"140246272543904",
+        "id_key":"5402394976",
         "tag":"#element#mirror",
         "name":"M4",
         "children":[
          {
-          "id_key":"140246273203504",
+          "id_key":"5402400112",
           "tag":"#profile",
           "name":"p",
           "children":[
            {
-            "id_key":"140246273200576",
+            "id_key":"5394654800",
             "tag":"#ifc",
             "name":"i5"
            }
@@ -875,17 +1051,17 @@
         ]
        },
        {
-        "id_key":"140246272542512",
-        "tag":"#airgap",
-        "name":"AG5",
+        "id_key":"5402395312",
+        "tag":"#space#airgap",
+        "name":"AG6",
         "children":[
          {
-          "id_key":"140246273024160",
+          "id_key":"5394652496",
           "tag":"#thic",
           "name":"t",
           "children":[
            {
-            "id_key":"140246810519296",
+            "id_key":"5402543168",
             "tag":"#gap",
             "name":"g5"
            }
@@ -894,17 +1070,17 @@
         ]
        },
        {
-        "id_key":"140246272542560",
+        "id_key":"5402395600",
         "tag":"#element#mirror",
         "name":"M5",
         "children":[
          {
-          "id_key":"140246273203024",
+          "id_key":"5402400256",
           "tag":"#profile",
           "name":"p",
           "children":[
            {
-            "id_key":"140246272497024",
+            "id_key":"5394654752",
             "tag":"#ifc",
             "name":"i6"
            }
@@ -913,17 +1089,17 @@
         ]
        },
        {
-        "id_key":"140246272544384",
-        "tag":"#airgap#image",
-        "name":"Image space",
+        "id_key":"5402395888",
+        "tag":"#space#airgap#image",
+        "name":"AG7",
         "children":[
          {
-          "id_key":"140246273024352",
+          "id_key":"5394652880",
           "tag":"#thic",
           "name":"t",
           "children":[
            {
-            "id_key":"140245474378816",
+            "id_key":"5402543424",
             "tag":"#gap",
             "name":"g6"
            }
@@ -932,17 +1108,17 @@
         ]
        },
        {
-        "id_key":"140246538927840",
+        "id_key":"5401717264",
         "tag":"#dummyifc#image",
         "name":"Image",
         "children":[
          {
-          "id_key":"140246272497504",
+          "id_key":"5402400352",
           "tag":"#profile",
           "name":"p",
           "children":[
            {
-            "id_key":"140246272499328",
+            "id_key":"5394655232",
             "tag":"#ifc",
             "name":"i7"
            }
@@ -955,7 +1131,7 @@
     }
    },
    "profile_dict":{
-    "140246538924624":{
+    "5394649856":{
      "__instance_type__":[
       "rayoptics.elem.profiles",
       "Spherical"
@@ -964,7 +1140,7 @@
       "cv":0.0
      }
     },
-    "140246538927120":{
+    "5394649808":{
      "__instance_type__":[
       "rayoptics.elem.profiles",
       "Spherical"
@@ -973,7 +1149,7 @@
       "cv":0.0
      }
     },
-    "140246273204128":{
+    "5394654992":{
      "__instance_type__":[
       "rayoptics.elem.profiles",
       "Spherical"
@@ -982,7 +1158,7 @@
       "cv":-0.125
      }
     },
-    "140246273200480":{
+    "5402399776":{
      "__instance_type__":[
       "rayoptics.elem.profiles",
       "Spherical"
@@ -991,7 +1167,7 @@
       "cv":0.125
      }
     },
-    "140246273200432":{
+    "5402400160":{
      "__instance_type__":[
       "rayoptics.elem.profiles",
       "Spherical"
@@ -1000,7 +1176,7 @@
       "cv":-0.125
      }
     },
-    "140246273203504":{
+    "5402400112":{
      "__instance_type__":[
       "rayoptics.elem.profiles",
       "Spherical"
@@ -1009,7 +1185,7 @@
       "cv":0.125
      }
     },
-    "140246273203024":{
+    "5402400256":{
      "__instance_type__":[
       "rayoptics.elem.profiles",
       "Conic"
@@ -1019,7 +1195,7 @@
       "cc":-1.0
      }
     },
-    "140246272497504":{
+    "5402400352":{
      "__instance_type__":[
       "rayoptics.elem.profiles",
       "Spherical"
@@ -1030,7 +1206,7 @@
     }
    },
    "parts_dict":{
-    "140246538927312":{
+    "5394654128":{
      "__instance_type__":[
       "rayoptics.elem.elements",
       "DummyInterface"
@@ -1080,19 +1256,21 @@
         ]
        }
       ],
+      "ele_token":"object",
       "idx":0,
       "medium_name":"Interface",
       "sd":1.7455064928217584e+17,
-      "profile_id":"140246538924624"
+      "profile_id":"5394649856"
      }
     },
-    "140246538927552":{
+    "5394653600":{
      "__instance_type__":[
       "rayoptics.elem.elements",
       "AirGap"
      ],
      "attributes":{
-      "label":"Object space",
+      "ele_token":"air",
+      "label":"AG1",
       "tfrm":[
        {
         "__ndarray__":[
@@ -1131,29 +1309,90 @@
         ]
        }
       ],
+      "idx":0,
+      "medium_name":"air",
       "render_color":[
-       237,
+       0,
        243,
-       254,
+       0,
        64
       ],
-      "z_dir":1.0,
-      "medium_name":"air",
-      "idx":0
+      "z_dir":1,
+      "edge_extent":[
+       -1.7455064928217584e+17,
+       1.7455064928217584e+17
+      ],
+      "sd":1.7455064928217584e+17
      }
     },
-    "140246538927216":{
+    "5394655280":{
      "__instance_type__":[
       "rayoptics.elem.elements",
-      "DummyInterface"
+      "SurfaceInterface"
      ],
      "attributes":{
-      "label":"Stop",
-      "render_color":[
-       192,
-       192,
-       192
+      "label":"S1",
+      "tfrm":[
+       {
+        "__ndarray__":[
+         [
+          1.0,
+          0.0,
+          0.0
+         ],
+         [
+          0.0,
+          1.0,
+          0.0
+         ],
+         [
+          0.0,
+          0.0,
+          1.0
+         ]
+        ],
+        "dtype":"float64",
+        "shape":[
+         3,
+         3
+        ],
+        "Corder":true
+       },
+       {
+        "__ndarray__":[
+         0.0,
+         0.0,
+         0.0
+        ],
+        "dtype":"float64",
+        "shape":[
+         3
+        ]
+       }
       ],
+      "ele_token":"surface",
+      "s_indx":1,
+      "z_dir":1,
+      "sd":1.0,
+      "hole_sd":null,
+      "flat":null,
+      "do_flat":"if concave",
+      "medium_name":"Surface",
+      "edge_extent":[
+       -1.0,
+       1.0
+      ],
+      "profile_id":"5394649808"
+     }
+    },
+    "5394653696":{
+     "__instance_type__":[
+      "rayoptics.elem.elements",
+      "AirGap"
+     ],
+     "attributes":{
+      "ele_token":"air",
+      "label":"AG2",
       "tfrm":[
        {
         "__ndarray__":[
@@ -1193,80 +1432,28 @@
        }
       ],
       "idx":1,
-      "medium_name":"Interface",
-      "sd":1.0,
-      "profile_id":"140246538927120"
-     }
-    },
-    "140245474448336":{
-     "__instance_type__":[
-      "rayoptics.elem.elements",
-      "AirGap"
-     ],
-     "attributes":{
-      "label":"AG1",
-      "tfrm":[
-       {
-        "__ndarray__":[
-         [
-          1.0,
-          0.0,
-          0.0
-         ],
-         [
-          0.0,
-          1.0,
-          0.0
-         ],
-         [
-          0.0,
-          0.0,
-          1.0
-         ]
-        ],
-        "dtype":"float64",
-        "shape":[
-         3,
-         3
-        ],
-        "Corder":true
-       },
-       {
-        "__ndarray__":[
-         0.0,
-         0.0,
-         0.0
-        ],
-        "dtype":"float64",
-        "shape":[
-         3
-        ]
-       }
-      ],
+      "medium_name":"air",
       "render_color":[
-       237,
+       0,
        243,
-       254,
+       0,
        64
       ],
-      "z_dir":1.0,
-      "medium_name":"air",
-      "idx":1
+      "z_dir":1,
+      "edge_extent":[
+       -1.0023584264532874,
+       1.0023584264532874
+      ],
+      "sd":1.0023584264532874
      }
     },
-    "140245474450640":{
+    "5402400016":{
      "__instance_type__":[
       "rayoptics.elem.elements",
       "Mirror"
      ],
      "attributes":{
       "label":"M1",
-      "render_color":[
-       158,
-       158,
-       158,
-       64
-      ],
       "tfrm":[
        {
         "__ndarray__":[
@@ -1305,149 +1492,35 @@
         ]
        }
       ],
+      "ele_token":"mirror",
       "s_indx":2,
-      "z_dir":-1.0,
+      "z_dir":-1,
       "sd":1.0023584264532874,
       "hole_sd":null,
       "flat":null,
       "do_flat":"if concave",
-      "thi":null,
       "medium_name":"Mirror",
+      "render_color":[
+       158,
+       158,
+       158,
+       64
+      ],
+      "thi":null,
       "edge_extent":[
        -1.0023584264532874,
        1.0023584264532874
       ],
-      "profile_id":"140246273204128"
+      "profile_id":"5394654992"
      }
     },
-    "140245474447952":{
+    "5394654608":{
      "__instance_type__":[
       "rayoptics.elem.elements",
       "AirGap"
      ],
      "attributes":{
-      "label":"AG2",
-      "tfrm":[
-       {
-        "__ndarray__":[
-         [
-          1.0,
-          0.0,
-          0.0
-         ],
-         [
-          0.0,
-          1.0,
-          0.0
-         ],
-         [
-          0.0,
-          0.0,
-          1.0
-         ]
-        ],
-        "dtype":"float64",
-        "shape":[
-         3,
-         3
-        ],
-        "Corder":true
-       },
-       {
-        "__ndarray__":[
-         0.0,
-         0.0,
-         4.0
-        ],
-        "dtype":"float64",
-        "shape":[
-         3
-        ]
-       }
-      ],
-      "render_color":[
-       237,
-       243,
-       254,
-       64
-      ],
-      "z_dir":-1.0,
-      "medium_name":"air",
-      "idx":2
-     }
-    },
-    "140245474450112":{
-     "__instance_type__":[
-      "rayoptics.elem.elements",
-      "Mirror"
-     ],
-     "attributes":{
-      "label":"M2",
-      "render_color":[
-       158,
-       158,
-       158,
-       64
-      ],
-      "tfrm":[
-       {
-        "__ndarray__":[
-         [
-          1.0,
-          0.0,
-          0.0
-         ],
-         [
-          0.0,
-          1.0,
-          0.0
-         ],
-         [
-          0.0,
-          0.0,
-          1.0
-         ]
-        ],
-        "dtype":"float64",
-        "shape":[
-         3,
-         3
-        ],
-        "Corder":true
-       },
-       {
-        "__ndarray__":[
-         0.0,
-         0.0,
-         -4.0
-        ],
-        "dtype":"float64",
-        "shape":[
-         3
-        ]
-       }
-      ],
-      "s_indx":3,
-      "z_dir":1.0,
-      "sd":1.0179993154542586,
-      "hole_sd":null,
-      "flat":null,
-      "do_flat":"if concave",
-      "thi":null,
-      "medium_name":"Mirror",
-      "edge_extent":[
-       -1.0179993154542586,
-       1.0179993154542586
-      ],
-      "profile_id":"140246273200480"
-     }
-    },
-    "140245474449056":{
-     "__instance_type__":[
-      "rayoptics.elem.elements",
-      "AirGap"
-     ],
-     "attributes":{
+      "ele_token":"air",
       "label":"AG3",
       "tfrm":[
        {
@@ -1479,7 +1552,7 @@
         "__ndarray__":[
          0.0,
          0.0,
-         -4.0
+         4.0
         ],
         "dtype":"float64",
         "shape":[
@@ -1487,30 +1560,29 @@
         ]
        }
       ],
+      "idx":2,
+      "medium_name":"air",
       "render_color":[
-       237,
+       0,
        243,
-       254,
+       0,
        64
       ],
-      "z_dir":1.0,
-      "medium_name":"air",
-      "idx":3
+      "z_dir":-1,
+      "edge_extent":[
+       -1.0179993154542586,
+       1.0179993154542586
+      ],
+      "sd":1.0179993154542586
      }
     },
-    "140245474451216":{
+    "5402401264":{
      "__instance_type__":[
       "rayoptics.elem.elements",
       "Mirror"
      ],
      "attributes":{
-      "label":"M3",
-      "render_color":[
-       158,
-       158,
-       158,
-       64
-      ],
+      "label":"M2",
       "tfrm":[
        {
         "__ndarray__":[
@@ -1541,7 +1613,7 @@
         "__ndarray__":[
          0.0,
          0.0,
-         4.0
+         -4.0
         ],
         "dtype":"float64",
         "shape":[
@@ -1549,27 +1621,35 @@
         ]
        }
       ],
-      "s_indx":4,
-      "z_dir":-1.0,
-      "sd":0.9869598349417468,
+      "ele_token":"mirror",
+      "s_indx":3,
+      "z_dir":1,
+      "sd":1.0179993154542586,
       "hole_sd":null,
       "flat":null,
       "do_flat":"if concave",
-      "thi":null,
       "medium_name":"Mirror",
-      "edge_extent":[
-       -0.9869598349417468,
-       0.9869598349417468
+      "render_color":[
+       158,
+       158,
+       158,
+       64
       ],
-      "profile_id":"140246273200432"
+      "thi":null,
+      "edge_extent":[
+       -1.0179993154542586,
+       1.0179993154542586
+      ],
+      "profile_id":"5402399776"
      }
     },
-    "140246272542128":{
+    "5402402416":{
      "__instance_type__":[
       "rayoptics.elem.elements",
       "AirGap"
      ],
      "attributes":{
+      "ele_token":"air",
       "label":"AG4",
       "tfrm":[
        {
@@ -1601,7 +1681,7 @@
         "__ndarray__":[
          0.0,
          0.0,
-         4.0
+         -4.0
         ],
         "dtype":"float64",
         "shape":[
@@ -1609,30 +1689,29 @@
         ]
        }
       ],
+      "idx":3,
+      "medium_name":"air",
       "render_color":[
-       237,
+       0,
        243,
-       254,
+       0,
        64
       ],
-      "z_dir":-1.0,
-      "medium_name":"air",
-      "idx":4
+      "z_dir":1,
+      "edge_extent":[
+       -1.0179993154542586,
+       1.0179993154542586
+      ],
+      "sd":1.0179993154542586
      }
     },
-    "140246272543904":{
+    "5402394736":{
      "__instance_type__":[
       "rayoptics.elem.elements",
       "Mirror"
      ],
      "attributes":{
-      "label":"M4",
-      "render_color":[
-       158,
-       158,
-       158,
-       64
-      ],
+      "label":"M3",
       "tfrm":[
        {
         "__ndarray__":[
@@ -1663,7 +1742,7 @@
         "__ndarray__":[
          0.0,
          0.0,
-         -4.0
+         4.0
         ],
         "dtype":"float64",
         "shape":[
@@ -1671,27 +1750,35 @@
         ]
        }
       ],
-      "s_indx":5,
-      "z_dir":1.0,
-      "sd":1.0338862182998938,
+      "ele_token":"mirror",
+      "s_indx":4,
+      "z_dir":-1,
+      "sd":0.9869598349417468,
       "hole_sd":null,
       "flat":null,
       "do_flat":"if concave",
-      "thi":null,
       "medium_name":"Mirror",
-      "edge_extent":[
-       -1.0338862182998938,
-       1.0338862182998938
+      "render_color":[
+       158,
+       158,
+       158,
+       64
       ],
-      "profile_id":"140246273203504"
+      "thi":null,
+      "edge_extent":[
+       -0.9869598349417468,
+       0.9869598349417468
+      ],
+      "profile_id":"5402400160"
      }
     },
-    "140246272542512":{
+    "5402401552":{
      "__instance_type__":[
       "rayoptics.elem.elements",
       "AirGap"
      ],
      "attributes":{
+      "ele_token":"air",
       "label":"AG5",
       "tfrm":[
        {
@@ -1723,6 +1810,67 @@
         "__ndarray__":[
          0.0,
          0.0,
+         4.0
+        ],
+        "dtype":"float64",
+        "shape":[
+         3
+        ]
+       }
+      ],
+      "idx":4,
+      "medium_name":"air",
+      "render_color":[
+       0,
+       243,
+       0,
+       64
+      ],
+      "z_dir":-1,
+      "edge_extent":[
+       -1.0338862182998938,
+       1.0338862182998938
+      ],
+      "sd":1.0338862182998938
+     }
+    },
+    "5402394976":{
+     "__instance_type__":[
+      "rayoptics.elem.elements",
+      "Mirror"
+     ],
+     "attributes":{
+      "label":"M4",
+      "tfrm":[
+       {
+        "__ndarray__":[
+         [
+          1.0,
+          0.0,
+          0.0
+         ],
+         [
+          0.0,
+          1.0,
+          0.0
+         ],
+         [
+          0.0,
+          0.0,
+          1.0
+         ]
+        ],
+        "dtype":"float64",
+        "shape":[
+         3,
+         3
+        ],
+        "Corder":true
+       },
+       {
+        "__ndarray__":[
+         0.0,
+         0.0,
          -4.0
         ],
         "dtype":"float64",
@@ -1731,30 +1879,97 @@
         ]
        }
       ],
+      "ele_token":"mirror",
+      "s_indx":5,
+      "z_dir":1,
+      "sd":1.0338862182998938,
+      "hole_sd":null,
+      "flat":null,
+      "do_flat":"if concave",
+      "medium_name":"Mirror",
       "render_color":[
-       237,
-       243,
-       254,
+       158,
+       158,
+       158,
        64
       ],
-      "z_dir":1.0,
-      "medium_name":"air",
-      "idx":5
+      "thi":null,
+      "edge_extent":[
+       -1.0338862182998938,
+       1.0338862182998938
+      ],
+      "profile_id":"5402400112"
      }
     },
-    "140246272542560":{
+    "5402395312":{
+     "__instance_type__":[
+      "rayoptics.elem.elements",
+      "AirGap"
+     ],
+     "attributes":{
+      "ele_token":"air",
+      "label":"AG6",
+      "tfrm":[
+       {
+        "__ndarray__":[
+         [
+          1.0,
+          0.0,
+          0.0
+         ],
+         [
+          0.0,
+          1.0,
+          0.0
+         ],
+         [
+          0.0,
+          0.0,
+          1.0
+         ]
+        ],
+        "dtype":"float64",
+        "shape":[
+         3,
+         3
+        ],
+        "Corder":true
+       },
+       {
+        "__ndarray__":[
+         0.0,
+         0.0,
+         -4.0
+        ],
+        "dtype":"float64",
+        "shape":[
+         3
+        ]
+       }
+      ],
+      "idx":5,
+      "medium_name":"air",
+      "render_color":[
+       0,
+       243,
+       0,
+       64
+      ],
+      "z_dir":1,
+      "edge_extent":[
+       -1.0338862182998938,
+       1.0338862182998938
+      ],
+      "sd":1.0338862182998938
+     }
+    },
+    "5402395600":{
      "__instance_type__":[
       "rayoptics.elem.elements",
       "Mirror"
      ],
      "attributes":{
       "label":"M5",
-      "render_color":[
-       158,
-       158,
-       158,
-       64
-      ],
       "tfrm":[
        {
         "__ndarray__":[
@@ -1793,28 +2008,36 @@
         ]
        }
       ],
+      "ele_token":"mirror",
       "s_indx":6,
-      "z_dir":-1.0,
+      "z_dir":-1,
       "sd":1.0010144138879555,
       "hole_sd":null,
       "flat":null,
       "do_flat":"if concave",
-      "thi":null,
       "medium_name":"Mirror",
+      "render_color":[
+       158,
+       158,
+       158,
+       64
+      ],
+      "thi":null,
       "edge_extent":[
        -1.0010144138879555,
        1.0010144138879555
       ],
-      "profile_id":"140246273203024"
+      "profile_id":"5402400256"
      }
     },
-    "140246272544384":{
+    "5402395888":{
      "__instance_type__":[
       "rayoptics.elem.elements",
       "AirGap"
      ],
      "attributes":{
-      "label":"Image space",
+      "ele_token":"air",
+      "label":"AG7",
       "tfrm":[
        {
         "__ndarray__":[
@@ -1853,18 +2076,23 @@
         ]
        }
       ],
+      "idx":6,
+      "medium_name":"air",
       "render_color":[
-       237,
+       0,
        243,
-       254,
+       0,
        64
       ],
-      "z_dir":-1.0,
-      "medium_name":"air",
-      "idx":6
+      "z_dir":-1,
+      "edge_extent":[
+       -1.0010144138879555,
+       1.0010144138879555
+      ],
+      "sd":1.0010144138879555
      }
     },
-    "140246538927840":{
+    "5401717264":{
      "__instance_type__":[
       "rayoptics.elem.elements",
       "DummyInterface"
@@ -1914,10 +2142,11 @@
         ]
        }
       ],
+      "ele_token":"image",
       "idx":7,
       "medium_name":"Interface",
       "sd":0.0784025405380631,
-      "profile_id":"140246272497504"
+      "profile_id":"5402400352"
      }
     }
    }
