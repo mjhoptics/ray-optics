@@ -111,7 +111,6 @@ Update the model
 
     opm.update_model()
 
-
 Turn off automatically resizing apertures based on sequential model ray trace.
 
 .. code:: ipython3
@@ -152,10 +151,14 @@ List the sequential model and the first order properties
 .. parsed-literal::
 
     efl               5.555
+    f                 5.555
+    f'                5.555
     ffl              -7.531
     pp1              -1.976
     bfl              0.5678
-    ppk               4.987
+    ppk              -4.987
+    pp sep            2.959
+    f/#                 3.5
     m            -5.555e-10
     red            -1.8e+09
     obj_dist          1e+10
@@ -168,11 +171,9 @@ List the sequential model and the first order properties
     img_ht              3.5
     exp_dist         -3.602
     exp_radius       0.5854
-    f/# img             3.5
     na img          -0.1414
     n img                 1
     optical invariant          0.5
-    
 
 
 .. code:: ipython3
@@ -184,7 +185,7 @@ List the sequential model and the first order properties
 
     root
     ├── Object
-    ├── Stop
+    ├── S1
     ├── E1
     ├── E2
     ├── E3
@@ -211,22 +212,26 @@ Set semi-diameters and flats for manufacturing and mounting
 
 Note that in the lens layout above, the very aspheric surface shapes lead to extreme lens element shapes. The default logic used by **ray-optics** to apply flat bevels to concave surfaces is defeated by the aspherics that switch concavity between vertex and edge. How **ray-optics** renders flats can be controlled on a surface by surface basis.
 
-First, generate a list of lens elements from the part tree.
+First, retrieve the lens elements from the part tree.
 
 .. code:: ipython3
 
-    elmn = [node.id for node in pt.nodes_with_tag(tag='#element')]
+    e1 = pt.obj_by_name('E1')
+    e2 = pt.obj_by_name('E2')
+    e3 = pt.obj_by_name('E3')
+    e4 = pt.obj_by_name('E4')
+    e5 = pt.obj_by_name('E5')
 
 Lens elements have two surfaces, each of which can be specified with or without a flat.
 
 .. code:: ipython3
 
-    elmn[1].do_flat1 = 'always'
-    elmn[1].do_flat2 = 'always'
-    elmn[2].do_flat1 = 'always'
-    elmn[2].do_flat2 = 'always'
-    elmn[3].do_flat1 = 'always'
-    elmn[3].do_flat2 = 'always'
+    e2.do_flat1 = 'always'
+    e2.do_flat2 = 'always'
+    e3.do_flat1 = 'always'
+    e3.do_flat2 = 'always'
+    e4.do_flat1 = 'always'
+    e4.do_flat2 = 'always'
 
 .. code:: ipython3
 
@@ -243,19 +248,19 @@ By default, the inside diameters of a flat are set to the clear aperture of the 
 
 .. code:: ipython3
 
-    elmn[0].sd = 1.25
+    e1.sd = 1.25
     
-    elmn[1].sd = 1.75
-    elmn[1].flat1 = 1.25
-    elmn[1].flat2 = 1.645
+    e2.sd = 1.75
+    e2.flat1 = 1.25
+    e2.flat2 = 1.645
     
-    elmn[2].sd = 2.5
-    elmn[2].flat1 = 2.1
+    e3.sd = 2.5
+    e3.flat1 = 2.1
     
-    elmn[3].sd = 3.0
-    elmn[3].flat1 = 2.6
+    e4.sd = 3.0
+    e4.flat1 = 2.6
     
-    elmn[4].sd = 3.5
+    e5.sd = 3.5
 
 Draw a lens layout to verify the model
 --------------------------------------
@@ -280,7 +285,8 @@ Plot a Spot Diagram
                           scale_type=Fit.All_Same, dpi=200, is_dark=isdark).plot()
 
 
-.. image:: output_32_1.png
+
+.. image:: output_32_0.png
 
 
 Save the model

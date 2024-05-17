@@ -102,10 +102,14 @@ A convenience method in :class:`~.ParaxialModel`, :meth:`~.paraxialdesign.Paraxi
 .. parsed-literal::
 
     efl                 100
+    f                   100
+    f'                  100
     ffl              -98.58
     pp1               1.451
     bfl               95.95
-    ppk               4.079
+    ppk              -4.079
+    pp sep             2.97
+    f/#               4.001
     m                -1e-11
     red          -9.997e+10
     obj_dist          1e+13
@@ -118,11 +122,9 @@ A convenience method in :class:`~.ParaxialModel`, :meth:`~.paraxialdesign.Paraxi
     img_ht            1.746
     exp_dist         -5.551
     exp_radius        12.68
-    f/# img           4.001
     na img           -0.124
     n img                 1
     optical invariant       0.2182
-    
 
 
 Generate a lens picture

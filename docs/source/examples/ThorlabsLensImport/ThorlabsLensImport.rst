@@ -104,7 +104,7 @@ Open the model again.
       '# fields': 1,
       'GCAT': ['LIGHTPATH', 'SCHOTT'],
       'encoding': 'utf-16'},
-     {'BK7': "create_glass('N-BK7','Schott')",
+     {'BK7': ['N-BK7', 'Schott'],
       'D-ZK3M': "om.InterpolatedMedium('D-ZK3M', cat='LightPath', pairs=[(2352.4, 1.555),(1970.1, 1.561),(1529.6, 1.568),(1128.6, 1.573),(1014.0, 1.575),(852.1, 1.578),(706.5, 1.582),(656.3, 1.583),(643.8, 1.584),(632.8, 1.584),(589.3, 1.586),(587.6,1.586),(546.1, 1.589),(486.1, 1.593),(480.0, 1.594),(435.8, 1.598),(404.7, 1.602),(365.0, 1.610)])"})
 
 
@@ -174,10 +174,14 @@ A convenience method in :class:`~.ParaxialModel`, :meth:`~.paraxialdesign.Paraxi
 .. parsed-literal::
 
     efl                1.49
+    f                  1.49
+    f'                 1.49
     ffl               -1.49
-    pp1                  -0
+    pp1                   0
     bfl              0.2499
-    ppk                1.24
+    ppk               -1.24
+    pp sep           0.3958
+    f/#              0.9933
     m             -1.49e-10
     red          -6.712e+09
     obj_dist          1e+10
@@ -190,11 +194,9 @@ A convenience method in :class:`~.ParaxialModel`, :meth:`~.paraxialdesign.Paraxi
     img_ht          0.02601
     exp_dist          -1.24
     exp_radius         0.75
-    f/# img          0.9933
     na img          -0.4496
     n img                 1
     optical invariant      0.01309
-    
 
 
 Generate a lens picture
@@ -555,5 +557,69 @@ Now refresh the aberration plot to see what the aberrations look like now. Notic
 
 .. image:: output_55_0.png
 
+
+
+.. code:: ipython3
+
+    listobj(sm)
+
+
+.. parsed-literal::
+
+    0: Obj: dummy
+    profile: Spherical
+    c=0.0,   r=0.0
+    surface_od=1.0
+    ca: radius=1.0
+    t=10000000000.0 (+1);    medium: air
+    
+    1 (stop): dummy
+    profile: Spherical
+    c=0.0,   r=0.0
+    surface_od=1.0
+    t=0.0 (+1);    medium: air
+    
+    2: transmit
+    profile: EvenPolynomial
+    c=1.1821736792829385,   r=0.8458993949235631   conic cnst=-0.4776343430417
+    coefficients: [0.0, -0.006313587842251, -0.009394960901464, -0.01707674864971, 0.008070222726967, -0.02139444912229, 0.0, 0.0]
+    decenter type: decenter
+    decenter: [0.  0.2 0. ]
+    euler angles: [0. 0. 0.]
+    surface_od=0.75
+    ca: radius=0.75
+    t=0.8625269152715 (+1);    medium: D-ZK3M, LightPath
+    
+    3: transmit
+    profile: Spherical
+    c=0.0,   r=0.0
+    decenter type: reverse
+    decenter: [0.  0.2 0. ]
+    euler angles: [0. 0. 0.]
+    surface_od=0.5741712000783
+    ca: radius=0.5741712000783
+    t=0.5232428185297 (+1);    medium: air
+    
+    4: transmit
+    profile: Spherical
+    c=0.0,   r=0.0
+    surface_od=0.2491691582457
+    ca: radius=0.2491691582457
+    t=0.25 (+1);    medium: N-BK7, Schott
+    
+    5: transmit
+    profile: Spherical
+    c=0.0,   r=0.0
+    surface_od=0.1552731950841
+    ca: radius=0.1552731950841
+    t=0.2499991927943 (+1);    medium: air
+    
+    6: Img: dummy
+    profile: Spherical
+    c=0.0,   r=0.0
+    surface_od=8.913407958194e-06
+    ca: radius=8.913407958194e-06
+    
+    do apertures: False
 
 

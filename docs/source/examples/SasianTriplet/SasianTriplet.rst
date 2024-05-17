@@ -183,11 +183,7 @@ Plot the transverse ray aberrations
 
 
 
-    
-
-
-
-.. image:: output_27_1.png
+.. image:: output_27_0.png
 
 
 Plot the wavefront aberration
@@ -213,10 +209,14 @@ List the optical specifications
 .. parsed-literal::
 
     efl                  50
+    f                    50
+    f'                   50
     ffl               -37.1
     pp1                12.9
     bfl               41.24
-    ppk               8.763
+    ppk              -8.763
+    pp sep           -2.047
+    f/#                   4
     m                -5e-09
     red              -2e+08
     obj_dist          1e+10
@@ -229,11 +229,9 @@ List the optical specifications
     img_ht             18.2
     exp_dist         -10.01
     exp_radius        6.406
-    f/# img               4
     na img           -0.124
     n img                 1
     optical invariant        2.275
-    
 
 
 List the paraxial model
