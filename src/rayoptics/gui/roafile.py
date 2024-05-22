@@ -61,8 +61,10 @@ def postprocess_roa(opt_model, file_path, **kwargs):
 
     # Force rebuild of ele_model for pre-0.8.5 models.
     old_version = False
-    if (not hasattr(opt_model, 'ro_version') or
-        version.parse(opt_model.ro_version) < version.parse("0.8.5")):
+    rebuild_from_seq = kwargs.get('rebuild_from_seq', False)
+    cutoff_version = kwargs.get('cutoff_version', "0.8.5")
+    if (not hasattr(opt_model, 'ro_version') or rebuild_from_seq == True or
+        version.parse(opt_model.ro_version) < version.parse(cutoff_version)):
         old_version = True
         opt_model.ele_model.elements = []
         if hasattr(opt_model, 'part_tree'):
@@ -73,7 +75,8 @@ def postprocess_roa(opt_model, file_path, **kwargs):
             g.medium = g.medium.convert_to_OG()
 
     opt_model.sync_to_restore()
-    if old_version:
+    save_updated_version = kwargs.get('save_updated_version', True)
+    if old_version and save_updated_version:
         save_updated_roa(file_path, opt_model)
     return opt_model
 
