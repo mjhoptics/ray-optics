@@ -157,8 +157,8 @@ class ParaxialModel():
             else:
                 tau = 0
 
-            if i < max_nodes-delta_nodes-1:
-                pwr = np.cross(nu_nubar[i+1], nu_nubar[i])/opt_inv
+            if i > 0 and i < max_nodes-delta_nodes-1:
+                pwr = np.cross(nu_nubar[i], nu_nubar[i-1])/opt_inv
             else:
                 pwr = 0
             sys[i] = [pwr, tau, *ni]
