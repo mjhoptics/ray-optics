@@ -286,17 +286,19 @@ class ParaxialModel():
 
         return new_node
 
-    def assign_object_to_node(self, node, type_sel, factory, **inputs):
+    def assign_object_to_node(self, node, new_node, type_sel, 
+                              factory, **inputs):
         """ create a new element from `factory` and replace `node` with it """
 
         # extract optical properties of node
-        n = self.sys[node][mc.indx]
-        power = self.sys[node][mc.pwr]
-        thi = n*self.sys[node][mc.tau]
-        sd = abs(self.ax[node][mc.ht]) + abs(self.pr[node][mc.ht])
+        n = self.sys[new_node][mc.indx]
+        power = self.sys[new_node][mc.pwr]
+        thi = n*self.sys[new_node][mc.tau]
+        sd = abs(self.ax[new_node][mc.ht]) + abs(self.pr[new_node][mc.ht])
 
         # create an element with the node's properties
-        descriptor = factory(power=power, sd=sd, prx=(self, node, type_sel))
+        descriptor = factory(power=power, sd=sd, 
+                             prx=(self, new_node, type_sel))
         seq, elm, e_nodez, dgm = descriptor
 
         # insert the path sequence and elements into the
@@ -306,11 +308,11 @@ class ParaxialModel():
 
         self.compute_signed_rindx()
             
-        n_before = self.sys[node-1][mc.indx]
-        thi_before = n_before*self.sys[node-1][mc.tau]
-        self.seq_model.gaps[node-1].thi = thi_before
+        n_before = self.sys[new_node-1][mc.indx]
+        thi_before = n_before*self.sys[new_node-1][mc.tau]
+        self.seq_model.gaps[new_node-1].thi = thi_before
 
-        seq_end = node + len(seq) - 1
+        seq_end = node + len(seq)
         n_following = self.sys[seq_end][mc.indx]
         thi_following = n_following*self.sys[seq_end][mc.tau]
         self.seq_model.gaps[seq_end].thi = thi_following

@@ -525,6 +525,7 @@ class OpticalModel:
         """
         sm = self['seq_model']
         osp = self['optical_spec']
+        pm = self['parax_model']
         em = self['ele_model']
         pt = self['part_tree']
         seq, elm, e_nodez, dgm = descriptor
@@ -562,6 +563,9 @@ class OpticalModel:
             pt.update_model()
             # re-sort the ele_model by position on Z axis
             em.sequence_elements()
+
+            if dgm is not None:
+                pm.replace_node_with_dgm(e_nodez, dgm)
 
         else:  # replacing an existing node.
             e_node = pt.parent_node(sm.ifcs[idx])

@@ -9,7 +9,7 @@
 """
 
 from rayoptics.parax.diagram import Diagram
-from rayoptics.mpl.interactivefigure import InteractiveFigure
+from rayoptics.mpl.interactivefigure import InteractiveFigure, SelectInfo
 
 
 class InteractiveDiagram(InteractiveFigure):
@@ -70,12 +70,26 @@ class InteractiveDiagram(InteractiveFigure):
         self.sys_bbox = self.diagram.update_data(self, **kwargs)
         return self
 
+    def get_artist_for_handle(self, handle) -> SelectInfo:
+        def persistent_id(shape):
+            try:
+                pid = shape.listobj_str()
+            except AttributeError as ae:
+                # print(f"persistent_id exception: {shape}")
+                pid = shape[0].listobj_str()
+            return pid
+
+        (shape, hdl), info = handle
+        shape_id = persistent_id(shape)
+        for a in self.artists:
+            if shape_id == persistent_id(a.shape):
+                return SelectInfo(a, info)
+        return None
+    
     def action_complete(self):
-        from rayoptics.parax.diagram import edit_shape
         super().action_complete()
         args = tuple()
         kwargs = {'figure': self,
-                  'gui_fct': edit_shape,
                   }
         self.diagram.register_commands(*args, **kwargs)
 

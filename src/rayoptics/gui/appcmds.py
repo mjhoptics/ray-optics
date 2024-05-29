@@ -295,7 +295,6 @@ def create_parax_design_commands(fig):
     # initialize dgm with a Select command
     args = tuple()
     kwargs = {'figure': fig,
-              'gui_fct': diagram.edit_shape,
               }
     dgm.register_commands(*args, **kwargs)
 
@@ -311,7 +310,6 @@ def create_parax_design_commands(fig):
     # Select an existing point
     cmds.append(('Select', (dgm.register_commands, (), 
                             {'figure': fig,
-                             'gui_fct': diagram.edit_shape,
                              })))
 
     # Add thin lens
@@ -321,14 +319,14 @@ def create_parax_design_commands(fig):
                    'factory': ele.create_thinlens,
                    'interact_mode': 'transmit'})))
     # Add lens
-    kwargs = {'node_init': ele.create_thinlens,
+    kwargs = {'node_init': ele.create_lens_from_dgm,
               'factory': ele.create_lens_from_dgm,
               'interact_mode': 'transmit',
               }
     cmds.append(('Add Lens', (dgm.register_add_replace_element, (), kwargs)))
 
     # Add doublet
-    kwargs = {'node_init': ele.create_thinlens,
+    kwargs = {'node_init': ele.create_cemented_doublet,
               'factory': ele.create_cemented_doublet,
               'interact_mode': 'transmit'}
     cmds.append(('Add Cemented Doublet', (dgm.register_add_replace_element, 
