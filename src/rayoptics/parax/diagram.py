@@ -1166,7 +1166,7 @@ class ReplaceElementAction():
 
 class GlassDropAction():
 
-    def dragEnterEvent(self, view, event):
+    def dragEnterEvent(self, canvas_fig, event):
         def glass_target_filter(artist):
             shape, handle = artist.shape
             if handle == 'area' and 'area' in shape.actions:
@@ -1175,33 +1175,33 @@ class GlassDropAction():
                 if gap.medium.name().lower() != 'air':
                     return False
             return True
-        view.figure.artist_filter = glass_target_filter
+        canvas_fig.figure.artist_filter = glass_target_filter
 
-    def dragMoveEvent(self, view, event):
-        x, y = view.mouseEventCoords(event.pos())
-        view.motion_notify_event(x, y, guiEvent=event)
+    def dragMoveEvent(self, canvas_fig, event):
+        canvas_fig.mouseMoveEvent(event)
+        
+    def dragLeaveEvent(self, canvas_fig, event):
+        canvas_fig.figure.artist_filter = None
 
-    def dragLeaveEvent(self, view, event):
-        view.figure.artist_filter = None
-
-    def dropEvent(self, view, event):
+    def dropEvent(self, canvas_fig, event):
         dropped_it = False
-        fig = view.figure
-        if fig.hilited is not None:
-            target = fig.hilited
-            shape, handle = target.artist.shape
-            if handle == 'area' and 'area' in shape.actions:
-                sm = shape.diagram.opt_model.seq_model
-                gap = sm.gaps[shape.node]
-                action = ReplaceGlassAction(gap, update=False)
-                action(fig, event)
-                pm = shape.diagram.parax_model
-                pm.update_rindex(shape.node)
-                pm.paraxial_lens_to_seq_model()
-                fig.refresh_gui()
-                dropped_it = True
-        view.figure.artist_filter = None
+        fig = canvas_fig.figure
+        if fig.artist_infos is not None:
+            for selection in fig.artist_infos:
+                shape, handle = selection.artist.shape
+                if handle == 'area' and 'area' in shape.actions:
+                    sm = shape.diagram.opt_model.seq_model
+                    gap = sm.gaps[shape.node]
+                    action = ReplaceGlassAction(gap, update=False)
+                    action(fig, event)
+                    pm = shape.diagram.parax_model
+                    pm.update_rindex(shape.node)
+                    pm.paraxial_lens_to_seq_model()
+                    fig.refresh_gui()
+                    dropped_it = True
+        canvas_fig.figure.artist_filter = None
         return dropped_it
+
 
 from rayoptics.mpl.interactivefigure import SelectInfo, display_artist_and_event
 

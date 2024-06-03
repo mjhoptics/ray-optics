@@ -739,31 +739,30 @@ def add_doublet(opt_model, idx, lcl_pt, **kwargs):
 
 class GlassDropAction():
 
-    def dragEnterEvent(self, view, event):
+    def dragEnterEvent(self, canvas_fig, event):
         def glass_target_filter(artist):
             shape, handle = artist.shape
-            if handle == 'shape' and 'shape' in shape.handle_actions:
+            if handle[:5] == 'shape' and 'shape' in shape.handle_actions:
                 if 'glass' in shape.handle_actions['shape']:
                     return False
             return True
-        view.figure.artist_filter = glass_target_filter
+        canvas_fig.figure.artist_filter = glass_target_filter
 
-    def dragMoveEvent(self, view, event):
-        x, y = view.mouseEventCoords(event.pos())
-        view.motion_notify_event(x, y, guiEvent=event)
+    def dragMoveEvent(self, canvas_fig, event):
+        canvas_fig.mouseMoveEvent(event)
 
-    def dragLeaveEvent(self, view, event):
-        view.figure.artist_filter = None
+    def dragLeaveEvent(self, canvas_fig, event):
+        canvas_fig.figure.artist_filter = None
 
-    def dropEvent(self, view, event):
+    def dropEvent(self, canvas_fig, event):
         dropped_it = False
-        fig = view.figure
-        if fig.hilited is not None:
-            target = fig.hilited
-            shape, handle = target.artist.shape
-            if 'glass' in shape.handle_actions['shape']:
-                action = shape.handle_actions['shape']['glass']
-                action(fig, event)
-                dropped_it = True
-        view.figure.artist_filter = None
+        fig = canvas_fig.figure
+        if fig.artist_infos is not None:
+            for selection in fig.artist_infos:
+                shape, handle = selection.artist.shape
+                if 'glass' in shape.handle_actions['shape']:
+                    action = shape.handle_actions['shape']['glass']
+                    action(fig, event)
+                    dropped_it = True
+        canvas_fig.figure.artist_filter = None
         return dropped_it
