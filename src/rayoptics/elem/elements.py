@@ -71,7 +71,7 @@ def create_thinlens(power=0., indx=1.5, sd=None, **kwargs):
 
     if 'prx' in kwargs:
         pm, node, type_sel = prx = kwargs['prx']
-        dgm_pkg = [pm.get_pt(node)], [[indx, 'transmit']]
+        dgm_pkg = [pm.get_pt(node)], [[1.0, 'transmit']]
         dgm = prx, dgm_pkg
     else:
         dgm = None
