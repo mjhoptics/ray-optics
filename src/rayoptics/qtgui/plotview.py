@@ -579,7 +579,8 @@ def create_handle_context_menu(app, pc, menu_actions):
     def handle_context_menu(point):
         # show menu about the row
         menu = QMenu(app)
-        if fig.selected_shape is None:
+        selected_shape = fig.selected_shape
+        if selected_shape is None:
             selected_artist = (fig.artist_infos[0] 
                                if len(fig.artist_infos) > 0 else None)
             if selected_artist is not None:
@@ -588,18 +589,19 @@ def create_handle_context_menu(app, pc, menu_actions):
         else:
             selected_shape, info = fig.selected_shape
 
-        for ma in menu_actions:
-            action_desc, action_handle, action = ma
-            try:
-                action_obj = action(selected_shape[0])
-            except TypeError as e:
-                pass
-            else:
-                menu.addAction(action_desc,
-                               lambda: do_action(fig, selected_shape[0], 
-                                                 action_handle, action_obj,
-                                                 info))
+        if selected_shape is not None:
+            for ma in menu_actions:
+                action_desc, action_handle, action = ma
+                try:
+                    action_obj = action(selected_shape[0])
+                except TypeError as e:
+                    pass
+                else:
+                    menu.addAction(action_desc,
+                                lambda: do_action(fig, selected_shape[0], 
+                                                    action_handle, action_obj,
+                                                    info))
 
-        menu.popup(pc.mapToGlobal(point))
+            menu.popup(pc.mapToGlobal(point))
 
     return handle_context_menu
