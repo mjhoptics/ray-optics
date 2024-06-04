@@ -312,7 +312,8 @@ class ParaxialModel():
         thi_before = n_before*self.sys[new_node-1][mc.tau]
         self.seq_model.gaps[new_node-1].thi = thi_before
 
-        seq_end = node + len(seq)
+        ins_offset = 0 if inputs.get('insert', False) else -1
+        seq_end = node + len(seq) + ins_offset
         n_following = self.sys[seq_end][mc.indx]
         thi_following = n_following*self.sys[seq_end][mc.tau]
         self.seq_model.gaps[seq_end].thi = thi_following
@@ -380,7 +381,10 @@ class ParaxialModel():
         ''' basic 1:1 relationship between seq and parax model sequences '''
         ifc = self.seq_model.ifcs[node]
         e_node = self.opt_model.part_tree.parent_node(ifc)
-        args = [[ifc, None, None, 1, 1]], [e_node.id], e_node
+        prx = self, node, mc.ht
+        dgm_pkg = [self.get_pt(node)], [self.sys[node][mc.indx:mc.rmd+1]]
+        dgm = prx, dgm_pkg
+        args = [[ifc, None, None, 1, 1]], [e_node.id], e_node, dgm
         kwargs = {'idx': node}
         return args, kwargs
 

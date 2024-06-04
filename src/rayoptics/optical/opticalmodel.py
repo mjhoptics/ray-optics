@@ -541,7 +541,7 @@ class OpticalModel:
 
         # distinguish between adding a new chunk, which requires splitting a
         #  gap in two, and replacing a node, which uses the existing gaps.
-        if 'insert' in kwargs:
+        if kwargs.get('insert', False):
             t_after = kwargs['t'] if 't' in kwargs else 0.
 
             g, ag, ag_node, _ = ele.create_air_gap(t=t_after, 

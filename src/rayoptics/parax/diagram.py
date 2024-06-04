@@ -975,31 +975,27 @@ class AddReplaceElementAction():
                     new_node = parax_model.add_node(node, event_data, 
                                                     diagram.type_sel, sys_data)
                     self.cur_node = cur_node = node, new_node
-
-                    # create a node for editing during the drag action
-                    #  'node_init' will currently be a thinlens or a mirror
-                    node_init = self.command_inputs['node_init']
-                    self.init_inputs = diagram.assign_object_to_node(
-                                            *cur_node, node_init,
-                                            insert=True, do_update=False)
-                    parax_model.paraxial_lens_to_seq_model()
-                    fig.refresh_gui(build='rebuild', src_model=parax_model)
-    
-                    new_shape = diagram.node_list[new_node]
-                    selected_shape = ((new_shape, 'shape'), 
-                                      fig.selected_shape[1])
-                    selection: SelectInfo = fig.get_artist_for_handle(
-                        selected_shape)
-                    fig.selected_shape = selected_shape
-                    fig.artist_infos = [selection]
+                    do_insert = True
 
             elif isinstance(shape, DiagramNode):
                 if 'factory' in self.command_inputs:
                     # replacing a node with a chunk only requires recording
                     # what chunk corresponds to the current node. There is
                     # no drag action
-                    self.cur_node = node = shape.node
-                    self.init_inputs = parax_model.get_object_for_node(node)
+                    node = shape.node
+                    # self.init_inputs = parax_model.get_object_for_node(node)
+                    # node_init = self.command_inputs['node_init']
+                    self.cur_node = cur_node = node, node
+                    do_insert = False
+
+            else:
+                return
+
+            factory = self.command_inputs['factory']
+            self.init_inputs = diagram.assign_object_to_node(
+                *cur_node, factory, insert=do_insert, do_update=False)
+            parax_model.paraxial_lens_to_seq_model()
+            fig.refresh_gui(build='rebuild', src_model=parax_model)
 
         def on_drag_add_point(fig, event, shape):
             nonlocal self, diagram
