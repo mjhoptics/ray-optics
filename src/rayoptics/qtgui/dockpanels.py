@@ -23,16 +23,16 @@ panels = {}
 def create_dock_windows(gui_app):
     panels['wavelengths'] = create_dock_widget(gui_app,
                                                'wavelengths', 'Wavelengths',
-                                               SpectrumWavelengthsPanel, False)
+                                               SpectrumWavelengthsPanel, True)
     panels['aperture'] = create_dock_widget(gui_app,
                                             'aperture', 'Aperture',
-                                            AperturePanel, False)
+                                            AperturePanel, True)
     panels['field'] = create_dock_widget(gui_app,
                                          'field', 'Field of View',
-                                         FieldOfViewPanel, False)
+                                         FieldOfViewPanel, True)
     panels['system'] = create_dock_widget(gui_app,
                                           'system', 'System Info',
-                                          SystemSpecPanel, False)
+                                          SystemSpecPanel, True)
 
 
 def create_dock_widget(gui_app, item_key, label, panel, state):

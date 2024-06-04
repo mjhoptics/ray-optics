@@ -57,7 +57,7 @@ class MainWindow(QMainWindow):
 
         self.left = 100
         self.top = 50
-        self.width = 1800
+        self.width = 2100
         self.height = 1200
         self.setGeometry(self.left, self.top, self.width, self.height)
 
@@ -227,7 +227,12 @@ class MainWindow(QMainWindow):
             title_bar = 'iPython console: '
             if opt_model is not None:
                 title_bar = title_bar + opt_model.name()
-            create_ipython_console(self, opt_model, title_bar, 900, 600)
+            view_width, view_ht = 900, 600
+            orig_x = dock.panels['wavelengths'].dock.pos().x()-view_width
+            orig_y = 0
+            create_ipython_console(self, opt_model, title_bar, 
+                                   orig_x, orig_y, view_width, view_ht, ) 
+
         except MultipleInstanceError:
             logger.debug("Unable to open iPython console. "
                          "MultipleInstanceError")

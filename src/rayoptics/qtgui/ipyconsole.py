@@ -39,7 +39,8 @@ default_template = '''\
 '''
 
 
-def create_ipython_console(gui_parent, opt_model, title, view_width, view_ht,
+def create_ipython_console(gui_parent, opt_model, title, 
+                           orig_x, orig_y, view_width, view_ht,
                            add_panel_fcts=None):
     """ create a iPython console with a rayoptics environment """
 
@@ -134,7 +135,6 @@ def create_ipython_console(gui_parent, opt_model, title, view_width, view_ht,
     sub_window = gui_parent.add_subwindow(widget, mi)
     sub_window.setWindowTitle(title)
     sub_window.sync_light_or_dark = create_light_or_dark_callback(ipy_console)
-    orig_x, orig_y = gui_parent.initial_window_offset()
     sub_window.setGeometry(orig_x, orig_y, view_width, view_ht)
 
     sub_window.show()
