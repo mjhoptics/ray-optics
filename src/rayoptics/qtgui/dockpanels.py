@@ -178,17 +178,18 @@ class SpectrumWavelengthsPanel(QWidget):
         super().__init__(parent)
 
         self.gui_app = gui_app
-        self.ctrl_wvl_edit = FloatFieldWidget(gui_app, self.root, 'central_wvl')
-        self.red_wvl_edit = FloatFieldWidget(gui_app, lambda: self.root().wavelengths, 0)
-        self.blue_wvl_edit = FloatFieldWidget(gui_app, lambda: self.root().wavelengths, -1)
-
+        self.ctrl_wvl_edit = FloatFieldWidget(gui_app, self.root, 
+                                              'central_wvl')
+        self.red_wvl_edit = FloatFieldWidget(gui_app, 
+                                             lambda: self.root().wavelengths, 
+                                             -1)
+        self.blue_wvl_edit = FloatFieldWidget(gui_app, 
+                                              lambda: self.root().wavelengths, 
+                                              0)
         wavlnsLayout = QFormLayout()
         wavlnsLayout.addRow('central', self.ctrl_wvl_edit.widget)
         wavlnsLayout.addRow('red', self.red_wvl_edit.widget)
         wavlnsLayout.addRow('blue', self.blue_wvl_edit.widget)
-
-        self.achroCheckBox = QCheckBox("Achromatic")
-        wavlnsLayout.addRow('', self.achroCheckBox)
 
         self.setLayout(wavlnsLayout)
 
@@ -229,7 +230,7 @@ class AperturePanel(QWidget):
             self.root().mutate_pupil_type((self.root().key[0], 
                                            self.obj_img_items[value], 
                                            self.root().key[2]))
-        apertureLayout.addRow('Space', self.obj_img_combo.widget)
+        apertureLayout.addRow('space', self.obj_img_combo.widget)
 
         self.pupil_type_combo = ListChoiceWidget(gui_app, self.root, None, 
                                                  self.pupil_type_items)
@@ -238,7 +239,7 @@ class AperturePanel(QWidget):
             self.root().mutate_pupil_type((self.root().key[0], 
                                            self.root().key[1],
                                            self.pupil_type_items[value]))
-        apertureLayout.addRow('Type', self.pupil_type_combo.widget)
+        apertureLayout.addRow('type', self.pupil_type_combo.widget)
 
         self.aperture_edit = FloatFieldWidget(gui_app, self.root, 'value')
         apertureLayout.addRow('value', self.aperture_edit.widget)
@@ -273,7 +274,7 @@ class FieldOfViewPanel(QWidget):
             self.root().mutate_field_type((self.root().key[0], 
                                            self.obj_img_items[value], 
                                            self.root().key[2]))
-        fieldLayout.addRow('Space', self.obj_img_combo.widget)
+        fieldLayout.addRow('space', self.obj_img_combo.widget)
 
         self.field_combo = ListChoiceWidget(gui_app, lambda: self.root(),
                                               None, self.field_type_items)
@@ -282,7 +283,7 @@ class FieldOfViewPanel(QWidget):
             self.root().mutate_field_type((self.root().key[0], 
                                            self.root().key[1],
                                            self.field_type_items[value]))
-        fieldLayout.addRow('Type', self.field_combo.widget)
+        fieldLayout.addRow('type', self.field_combo.widget)
 
         self.field_edit = FloatFieldWidget(gui_app, self.root, 'value')
         fieldLayout.addRow('value', self.field_edit.widget)
@@ -316,19 +317,10 @@ class SystemSpecPanel(QWidget):
         self.dimension_combo.set = combo_set
         # self.dimension_combo.set = lambda value: setattr(self.root(), 'dimensions', value)
 
-        systemLayout.addRow('system units', self.dimension_combo.widget)
-
         self.title_edit = TextFieldWidget(gui_app, self.root, 'title')
         systemLayout.addRow('title', self.title_edit.widget)
 
-        self.initials_edit = TextFieldWidget(gui_app, self.root, 'initials')
-        systemLayout.addRow('initials', self.initials_edit.widget)
-
-        self.temp_edit = FloatFieldWidget(gui_app, self.root, 'temperature')
-        systemLayout.addRow('temperature', self.temp_edit.widget)
-
-        self.pressure_edit = FloatFieldWidget(gui_app, self.root, 'pressure')
-        systemLayout.addRow('pressure', self.pressure_edit.widget)
+        systemLayout.addRow('units', self.dimension_combo.widget)
 
         self.setLayout(systemLayout)
 
@@ -339,6 +331,3 @@ class SystemSpecPanel(QWidget):
         """ push backend data to widgets """
         self.dimension_combo.refresh()
         self.title_edit.refresh()
-        self.initials_edit.refresh()
-        self.temp_edit.refresh()
-        self.pressure_edit.refresh()
