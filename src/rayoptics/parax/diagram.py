@@ -1001,9 +1001,9 @@ class AddReplaceElementAction():
             nonlocal self, diagram
             if self.cur_node is not None and isinstance(shape, DiagramEdge):
                 event_data = np.array([event.xdata, event.ydata])
-                node, new_node = self.cur_node
-                diagram.apply_data(new_node, event_data)
-                fig.refresh_gui(build='update', src_model=parax_model)
+                # node, new_node = self.cur_node
+                # diagram.apply_data(new_node, event_data)
+                # fig.refresh_gui(build='update', src_model=parax_model)
 
         def on_release_add_point(fig, event, shape):
             nonlocal self, diagram
@@ -1011,12 +1011,12 @@ class AddReplaceElementAction():
                 factory = self.command_inputs['factory']
                 # if factory and node_init fcts are the same, we're done;
                 # always call factory fct for a node
-                if factory != self.command_inputs['node_init'] or \
-                              isinstance(shape, DiagramNode):
-                    inputs = diagram.assign_object_to_node(
-                                  *self.cur_node, 
-                                  factory)
-                fig.refresh_gui(build='rebuild', src_model=parax_model)
+                # if factory != self.command_inputs['node_init'] or \
+                #               isinstance(shape, DiagramNode):
+                #     inputs = diagram.assign_object_to_node(
+                #                   *self.cur_node, 
+                #                   factory)
+                # fig.refresh_gui(build='rebuild', src_model=parax_model)
             self.cur_node = None
 
         self.actions = {}
