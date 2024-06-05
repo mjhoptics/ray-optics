@@ -267,7 +267,7 @@ class MainWindow(QMainWindow):
             # options |= QFileDialog.DontUseNativeDialog
             fileName, _ = QFileDialog.getOpenFileName(
                           self,
-                          "QFileDialog.getOpenFileName()",
+                          "Open File ...",
                           str(self.cur_dir),
                           "All files (*.seq *.zmx *.roa);;"
                           "CODE V files (*.seq);;"
@@ -294,7 +294,7 @@ class MainWindow(QMainWindow):
             # options |= QFileDialog.DontUseNativeDialog
             fileName, _ = QFileDialog.getSaveFileName(
                           self,
-                          "QFileDialog.getSaveFileName()",
+                          "Save File ...",
                           str(self.cur_dir),
                           "Ray-Optics Files (*.roa);;All Files (*)",
                           options=options)
