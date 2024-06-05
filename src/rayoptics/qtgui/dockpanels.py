@@ -30,6 +30,9 @@ def create_dock_windows(gui_app):
     panels['field'] = create_dock_widget(gui_app,
                                          'field', 'Field of View',
                                          FieldOfViewPanel, True)
+    panels['defocus'] = create_dock_widget(gui_app,
+                                           'defocus', 'Focus Range',
+                                           FocusRangePanel, True)
     panels['system'] = create_dock_widget(gui_app,
                                           'system', 'System Info',
                                           SystemSpecPanel, True)
@@ -194,7 +197,7 @@ class SpectrumWavelengthsPanel(QWidget):
         self.setLayout(wavlnsLayout)
 
     def root(self):
-        return self.gui_app.app_manager.model.optical_spec.spectral_region
+        return self.gui_app.app_manager.model.optical_spec['wvls']
 
     def update(self, opt_model):
         """ push backend data to widgets """
@@ -247,7 +250,7 @@ class AperturePanel(QWidget):
         self.setLayout(apertureLayout)
 
     def root(self):
-        return self.gui_app.app_manager.model.optical_spec.pupil
+        return self.gui_app.app_manager.model.optical_spec['pupil']
 
     def update(self, opt_model):
         """ push backend data to widgets """
@@ -291,12 +294,38 @@ class FieldOfViewPanel(QWidget):
         self.setLayout(fieldLayout)
 
     def root(self):
-        return self.gui_app.app_manager.model.optical_spec.field_of_view
+        return self.gui_app.app_manager.model.optical_spec['fov']
 
     def update(self, opt_model):
         """ push backend data to widgets """
         self.field_combo.refresh()
         self.field_edit.refresh()
+
+
+class FocusRangePanel(QWidget):
+    def __init__(self, gui_app, parent=None):
+        super().__init__(parent)
+
+        self.gui_app = gui_app
+
+        self.focus_shift_edit = FloatFieldWidget(gui_app, self.root, 
+                                                 'focus_shift')
+        self.defocus_range_edit = FloatFieldWidget(gui_app, self.root,
+                                                   'defocus_range')
+
+        focusRangeLayout = QFormLayout()
+        focusRangeLayout.addRow('focus shift', self.focus_shift_edit.widget)
+        focusRangeLayout.addRow('defocus range', self.defocus_range_edit.widget)
+
+        self.setLayout(focusRangeLayout)
+
+    def root(self):
+        return self.gui_app.app_manager.model.optical_spec['focus']
+
+    def update(self, opt_model):
+        """ push backend data to widgets """
+        self.focus_shift_edit.refresh()
+        self.defocus_range_edit.refresh()
 
 
 class SystemSpecPanel(QWidget):
@@ -325,7 +354,7 @@ class SystemSpecPanel(QWidget):
         self.setLayout(systemLayout)
 
     def root(self):
-        return self.gui_app.app_manager.model.system_spec
+        return self.gui_app.app_manager.model['system_spec']
 
     def update(self, opt_model):
         """ push backend data to widgets """

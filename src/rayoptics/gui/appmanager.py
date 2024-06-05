@@ -65,22 +65,27 @@ class AppManager:
 
                 - windowTitle() - only for debug logging
 
+        model_filenames: keys are models, values are Paths or None
+
     """
 
-    def __init__(self, model, gui_parent=None):
-        self.model = self._tag_model(model)
-        self.gui_parent = gui_parent
+    def __init__(self, model, gui_parent=None, filename=None):
         self.view_dict = {}
         self.figures = []
+        self.model_filenames = {}
+        self.gui_parent = gui_parent
+        self.set_model(model, filename=filename)
 
     def _tag_model(self, model):
         if model is not None:
             if not hasattr(model, 'app_manager'):
                 model.app_manager = self
 
-    def set_model(self, model):
-        self._tag_model(model)
+    def set_model(self, model, filename=None):
         self.model = model
+        self._tag_model(model)
+        if model is not None:
+            self.model_filenames[model] = filename
 
     def add_view(self, view, gui_hook, model_info):
         """ Add a new view and model tuple into dictionary
@@ -140,6 +145,8 @@ class AppManager:
         if cur_model is not None:
             delattr(cur_model, 'app_manager')
             self.model = None
+            if cur_model in self.model_filenames:
+                del self.model_filenames[cur_model]
 
     def refresh_gui(self, **kwargs):
         """ update the active model and refresh its dependent ui views """

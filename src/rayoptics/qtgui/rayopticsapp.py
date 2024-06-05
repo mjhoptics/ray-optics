@@ -280,17 +280,28 @@ class MainWindow(QMainWindow):
                 self.cur_dir = filename.parent
                 self.open_file(filename)
 
+        if action == "Save":
+            cur_model = self.app_manager.model
+            fileName = self.app_manager.model_filenames[cur_model]
+            if fileName:
+                logger.debug("save file: %s", fileName)
+                self.save_file(fileName)
+            else:  # query for filename, i.e. do a SaveAs
+                action = "Save As..."
+
         if action == "Save As...":
             options = QFileDialog.Options()
             # options |= QFileDialog.DontUseNativeDialog
             fileName, _ = QFileDialog.getSaveFileName(
                           self,
                           "QFileDialog.getSaveFileName()",
-                          "",
+                          str(self.cur_dir),
                           "Ray-Optics Files (*.roa);;All Files (*)",
                           options=options)
             if fileName:
                 logger.debug("save file: %s", fileName)
+                filename = Path(fileName)
+                self.cur_dir = filename.parent
                 self.save_file(fileName)
 
         if action == "Close":
@@ -332,19 +343,17 @@ class MainWindow(QMainWindow):
         self.refresh_app_ui()
 
     def open_file(self, file_name, **kwargs):
-        self.cur_filename = file_name
-        opt_model = cmds.open_model(file_name, **kwargs)
-        self.app_manager.set_model(opt_model)
-        self.is_changed = True
+        cur_model = cmds.open_model(file_name, **kwargs)
+        self.app_manager.set_model(cur_model, filename=file_name)
         self.create_lens_table()
-        cmds.create_live_layout_view(self.app_manager.model, gui_parent=self)
-        self.add_ipython_subwindow(opt_model)
+        cmds.create_live_layout_view(cur_model, gui_parent=self)
+        self.add_ipython_subwindow(cur_model)
         self.refresh_app_ui()
 
     def save_file(self, file_name):
-        self.app_manager.model.save_model(file_name, version="0.9.0a1")
-        self.cur_filename = file_name
-        self.is_changed = False
+        cur_model = self.app_manager.model
+        cur_model.save_model(file_name, version="0.9.0a1")
+        self.app_manager.model_filenames[cur_model] = file_name
 
     def close_model(self):
         """ NOTE: this does not check to save a modified model """
