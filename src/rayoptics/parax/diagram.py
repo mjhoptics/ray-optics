@@ -995,6 +995,7 @@ class AddReplaceElementAction():
             self.init_inputs = diagram.assign_object_to_node(
                 *cur_node, factory, insert=do_insert, do_update=False)
             parax_model.paraxial_lens_to_seq_model()
+            parax_model.update_parax_to_dgms()
             fig.refresh_gui(build='rebuild', src_model=parax_model)
 
         def on_drag_add_point(fig, event, shape):

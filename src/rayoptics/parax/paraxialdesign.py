@@ -103,7 +103,7 @@ class ParaxialModel():
         self.opt_inv = nu_bar0*y0 - nu0*y_bar0
         self.paraxial_trace()
 
-        self.y_star, self.ybar_star = self.calc_object_and_pupil(0)
+        self.update_parax_to_dgms()
 
     def build_lens(self):
         # rebuild the `sys` description from the seq_model path
@@ -124,9 +124,7 @@ class ParaxialModel():
                 self.ax.append([ax_ray[i][mc.ht], n*ax_ray[i][mc.slp]])
                 self.pr.append([pr_ray[i][mc.ht], n*pr_ray[i][mc.slp]])
 
-            self.ztwp = parax_to_dgms(self.ax, self.pr, 
-                                      self.sys, self.opt_inv)
-            self.y_star, self.ybar_star = self.calc_object_and_pupil(0)
+            self.update_parax_to_dgms()
         
     def parax_from_dgms(self, dgm_list, opt_inv,
                         rndx_and_imode=None):
@@ -183,6 +181,11 @@ class ParaxialModel():
         nodes = np.array(nodes)
         return nodes
 
+    def update_parax_to_dgms(self):
+        """ use the ax and pr to update the diagram and obj/pupil definition. """
+        self.ztwp = parax_to_dgms(self.ax, self.pr, self.sys, self.opt_inv)
+        self.y_star, self.ybar_star = self.calc_object_and_pupil(0)
+    
     def replace_node_with_dgm(self, e_node, dgm, **kwargs):
         """ Update the parax model from the node list, `nodes`. """
         prx, dgm_pkg = dgm
@@ -1584,6 +1587,7 @@ def update_from_dgm(Z, opt_inv, osp):
 
 
 def parax_to_dgms(ax, pr, sys, opt_inv):
+    """ convert paraxial rays to normalized diagram. """
     Z = []
     T = []
     W = []
@@ -1600,6 +1604,7 @@ def parax_to_dgms(ax, pr, sys, opt_inv):
 
 
 def dgms_to_parax(Z, T, W, Pwr, opt_inv, rndx_and_imode=None):
+    """ convert normalized diagrams to paraxial ray and first order system. """
     y, ybar = 1, 0
     ax = []
     pr = []
