@@ -9,16 +9,20 @@ Version 0.9.0
 =============
 A goal of this version is specify optical systems either via the sequential model, the |ybar| diagram, or the element/part tree description. The rayoptics app supports system entry by :meth:`~.seq.sequential.SequentialModel.add_surface` or :meth:`~.optical.opticalmodel.OpticalModel.add_lens` functions in the iPython console, by sketching a |ybar| diagram, and by opening existing optical models. This required a major update to functionality in the :class:`~.parax.paraxialdesign.ParaxialModel`, especially the |ybar| diagram functionality. 
 
-To accomodate the different ways models may be built up interactively, a new internal approach of using simple grammar that takes a sequential model as input and produces an element model/part tree description has been implemented that resolves many of the issues encountered previously generating lens layout figures.
+To accomodate the different ways models may be built up interactively, a new internal approach of using a simple grammar (:mod:`~.elem.sgz2ele`) to take a sequential model as input and produce an element model/part tree description as output has been implemented. This should eliminate the need to use :meth:`~.optical.opticalmodel.OpticalModel.rebuild_from_seq` to get a correct lens layout. It works well with add_surface, add_lens, add_mirror, etc.
 
-The :mod:`~.qtgui.rayopticsapp` module has been refined to better support use of the iPython console with the graphics windows and menu bar. A button, `Refresh GUI`, was added to the iPython console todo an update_model() call and reshresh the graphics windows. The `New` item on the `File` menu opens an iPython console with an empty model and opm, sm, osp, etc. predefined. `New Diagram` will open an interactive y-ybar diagram window for sketching a diagram(after clicking the `Sketch Diagram` button). Panels for optical specification data are open and docked by default.
+The :mod:`~.qtgui.rayopticsapp` module has been refined to better support use of the iPython console with the graphics windows and menu bar. A button, ``Refresh GUI``, was added to the iPython console to do an update_model() call and reshresh the graphics windows. The ``New`` item on the ``File`` menu opens an iPython console with an empty model and **opm**, **sm**, **osp**, etc. predefined. ``New Diagram`` will open an interactive |ybar| diagram window for sketching a diagram (after clicking the ``Sketch Diagram`` button). Panels for optical specification data are open and docked by default.
+
+Optical systems often can have object or pupil planes at infinity. Even with IEEE floating point arithmetic, **inf** values cause problems in common calculations. Furthermore, it is common in imaging forming software to model an "infinite" object distance as a large number (e.g. 1e10); this convention is embedded in many imported models. The places in the code that dealt with infinite values were identified and guarded against bad outcomes using functions  :func:`~.util.misc_math.infinity_guard` and  :func:`~.util.misc_math.is_kinda_big`.
+
+Effort was put into covering various corner cases that broke the code. Telecentric and afocal systems, object or image spaces with non-air materials, and models with a single surface (e.g. an eye model) were some of the areas that were addressed.
 
 Other changes include:
 
-- Changed :attr:`.raytr.opticalspec.PupilSpec.key` `value_key` literal from 'pupil' to 'epd' for clarity.
+- Changed :attr:`raytr.opticalspec.PupilSpec.key` `value_key` literal from ``pupil`` to ``epd`` for clarity.
 - Added :meth:`~.optical.opticalmodel.OpticalModel.apply_scale_factor` method to OpticalModel, ParaxialModel, ElementModel, and the OpticalSpecs models.
-- Fix the surface normal calculation for XToroid (issue 147).
-- Look specifically for 'www.photonstophotos.net' in stringified input (issue 145).
+- Fix the surface normal calculation for :class:`~.elem.profiles.XToroid` (issue 147).
+- Look specifically for ``www.photonstophotos.net`` in stringified input (issue 145).
 - Added wavefront/opd calculation based on an infinite reference sphere (issue 142).
 
 Version 0.8.7
@@ -62,7 +66,7 @@ Major review and cleanup of the :mod:`~.raytr` package. Moved wave aberration ca
 
 Integrate :meth:`~.seq.interface.Interface.point_inside` query into the ray trace and add a new ray trace exception, :class:`~.raytr.traceerror.TraceRayBlockedError`. Use this to implement a pupil ray-based vignetting calculation and provide :func:`~.gui.appcmds.set_vignetting` to set the vignetted pupil rays for each field point and the companion function, :func:`~.gui.appcmds.set_apertures`, to set clear apertures based on the vignetted pupils at each field. to clear aperture. These new calculations are in the :mod:`~.raytr.vigcalc` module.
 
-The addition of the ``set_vignetting`` function uncovered a bug in the ray plots; they didn't handle the case of needing to overfill the paraxial entrance pupil in wide angle lenses. The ray plots, :class:`~.mpl.axisarrayfigure.RayFanFigure` and :class:`~.mpl.analysisfigure.RayFanPlot`, were updated to correctly display overfilled pupils, and an example lens was added to demonstrate the issue.
+The addition of the :func:`~.gui.appcmds.set_vignetting` function uncovered a bug in the ray plots; they didn't handle the case of needing to overfill the paraxial entrance pupil in wide angle lenses. The ray plots, :class:`~.mpl.axisarrayfigure.RayFanFigure` and :class:`~.mpl.analysisfigure.RayFanPlot`, were updated to correctly display overfilled pupils, and an example lens was added to demonstrate the issue.
 
 A bug affecting the display of flats on concave surfaces was fixed. The cell phone lens example was updated to explain some of the controls added for greater control over lens element display.
 
