@@ -4,6 +4,23 @@
 Changelog
 =========
 
+
+Version 0.9.0
+=============
+A goal of this version is specify optical systems either via the sequential model, the |ybar| diagram, or the element/part tree description. The rayoptics app supports system entry by :meth:`~.seq.sequential.SequentialModel.add_surface` or :meth:`~.optical.opticalmodel.OpticalModel.add_lens` functions in the iPython console, by sketching a |ybar| diagram, and by opening existing optical models. This required a major update to functionality in the :class:`~.parax.paraxialdesign.ParaxialModel`, especially the |ybar| diagram functionality. 
+
+To accomodate the different ways models may be built up interactively, a new internal approach of using simple grammar that takes a sequential model as input and produces an element model/part tree description has been implemented that resolves many of the issues encountered previously generating lens layout figures.
+
+The :mod:`~.qtgui.rayopticsapp` module has been refined to better support use of the iPython console with the graphics windows and menu bar. A button, `Refresh GUI`, was added to the iPython console todo an update_model() call and reshresh the graphics windows. The `New` item on the `File` menu opens an iPython console with an empty model and opm, sm, osp, etc. predefined. `New Diagram` will open an interactive y-ybar diagram window for sketching a diagram(after clicking the `Sketch Diagram` button). Panels for optical specification data are open and docked by default.
+
+Other changes include:
+
+- Changed :attr:`.raytr.opticalspec.PupilSpec.key` `value_key` literal from 'pupil' to 'epd' for clarity.
+- Added :meth:`~.optical.opticalmodel.OpticalModel.apply_scale_factor` method to OpticalModel, ParaxialModel, ElementModel, and the OpticalSpecs models.
+- Fix the surface normal calculation for XToroid (issue 147).
+- Look specifically for 'www.photonstophotos.net' in stringified input (issue 145).
+- Added wavefront/opd calculation based on an infinite reference sphere (issue 142).
+
 Version 0.8.7
 =============
 Get dependencies correct for Python 3.8 on conda-forge and ReadTheDocs. Last release for Python 3.8
