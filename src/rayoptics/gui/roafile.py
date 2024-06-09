@@ -93,7 +93,7 @@ def save_updated_roa(file_path: Path, opt_model):
     print(msg1)
     logger.info(msg1)
 
-    opt_model.save_model(file_path, version="0.9.0a1")
+    opt_model.save_model(file_path, version="0.9.0")
     new_vers =  version.parse(opt_model.ro_version).public
     msg2 = f" Updated {file_path.name} from version {cur_vers} -> {new_vers}."
     print(msg2)
