@@ -5,6 +5,11 @@ Changelog
 =========
 
 
+Version 0.9.1
+=============
+Fix issue #150, need to constrain the version of numpy to < 2.0.0
+
+
 Version 0.9.0
 =============
 A goal of this version is specify optical systems either via the sequential model, the |ybar| diagram, or the element/part tree description. The rayoptics app supports system entry by :meth:`~.seq.sequential.SequentialModel.add_surface` or :meth:`~.optical.opticalmodel.OpticalModel.add_lens` functions in the iPython console, by sketching a |ybar| diagram, and by opening existing optical models. This required a major update to functionality in the :class:`~.parax.paraxialdesign.ParaxialModel`, especially the |ybar| diagram functionality. 
