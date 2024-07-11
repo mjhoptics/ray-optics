@@ -135,9 +135,7 @@ def trace_ray(opt_model, pupil, fld, wvl, output_filter, rayerr_filter,
         tuple: ray_pkg, trace_error | None
 
     """
-    unt = True
-    if 'use_named_tuples' in kwargs:
-        unt = kwargs['use_named_tuples']
+    unt = kwargs.pop('use_named_tuples', True)
     
     ray_result = trace_safe(opt_model, pupil, fld, wvl, 
                             output_filter, rayerr_filter, 
