@@ -19,6 +19,8 @@ from rayoptics.raytr import trace, RayPkg, RaySeg
 from rayoptics.raytr import traceerror as terr
 from rayoptics.parax import etendue
 
+logger = logging.getLogger(__name__)
+
 # label for coordinate chooser
 xy_str = 'xy'
 
@@ -62,7 +64,7 @@ def set_vig(opm):
     osp = opm['osp']
     for fi in range(len(osp['fov'].fields)):
         fld, wvl, foc = osp.lookup_fld_wvl_focus(fi)
-        # print(f"field {fi}:")
+        logger.debug(f"set vig field {fi}:")
         calc_vignetting_for_field(opm, fld, wvl)
 
 
@@ -87,7 +89,9 @@ def set_pupil(opm):
     start_coords = iterate_pupil_ray(opm, sm.stop_surface, 1, 1.0, 
                                      stop_radius, fld, wvl)
 
-    print(start_coords)
+    logger.debug(f"set_pupil edge of stop coords: {start_coords[0]:8.4f} "
+                 f"{start_coords[1]:8.4f}")
+    
     # trace the real axial marginal ray
     ray_result = trace.trace_safe(opm, start_coords, fld, wvl, 
                                   None, None, apply_vignetting=False, 
@@ -139,8 +143,8 @@ def calc_vignetting_for_field(opm, fld, wvl):
         xy = i//2
         start = pupil_starts[i]
         vig, last_indx, ray_pkg = calc_vignetted_ray(opm, xy, start, fld, wvl)
-        # print(f"ray: ({start[0]:2.0f}, {start[1]:2.0f}), vig={vig:8.4f}, "
-        #       f"limited at ifcs[{last_indx}]")
+        logger.debug(f"ray: ({start[0]:2.0f}, {start[1]:2.0f}), "
+                     f"vig={vig:8.4f}, limited at ifcs[{last_indx}]")
         vig_factors[i] = vig
 
     # update the field's vignetting factors
@@ -185,7 +189,8 @@ def calc_vignetted_ray(opm, xy, start_dir, fld, wvl, max_iter_count=10):
         except terr.TraceError as ray_error:
             indx = ray_error.surf
             ray_pkg = ray_error.ray_pkg
-            # print(f"{xy_str[xy]} = {rel_p1[xy]:10.6f}: blocked at {indx}")
+            logger.debug(f"{xy_str[xy]} = {rel_p1[xy]:10.6f}: "
+                         f"blocked at {indx}")
             if indx == last_indx:
                 still_iterating = False
             else:
@@ -195,7 +200,7 @@ def calc_vignetted_ray(opm, xy, start_dir, fld, wvl, max_iter_count=10):
                 still_iterating = True
                 last_indx = indx
         else:  # ray successfully traced.
-            # print(f"{xy_str[xy]} = {rel_p1[xy]:10.6f}: passed")
+            logger.debug(f"{xy_str[xy]} = {rel_p1[xy]:10.6f}: passed")
             if last_indx is not None:
                 # fall through and exit
                 still_iterating = False
