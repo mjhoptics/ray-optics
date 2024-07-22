@@ -469,7 +469,7 @@ def wave_abr_calc_inf_ref(fod, fld, wvl, foc, ray_pkg, chief_ray_pkg,
 
     n_img = abs(fod.n_img)
 
-    ta = ray[-1].p - image_pt
+    ta = ray[-1][mc.p] - image_pt
     numer = np.dot(d_cr_b4 - d_b4*np.dot(d_b4, d_cr_b4), ta)
     denom = 1 + np.dot(d_b4, d_cr_b4)
     W_inf = n_img * numer / denom
