@@ -87,7 +87,8 @@ def list_in_out_dir(path, ray):
     print(f"{i+1:2d}: {b4_dir[0]:10.6f} {b4_dir[1]:10.6f} {b4_dir[2]:10.6f}  |")
 
 
-def trace_ray(opt_model, pupil, fld, wvl, output_filter, rayerr_filter,
+def trace_ray(opt_model, pupil, fld, wvl, 
+              output_filter=None, rayerr_filter=None,
                **kwargs):
     """ Trace a single ray via pupil, field and wavelength specs.
     
