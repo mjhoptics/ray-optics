@@ -680,8 +680,8 @@ class Element(Part):
         gap: element thickness and material :class:`~rayoptics.seq.gap.Gap`
         tfrm: global transform to element origin, (Rot3, trans3)
         medium_name: the material filling the gap
-        flat1, flat2: semi-diameter of flat or None. Setting to None will result in 
-                      re-evaluation of flat ID
+        flat1, flat2: semi-diameter of flat or None. Setting to None will 
+                      result in re-evaluation of flat ID
         do_flat1, do_flat2: 'if concave', 'always', 'never', 'if convex'
         handles: dict of graphical entities
         actions: dict of actions associated with the graphical handles
@@ -2448,7 +2448,6 @@ class ElementModel:
             if not hasattr(e, 'label'):
                 e.label = e.label_format.format(i)
         self.sequence_elements()
-        # self.relabel_airgaps()
 
     def reset_serial_numbers(self):
         Element.serial_number = 0
@@ -2487,34 +2486,6 @@ class ElementModel:
         Space.serial_number = serial_numbers.get('Space', 0)
         AirGap.serial_number = serial_numbers.get('AirGap', 0)
         Assembly.serial_number = serial_numbers.get('Assembly', 0)
-
-    def airgaps_from_sequence(self, seq_model, tfrms):
-        """ add airgaps and dummy interfaces to an older version model """
-        for e in self.elements:
-            if isinstance(e, AirGap):
-                return  # found an AirGap, model probably OK
-
-        num_elements = 0
-        seq_model = self.opt_model.seq_model
-        for i, g in enumerate(seq_model.gaps):
-            if g.medium.name().lower() == 'air':
-                if i > 0:
-                    s = seq_model.ifcs[i]
-                    tfrm = tfrms[i]
-                    num_elements = self.process_airgap(
-                        seq_model, i, g, s, tfrm,
-                        num_elements, add_ele=False)
-
-    def add_dummy_interface_at_image(self, seq_model, tfrms):
-        if len(self.elements) and self.elements[-1].label == 'Image':
-            return
-
-        s = seq_model.ifcs[-1]
-        idx = seq_model.get_num_surfaces() - 1
-        di = DummyInterface(ifc=s, sd=s.surface_od(), tfrm=tfrms[-1], idx=idx,
-                            label='Image')
-        self.opt_model.part_tree.add_element_to_tree(di, tag='#image')
-        self.add_element(di)
 
     def update_model(self, **kwargs):
         """ dynamically build element list from part_tree. """
@@ -2561,13 +2532,6 @@ class ElementModel:
             for e in self.elements:
                 if hasattr(e, 'z_dir'):
                     e.z_dir = seq_model.z_dir[e.reference_idx()]
-
-    def relabel_airgaps(self):
-        for i, e in enumerate(self.elements):
-            if isinstance(e, AirGap):
-                eb = self.elements[i-1].label
-                ea = self.elements[i+1].label
-                e.label = AirGap.label_format.format(eb + '-' + ea)
 
     def add_element(self, e: Part):
         e.parent = self
