@@ -263,9 +263,9 @@ class OpticalSpecs:
                 - 'aim dir': aim direction in object space
         """
         
-        _, pupil_oi_key, pupil_value_key = self['pupil'].key
+        pupil_oi_key, pupil_value_key = self['pupil'].key
         pupil_value = self['pupil'].value
-        _, fov_oi_key, fov_value_key = self['fov'].key
+        fov_oi_key, fov_value_key = self['fov'].key
         p0, d0 = self.obj_coords(fld)
 
         aim_pt = np.array([0., 0.])
@@ -496,8 +496,7 @@ class PupilSpec:
 
     def __init__(self, parent, key=('object', 'epd'), value=1.0):
         self.optical_spec = parent
-        self.key = 'aperture', key[0], key[1]
-        self.value = value
+        self.set_key_value(key, value)
         self.pupil_rays = PupilSpec.default_pupil_rays
         self.ray_labels = PupilSpec.default_ray_labels
 
@@ -516,25 +515,31 @@ class PupilSpec:
             setattr(self, a_key, a_val)
 
     def listobj_str(self):
-        key = self.key
-        o_str = f"{key[0]}: {key[1]} {key[2]}; value={self.value}\n"
+        _key = self._key
+        o_str = f"{_key[0]}: {_key[1]} {_key[2]}; value={self.value}\n"
         return o_str
 
     @property
     def key(self):
-        return self._key
+        return self._key[1], self._key[2]
 
     @key.setter
     def key(self, k):
-        ape_fld_key, obj_img_key, value_key = k
+        obj_img_key, value_key = k
         if value_key == 'pupil':
             print("'pupil' deprecated; use 'epd' instead.")
             value_key = 'epd'
-        self._key = ape_fld_key, obj_img_key, value_key
+        self._key = 'aperture', obj_img_key, value_key
+
+    def set_key_value(self, key, value):
+        """ Set aperture keys and value for the pupil specification. """
+        self.key = key
+        self.value = value
+        return self
 
     def sync_to_parax(self, parax_model):
         """ Use the parax_model database to update the pupil specs. """
-        ape_fld_key, pupil_oi_key, pupil_value_key = self.key
+        pupil_oi_key, pupil_value_key = self.key
         num_nodes = parax_model.get_num_nodes()
         if pupil_oi_key == 'object':
             idx = 0
@@ -558,7 +563,7 @@ class PupilSpec:
     def derive_parax_params(self):
         """ return pupil spec as paraxial height or slope value. """
 
-        _, pupil_oi_key, pupil_value_key = self.key
+        pupil_oi_key, pupil_value_key = self.key
         pupil_value = self.value
 
         if 'NA' in pupil_value_key:
@@ -573,7 +578,7 @@ class PupilSpec:
             pupil_key = 'slope'
             pupil_value = slope
 
-        if pupil_value_key == 'epd' or 'pupil' == pupil_value_key:
+        if pupil_value_key == 'epd':
             height = pupil_value/2
             pupil_key = 'height'
             pupil_value = height
@@ -583,9 +588,9 @@ class PupilSpec:
     def get_aperture_from_slope(self, slope, n=1):
         if slope == 0:
             return 0
-        if self.key[2] == 'f/#':
+        if self.key[1] == 'f/#':
             value = -1/(2*slope)
-        elif self.key[2] == 'NA':
+        elif self.key[1] == 'NA':
             value = etendue.slp2na(slope, n=n)
         return value
 
@@ -593,7 +598,8 @@ class PupilSpec:
         self.optical_spec = optical_spec
 
     def set_from_specsheet(self, ss):
-        self.key, self.value = ss.get_etendue_inputs('aperture')
+        key, self.value = ss.get_etendue_inputs('aperture')
+        self.key = tuple(key)
 
     def get_input_for_specsheet(self):
         return self.key, self.value
@@ -604,18 +610,18 @@ class PupilSpec:
             self.ray_labels = PupilSpec.default_ray_labels
 
     def apply_scale_factor(self, scale_factor):
-        aperture, obj_img_key, value_key = self.key
+        obj_img_key, value_key = self.key
         if value_key == 'epd' or value_key == 'pupil':
             self.value *= scale_factor
 
     def mutate_pupil_type(self, ape_key):
-        aperture, obj_img_key, value_key = ape_key
+        obj_img_key, value_key = ape_key
         if self.optical_spec is not None:
             opm = self.optical_spec.opt_model
             if opm['ar']['parax_data'] is not None:
                 fod = opm['ar']['parax_data'].fod
                 if obj_img_key == 'object':
-                    if value_key == 'epd' or value_key == 'pupil':
+                    if value_key == 'epd':
                         self.value = 2*fod.enp_radius
                     elif value_key == 'NA':
                         self.value = fod.obj_na
@@ -642,8 +648,7 @@ class FieldSpec:
     def __init__(self, parent, key=('object', 'angle'), value=0, flds=None,
                  index_labels=None, is_relative=False, do_init=True, **kwargs):
         self.optical_spec = parent
-        self.key = 'field', key[0], key[1]
-        self.value = value
+        self.set_key_value(key, value)
         self.is_relative = is_relative
         if index_labels is None:
             self.index_labels = [] 
@@ -663,16 +668,38 @@ class FieldSpec:
         del attrs['optical_spec']
         return attrs
 
+    def __json_decode__(self, **attrs):
+        for a_key, a_val in attrs.items():
+            if a_key == 'key':
+                a_key = '_key'
+
+            setattr(self, a_key, a_val)
+
     def listobj_str(self):
-        key = self.key
-        o_str = f"{key[0]}: {key[1]} {key[2]}; value={self.value}\n"
+        _key = self._key
+        o_str = f"{_key[0]}: {_key[1]} {_key[2]}; value={self.value}\n"
         for i, fld in enumerate(self.fields):
             o_str += fld.listobj_str()
         return o_str
 
+    @property
+    def key(self):
+        return self._key[1], self._key[2]
+
+    @key.setter
+    def key(self, k):
+        obj_img_key, value_key = k
+        self._key = 'field', obj_img_key, value_key
+
+    def set_key_value(self, key, value):
+        """ Set field keys and value for the fov specification. """
+        self.key = key
+        self.value = value
+        return self
+    
     def sync_to_parax(self, parax_model):
         """ Use the parax_model database to update the field specs. """
-        ape_fld_key, fov_oi_key, fov_value_key = self.key
+        fov_oi_key, fov_value_key = self.key
         num_nodes = parax_model.get_num_nodes()
         if fov_oi_key == 'object':
             idx = 0
@@ -690,13 +717,13 @@ class FieldSpec:
             n = parax_model.sys[idx][mc.indx]
             slope = parax_model.pr[idx][mc.slp]/n
             fov_value = etendue.slp2ang(slope)
-        self.key = ape_fld_key, fov_oi_key, fov_value_key
+        self.key = fov_oi_key, fov_value_key
         self.value = fov_value
 
     def derive_parax_params(self):
         """ return field spec as paraxial height or slope value. """
         
-        _, fov_oi_key, fov_value_key = self.key
+        fov_oi_key, fov_value_key = self.key
         # guard against zero as a field spec for parax calc
         fov_value = self.value if self.value != 0 else 1.
 
@@ -779,7 +806,7 @@ class FieldSpec:
         return self
 
     def apply_scale_factor(self, scale_factor):
-        field, obj_img_key, value_key = self.key
+        obj_img_key, value_key = self.key
         if value_key == 'height':
             if not self.is_relative:
                 for f in self.fields:
@@ -787,7 +814,7 @@ class FieldSpec:
             self.value *= scale_factor
 
     def mutate_field_type(self, fld_key):
-        field, obj_img_key, value_key = fld_key
+        obj_img_key, value_key = fld_key
         if self.optical_spec is not None:
             opm = self.optical_spec.opt_model
             if opm['ar']['parax_data'] is not None:
@@ -813,7 +840,7 @@ class FieldSpec:
         if self.is_relative:
             fld_coord *= self.value
 
-        field, obj_img_key, value_key = self.key
+        obj_img_key, value_key = self.key
 
         fod = self.optical_spec.opt_model['ar']['parax_data'].fod
         obj_pt = None

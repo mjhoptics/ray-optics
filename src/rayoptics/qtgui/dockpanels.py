@@ -228,19 +228,17 @@ class AperturePanel(QWidget):
 
         self.obj_img_combo = ListChoiceWidget(gui_app, lambda: self.root(),
                                               None, self.obj_img_items)
-        self.obj_img_combo.get = lambda: self.root().key[1]
+        self.obj_img_combo.get = lambda: self.root().key[0]
         self.obj_img_combo.set = lambda value: \
-            self.root().mutate_pupil_type((self.root().key[0], 
-                                           self.obj_img_items[value], 
-                                           self.root().key[2]))
+            self.root().mutate_pupil_type((self.obj_img_items[value], 
+                                           self.root().key[1]))
         apertureLayout.addRow('space', self.obj_img_combo.widget)
 
         self.pupil_type_combo = ListChoiceWidget(gui_app, self.root, None, 
                                                  self.pupil_type_items)
-        self.pupil_type_combo.get = lambda: self.root().key[2]
+        self.pupil_type_combo.get = lambda: self.root().key[1]
         self.pupil_type_combo.set = lambda value: \
             self.root().mutate_pupil_type((self.root().key[0], 
-                                           self.root().key[1],
                                            self.pupil_type_items[value]))
         apertureLayout.addRow('type', self.pupil_type_combo.widget)
 
@@ -272,19 +270,17 @@ class FieldOfViewPanel(QWidget):
 
         self.obj_img_combo = ListChoiceWidget(gui_app, lambda: self.root(),
                                               None, self.obj_img_items)
-        self.obj_img_combo.get = lambda: self.root().key[1]
+        self.obj_img_combo.get = lambda: self.root().key[0]
         self.obj_img_combo.set = lambda value: \
-            self.root().mutate_field_type((self.root().key[0], 
-                                           self.obj_img_items[value], 
-                                           self.root().key[2]))
+            self.root().mutate_field_type((self.obj_img_items[value], 
+                                           self.root().key[1]))
         fieldLayout.addRow('space', self.obj_img_combo.widget)
 
         self.field_combo = ListChoiceWidget(gui_app, lambda: self.root(),
                                               None, self.field_type_items)
-        self.field_combo.get = lambda: self.root().key[2]
+        self.field_combo.get = lambda: self.root().key[1]
         self.field_combo.set = lambda value: \
             self.root().mutate_field_type((self.root().key[0], 
-                                           self.root().key[1],
                                            self.field_type_items[value]))
         fieldLayout.addRow('type', self.field_combo.widget)
 

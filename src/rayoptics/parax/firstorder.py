@@ -508,8 +508,8 @@ def specsheet_from_parax_data(opt_model, specsheet):
     fld_key, fld_value = optical_spec.field_of_view.get_input_for_specsheet()
 
     etendue_inputs = specsheet.etendue_inputs
-    etendue_inputs[ape_key[0]][ape_key[1]][ape_key[2]] = ape_value
-    etendue_inputs[fld_key[0]][fld_key[1]][fld_key[2]] = fld_value
+    etendue_inputs['aperture'][ape_key[0]][ape_key[1]] = ape_value
+    etendue_inputs['field'][fld_key[0]][fld_key[1]] = fld_value
     specsheet.generate_from_inputs(imager_inputs, etendue_inputs)
 
     return specsheet

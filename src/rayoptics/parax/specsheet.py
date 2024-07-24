@@ -295,7 +295,7 @@ class SpecSheet():
                     value_key = k1
                     break
 
-        key = ape_fld_key, obj_img_key, value_key
+        key = obj_img_key, value_key
         value = self.etendue_inputs[ape_fld_key][obj_img_key][value_key]
         return key, value
 
