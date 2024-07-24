@@ -10,6 +10,7 @@
 import numpy as np
 from numpy.linalg import norm
 from math import sqrt, pi, acos
+import transforms3d as t3d
 
 
 def infinity_guard(x: float, big: float = 1e12) -> float:
@@ -112,6 +113,12 @@ def euler2opt(e):
         i.e. alpha and beta are left-handed
     """
     return np.array([-e[0], -e[1], e[2]])
+
+
+def euler2rot3d(euler):
+    """ convert euler angle vector to a rotation matrix. """
+    rot_mat = t3d.euler.euler2mat(*np.deg2rad(euler2opt(euler)))
+    return rot_mat
 
 
 def isanumber(a):

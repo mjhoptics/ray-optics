@@ -32,9 +32,9 @@ import numpy as np
 
 from rayoptics.seq import interface
 from . import profiles
-import transforms3d as t3d
 from rayoptics.optical.model_enums import get_decenter_for_type
 from rayoptics.raytr.traceerror import TraceError
+from rayoptics.util import misc_math
 
 
 class InteractionMode(Enum):
@@ -317,10 +317,8 @@ class DecenterData():
                        else get_decenter_for_type(value))
 
     def update(self):
-        def convertl2r(self):
-            return np.array([-self.euler[0], -self.euler[1], self.euler[2]])
         if self.euler.any():
-            self.rot_mat = t3d.euler.euler2mat(*np.deg2rad(convertl2r(self)))
+            self.rot_mat = misc_math.euler2rot3d(self.euler)
         else:
             self.rot_mat = None
 
