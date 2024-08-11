@@ -98,8 +98,8 @@ def set_pupil(opm):
                                   check_apertures=True)
     ray_pkg, ray_err = trace.retrieve_ray(ray_result)
 
-    obj_img_key = osp['pupil'].key[1]
-    pupil_spec = osp['pupil'].key[2]
+    obj_img_key = osp['pupil'].key[0]
+    pupil_spec = osp['pupil'].key[1]
     pupil_value_orig = osp['pupil'].value
 
     if obj_img_key == 'object':
