@@ -204,13 +204,13 @@ def wvl_spec_data(optm, tla, qlist, dlist):
 def pupil_spec_data(optm, tla, qlist, dlist):
     pupil = optm.optical_spec.pupil
     if tla == "EPD":
-        pupil.key = 'aperture', 'object', 'epd'
+        pupil.key = 'object', 'epd'
     elif tla == "NAO":
-        pupil.key = 'aperture', 'object', 'NA'
+        pupil.key = 'object', 'NA'
     elif tla == "NA":
-        pupil.key = 'aperture', 'image', 'NA'
+        pupil.key = 'image', 'NA'
     elif tla == "FNO":
-        pupil.key = 'aperture', 'image', 'f/#'
+        pupil.key = 'image', 'f/#'
 
     pupil.value = dlist[0]
     logger.debug("pupil_spec_data: %s %f", tla, dlist[0])
@@ -219,11 +219,11 @@ def pupil_spec_data(optm, tla, qlist, dlist):
 def field_spec_data(optm, tla, qlist, dlist):
     fov = optm.optical_spec.field_of_view
     if tla == 'XOB' or tla == 'YOB':
-        fov.key = 'field', 'object', 'height'
+        fov.key = 'object', 'height'
     elif tla == 'XAN' or tla == 'YAN':
-        fov.key = 'field', 'object', 'angle'
+        fov.key = 'object', 'angle'
     elif tla == 'XIM' or tla == 'YIM':
-        fov.key = 'field', 'image', 'height'
+        fov.key = 'image', 'height'
 
     if len(fov.fields) != len(dlist):
         fov.fields = [Field() for f in range(len(dlist))]

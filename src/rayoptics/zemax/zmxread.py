@@ -448,11 +448,11 @@ def pupil_data(optm, cmd, inputs):
     global _track_contents
     pupil = optm.optical_spec.pupil
     if cmd == 'FNUM':
-        pupil.key = 'aperture', 'image', 'f/#'
+        pupil.key = 'image', 'f/#'
     elif cmd == 'OBNA':
-        pupil.key = 'aperture', 'object', 'NA'
+        pupil.key = 'object', 'NA'
     elif cmd == 'ENPD':
-        pupil.key = 'aperture', 'object', 'epd'
+        pupil.key = 'object', 'epd'
     else:
         return False
 
@@ -488,13 +488,13 @@ def field_spec_data(optm, cmd, inputs):
         ftyp = int(inputs.split()[0])
         _track_contents["FTYP"] = inputs
         if ftyp == 0:
-            fov.key = 'field', 'object', 'angle'
+            fov.key = 'object', 'angle'
         elif ftyp == 1:
-            fov.key = 'field', 'object', 'height'
+            fov.key = 'object', 'height'
         elif ftyp == 2:
-            fov.key = 'field', 'image', 'height'
+            fov.key = 'image', 'height'
         elif ftyp == 3:
-            fov.key = 'field', 'image', 'height'
+            fov.key = 'image', 'height'
         return True
     elif cmd == 'VDXN' or cmd == 'VDYN':
         attr = 'vd' + cmd[2].lower()

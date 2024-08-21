@@ -102,10 +102,10 @@ def read_lens(inpts):
     sm.gaps[0].thi = thi_obj
 
     osp = opt_model['osp']
-    osp['pupil'].key = ('aperture', 'image', 'f/#')
+    osp['pupil'].key = ('image', 'f/#')
     osp['pupil'].value = read_float(var_dists['F-Number'][0])
 
-    osp['fov'].key = ('field', 'image', 'height')
+    osp['fov'].key = ('image', 'height')
     osp['fov'].value = read_float(var_dists['Image Height'][0])/2
     osp['fov'].is_relative = True
     osp['fov'].set_from_list([0., .707, 1.])

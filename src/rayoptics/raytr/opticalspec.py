@@ -182,7 +182,7 @@ class OpticalSpecs:
                 pupil_key = 'epd'
                 pupil_value = 2*y1_star
 
-        pupil.key = 'aperture', pupil_oi_key, pupil_key
+        pupil.key = pupil_oi_key, pupil_key
         pupil.value = pupil_value
 
         fov = self['fov']
@@ -213,7 +213,7 @@ class OpticalSpecs:
             field_key = 'height'
             field_value = ybar0_star
 
-        fov.key = 'field', fov_oi_key, field_key
+        fov.key = fov_oi_key, field_key
         fov.value = field_value
 
     def sync_to_restore(self, opt_model):
@@ -484,7 +484,7 @@ class PupilSpec:
     """ Aperture specification
 
     Attributes:
-        key: 'aperture', 'object'|'image', 'epd'|'NA'|'f/#'
+        key: 'object'|'image', 'epd'|'NA'|'f/#'
         value: size of the pupil
         pupil_rays: list of relative pupil coordinates for pupil limiting rays
         ray_labels: list of string labels for pupil_rays
@@ -638,7 +638,7 @@ class FieldSpec:
     """ Field of view specification
 
     Attributes:
-        key: 'field', 'object'|'image', 'height'|'angle'
+        key: 'object'|'image', 'height'|'angle'
         value: maximum field, per the key
         fields: list of Field instances
         is_relative: if True, `fields` are relative to max field
