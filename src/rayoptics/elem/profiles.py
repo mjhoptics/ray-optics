@@ -3,6 +3,8 @@
 # Copyright © 2017 Michael J. Hayford
 """ Module for different surface profile shapes
 
+    The profiles module captures the geometric shape aspect of the optical interface. The :class:`~.SurfaceProfile` base class specifies an api that subclasses implement to provide different shapes. It also provides generic implementations of ray-profile intersections.
+
 .. Created on Tue Aug  1 13:18:57 2017
 
 .. codeauthor: Michael J. Hayford
@@ -53,15 +55,24 @@ class SurfaceProfile:
         return self
 
     def f(self, p):
-        """Returns the value of the profile surface function at point *p*. """
+        """Returns the value of the profile surface function at point :math:`\\boldsymbol{p}`. 
+        
+        :math:`f({\\boldsymbol{p}}) = 0`
+
+        where :math:`\\boldsymbol{p}=({x, y, z})^T`
+        """
         pass
 
     def df(self, p):
-        "Returns the gradient of the profile surface function at point *p*. "
+        """Returns the gradient of the profile surface function at point :math:`\\boldsymbol{p}`. 
+        
+        :math:`df(\\boldsymbol{p}) = \\partial{f(\\boldsymbol{p})}/\\partial{\\boldsymbol{p}}`
+        """
         pass
 
     def normal(self, p):
-        """Returns the unit normal of the profile at point *p*. """
+        """Returns the unit normal of the profile at point :math:`\\boldsymbol{p}`. 
+        """
         return normalize(self.df(p))
 
     def sag(self, x, y):
@@ -177,6 +188,8 @@ class SurfaceProfile:
     def intersect_scipy(self, p0, d, eps, z_dir):
         ''' Intersect a profile, starting from an arbitrary point.
 
+        Uses the `newton` method of `scipy.optimize.root_scalar <https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.root_scalar.html#root-scalar>`_.
+
         Args:
             p0:  start point of the ray in the profile's coordinate system
             d:  direction cosine of the ray in the profile's coordinate system
@@ -210,7 +223,17 @@ class SurfaceProfile:
 
 
 class Spherical(SurfaceProfile):
-    """ Spherical surface profile parameterized by curvature. """
+    """ Spherical surface profile parameterized by curvature. 
+    
+    
+    The sag :math:`z` is given by:
+
+    :math:`z = R - \\sqrt{R^2 - x^2 - y^2}`
+    
+    where :math:`R = 1/c`
+
+    ---
+    """
 
     def __init__(self, c=0.0, r=None):
         """ initialize a Spherical profile.
@@ -420,6 +443,25 @@ class Conic(SurfaceProfile):
         + cc = -1.0: paraboloid
         + cc < -1.0: hyperboloid
 
+    Conics produced for conic asphere values:
+
+        + ec > 1.0: oblate spheroid
+        + ec = 1.0: sphere
+        + ec > 0.0 and < 1.0: ellipsoid
+        + ec = 0.0: paraboloid
+        + ec < 0.0: hyperboloid
+
+    The conic constant is related to the conic asphere as:
+    
+        + cc = ec - 1
+
+    The sag :math:`z` is given by:
+
+    :math:`z(r)=\\dfrac{cr^2}{1+\sqrt[](1-\\textbf{ec } c^2 r^2)}`
+
+    where :math:`r^2 = x^2+y^2`
+
+    ---
     """
 
     def __init__(self, c=0.0, cc=0.0, r=None, ec=None):
@@ -614,7 +656,36 @@ def aspheric_profile(surface_profile, sd, dir=1, steps=21):
 
 
 class EvenPolynomial(SurfaceProfile):
-    """ Even Polynomial asphere up to 20th order, on base conic. """
+    """ Even Polynomial asphere, even terms up to 20th order, on base conic. 
+
+    Conics produced for conic constant values:
+
+        + cc > 0.0: oblate spheroid
+        + cc = 0.0: sphere
+        + cc < 0.0 and > -1.0: ellipsoid
+        + cc = -1.0: paraboloid
+        + cc < -1.0: hyperboloid
+
+    Conics produced for conic asphere values:
+
+        + ec > 1.0: oblate spheroid
+        + ec = 1.0: sphere
+        + ec > 0.0 and < 1.0: ellipsoid
+        + ec = 0.0: paraboloid
+        + ec < 0.0: hyperboloid
+
+    The conic constant is related to the conic asphere as:
+    
+        + cc = ec - 1
+
+    The sag :math:`z` is given by:
+
+    :math:`z(r)=\\dfrac{cr^2}{1+\sqrt[](1-\\textbf{ec } c^2 r^2)}+\sum_{i=1}^{20} a_ir^{2i}`
+
+    where :math:`r^2=x^2+y^2`
+
+    ---
+    """
 
     def __init__(self, c=0.0, cc=0.0, r=None, ec=None, coefs=None):
         """ initialize a EvenPolynomial profile.
@@ -654,6 +725,9 @@ class EvenPolynomial(SurfaceProfile):
         self.coef16 = 0.0
         self.coef18 = 0.0
         self.coef20 = 0.0
+
+        # ensure profile is in a valid state
+        self.update()
 
     @property
     def r(self):
@@ -794,14 +868,35 @@ class EvenPolynomial(SurfaceProfile):
 
 
 class RadialPolynomial(SurfaceProfile):
-    """ Radial Polynomial asphere, on base conic.
+    """ Radial Polynomial asphere, both even and odd terms, on base conic.
+
+    Conics produced for conic constant values:
+
+        + cc > 0.0: oblate spheroid
+        + cc = 0.0: sphere
+        + cc < 0.0 and > -1.0: ellipsoid
+        + cc = -1.0: paraboloid
+        + cc < -1.0: hyperboloid
 
     Conics produced for conic asphere values:
-        ec > 1.0: oblate spheroid
-        ec = 1.0: sphere
-        ec > 0.0 and < 1.0: ellipsoid
-        ec = 0.0: paraboloid
-        ec < 0.0: hyperboloid
+
+        + ec > 1.0: oblate spheroid
+        + ec = 1.0: sphere
+        + ec > 0.0 and < 1.0: ellipsoid
+        + ec = 0.0: paraboloid
+        + ec < 0.0: hyperboloid
+
+    The conic constant is related to the conic asphere as:
+    
+        + cc = ec - 1
+
+    The sag :math:`z` is given by:
+
+    :math:`z(r)=\\dfrac{cr^2}{1+\sqrt[](1-\\textbf{ec } c^2 r^2)}+\sum_{i=1}^{10} a_ir^i`
+
+    where :math:`r^2 = x^2+y^2`
+
+    ---
     """
     initial_size = 10
 
@@ -816,7 +911,7 @@ class RadialPolynomial(SurfaceProfile):
             cc: conic constant (= ec - 1). If cc is specified, it overrides any
                 input for the conic asphere (ec).
             coefs: a list of radial coefficents, starting with the
-                constant term, (and not exceeding the 10th order term).
+                linear term, and not exceeding the 10th order term.
         """
         if r is not None:
             self.r = r
@@ -843,6 +938,9 @@ class RadialPolynomial(SurfaceProfile):
         self.coef8 = 0.0
         self.coef9 = 0.0
         self.coef10 = 0.0
+
+        # ensure profile is in a valid state
+        self.update()
 
     @property
     def r(self):
@@ -1003,7 +1101,37 @@ class RadialPolynomial(SurfaceProfile):
 
 
 class YToroid(SurfaceProfile):
-    """Y Aspheric toroid, up to 20th order, on base conic. """
+    """Y Aspheric toroid, even terms up to 20th order, on base conic. 
+    
+    Conics produced for conic constant values:
+
+        + cc > 0.0: oblate spheroid
+        + cc = 0.0: sphere
+        + cc < 0.0 and > -1.0: ellipsoid
+        + cc = -1.0: paraboloid
+        + cc < -1.0: hyperboloid
+
+    Conics produced for conic asphere values:
+
+        + ec > 1.0: oblate spheroid
+        + ec = 1.0: sphere
+        + ec > 0.0 and < 1.0: ellipsoid
+        + ec = 0.0: paraboloid
+        + ec < 0.0: hyperboloid
+
+    The conic constant is related to the conic asphere as:
+    
+        + cc = ec - 1
+
+    The sag :math:`z` is given by:
+
+    :math:`z=f(y)-\\frac{1}{2}\\textbf{cR}[x^2+z^2-f^2(y)]`
+    
+    where :math:`f(y)=\\dfrac{cy^2}{1+\sqrt[](1-\\textbf{ec } c^2 y^2)}+\sum_{i=1}^{20} a_iy^{2i}`
+
+    is the sweep profile curve.
+
+    """
 
     def __init__(self,
                  c=0.0, cR=0, cc=0.0,
@@ -1053,6 +1181,9 @@ class YToroid(SurfaceProfile):
         self.coef16 = 0.0
         self.coef18 = 0.0
         self.coef20 = 0.0
+
+        # ensure profile is in a valid state
+        self.update()
 
     @property
     def r(self):
@@ -1229,7 +1360,38 @@ class YToroid(SurfaceProfile):
 
 
 class XToroid(YToroid):
-    """X Aspheric toroid, up to 20th order, on base conic. Leverage YToroid"""
+    """X Aspheric toroid, even terms up to 20th order, on base conic. 
+    
+    Leverages the YToroid implementation.
+
+    Conics produced for conic constant values:
+
+        + cc > 0.0: oblate spheroid
+        + cc = 0.0: sphere
+        + cc < 0.0 and > -1.0: ellipsoid
+        + cc = -1.0: paraboloid
+        + cc < -1.0: hyperboloid
+
+    Conics produced for conic asphere values:
+
+        + ec > 1.0: oblate spheroid
+        + ec = 1.0: sphere
+        + ec > 0.0 and < 1.0: ellipsoid
+        + ec = 0.0: paraboloid
+        + ec < 0.0: hyperboloid
+
+    The conic constant is related to the conic asphere as:
+    
+        + cc = ec - 1
+
+    The sag :math:`z` is given by:
+
+    :math:`z=f(x)-\\frac{1}{2}\\textbf{cR}[y^2+z^2-f^2(x)]`
+    
+    where :math:`f(x)=\\dfrac{cx^2}{1+\sqrt[](1-\\textbf{ec } c^2 x^2)}+\sum_{i=1}^{20} a_ix^{2i}`
+
+    is the sweep profile curve.
+    """
 
     def __init__(self,
                  c=0.0, cR=0, cc=0.0,
