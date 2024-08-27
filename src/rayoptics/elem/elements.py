@@ -29,6 +29,7 @@ from rayoptics.oprops import thinlens
 from rayoptics.elem import parttree
 from rayoptics.elem.profiles import SurfaceProfile, Spherical, Conic
 from rayoptics.elem.surface import Surface
+from rayoptics.elem import transform as trns
 from rayoptics.seq.gap import Gap
 from rayoptics.seq.medium import decode_medium
 
@@ -38,7 +39,7 @@ from rayoptics.seq.interface import Interface
 import rayoptics.gui.appcmds as cmds
 from rayoptics.gui.actions import (Action, AttrAction, SagAction, BendAction,
                                    ReplaceGlassAction)
-from rayoptics.gui.util import calc_render_color_for_material
+from rayoptics.gui.util import (calc_render_color_for_material, transform_poly)
 
 import opticalglass.glassfactory as gfact  # type: ignore
 from opticalglass.modelglass import ModelGlass  # type: ignore
@@ -400,11 +401,12 @@ def create_assembly_from_seq(opt_model, idx1, idx2, **kwargs):
     return asm, asm_node
 
 
-def render_lens_shape(s1, profile1, s2, profile2, thi, extent, sd, is_flipped, 
-                      hole_sd=None, flat1_pkg=None, flat2_pkg=None):
+def render_lens_shape(s1, profile1, s2, profile2, thi, extent, sd, 
+                      is_flipped, hole_sd=None, apply_tfrm=True,
+                      flat1_pkg=None, flat2_pkg=None):
     is_concave_s1 = s1.profile_cv < 0.0
     is_concave_s2 = s2.profile_cv > 0.0
-        
+
     profile_polys = []
 
     flat = None
@@ -431,25 +433,35 @@ def render_lens_shape(s1, profile1, s2, profile2, thi, extent, sd, is_flipped,
 
     poly2 = full_profile(profile2, is_flipped, extent,
                          flat, hole_id=hole_sd, dir=-1)
-    profile_polys.append(poly2)
 
+    if apply_tfrm:
+        # get the full transform between lens surfaces
+        r_new, t_new = trns.forward_transform(s1, thi, s2)
+    else:
+        r_new, t_new = np.identity(3), np.array([0., 0., thi])
+
+    # apply transformation to poly2 profile
+    poly2_tfrmd = []
+    for polyline in poly2:
+        poly = np.array(polyline)
+        poly_tfrmd = transform_poly((r_new, t_new), poly)
+        poly2_tfrmd.append(poly_tfrmd.tolist())
+    profile_polys.append(poly2_tfrmd)
+
+    # assemble the tuple for handling holes, 1 or 2 polylines
     if hole_sd is None:
         poly = []
         poly += poly1[0]
         orig_pt = deepcopy(poly1[0][0])
-        for p in poly2[0]:
-            p[0] += thi
-        poly += poly2[0]
+        poly += poly2_tfrmd[0]
         poly.append(orig_pt)
         poly = poly,
     else:
         poly_list = []
-        for p1, p2 in zip(poly1, poly2):
+        for p1, p2 in zip(poly1, poly2_tfrmd):
             poly = []
             poly += p1
             orig_pt = deepcopy(p1[0])
-            for p in p2:
-                p[0] += thi
             poly += p2
             poly.append(orig_pt)
             poly_list.append(poly)
@@ -458,9 +470,30 @@ def render_lens_shape(s1, profile1, s2, profile2, thi, extent, sd, is_flipped,
     return poly, profile_polys
 
 
+def render_surf_shape(srf, profile, extent, sd, is_flipped, 
+                      hole_sd=None, flat_pkg=None):
+    is_concave_srf = srf.profile_cv < 0.0
+
+    flat = None
+    if flat_pkg is not None:
+        do_flat1, flat1 = flat_pkg
+        if use_flat(do_flat1, is_concave_srf):
+            if flat1 is None:
+                flat = flat1 = compute_flat(srf, sd)
+            else:
+                flat = flat1
+
+    poly_list = full_profile(profile, is_flipped, extent, 
+                                flat, hole_id=hole_sd)
+
+    return poly_list
+
+
 def full_profile(profile, is_flipped, edge_extent,
                  flat_id=None, hole_id=None, dir=1, steps=6):
     """Produce a 2d segmented approximation to the *profile*. 
+
+    In the case of a hole, 2 polyline segments are returned. Otherwise, a single polyline is returned (as a tuple of len=1)
 
     Args:
 
@@ -497,32 +530,40 @@ def full_profile(profile, is_flipped, edge_extent,
 
     else:
         prf = []
-
         # compute top part of flat
         try:
             sag = profile.sag(0, flat_id)
         except TraceError:
             sag = None
         else:
-            if dir > 0:
-                sd_lwr_pt = [sag, sd_lwr]
-                sd_upr_pt = [sag, sd_upr]
-            else:
-                sd_lwr_pt = [sag, sd_upr]
-                sd_upr_pt = [sag, sd_lwr]
+            sd_lwr_pt = [sag, sd_lwr]
+            sd_upr_pt = [sag, sd_upr]
 
         if hole_id is None:
-            prf_full = [sd_lwr_pt] if sag is not None else []
-            prf_full += profile.profile((flat_id,), dir, steps)
-            if sag is not None:
-                prf_full.append(sd_upr_pt)
+            if dir > 0:
+                prf_full = [sd_lwr_pt] if sag is not None else []
+                prf_full += profile.profile((flat_id,), dir, steps)
+                if sag is not None:
+                    prf_full.append(sd_upr_pt)
+            else:
+                prf_full = [sd_upr_pt] if sag is not None else []
+                prf_full += profile.profile((flat_id,), dir, steps)
+                if sag is not None:
+                    prf_full.append(sd_lwr_pt)
             prf = prf_full,
         else:
-            prf_lwr = [sd_lwr_pt] if sag is not None else []
-            prf_lwr += profile.profile((-flat_id, -hole_id), dir, steps)
-            prf_upr = profile.profile((hole_id, flat_id), dir, steps)
-            if sag is not None:
-                prf_upr.append(sd_upr_pt)
+            if dir > 0:
+                prf_lwr = [sd_lwr_pt] if sag is not None else []
+                prf_lwr += profile.profile((-flat_id, -hole_id), dir, steps)
+                prf_upr = profile.profile((hole_id, flat_id), dir, steps)
+                if sag is not None:
+                    prf_upr.append(sd_upr_pt)
+            else:
+                prf_upr = [sd_upr_pt] if sag is not None else []
+                prf_upr += profile.profile((hole_id, flat_id), dir, steps)
+                prf_lwr = profile.profile((-flat_id, -hole_id), dir, steps)
+                if sag is not None:
+                    prf_lwr.append(sd_lwr_pt)
             prf = prf_lwr, prf_upr
 
     if is_flipped:
@@ -767,7 +808,7 @@ class Element(Part):
         o_str += f"idx={idx_list},   gaps={gap_list}   conic cnst={self.cc}\n"
         o_str += f"coefficients: {self.coefs}\n"
         return o_str
-        fmt = f"Element: {self.s1.profile:!r}, {self.s2.profile:!r}, t={self.gap.thi:.4f}, sd={self.sd:.4f}, glass: {self.gap.medium.name()}"
+        fmt = f"Element: {self.s1.profile!r}, {self.s2.profile!r}, t={self.gap.thi:.4f}, sd={self.sd:.4f}, glass: {self.gap.medium.name()}"
 
     def sync_to_restore(self, ele_model, surfs, gaps, tfrms, 
                         profile_dict, parts_dict):
@@ -928,9 +969,8 @@ class Element(Part):
         s2 = self.s2
         flat1_pkg = self.do_flat1, self.flat1
         flat2_pkg = self.do_flat2, self.flat2
-
         poly, self.profile_polys = render_lens_shape(
-            s1, s1.profile, s2, s2.profile, self.gap.thi, 
+            s1, s1.profile, s2, s2.profile, self.gap.thi,
             self.extent(), self.sd, self.is_flipped, 
             hole_sd=self.hole_sd, flat1_pkg=flat1_pkg, flat2_pkg=flat2_pkg)
 
@@ -1073,7 +1113,7 @@ class SurfaceInterface(Part):
         return attrs
 
     def __str__(self):
-        return f"Surface: {self.profile:!r}, sd={self.sd:.4f}"
+        return f"Surface: {self.profile!r}, sd={self.sd:.4f}"
 
     def listobj_str(self):
         o_str = f"part: {type(self).__name__}, "
@@ -1253,8 +1293,8 @@ class Mirror(SurfaceInterface):
     
     def __str__(self):
         thi = self.get_thi()
-        fmt = 'Mirror: {!r}, t={:.4f}, sd={:.4f}'
-        return fmt.format(self.profile, thi, self.sd)
+        fmt = f"Mirror: {self.profile!r}, t={thi:.4f}, sd={self.sd:.4f}"
+        return fmt
 
     def listobj_str(self):
         o_str = f"part: {type(self).__name__}, "
@@ -1297,7 +1337,7 @@ class Mirror(SurfaceInterface):
 
         poly, self.profile_polys = render_lens_shape(
             s, s.profile, s, s.profile, thi, 
-            self.extent(), self.sd, self.is_flipped, 
+            self.extent(), self.sd, self.is_flipped, apply_tfrm=False,
             hole_sd=self.hole_sd, flat1_pkg=flat_pkg, flat2_pkg=flat_pkg)
 
         return poly
@@ -1412,6 +1452,8 @@ class CementedElement(Part):
         self.do_flat_0 = 'if concave'  # alternatives are 'never', 'always',
         self.do_flat_k = 'if concave'  # or 'if convex'
 
+        self.do_render_shape = True # if true, render elements, otherwise surfaces
+
         self.handles = {}
         self.actions = {}
 
@@ -1460,7 +1502,7 @@ class CementedElement(Part):
         o_str = f"{ele_type[0]}: {ele_type[2]}\n"
         o_str += f"idx={idx_list},   gaps={gap_list}\n"
         return o_str
-        fmt = f"Element: {self.s1.profile:!r}, {self.s2.profile:!r}, t={self.gap.thi:.4f}, sd={self.sd:.4f}, glass: {self.gap.medium.name()}"
+        fmt = f"Element: {self.s1.profile!r}, {self.s2.profile!r}, t={self.gap.thi:.4f}, sd={self.sd:.4f}, glass: {self.gap.medium.name()}"
 
     def sync_to_restore(self, ele_model, surfs, gaps, tfrms, 
                         profile_dict, parts_dict):
@@ -1493,6 +1535,8 @@ class CementedElement(Part):
             self.medium_name = self._construct_medium_name()
         if not hasattr(self, 'ele_token'):
             self.ele_token = CementedElement.default_ele_token
+        if not hasattr(self, 'do_render_shape'):
+            self.do_render_shape = True
         self.handles = {}
         self.actions = {}
 
@@ -1609,12 +1653,13 @@ class CementedElement(Part):
         self.sd = max([ifc.surface_od() for ifc in self.ifcs])
         return self.sd
 
-    def compute_inner_flat(self, idx, sd):
+    def compute_inner_flat(self, idx, sd, k):
         ''' compute flats, if needed, for the inner cemented surfaces. 
 
         Args:
             idx: index of inner surface in profile list
             sd: the semi-diameter of the cemented element
+            k: final, k-th, profile index
         
         This function is needed to handle the cases where one of the outer
         surfaces has a flat and the inner surface would intersect this flat.
@@ -1636,8 +1681,8 @@ class CementedElement(Part):
         
         flat_0 = self.flats[0]
         sag0 = self.profiles[0].sag(0., flat_0) if flat_0 else 0.0
-        flat_k = self.flats[-1]
-        sagk = self.profiles[-1].sag(0., flat_k) if flat_k else 0.0
+        flat_k = self.flats[k]
+        sagk = self.profiles[k].sag(0., flat_k) if flat_k else 0.0
         
         thi_b4 = thi_aftr = 0.
         for i in range(idx):
@@ -1650,7 +1695,7 @@ class CementedElement(Part):
             if self.flats[0] is not None:
                 flat_i = sphere_sag_to_zone(sag0 + thi_b4, p.cv)
         elif p.cv > 0.0:
-            if self.flats[-1] is not None:
+            if self.flats[k] is not None:
                 flat_i = sphere_sag_to_zone(sagk + thi_aftr, p.cv)
 
         if flat_i is not None and flat_i > sd:
@@ -1665,12 +1710,99 @@ class CementedElement(Part):
             return (-self.sd, self.sd)
 
     def render_shape(self):
-        '''return a polyline that is representative of the cemented element. '''
+        '''return a tuple of polylines of the lenses of the cemented element. 
+        
+        Flats on the outer surfaces of the cemented assembly are checked for 
+        intersections with the internal surfaces. The first outer surface
+        is the zeroth interface; the other outer surface is interface `k`.
+        In the case of the mangin assembly, the k-th surface is in the middle
+        of the interface list.
+        '''
         ifcs = self.ifcs
         profiles = self.profiles
         gaps = self.gaps
         polygon_list = []
-        thi = 0
+
+        len_gaps = len(gaps)
+        if self.ele_token == 'mangin':
+            num_gaps = len_gaps>>1
+            k = num_gaps
+        else:
+            k = -1
+        
+        # examine all profiles for possible (or required) flats.
+        # only consider first profile for a flat if it is concave
+        is_concave_0 = self.profiles[0].cv < 0.0
+        if use_flat(self.do_flat_0, is_concave_0):
+            self.flats[0] = compute_flat(self.ifcs[0], self.sd)
+        else:
+            self.flats[0] = None
+        # for the mangin case, the first and last surfaces are the
+        # same. Sync the flat definitions.
+        if self.ele_token == 'mangin':
+            self.flats[-1] = self.flats[0]
+
+        # only consider last profile for a flat if it is concave
+        # note that "last profile" for a mangin mirror is 
+        # the middle profile in the list.
+        is_concave_k = self.profiles[k].cv > 0.0
+        if use_flat(self.do_flat_k, is_concave_k):
+            self.flats[k] = compute_flat(self.ifcs[k], self.sd)
+        else:
+            self.flats[k] = None
+
+        flat1_pkg = 'always', self.flats[0]
+        for i, gap in enumerate(gaps):
+            # compute flats for inner profiles that intersect outer flats
+            if i+1<len(gaps) and i+1 != k:
+                self.flats[i+1] = self.compute_inner_flat(i+1, self.sd, k)
+
+            if self.flats[i+1] is not None:
+                flat2_pkg = 'always', self.flats[i+1]
+            else:
+                flat2_pkg = None
+
+            poly_list, profile_polys = render_lens_shape(
+                ifcs[i], profiles[i], ifcs[i+1], profiles[i+1], gap.thi,
+                self.extent(), self.sd, self.is_flipped, hole_sd=self.hole_sd, 
+                flat1_pkg=flat1_pkg, flat2_pkg=flat2_pkg
+                )
+
+            if i>0:
+                r, t = trns.forward_transform(ifcs[i-1], zdist, ifcs[i])
+
+                t_new = np.matmul(r_prev, t) + t_prev
+                r_new = np.matmul(r_prev, r)
+            else:
+                r_new, t_new = np.identity(3), np.array([0., 0., 0.])
+
+            poly_tfrmd_list = []
+            for polyline in poly_list:
+                poly = np.array(polyline)
+                poly_tfrmd = transform_poly((r_new, t_new), poly)
+                poly_tfrmd_list.append(poly_tfrmd.tolist())
+
+            polygon_list.append(tuple(poly_tfrmd_list))
+
+            zdist = gap.thi
+            flat1_pkg = flat2_pkg
+            r_prev, t_prev = r_new, t_new
+
+        return tuple(polygon_list)
+
+    def render_as_surfs(self):
+        '''return a tuple of polylines of the surfaces of the cemented element. '''
+        ifcs = self.ifcs
+        profiles = self.profiles
+        gaps = self.gaps
+        len_gaps = len(gaps)
+        if self.ele_token == 'mangin':
+            num_gaps = len_gaps>>1
+            k = num_gaps
+        else:
+            k = -1
+        polygon_list = []
+
         # examine all profiles for possible (or required) flats.
         # only consider first profile for a flat if it is concave
         is_concave_0 = self.profiles[0].cv < 0.0
@@ -1686,44 +1818,62 @@ class CementedElement(Part):
         else:
             self.flats[-1] = None
 
-        flat1_pkg = 'always', self.flats[0]
-        for i, gap in enumerate(gaps):
+        for i, ifc in enumerate(ifcs):
             # compute flats for inner profiles that intersect outer flats
-            if i+1<len(gaps):
-                self.flats[i+1] = self.compute_inner_flat(i+1, self.sd)
+            self.flats[i] = self.compute_inner_flat(i, self.sd, k)
 
-            if self.flats[i+1] is not None:
-                flat2_pkg = 'always', self.flats[i+1]
+            if self.flats[i] is not None:
+                flat_pkg = 'always', self.flats[i]
             else:
-                flat2_pkg = None
+                flat_pkg = None
 
-            poly_list, profile_polys = render_lens_shape(
-                ifcs[i], profiles[i], ifcs[i+1], profiles[i+1], gap.thi, 
-                self.extent(), self.sd, self.is_flipped, hole_sd=self.hole_sd, 
-                flat1_pkg=flat1_pkg, flat2_pkg=flat2_pkg
-                )
-            for poly in poly_list:
-                for p in poly:
-                    p[0] += thi
-            thi += gap.thi
-            polygon_list.append(poly_list)
-            flat1_pkg = flat2_pkg
+            poly_list = render_surf_shape(ifc, profiles[i], self.extent(),
+                                          self.sd, self.is_flipped, 
+                                          hole_sd=self.hole_sd, 
+                                          flat_pkg=flat_pkg)
+
+            if i>0:
+                r, t = trns.forward_transform(b4_ifc, zdist, ifc)
+
+                t_new = np.matmul(r_prev, t) + t_prev
+                r_new = np.matmul(r_prev, r)
+            else:
+                r_new, t_new = np.identity(3), np.array([0., 0., 0.])
+
+            poly_tfrmd_list = []
+            for polyline in poly_list:
+                poly = np.array(polyline)
+                poly_tfrmd = transform_poly((r_new, t_new), poly)
+                poly_tfrmd_list.append(poly_tfrmd.tolist())
+
+            polygon_list.append(tuple(poly_tfrmd_list))
+
+            if i<len(gaps):
+                zdist = gaps[i].thi
+            b4_ifc = ifc
+            r_prev, t_prev = r_new, t_new
 
         return tuple(polygon_list)
-
+    
     def render_handles(self, opt_model):
         self.handles = {}
 
-        shape = self.render_shape()
+        if self.do_render_shape:
+            shape = self.render_shape()
+        else:
+            shape = self.render_as_surfs()
+
         self.handles['shape'] = GraphicsHandle(shape, self.tfrm, 'polyline')
 
-        for i, gap in enumerate(self.gaps):
-            polygon_list = shape[i]
-            color = calc_render_color_for_material(gap.medium)
-            for j, poly in enumerate(polygon_list):
-                self.handles['shape'+f"{i+1}"+f"{j+1}"] = GraphicsHandle(
-                    poly, self.tfrm, 'polygon', color
-                    )
+        if self.do_render_shape:
+            for i, gap in enumerate(self.gaps):
+                polygon_list = shape[i]
+                color = calc_render_color_for_material(gap.medium)
+                for j, poly in enumerate(polygon_list):
+                    self.handles['shape'+f"{i+1}"+f"{j+1}"] = GraphicsHandle(
+                        poly, self.tfrm, 'polygon', color
+                        )
+
         return self.handles
     
     def handle_actions(self):
