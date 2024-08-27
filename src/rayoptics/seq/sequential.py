@@ -1020,52 +1020,13 @@ class SequentialModel:
     def trace(self, pt0, dir0, wvl, **kwargs):
         return rt.trace(self, pt0, dir0, wvl, **kwargs)
 
-    def compute_global_coords(self, glo=1):
-        """ Return global surface coordinates (rot, t) wrt surface glo. """
-        tfrms = []
-        r, t = np.identity(3), np.array([0., 0., 0.])
-        prev = r, t
-        tfrms.append(prev)
-        if glo > 0:
-            # iterate in reverse over the segments before the
-            #  global reference surface
-            step = -1
-            seq = itertools.zip_longest(self.ifcs[glo::step],
-                                        self.gaps[glo-1::step])
-            ifc, gap = after = next(seq)
-            # loop of remaining surfaces in path
-            while True:
-                try:
-                    b4_ifc, b4_gap = before = next(seq)
-                    zdist = gap.thi
-                    r, t = trns.reverse_transform(ifc, zdist, b4_ifc)
-                    t = prev[0].dot(t) + prev[1]
-                    r = prev[0].dot(r)
-                    prev = r, t
-                    tfrms.append(prev)
-                    after, ifc, gap = before, b4_ifc, b4_gap
-                except StopIteration:
-                    break
-            tfrms.reverse()
-    
-        seq = itertools.zip_longest(self.ifcs[glo:], self.gaps[glo:])
-        b4_ifc, b4_gap = before = next(seq)
-        prev = np.identity(3), np.array([0., 0., 0.])
-        # loop forward over the remaining surfaces in path
-        while True:
-            try:
-                ifc, gap = after = next(seq)
-                zdist = b4_gap.thi
-                r, t = trns.forward_transform(b4_ifc, zdist, ifc)
-                t = prev[0].dot(t) + prev[1]
-                r = prev[0].dot(r)
-                prev = r, t
-                tfrms.append(prev)
-                before, b4_ifc, b4_gap = after, ifc, gap
-            except StopIteration:
-                break
-    
-        return tfrms
+    def compute_global_coords(self, glo=1, origin=None, **kwargs):
+        """ Return global surface coordinates (rot, t) wrt surface `glo`. 
+        
+        If origin isn't None, it should be a tuple (r, t) being the transform
+          from the desired global origin to the specified global surface.
+        """
+        return trns.compute_global_coords(self, glo, origin)
 
     def compute_local_transforms(self, seq=None, step=1):
         """ Return forward surface coordinates (r.T, t) for each interface. """
@@ -1073,20 +1034,15 @@ class SequentialModel:
         if seq is None:
             seq = itertools.zip_longest(self.ifcs[::step],
                                         self.gaps[::step])
-        b4_ifc, b4_gap = before = next(seq)
-        while before is not None:
-            try:
-                ifc, gap = after = next(seq)
-            except StopIteration:
-                tfrms.append((np.identity(3), np.array([0., 0., 0.])))
-                break
-            else:
-                zdist = step*b4_gap.thi
-                r, t = trns.forward_transform(b4_ifc, zdist, ifc)
-                rt = r.transpose()
-                tfrms.append((rt, t))
-                before, b4_ifc, b4_gap = after, ifc, gap
+        b4_ifc, b4_gap = next(seq)
+        for (ifc, gap) in seq:
+            zdist = b4_gap.thi
+            r, t = trns.forward_transform(b4_ifc, zdist, ifc)
+            rt = r.transpose()
+            tfrms.append((rt, t))
+            b4_ifc, b4_gap = ifc, gap
 
+        tfrms.append((np.identity(3), np.array([0., 0., 0.])))
         return tfrms
 
     def list_lcl_tfrms(self, *args):
@@ -1108,7 +1064,7 @@ class SequentialModel:
                 print(f"{i:2d}:  {r[0][0]:10.6f}  {r[0][1]:10.6f}  {r[0][2]:10.6f}  {t[0]:12.5f}")
                 print(f"     {r[1][0]:10.6f}  {r[1][1]:10.6f}  {r[1][2]:10.6f}  {t[1]:12.5f}")
                 print(f"     {r[2][0]:10.6f}  {r[2][1]:10.6f}  {r[2][2]:10.6f}  {t[2]:12.5f}\n")
-                
+        return tfrms
 
     def find_matching_ifcs(self):
         rot_tols = dict(atol=1e-14, rtol=1e-8)

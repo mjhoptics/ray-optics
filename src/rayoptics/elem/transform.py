@@ -9,32 +9,82 @@
 """
 
 import numpy as np
+import itertools
+
+
+def compute_global_coords(sm, glo=1, origin=None):
+    """ Return global surface coordinates (rot, t) wrt surface glo. 
+    
+    If origin isn't None, it should be a tuple (r, t) being the transform
+      from the desired global origin to the specified global surface.
+    """
+    def accumulate_transforms(seq, b4_seg, transform_calc, 
+                              tfrm_prev, tfrm_dir: int):
+        b4_ifc, b4_gap, b4_z_dir = b4_seg
+        r_prev, t_prev = tfrm_prev
+        for (ifc, gap, z_dir) in seq:
+            zdist = tfrm_dir * b4_gap.thi
+            r, t = transform_calc(b4_ifc, zdist, ifc)
+
+            t_new = np.matmul(r_prev, t) + t_prev
+            r_new = np.matmul(r_prev, r)
+
+            tfrms.append((r_new, t_new))
+            r_prev, t_prev = r_new, t_new
+            b4_ifc, b4_gap, b4_z_dir = ifc, gap, z_dir
+
+    # Initialize origin of global coordinate system.
+    tfrms = []
+    if origin is None:
+        r_origin, t_origin = np.identity(3), np.array([0., 0., 0.])
+    else:
+        r_origin, t_origin = origin
+    tfrm_origin = r_origin, t_origin
+    tfrms.append(tfrm_origin)
+
+    # Compute transforms from global surface to object surface
+    if glo > 0:
+        # iterate in reverse over the segments before the
+        #  global reference surface
+        step = -1
+        seq = itertools.zip_longest(sm.ifcs[glo::step],
+                                    sm.gaps[glo-1::step],
+                                    sm.z_dir[glo-1::step])
+        b4_seg = next(seq)
+        # loop of remaining surfaces in path
+        accumulate_transforms(seq, b4_seg, reverse_transform, 
+                              tfrm_origin, -1)
+        tfrms.reverse()
+
+    # Compute transforms from global surface to image surface
+    seq = itertools.zip_longest(sm.ifcs[glo:], sm.gaps[glo:], sm.z_dir[glo:])
+    b4_seg = next(seq)
+    accumulate_transforms(seq, b4_seg, forward_transform, 
+                          tfrm_origin, +1)
+
+    return tfrms
 
 
 def forward_transform(s1, zdist, s2):
     """ generate transform rotation and translation from
         s1 coords to s2 coords """
 
-    # calculate origin of s2 wrt to s1
     t_orig = np.array([0., 0., zdist])
     r_after_s1 = r_before_s2 = None
     if s1.decenter:
-        # get transformation info after s1
         r_after_s1, t_after_s1 = s1.decenter.tform_after_surf()
         t_orig += t_after_s1
 
     if s2.decenter:
-        # get transformation info before s2
         r_before_s2, t_before_s2 = s2.decenter.tform_before_surf()
         t_orig += t_before_s2
 
     r_cascade = np.identity(3)
     if r_after_s1 is not None:
-        # rotate the origin of s2 around s1 "after" transformation
-        t_orig = r_after_s1.dot(t_orig)
+        t_orig = np.matmul(r_after_s1, t_orig)
         r_cascade = r_after_s1
         if r_before_s2 is not None:
-            r_cascade = r_after_s1.dot(r_before_s2)
+            r_cascade = np.matmul(r_after_s1, r_before_s2)
     elif r_before_s2 is not None:
         r_cascade = r_before_s2
 
@@ -43,33 +93,25 @@ def forward_transform(s1, zdist, s2):
 
 def reverse_transform(s1, zdist, s2):
     """ generate transform rotation and translation from
-        s2 coords to s1 coords """
-
-    # calculate origin of s2 wrt to s1
+        s1 coords to s2 coords, applying transforms in the reverse order """
     t_orig = np.array([0., 0., zdist])
-    r_after_s1 = r_before_s2 = None
+    r_before_s1 = r_after_s2 = None
     if s1.decenter:
-        # get transformation info after s1
-        r_after_s1, t_after_s1 = s1.decenter.tform_after_surf()
-        t_orig += t_after_s1
+        r_before_s1, t_before_s1 = s1.decenter.tform_before_surf()
+        t_orig += t_before_s1
 
     if s2.decenter:
-        # get transformation info before s2
-        r_before_s2, t_before_s2 = s2.decenter.tform_before_surf()
-        t_orig += t_before_s2
-
-    # going in reverse direction so negate translation
-    t_orig = -t_orig
+        r_after_s2, t_after_s2 = s2.decenter.tform_after_surf()
+        t_orig += t_after_s2
 
     r_cascade = np.identity(3)
-    if r_before_s2 is not None:
-        # rotate the origin of s1 around s2 "before" transformation
-        r_cascade = r_before_s2.transpose()
-        t_orig = r_cascade.dot(t_orig)
-        if r_after_s1 is not None:
-            r_cascade = r_cascade.dot(r_after_s1.transpose())
-    elif r_after_s1 is not None:
-        r_cascade = r_after_s1.transpose()
+    if r_before_s1 is not None:
+        r_cascade = r_before_s1.transpose()
+        t_orig = np.matmul(r_cascade, t_orig)
+        if r_after_s2 is not None:
+            r_cascade = np.matmul(r_cascade, r_after_s2.transpose())
+    elif r_after_s2 is not None:
+        r_cascade = r_after_s2.transpose()
 
     return r_cascade, t_orig
 
