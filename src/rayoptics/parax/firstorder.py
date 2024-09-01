@@ -277,7 +277,7 @@ def compute_first_order(opt_model, stop, wvl, src_model=None):
         elif pupil_key == 'f/#':
             slp0 = -1./(2.0*pupil.value)
         elif pupil_key == 'NA':
-            slp0 = n_0*math.tan(math.asin(pupil.value/n_0))
+            slp0 = pupil.value/n_0
     elif pupil_oi_key == 'image':
         if pupil_key == 'height':
             slpk = pupil_value/obj2enp_dist
@@ -286,7 +286,7 @@ def compute_first_order(opt_model, stop, wvl, src_model=None):
         elif pupil_key == 'f/#':
             slpk = -1./(2.0*pupil.value)
         elif pupil_key == 'NA':
-            slpk = n_k*math.tan(math.asin(pupil.value/n_k))
+            slpk = pupil.value/n_k
         slp0 = slpk/red
     yu = [0., slp0]
 
@@ -364,8 +364,8 @@ def compute_first_order(opt_model, stop, wvl, src_model=None):
         fod.exp_radius = 1e10
 
     # compute object and image space numerical apertures
-    fod.obj_na = n_0*math.sin(math.atan(sm.z_dir[0]*ax_ray[0][slp]))
-    fod.img_na = n_k*math.sin(math.atan(sm.z_dir[-1]*ax_ray[-1][slp]))
+    fod.obj_na = n_0*sm.z_dir[0]*ax_ray[0][slp]
+    fod.img_na = n_k*sm.z_dir[-1]*ax_ray[-1][slp]
 
     return ParaxData(ax_ray, pr_ray, fod)
 

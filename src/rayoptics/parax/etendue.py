@@ -24,22 +24,22 @@ def create_etendue_dict():
     return dict2D(fld_ape_set, obj_img_set)
 
 
-def na2slp(na, n=1.0):
+def na2slp(na: float, n=1.0) -> float:
     """ convert numerical aperture to slope """
-    return n*math.tan(math.asin(na/n))
+    return na/n
 
 
-def slp2na(slp, n=1.0):
+def slp2na(slp: float, n=1.0) -> float:
     """ convert a ray slope to numerical aperture """
-    return n*math.sin(math.atan(slp/n))
+    return n*slp
 
 
-def ang2slp(ang):
+def ang2slp(ang: float) -> float:
     """ convert an angle in degrees to a slope """
     return math.tan(math.radians(ang))
 
 
-def slp2ang(slp):
+def slp2ang(slp: float) -> float:
     """ convert a slope to an angle in degrees """
     return math.degrees(math.atan(slp))
 

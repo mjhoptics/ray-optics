@@ -316,7 +316,7 @@ class SpecSheet():
                     slpk = -1./(2.0*value)
                     slp0 = slpk*imager.f
                 elif value_key == 'NA':
-                    slpk = n_k*math.tan(math.asin(value/n_k))
+                    slpk = value/n_k
                     slp0 = slpk*imager.f
             yu = [0., slp0]
 
@@ -342,13 +342,13 @@ class SpecSheet():
                 elif value_key == 'f/#':
                     slp0 = -1./(2.0*value)
                 elif value_key == 'NA':
-                    slp0 = n_0*math.tan(math.asin(value/n_0))
+                    slp0 = value/n_0
             elif obj_img_key == 'image':
                 if value_key == 'f/#':
                     slpk = -1./(2.0*value)
                     slp0 = slpk*imager.m
                 elif value_key == 'NA':
-                    slpk = n_k*math.tan(math.asin(value/n_k))
+                    slpk = value/n_k
                     slp0 = slpk*imager.m
             yu = [0., slp0]
 
