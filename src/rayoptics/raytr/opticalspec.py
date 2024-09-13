@@ -11,7 +11,8 @@
 import math
 import numpy as np
 
-from rayoptics.parax.firstorder import compute_first_order, list_parax_trace
+from rayoptics.parax.firstorder import (compute_first_order,
+                                        list_parax_trace_fotr)
 from rayoptics.parax import etendue
 from rayoptics.parax import idealimager
 from rayoptics.raytr.trace import aim_chief_ray
@@ -388,7 +389,7 @@ class OpticalSpecs:
         self.opt_model['parax_model'].first_order_data()
 
     def list_parax_trace(self, **kwargs):
-        list_parax_trace(self.opt_model, **kwargs)
+        list_parax_trace_fotr(self.opt_model, **kwargs)
 
 
 class WvlSpec:

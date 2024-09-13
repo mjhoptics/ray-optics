@@ -434,10 +434,18 @@ def compute_principle_points(path, oal, n_0=1.0, n_k=1.0):
                           pp1, ppk, pp_sep, ffl, bfl)
 
 
-def list_parax_trace(opt_model, reduced=False):
-    """ list the paraxial axial and chief ray data """
+def list_parax_trace_fotr(opt_model, reduced=False):
+    """ list the paraxial axial and chief ray data 
+    
+    This function lists the paraxial data as calculated by :func:`paraxial_trace` for the seq_model.
+    """
     seq_model = opt_model.seq_model
     ax_ray, pr_ray, fod = opt_model['analysis_results']['parax_data']
+    list_parax_trace(ax_ray, pr_ray, seq_model, reduced)
+
+
+def list_parax_trace(ax_ray, pr_ray, seq_model, reduced=False):
+    """ list the ray data for the input paraxial rays. """
     num_gaps = len(seq_model.gaps)
     print("stop surface:", seq_model.stop_surface)
     print("           y           u           n*i         ybar         ubar"
