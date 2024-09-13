@@ -39,8 +39,15 @@ def ray_df(ray):
 
 
 def list_ray(ray_obj, tfrms=None, start=0):
-    """ pretty print a ray either in local or global coordinates """
+    """ pretty print a ray either in local or global coordinates 
+    
+    The input ray_obj can be either the return from trace_ray(), i.e.
+    a (ray_pkg, ray_err) tuple or a ray_pkg, i.e. (`ray`, opl, wvl) 
+    or a `ray` alone.
+    """
     if isinstance(ray_obj, tuple):
+        if len(ray_obj) == 2:
+            ray_obj = ray_obj[0]
         ray = ray_obj[0]
     else:
         ray = ray_obj
