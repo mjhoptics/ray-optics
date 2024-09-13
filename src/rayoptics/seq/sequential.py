@@ -29,6 +29,7 @@ import numpy as np
 from math import copysign, sqrt
 from rayoptics.util.misc_math import isanumber
 
+logger = logging.getLogger(__name__)
 
 class SequentialModel:
     """ Manager class for a sequential optical model
@@ -555,11 +556,41 @@ class SequentialModel:
                 self.set_clear_apertures()
 
     def apply_scale_factor(self, scale_factor):
-        for i, sg in enumerate(self.path()):
-            ifc, g, lcl_tfrm, rndx, z_dir = sg
-            ifc.apply_scale_factor(scale_factor)
-            if g:
-                g.apply_scale_factor(scale_factor)
+        self.apply_scale_factor_over(scale_factor)
+
+    def apply_scale_factor_over(self, scale_factor, *surfs):
+        """ Apply the scale_factor to the surfs arg. 
+        
+        If surfs isn't present, the scale_factor is applied to all interfaces 
+        and gaps.
+        If surfs contains a single value, it is applied to that interface and 
+        gap.
+        If surfs contains 2 values it is considered an interface range and the 
+        scale_factor is applied to the interface range and the gaps contained 
+        between the outer interfaces.
+        """
+        if len(surfs) == 0:
+            surfs = 0, len(self.ifcs)
+
+        if len(surfs) == 1:
+            idx = surfs[0]
+            logger.debug(f"{scale_factor=}, {idx=}")
+            self.ifcs[idx].apply_scale_factor(scale_factor)
+            if idx < len(self.gaps):
+                self.gaps[idx].apply_scale_factor(scale_factor)
+
+        elif len(surfs) == 2:
+            idx1, idx2 = surfs
+            logger.debug(f"{scale_factor=}, {idx1=}, {idx2=}")
+            for i in range(idx1, idx2+1):
+                try:
+                    self.ifcs[i].apply_scale_factor(scale_factor)
+                    logger.debug(f"{i}: ifc")
+                    if i < idx2:
+                        self.gaps[i].apply_scale_factor(scale_factor)
+                        logger.debug(f"{i}: gap")
+                except IndexError as ie:
+                    break
 
         self.gbl_tfrms = self.compute_global_coords()
         self.lcl_tfrms = self.compute_local_transforms()
