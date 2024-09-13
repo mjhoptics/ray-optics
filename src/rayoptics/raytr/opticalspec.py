@@ -172,8 +172,8 @@ class OpticalSpecs:
         yk_star, ybark_star = pm.calc_object_and_pupil(num_nodes-2)
 
         pupil = self['pupil']
-        pupil_oi_key_value = pupil.derive_parax_params()
-        pupil_oi_key, pupil_key, pupil_value = pupil_oi_key_value
+        aperture_spec = pupil.derive_parax_params()
+        pupil_oi_key, pupil_key, pupil_value = aperture_spec
         if pupil_key == 'slope':
             if pupil_oi_key == 'object':
                 n = pm.sys[0][mc.indx]
@@ -200,8 +200,8 @@ class OpticalSpecs:
         pupil.value = pupil_value
 
         fov = self['fov']
-        fov_oi_key_value = fov.derive_parax_params()
-        fov_oi_key, field_key, field_value = fov_oi_key_value
+        field_spec = fov.derive_parax_params()
+        fov_oi_key, field_key, field_value = field_spec
         if is_kinda_big(ybar0_star):
             if is_kinda_big(ybark_star):
                 fov_oi_key = 'object'
@@ -847,34 +847,40 @@ class FieldSpec:
     def obj_coords(self, fld):
         """ Return a pt, direction pair characterizing `fld`. 
         
-        Depending on the `key` settings, one of the (obj_pt, obj_dir) tuple
-        could be None. 
+        If a field point is defined in image space, the paraxial object
+        space data is used to calculate the field coordinates.
+
+        Depending on the `key` settings, obj_dir could be None. 
         """
-        fld_coord = np.array([fld.x, fld.y, 0.0])
-        if self.is_relative:
-            fld_coord *= self.value
+        def hypot(dir_tan):
+            return np.sqrt(1 + dir_tan[0]**2 + dir_tan[1]**2)
 
         obj_img_key, value_key = self.key
+        
+        fld_coord = np.array([fld.x, fld.y, 0.0])
+        rel_fld_coord = np.array([fld.x, fld.y, 0.0])
+        if self.is_relative:
+            fld_coord *= self.value
+        else:
+            if self.value != 0:
+                rel_fld_coord /= self.value
 
-        fod = self.optical_spec.opt_model['ar']['parax_data'].fod
+        ax, pr, fod = self.optical_spec.opt_model['ar']['parax_data']
         obj_pt = None
         obj_dir = None
-        if obj_img_key == 'object':
-            if value_key == 'angle':
-                dir_tan = np.tan(np.deg2rad(fld_coord))
-                hypt = np.sqrt(1 + dir_tan[0]**2 + dir_tan[1]**2)
-                pupil_dir = np.array([dir_tan[0]/hypt, dir_tan[1]/hypt])
-                obj_dir = np.array([pupil_dir[0], pupil_dir[1], 
-                                   np.sqrt(1-pupil_dir[0]**2-pupil_dir[1]**2)])
-                obj_pt = -dir_tan*(fod.obj_dist+fod.enp_dist)
-            elif value_key == 'height':
-                obj_pt = fld_coord
-        elif obj_img_key == 'image':
-            if value_key == 'height':
-                img_pt = fld_coord
-                obj_pt = fod.red*img_pt
-        return obj_pt, obj_dir
 
+        if value_key == 'angle':
+            dir_tan = pr[0][mc.slp]*rel_fld_coord
+            hypt = hypot(dir_tan)
+            dir_cos = np.array([dir_tan[0]/hypt, dir_tan[1]/hypt])
+            obj_dir = np.array([dir_cos[0], dir_cos[1], 
+                                np.sqrt(1-dir_cos[0]**2-dir_cos[1]**2)])
+            obj_pt = -dir_tan*(fod.obj_dist+fod.enp_dist)
+        elif value_key == 'height':
+            obj_pt = pr[0][mc.ht]*rel_fld_coord
+
+        return obj_pt, obj_dir
+    
     def max_field(self):
         """ calculates the maximum field of view
 

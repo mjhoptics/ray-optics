@@ -11,6 +11,7 @@ import math
 import numpy as np
 from collections import namedtuple
 from rayoptics.optical.model_constants import ht, slp, aoi
+import rayoptics.optical.model_constants as mc
 from rayoptics.parax.idealimager import ideal_imager_setup
 from rayoptics.util import misc_math
 
@@ -207,6 +208,17 @@ def paraxial_trace(path, start, start_yu, start_yu_bar):
     return p_ray, p_ray_bar
 
 
+def get_parax_matrix(p_ray, q_ray, kth, n_k):
+    """ Calculate transfer matrix and inverse from 1st to kth surface. """
+    ak1 = p_ray[kth][mc.ht]
+    bk1 = q_ray[kth][mc.ht]
+    ck1 = n_k*p_ray[kth][mc.slp]
+    dk1 = n_k*q_ray[kth][mc.slp]
+    Mk1 = np.array([[ak1, bk1], [ck1, dk1]])
+    M1k = np.array([[dk1, -bk1], [-ck1, ak1]])
+    return Mk1, M1k
+
+
 def compute_first_order(opt_model, stop, wvl, src_model=None):
     """ Returns paraxial axial and chief rays, plus first order data. """
     sm = opt_model['seq_model']
@@ -222,6 +234,8 @@ def compute_first_order(opt_model, stop, wvl, src_model=None):
     bk1 = q_ray[img][ht]
     ck1 = n_k*p_ray[img][slp]
     dk1 = n_k*q_ray[img][slp]
+    Mk1 = np.array([[ak1, bk1], [ck1, dk1]])
+    M1k = np.array([[dk1, -bk1], [-ck1, ak1]])
 
     # print(p_ray[-2][ht], q_ray[-2][ht], n_k*p_ray[-2][slp], n_k*q_ray[-2][slp])
     # print(ak1, bk1, ck1, dk1)
@@ -243,6 +257,9 @@ def compute_first_order(opt_model, stop, wvl, src_model=None):
                 enp_dist = -pr[1][ht]/(n_0*pr[0][slp])
         else:  # nothing pre-computed, assume 1st surface
             stop = 1
+            ybar1 = 0.0
+            ubar1 = 1.0
+            enp_dist = 0.0
 
     if stop is not None:
         n_s = sm.z_dir[stop]*sm.central_rndx(stop)
@@ -256,6 +273,12 @@ def compute_first_order(opt_model, stop, wvl, src_model=None):
         ubar1 = as1
         n_0 = sm.gaps[0].medium.rindex(wvl)
         enp_dist = -ybar1/(n_0*ubar1)
+    else:
+        as1 = p_ray[1][ht]
+        bs1 = q_ray[1][ht]
+        ybar1 = -bs1
+        ubar1 = as1
+
 
     thi0 = sm.gaps[0].thi
 
@@ -301,9 +324,26 @@ def compute_first_order(opt_model, stop, wvl, src_model=None):
             ybar0 = field_value
             slpbar0 = -ybar0/obj2enp_dist
     elif fov_oi_key == 'image':
+        Mi1, M1i = get_parax_matrix(p_ray, q_ray, -1, n_k)
+        q_ray_1 = np.array([ybar1, ubar1])
+        q_ray_k = np.matmul(Mk1, q_ray_1)
+        exp_dist = -q_ray_k[mc.ht]/(n_k*q_ray_k[mc.slp])
+        img2exp_dist = exp_dist - sm.gaps[-1].thi
+
         if field_key == 'height':
-            ybar0 = red*field_value
-            slpbar0 = -ybar0/obj2enp_dist
+            ht_i = field_value
+            slp_i = -ht_i/img2exp_dist
+            pr_ray_i = np.array([ht_i, slp_i])
+            pr_ray_1 = np.matmul(M1i, pr_ray_i)
+            slpbar0 = pr_ray_1[slp]
+            ybar0 = -slpbar0*obj2enp_dist
+        if field_key == 'slope':
+            slp_k = field_value
+            ht_k = -slp_k*exp_dist
+            pr_ray_k = np.array([ht_k, slp_k])
+            pr_ray_1 = np.matmul(M1k, pr_ray_k)
+            slpbar0 = pr_ray_1[slp]
+            ybar0 = -slpbar0*obj2enp_dist
     yu_bar = [ybar0, slpbar0]
 
     stop = orig_stop
