@@ -567,12 +567,18 @@ class LensLayout():
 
     def renderable_pt_nodes(self, part_filter=''):
         opm = self.opt_model
-        pt = opm.part_tree
+        osp = opm['optical_spec']
+        pt = opm['part_tree']
+        
         not_tags = ''
-        if opm['ss'].conjugate_type == 'infinite':
+        if osp.conjugate_type('object') == 'infinite':
             not_tags = '#object'
-        elif opm['ss'].conjugate_type == 'afocal':
+        elif osp.conjugate_type('image') == 'infinite':
+            not_tags = '#image'
+        elif (osp.conjugate_type('object') == 'infinite' and
+              osp.conjugate_type('image') == 'infinite'):
             not_tags = '#object#image'
+
         e_nodes = pt.nodes_with_tag(tag=part_filter,
                                     not_tag=not_tags)
         return e_nodes

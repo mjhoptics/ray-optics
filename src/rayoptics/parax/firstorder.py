@@ -461,14 +461,11 @@ def specsheet_from_parax_data(opt_model, specsheet):
     """ update specsheet to contents of opt_model, while preserving inputs """
     if opt_model is None:
         return None
-    seq_model = opt_model.seq_model
     optical_spec = opt_model.optical_spec
     if opt_model['analysis_results']['parax_data'] is None:
         return specsheet
     fod = opt_model['analysis_results']['parax_data'].fod
-    conj_type = 'finite'
-    if seq_model.gaps[0].thi > 10e8:
-        conj_type = 'infinite'
+    conj_type = optical_spec.conjugate_type('object')
 
     specsheet.conjugate_type = conj_type
 

@@ -32,7 +32,7 @@ IdealImager.f.__doc__ = "focal length"
 """
 
 
-def ideal_imager_setup(**inputs):
+def ideal_imager_setup(**inputs) -> IdealImager:
     """ Calculate the ideal imaging properties given two independent parameters
 
     Given 2 system parameters from the following list, this function

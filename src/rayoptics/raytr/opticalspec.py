@@ -18,7 +18,7 @@ from rayoptics.raytr.trace import aim_chief_ray
 import rayoptics.optical.model_constants as mc
 from opticalglass.spectral_lines import get_wavelength
 import rayoptics.util.colour_system as cs
-from rayoptics.util.misc_math import transpose, normalize
+from rayoptics.util.misc_math import transpose, normalize, is_kinda_big
 import rayoptics.gui.util as gui_util
 from rayoptics.util import colors
 srgb = cs.cs_srgb
@@ -142,15 +142,28 @@ class OpticalSpecs:
         self.pupil.sync_to_parax(parax_model)
         self.field_of_view.sync_to_parax(parax_model)
 
+    def conjugate_type(self, space: str='object') -> str:
+        """ Returns if object or image space is finite or infinite conjugates. """
+        seq_model = self.opt_model['seq_model']
+        conj_type = 'finite'
+        if space == 'object':
+            if is_kinda_big(seq_model.gaps[0].thi):
+                conj_type = 'infinite'
+        elif space == 'image':
+            if is_kinda_big(seq_model.gaps[-1].thi):
+                conj_type = 'infinite'
+        else:
+            raise ValueError(f"Unrecognized value for space: {space}")
+        return conj_type
+
+    def is_afocal(self) -> bool:
+        """ Returns if object or image space is finite or infinite conjugates. """
+        obj_space = self.conjugate_type('object')
+        fod = self.opt_model['analysis_results']['parax_data'].fod
+        return obj_space == 'infinite' and abs(fod.efl) < 1e-8
+
     def setup_specs_using_dgms(self, pm):
         """ Use the parax_model database to update the pupil specs. """
-        def is_kinda_big(x: float, kinda_big=1e8) -> bool:
-            if np.isinf(x):
-                return True
-            elif np.abs(x) > kinda_big:
-                return True
-            else:
-                return False
 
         num_nodes = pm.get_num_nodes()
 

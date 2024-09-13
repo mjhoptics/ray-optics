@@ -1492,7 +1492,7 @@ def specsheet_from_dgm(parax_model, optical_spec, specsheet):
     efl = 1/(Pwr_tot*opt_inv)
 
     conj_type = 'finite'
-    if T[0]/opt_inv > 10e8:
+    if is_kinda_big(T[0]/opt_inv):
         conj_type = 'infinite'
 
     specsheet.conjugate_type = conj_type

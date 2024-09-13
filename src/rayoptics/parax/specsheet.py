@@ -74,9 +74,7 @@ def create_specsheet_from_model(opt_model):
     """Return a specsheet filled with the current data from opt_model."""
     specsheet = opt_model.specsheet
     if specsheet is None:
-        conj_type = 'finite'
-        if opt_model.seq_model.gaps[0].thi > 10e8:
-            conj_type = 'infinite'
+        conj_type = opt_model['osp'].conjugate_type('object')
         specsheet = create_specsheet(conj_type)
     firstorder.specsheet_from_parax_data(opt_model, specsheet)
     opt_model.specsheet = specsheet
