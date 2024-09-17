@@ -1,5 +1,5 @@
 len
-tit 'tilt test'
+tit 'tilt/rev test'
 dim m
 rdm n
 so 0. 1e+11
@@ -9,6 +9,7 @@ ade 45
 !ade 30
 s 0 100
 ade 45
+rev
 !ade 60
 s 0 100
 si 0 0

@@ -12,10 +12,10 @@ ade 30
 s 0 10
 rev
 ade 30
-s 0 100
+s 0 -100 refl
 ben
 ade 45
-s 0 100
+s 0 -100
 si 0 0
 epd 100; wl 550
 yan 0 .05
