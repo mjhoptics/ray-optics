@@ -236,7 +236,7 @@ class SequentialModel:
         return indices
 
     def central_wavelength(self):
-        """ returns the central wavelength in nm of the model's ``WvlSpec`` """
+        """ returns the central wavelength in nm of the model's `WvlSpec` """
         spectral_region = self.opt_model['optical_spec'].spectral_region
         return spectral_region.central_wvl
 
@@ -247,7 +247,7 @@ class SequentialModel:
         return self.wvlns.index(wvl)
 
     def central_rndx(self, i):
-        """ returns the central refractive index of the model's ``WvlSpec`` """
+        """ returns the central refractive index of the model's `WvlSpec` """
         spectral_region = self.opt_model['optical_spec'].spectral_region
         central_wvl = spectral_region.reference_wvl
         return self.rndx[i][central_wvl]
@@ -556,18 +556,16 @@ class SequentialModel:
                 self.set_clear_apertures()
 
     def apply_scale_factor(self, scale_factor):
+        """ Apply the `scale_factor` to entire seq_model. """
         self.apply_scale_factor_over(scale_factor)
 
     def apply_scale_factor_over(self, scale_factor, *surfs):
-        """ Apply the scale_factor to the surfs arg. 
+        """ Apply the `scale_factor` to the `surfs` arg. 
         
-        If surfs isn't present, the scale_factor is applied to all interfaces 
-        and gaps.
-        If surfs contains a single value, it is applied to that interface and 
-        gap.
-        If surfs contains 2 values it is considered an interface range and the 
-        scale_factor is applied to the interface range and the gaps contained 
-        between the outer interfaces.
+        - If `surfs` isn't present, the `scale_factor` is applied to all interfaces and gaps.
+        - If `surfs` contains a single value, it is applied to that interface and gap.
+        - If `surfs` contains 2 values it is considered an interface range and the `scale_factor` is applied to the interface range and the gaps contained between the outer interfaces.
+
         """
         if len(surfs) == 0:
             surfs = 0, len(self.ifcs)

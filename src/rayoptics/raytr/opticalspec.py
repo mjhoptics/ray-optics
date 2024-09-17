@@ -158,7 +158,7 @@ class OpticalSpecs:
         return conj_type
 
     def is_afocal(self) -> bool:
-        """ Returns if object or image space is finite or infinite conjugates. """
+        """ Returns True if the system is afocal. """
         obj_space = self.conjugate_type('object')
         fod = self.opt_model['analysis_results']['parax_data'].fod
         return obj_space == 'infinite' and abs(fod.efl) < 1e-8
@@ -535,6 +535,7 @@ class PupilSpec:
 
     @property
     def key(self):
+        """ ('object'|'image', 'epd'|'NA'|'f/#') """
         return self._key[1], self._key[2]
 
     @key.setter
@@ -698,6 +699,7 @@ class FieldSpec:
 
     @property
     def key(self):
+        """ ('object'|'image', 'height'|'angle') """
         return self._key[1], self._key[2]
 
     @key.setter

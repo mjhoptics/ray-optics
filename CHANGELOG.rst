@@ -5,6 +5,21 @@ Changelog
 =========
 
 
+Version 0.9.2
+=============
+Revised the call list for :func:`~.raytr.trace.trace_ray` to make it straightforward to use in the simplest cases. The function returns a tuple of the ray_pkg and an ray error instance; the latter is None if are no errors. The :func:`~.raytr.trace.list_ray` function was modified to handle the trace_ray return data in addition to ray and ray_pkg inputs.
+
+Other changes include:
+
+- Updated the doc for the profile module and added an update step during profile creation (issue 152).
+- Fixed several subtle transformation issues and shortcomings when rendering cemented elements (issue 153). Reworked the :func:`~.elem.transform.compute_global_coords` function.
+- Changed the paraxial NA to be ref index * slope, in keeping with OSLO and the literature (issue 154).
+- Introduce :meth:`~.seq.sequential.SequentialModel.apply_scale_factor_over` in seq_model to permit scaling a range of surfaces. Helps with issue 156.
+- Remove 'aperture' and 'field' from PupilSpec :attr:`~.PupilSpec.key` and FieldSpec :attr:`~.FieldSpec.key` key definitions; they were redundant information.
+
+Thanks to @quentGit for correcting an error in the :mod:`~.waveabr` module.
+
+
 Version 0.9.1
 =============
 Fix issue #150, need to constrain the version of numpy to < 2.0.0

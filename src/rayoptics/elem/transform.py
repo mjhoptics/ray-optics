@@ -12,11 +12,16 @@ import numpy as np
 import itertools
 
 
-def compute_global_coords(sm, glo=1, origin=None):
-    """ Return global surface coordinates (rot, t) wrt surface glo. 
+def compute_global_coords(seq_model, glo=1, origin=None):
+    """ Return global surface coordinates (rot, t) wrt surface `glo`. 
     
-    If origin isn't None, it should be a tuple (r, t) being the transform
-      from the desired global origin to the specified global surface.
+    Args:
+        seq_model: sequential model
+        glo: global reference surface index
+        origin: None | (r_origin, t_origin)
+
+    The tuple (r_origin, t_origin) is the transform from the desired 
+    global origin to the global surface `glo`.
     """
     def accumulate_transforms(seq, b4_seg, transform_calc, 
                               tfrm_prev, tfrm_dir: int):
@@ -47,9 +52,9 @@ def compute_global_coords(sm, glo=1, origin=None):
         # iterate in reverse over the segments before the
         #  global reference surface
         step = -1
-        seq = itertools.zip_longest(sm.ifcs[glo::step],
-                                    sm.gaps[glo-1::step],
-                                    sm.z_dir[glo-1::step])
+        seq = itertools.zip_longest(seq_model.ifcs[glo::step],
+                                    seq_model.gaps[glo-1::step],
+                                    seq_model.z_dir[glo-1::step])
         b4_seg = next(seq)
         # loop of remaining surfaces in path
         accumulate_transforms(seq, b4_seg, reverse_transform, 
@@ -57,7 +62,9 @@ def compute_global_coords(sm, glo=1, origin=None):
         tfrms.reverse()
 
     # Compute transforms from global surface to image surface
-    seq = itertools.zip_longest(sm.ifcs[glo:], sm.gaps[glo:], sm.z_dir[glo:])
+    seq = itertools.zip_longest(seq_model.ifcs[glo:], 
+                                seq_model.gaps[glo:], 
+                                seq_model.z_dir[glo:])
     b4_seg = next(seq)
     accumulate_transforms(seq, b4_seg, forward_transform, 
                           tfrm_origin, +1)
@@ -91,27 +98,27 @@ def forward_transform(s1, zdist, s2):
     return r_cascade, t_orig
 
 
-def reverse_transform(s1, zdist, s2):
+def reverse_transform(s2, zdist, s1):
     """ generate transform rotation and translation from
-        s1 coords to s2 coords, applying transforms in the reverse order """
+        s2 coords to s1 coords, applying transforms in the reverse order """
     t_orig = np.array([0., 0., zdist])
-    r_before_s1 = r_after_s2 = None
-    if s1.decenter:
-        r_before_s1, t_before_s1 = s1.decenter.tform_before_surf()
-        t_orig += t_before_s1
-
+    r_before_s2 = r_after_s1 = None
     if s2.decenter:
-        r_after_s2, t_after_s2 = s2.decenter.tform_after_surf()
-        t_orig += t_after_s2
+        r_before_s2, t_before_s2 = s2.decenter.tform_before_surf()
+        t_orig += t_before_s2
+
+    if s1.decenter:
+        r_after_s1, t_after_s1 = s1.decenter.tform_after_surf()
+        t_orig += t_after_s1
 
     r_cascade = np.identity(3)
-    if r_before_s1 is not None:
-        r_cascade = r_before_s1.transpose()
+    if r_before_s2 is not None:
+        r_cascade = r_before_s2.transpose()
         t_orig = np.matmul(r_cascade, t_orig)
-        if r_after_s2 is not None:
-            r_cascade = np.matmul(r_cascade, r_after_s2.transpose())
-    elif r_after_s2 is not None:
-        r_cascade = r_after_s2.transpose()
+        if r_after_s1 is not None:
+            r_cascade = np.matmul(r_cascade, r_after_s1.transpose())
+    elif r_after_s1 is not None:
+        r_cascade = r_after_s1.transpose()
 
     return r_cascade, t_orig
 
@@ -131,7 +138,7 @@ def transform_before_surface(interface, ray_seg):
     """Transform ray_seg from interface to previous seg.
 
     Args:
-        interface: the :class:'~seq.interface.Interface' for the path sequence
+        interface: the :class:`~.interface.Interface` for the path sequence
         ray_seg: ray segment exiting from **interface**
 
     Returns:
@@ -158,7 +165,7 @@ def transform_after_surface(interface, ray_seg):
     """Transform ray_seg from interface to following seg.
 
     Args:
-        interface: the :class:'~seq.interface.Interface' for the path sequence
+        interface: the :class:`~.interface.Interface` for the path sequence
         ray_seg: ray segment exiting from **interface**
 
     Returns:

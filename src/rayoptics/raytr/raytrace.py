@@ -219,6 +219,8 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, check_apertures=False, **kwargs
         except TraceTIRError as ray_tir:
             ray.append([inc_pt, before_dir, 0.0, normal])
             ray_tir.surf = surf
+            ray_tir.ifc = ifc
+            ray_tir.int_pt = inc_pt
             ray_tir.ray_pkg = ray, opl, wvl
             raise ray_tir
 
