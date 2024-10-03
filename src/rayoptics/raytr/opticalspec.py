@@ -872,14 +872,22 @@ class FieldSpec:
         obj_dir = None
 
         if value_key == 'angle':
-            dir_tan = pr[0][mc.slp]*rel_fld_coord
-            hypt = hypot(dir_tan)
-            dir_cos = np.array([dir_tan[0]/hypt, dir_tan[1]/hypt])
-            obj_dir = np.array([dir_cos[0], dir_cos[1], 
-                                np.sqrt(1-dir_cos[0]**2-dir_cos[1]**2)])
-            obj_pt = -dir_tan*(fod.obj_dist+fod.enp_dist)
+            if obj_img_key == 'image':
+                max_field_ang = np.atan(pr[0][mc.slp])
+                fld_angle = max_field_ang*rel_fld_coord
+            elif obj_img_key == 'object':
+                fld_angle = np.deg2rad(fld_coord)
+            dir_cos = np.sin(fld_angle)
+            dir_cos[2] = np.sqrt(1 - dir_cos[0]**2 - dir_cos[1]**2)
+            sep = -(fod.obj_dist+fod.enp_dist)
+            obj_pt = sep * np.array([dir_cos[0]/dir_cos[2], 
+                                     dir_cos[1]/dir_cos[2], 0.0])
+            obj_dir = dir_cos
         elif value_key == 'height':
-            obj_pt = pr[0][mc.ht]*rel_fld_coord
+            if obj_img_key == 'image':
+                obj_pt = pr[0][mc.ht]*rel_fld_coord
+            elif obj_img_key == 'object':
+                obj_pt = fld_coord
 
         return obj_pt, obj_dir
     
