@@ -17,7 +17,7 @@ from scipy.optimize import newton, fsolve
 import pandas as pd
 
 from . import raytrace as rt
-from . import RayPkg, RaySeg
+from . import RayPkg, RaySeg, RayResult
 from .waveabr import (wave_abr_full_calc, calculate_reference_sphere, 
                       transfer_to_exit_pupil)
 from rayoptics.optical import model_constants as mc
@@ -45,9 +45,10 @@ def list_ray(ray_obj, tfrms=None, start=0):
     a (ray_pkg, ray_err) tuple or a ray_pkg, i.e. (`ray`, opl, wvl) 
     or a `ray` alone.
     """
+    ray_err = None
     if isinstance(ray_obj, tuple):
         if len(ray_obj) == 2:
-            ray_obj = ray_obj[0]
+            ray_obj, ray_err = ray_obj
         ray = ray_obj[0]
     else:
         ray = ray_obj
@@ -71,6 +72,8 @@ def list_ray(ray_obj, tfrms=None, start=0):
             d = rot.dot(r[mc.d])
             print(colFormats.format(i, p[0], p[1], p[2], d[0], d[1], d[2],
                                     r[mc.dst]))
+    if ray_err is not None:
+        print(f"ray failure: {type(ray_err).__name__}")
 
 
 def list_in_out_dir(path, ray):
@@ -96,7 +99,7 @@ def list_in_out_dir(path, ray):
 
 def trace_ray(opt_model, pupil, fld, wvl, 
               output_filter=None, rayerr_filter=None,
-               **kwargs):
+               **kwargs) -> RayResult:
     """ Trace a single ray via pupil, field and wavelength specs.
     
     This function traces a single ray at a given wavelength, pupil and field specification. 
@@ -149,7 +152,7 @@ def trace_ray(opt_model, pupil, fld, wvl,
                             output_filter, rayerr_filter, 
                             use_named_tuples=unt, **kwargs)
     ray_pkg, ray_err = retrieve_ray(ray_result)
-    return ray_pkg, ray_err
+    return RayResult(ray_pkg, ray_err)
 
 
 def trace_safe(opt_model, pupil, fld, wvl,
@@ -183,8 +186,8 @@ def trace_safe(opt_model, pupil, fld, wvl,
     ray_result = None
 
     try:
-        ray_pkg = trace_base(opt_model, pupil, fld, wvl,
-                                   **kwargs)
+        ray_pkg = trace_base(opt_model, pupil, fld, wvl, **kwargs)
+
     except TraceError as rayerr:
         if rayerr_filter is None:
             pass
@@ -208,7 +211,7 @@ def trace_safe(opt_model, pupil, fld, wvl,
             ray_result = ray_pkg
         elif output_filter == 'last':
             ray, op_delta, wvl = ray_pkg
-            final_seg_pkg = (ray[-1], op_delta, wvl)
+            final_seg_pkg = RayPkg([ray[-1]], op_delta, wvl)
             ray_result = final_seg_pkg
         else:
             ray_result = output_filter(ray_pkg)
@@ -297,7 +300,8 @@ def trace_base(opt_model, pupil, fld, wvl,
         - **wvl** - wavelength (in nm) that the ray was traced in
     """
     if pupil_type == 'rel pupil':
-        pupil_coords = fld.apply_vignetting(pupil) if apply_vignetting else pupil
+        pupil_coords = (fld.apply_vignetting(pupil) if apply_vignetting 
+                        else pupil)
     else:
         pupil_coords = pupil
 
@@ -400,8 +404,6 @@ def iterate_ray(opt_model, ifcx, xy_target, fld, wvl, **kwargs):
 
 def trace_with_opd(opt_model, pupil, fld, wvl, foc, **kwargs):
     """ returns (ray, ray_opl, wvl, opd) """
-    output_filter = kwargs.pop('output_filter', None)
-    rayerr_filter = kwargs.pop('rayerr_filter', None)
 
     chief_ray_pkg = get_chief_ray_pkg(opt_model, fld, wvl, foc)
     image_pt_2d = kwargs.get('image_pt', None)
@@ -411,10 +413,7 @@ def trace_with_opd(opt_model, pupil, fld, wvl, foc, **kwargs):
                                             image_pt_2d=image_pt_2d,
                                             image_delta=image_delta)
 
-    ray_result = trace_safe(opt_model, pupil, fld, wvl, 
-                            output_filter, rayerr_filter, 
-                            **kwargs)
-    ray_pkg, ray_err = retrieve_ray(ray_result)
+    ray_pkg, ray_err = trace_ray(opt_model, pupil, fld, wvl, **kwargs)
 
     fld.chief_ray = chief_ray_pkg
     fld.ref_sphere = ref_sphere
@@ -426,16 +425,16 @@ def trace_with_opd(opt_model, pupil, fld, wvl, foc, **kwargs):
     return ray, ray_op, wvl, opd
 
 
-def trace_boundary_rays_at_field(opt_model, fld, wvl, use_named_tuples=False):
+def trace_boundary_rays_at_field(opt_model, fld, wvl, 
+                                 use_named_tuples=False, **kwargs):
     """ returns a list of RayPkgs for the boundary rays for field fld
     """
+    kwargs['rayerr_filter'] = kwargs.get('rayerr_filter', 'full')
     rim_rays = []
     osp = opt_model.optical_spec
     for p in osp.pupil.pupil_rays:
-        try:
-            ray, op, wvl = trace_base(opt_model, p, fld, wvl)
-        except TraceError as ray_error:
-            ray, op, wvl = ray_error.ray_pkg
+        ray_pkg, ray_err = trace_ray(opt_model, p, fld, wvl, **kwargs)
+        ray, op, wvl = ray_pkg
 
         if use_named_tuples:
             ray = [RaySeg(*rs) for rs in ray]
@@ -461,11 +460,12 @@ def trace_boundary_rays(opt_model, **kwargs):
     return rayset
 
 
-def trace_ray_list_at_field(opt_model, ray_list, fld, wvl, foc):
+def trace_ray_list_at_field(opt_model, ray_list, fld, wvl, foc, **kwargs):
     """ returns a list of ray |DataFrame| for the ray_list at field fld """
     rayset = []
     for p in ray_list:
-        ray, op, wvl = trace_base(opt_model, p, fld, wvl)
+        ray_pkg, ray_err = trace_ray(opt_model, p, fld, wvl, **kwargs)
+        ray, op, wvl = ray_pkg
         rayset.append(ray)
     rdf_list = [ray_df(r) for r in rayset]
     return rdf_list
@@ -689,8 +689,8 @@ def refocus(opt_model):
 
 def trace_astigmatism_coddington_fan(opt_model, fld, wvl, foc):
     """ calculate astigmatism by Coddington trace at **fld** """
-    cr = RayPkg(*trace_base(opt_model, [0., 0.], fld, wvl))
-    s_dfoc, t_dfoc = trace_coddington_fan(opt_model, cr, foc=foc)
+    cr_ray_pkg, ray_err = trace_ray(opt_model, [0., 0.], fld, wvl)
+    s_dfoc, t_dfoc = trace_coddington_fan(opt_model, cr_ray_pkg, foc=foc)
     return s_dfoc, t_dfoc
 
 
@@ -823,11 +823,11 @@ def trace_astigmatism(opt_model, fld, wvl, foc, dx=0.001, dy=0.001):
         tuple: sagittal and tangential focus shifts at **fld**
     """
     rlist = []
-    rlist.append(RayPkg(*trace_base(opt_model, [0., 0.], fld, wvl)))
-    rlist.append(RayPkg(*trace_base(opt_model, [dx, 0.], fld, wvl)))
-    rlist.append(RayPkg(*trace_base(opt_model, [0., dy], fld, wvl)))
-    rlist.append(RayPkg(*trace_base(opt_model, [-dx, 0.], fld, wvl)))
-    rlist.append(RayPkg(*trace_base(opt_model, [0., -dy], fld, wvl)))
+    rlist.append(trace_ray(opt_model, [0., 0.], fld, wvl)[0])
+    rlist.append(trace_ray(opt_model, [dx, 0.], fld, wvl)[0])
+    rlist.append(trace_ray(opt_model, [0., dy], fld, wvl)[0])
+    rlist.append(trace_ray(opt_model, [-dx, 0.], fld, wvl)[0])
+    rlist.append(trace_ray(opt_model, [0., -dy], fld, wvl)[0])
 
     s = intersect_2_lines(rlist[1].ray[-1][mc.p], rlist[1].ray[-1][mc.d],
                           rlist[3].ray[-1][mc.p], rlist[3].ray[-1][mc.d])

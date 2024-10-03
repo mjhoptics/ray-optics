@@ -64,7 +64,8 @@ class Ray():
 
     def __init__(self, opt_model, p, f=0, wl=None, foc=None, image_pt_2d=None,
                  image_delta=None, srf_indx=-1, srf_save='single', 
-                 output_filter=None, rayerr_filter=None, color=None):
+                 output_filter=None, rayerr_filter=None, color=None, 
+                 clip_rays=False):
         self.opt_model = opt_model
         osp = opt_model.optical_spec
         self.pupil = p
@@ -77,6 +78,7 @@ class Ray():
 
         self.output_filter = output_filter
         self.rayerr_filter = rayerr_filter
+        self.clip_rays = clip_rays
 
         self.color = color
 
@@ -96,12 +98,14 @@ class Ray():
             ray_result = trace.trace_safe(
                 self.opt_model, self.pupil, self.fld, self.wvl, 
                 self.output_filter, self.rayerr_filter, 
-                use_named_tuples=True, **kwargs)
+                use_named_tuples=True, check_apertures=self.clip_rays, 
+                **kwargs)
             ray_pkg, ray_err = trace.retrieve_ray(ray_result)
             self.ray_seg = ray_pkg.ray[self.srf_indx]
 
             if self.srf_save == 'all':
                 self.ray_pkg = ray_pkg
+
 
         ray_seg = self.ray_seg
         dist = self.foc / ray_seg[mc.d][2]
@@ -129,7 +133,8 @@ class RayFan():
 
     def __init__(self, opt_model, f=0, wl=None, foc=None, image_pt_2d=None,
                  image_delta=None, num_rays=21, xyfan='y', output_filter=None,
-                 rayerr_filter=None, color=None, **kwargs):
+                 rayerr_filter=None, color=None, clip_rays=False, 
+                 **kwargs):
         self.opt_model = opt_model
         osp = opt_model.optical_spec
         self.fld = osp.field_of_view.fields[f] if isinstance(f, int) else f
@@ -150,8 +155,10 @@ class RayFan():
 
         self.color = color
 
-        self.output_filter = output_filter
-        self.rayerr_filter = rayerr_filter
+        self.rt_kwargs = kwargs
+        self.rt_kwargs['output_filter'] = output_filter
+        self.rt_kwargs['rayerr_filter'] = rayerr_filter
+        self.rt_kwargs['check_apertures'] = clip_rays
 
         self.update_data()
 
@@ -169,13 +176,13 @@ class RayFan():
                 self.opt_model, self.fld, self.wvl, self.foc, self.xyfan,
                 image_pt_2d=self.image_pt_2d, image_delta=self.image_delta, 
                 num_rays=self.num_rays,
-                output_filter=self.output_filter,
-                rayerr_filter=self.rayerr_filter)
+                **self.rt_kwargs)
 
         self.fan = focus_fan(self.opt_model, self.fan_pkg,
                              self.fld, self.wvl, self.foc,
                              image_pt_2d=self.image_pt_2d,
-                             image_delta=self.image_delta)
+                             image_delta=self.image_delta,
+                             **self.rt_kwargs)
         return self
 
 
@@ -360,7 +367,8 @@ class RayList():
     def __init__(self, opt_model,
                  pupil_gen=None, pupil_coords=None, num_rays=21,
                  f=0, wl=None, foc=None, image_pt_2d=None, image_delta=None, 
-                 apply_vignetting=True):
+                 output_filter=None, rayerr_filter=None, clip_rays=False, 
+                 apply_vignetting=True, **kwargs):
         self.opt_model = opt_model
         osp = opt_model.optical_spec
         if pupil_coords is not None and pupil_gen is None:
@@ -375,8 +383,8 @@ class RayList():
                 grid_def = [grid_start, grid_stop, num_rays]
                 self.pupil_gen = (sampler.csd_grid_ray_generator,
                                   (grid_def,), {})
-            fct, args, kwargs = self.pupil_gen
-            self.pupil_coords = fct(*args, **kwargs)
+            fct, args, kwa = self.pupil_gen
+            self.pupil_coords = fct(*args, **kwa)
 
         self.fld = osp.field_of_view.fields[f] if isinstance(f, int) else f
         self.wvl = osp.spectral_region.central_wvl if wl is None else wl
@@ -384,7 +392,12 @@ class RayList():
         self.foc = osp.defocus.focus_shift if foc is None else foc
         self.image_pt_2d = image_pt_2d
         self.image_delta = image_delta
-        self.apply_vignetting = apply_vignetting
+
+        self.rt_kwargs = kwargs
+        self.rt_kwargs['apply_vignetting'] = apply_vignetting
+        self.rt_kwargs['output_filter'] = output_filter
+        self.rt_kwargs['rayerr_filter'] = rayerr_filter
+        self.rt_kwargs['check_apertures'] = clip_rays
 
         self.update_data()
 
@@ -400,20 +413,22 @@ class RayList():
         build = kwargs.get('build', 'rebuild')
         if build == 'rebuild':
             if self.pupil_gen:
-                fct, args, kwargs = self.pupil_gen
-                self.pupil_coords = fct(*args, **kwargs)
+                fct, args, kwa = self.pupil_gen
+                self.pupil_coords = fct(*args, **kwa)
 
             self.ray_list = trace_pupil_coords(
                 self.opt_model, self.pupil_coords,
                 self.fld, self.wvl, self.foc,
-                image_pt_2d=self.image_pt_2d, image_delta=self.image_delta, 
-                apply_vignetting=self.apply_vignetting)
+                image_pt_2d=self.image_pt_2d, 
+                image_delta=self.image_delta, 
+                **self.rt_kwargs)
 
         ray_list_data = focus_pupil_coords(
             self.opt_model, self.ray_list,
             self.fld, self.wvl, self.foc,
             image_pt_2d=self.image_pt_2d,
-            image_delta=self.image_delta)
+            image_delta=self.image_delta,
+            **self.rt_kwargs)
 
         self.ray_abr = np.rollaxis(ray_list_data, 1)
 
@@ -472,7 +487,8 @@ def trace_list_of_rays(opt_model, rays,
     for ray in rays:
         pt0, dir0, wvl = ray
         try:
-            ray_pkg = trace.trace(opt_model.seq_model, pt0, dir0, wvl, **kwargs)
+            ray_pkg = trace.trace(opt_model.seq_model, pt0, dir0, wvl, 
+                                  **kwargs)
         except terr.TraceError as rayerr:
             if rayerr_filter is None:
                 pass
@@ -508,8 +524,9 @@ def eval_pupil_coords(opt_model, fld, wvl, foc, image_pt_2d=None,
     grid_stop = np.array([1., 1.])
     grid_def = [grid_start, grid_stop, num_rays]
 
+    kwargs['check_apertures'] = kwargs.get('check_apertures', True)
     ray_list = trace_ray_list(opt_model, sampler.grid_ray_generator(grid_def),
-                              fld, wvl, foc, check_apertures=True, **kwargs)
+                              fld, wvl, foc, **kwargs)
 
     def rfc(ri):
         pupil_x, pupil_y, ray_pkg = ri
@@ -535,15 +552,15 @@ def trace_pupil_coords(opt_model, pupil_coords, fld, wvl, foc,
     fld.chief_ray = cr_pkg
     fld.ref_sphere = ref_sphere
 
+    kwargs['check_apertures'] = kwargs.get('check_apertures', True)
     ray_list = trace_ray_list(opt_model, pupil_coords,
-                              fld, wvl, foc, 
-                              check_apertures=True, **kwargs)
+                              fld, wvl, foc, **kwargs)
 
     return ray_list
 
 
 def focus_pupil_coords(opt_model, ray_list, fld, wvl, foc, 
-                       image_pt_2d=None, image_delta=None):
+                       image_pt_2d=None, image_delta=None, **kwargs):
     """Given pre-traced rays and a ref. sphere, return the transverse abr."""
     ref_sphere, cr_pkg = trace.setup_pupil_coords(opt_model, fld, wvl, foc, 
                                                   image_pt=image_pt_2d,
@@ -579,7 +596,9 @@ class RayGrid():
     """
 
     def __init__(self, opt_model, f=0, wl=None, foc=None, image_pt_2d=None,
-                 image_delta=None, num_rays=21, value_if_none=np.NaN):
+                 image_delta=None, output_filter=None, rayerr_filter=None, 
+                 num_rays=21, clip_rays=True, value_if_none=np.NaN, 
+                 **kwargs):
         self.opt_model = opt_model
         osp = opt_model.optical_spec
         self.fld = osp.field_of_view.fields[f] if isinstance(f, int) else f
@@ -591,6 +610,11 @@ class RayGrid():
 
         self.num_rays = num_rays
         self.value_if_none = value_if_none
+
+        self.rt_kwargs = kwargs
+        self.rt_kwargs['output_filter'] = output_filter
+        self.rt_kwargs['rayerr_filter'] = rayerr_filter
+        self.rt_kwargs['check_apertures'] = clip_rays
 
         self.update_data()
 
@@ -606,13 +630,15 @@ class RayGrid():
             self.grid_pkg = trace_wavefront(
                 self.opt_model, self.fld, self.wvl, self.foc,
                 image_pt_2d=self.image_pt_2d, image_delta=self.image_delta, 
-                num_rays=self.num_rays)
+                num_rays=self.num_rays,
+                **self.rt_kwargs)
 
         opd = focus_wavefront(self.opt_model, self.grid_pkg,
                               self.fld, self.wvl, self.foc,
                               image_pt_2d=self.image_pt_2d,
                               image_delta=self.image_delta, 
-                              value_if_none=self.value_if_none)
+                              value_if_none=self.value_if_none,
+                              **self.rt_kwargs)
 
         self.grid = np.rollaxis(opd, 2)
 
@@ -627,6 +653,7 @@ def trace_ray_grid(opt_model, grid_rng, fld, wvl, foc, append_if_none=True,
     num = grid_rng[2]
     step = np.array((stop - start)/(num - 1))
     grid = []
+    kwargs['apply_vignetting'] = kwargs.get('apply_vignetting', False)
     for i in range(num):
         grid_row = []
 
@@ -634,7 +661,7 @@ def trace_ray_grid(opt_model, grid_rng, fld, wvl, foc, append_if_none=True,
             pupil = np.array(start)
             ray_result = trace.trace_safe(opt_model, pupil, fld, wvl, 
                                           output_filter, rayerr_filter, 
-                                          apply_vignetting=False, **kwargs)
+                                          **kwargs)
             ray_pkg, ray_err = trace.retrieve_ray(ray_result)
             if ray_pkg is not None:
                     grid_row.append([pupil[0], pupil[1], ray_pkg])
@@ -652,7 +679,8 @@ def trace_ray_grid(opt_model, grid_rng, fld, wvl, foc, append_if_none=True,
 
 
 def eval_wavefront(opt_model, fld, wvl, foc, image_pt_2d=None, 
-                   image_delta=None, num_rays=21, value_if_none=np.NaN):
+                   image_delta=None, num_rays=21, value_if_none=np.NaN, 
+                   **kwargs):
     """Trace a grid of rays and evaluate the OPD across the wavefront."""
     fod = opt_model['analysis_results']['parax_data'].fod
     ref_sphere, cr_pkg = trace.setup_pupil_coords(opt_model, fld, wvl, foc, 
@@ -664,8 +692,9 @@ def eval_wavefront(opt_model, fld, wvl, foc, image_pt_2d=None,
     vig_bbox = fld.vignetting_bbox(opt_model['osp']['pupil'])
     vig_grid_def = [vig_bbox[0], vig_bbox[1], num_rays]
 
+    kwargs['check_apertures'] = kwargs.get('check_apertures', True)
     grid = trace_ray_grid(opt_model, vig_grid_def, 
-                          fld, wvl, foc, check_apertures=True)
+                          fld, wvl, foc, **kwargs)
 
     central_wvl = opt_model.optical_spec.spectral_region.central_wvl
     convert_to_opd = 1/opt_model.nm_to_sys_units(central_wvl)
@@ -685,7 +714,8 @@ def eval_wavefront(opt_model, fld, wvl, foc, image_pt_2d=None,
 
 
 def trace_wavefront(opt_model, fld, wvl, foc,
-                    image_pt_2d=None, image_delta=None, num_rays=21):
+                    image_pt_2d=None, image_delta=None, num_rays=21,
+                    **kwargs):
     """Trace a grid of rays and pre-calculate data needed for rapid refocus."""
     fod = opt_model['analysis_results']['parax_data'].fod
     ref_sphere, cr_pkg = trace.setup_pupil_coords(opt_model, fld, wvl, foc, 
@@ -697,8 +727,9 @@ def trace_wavefront(opt_model, fld, wvl, foc,
     vig_bbox = fld.vignetting_bbox(opt_model['osp']['pupil'])
     vig_grid_def = [vig_bbox[0], vig_bbox[1], num_rays]
 
+    kwargs['check_apertures'] = kwargs.get('check_apertures', True)
     grid = trace_ray_grid(opt_model, vig_grid_def, 
-                          fld, wvl, foc, check_apertures=True)
+                          fld, wvl, foc, **kwargs)
 
     def wpc(gij):
         pupil_x, pupil_y, ray_pkg = gij
@@ -715,7 +746,7 @@ def trace_wavefront(opt_model, fld, wvl, foc,
 
 
 def focus_wavefront(opt_model, grid_pkg, fld, wvl, foc, image_pt_2d=None,
-                    image_delta=None, value_if_none=np.NaN):
+                    image_delta=None, value_if_none=np.NaN, **kwargs):
     """Given pre-traced rays and a ref. sphere, return the ray's OPD."""
     fod = opt_model['analysis_results']['parax_data'].fod
     grid, upd_grid = grid_pkg

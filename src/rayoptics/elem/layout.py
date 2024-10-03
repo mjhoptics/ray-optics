@@ -225,7 +225,7 @@ class RayBundle():
     """ class for ray bundle from a single field point """
 
     def __init__(self, opt_model, fld, fld_label, wvl, start_offset,
-                 ray_table_callback=None):
+                 ray_table_callback=None, **kwargs):
         self.opt_model = opt_model
         self.fld = fld
         self.fld_label = fld_label
@@ -269,7 +269,9 @@ class RayBundle():
         self.wvl = wvl
         rayset = trace_boundary_rays_at_field(self.opt_model,
                                               self.fld, wvl,
-                                              use_named_tuples=True)
+                                              use_named_tuples=True,
+                                              rayerr_filter='full',
+                                              check_apertures=view.clip_rays)
 
         self.rayset = boundary_ray_dict(self.opt_model, rayset)
 
@@ -321,7 +323,7 @@ class RayFanBundle():
     def __init__(self, opt_model, ray_fan, start_offset, label='ray fan'):
         self.opt_model = opt_model
 
-        rayerr_filter = ray_fan.rayerr_filter
+        rayerr_filter = ray_fan.rt_kwargs['rayerr_filter']
         ray_fan.rayerr_filter = ('full' if rayerr_filter is None
                                  else rayerr_filter)
         self.ray_fan = ray_fan
@@ -380,7 +382,7 @@ class SingleRay():
     def __init__(self, opt_model, ray, start_offset, label='single ray'):
         self.opt_model = opt_model
 
-        rayerr_filter = ray.rayerr_filter
+        rayerr_filter = ray.rt_kwargs['rayerr_filter']
         ray.rayerr_filter = ('full' if rayerr_filter is None
                                  else rayerr_filter)
         self.ray = ray
@@ -593,25 +595,26 @@ class LensLayout():
         """ opaque wrapper for create_optical_element() """
         return create_optical_element(self.opt_model, e)
 
-    def create_ray_entities(self, view, start_offset):
+    def create_ray_entities(self, view, start_offset, **kwargs):
         ray_bundles = []
         fov = self.opt_model['optical_spec']['fov']
         wvl = self.opt_model['seq_model'].central_wavelength()
         for i, fld in enumerate(fov.fields):
             fld_label = fov.index_labels[i]
             rb = RayBundle(self.opt_model, fld, fld_label, wvl, start_offset,
-                           ray_table_callback=self.get_ray_table)
+                           ray_table_callback=self.get_ray_table, **kwargs)
             ray_bundles.append(rb)
         return ray_bundles
 
-    def create_ray_fan_entities(self, view, start_offset, num_rays=21):
+    def create_ray_fan_entities(self, view, start_offset, 
+                                num_rays=21, **kwargs):
         ray_fan_bundles = []
         opt_model = self.opt_model
         fov = opt_model['optical_spec']['fov']
         for i, fld in enumerate(fov.fields):
             fld_label = fov.index_labels[i]
             rayfan = RayFan(opt_model, f=fld, xyfan='y', num_rays=num_rays,
-                            label=fld_label)
+                            label=fld_label, **kwargs)
             rb = RayFanBundle(opt_model, rayfan, start_offset)
             ray_fan_bundles.append(rb)
         return ray_fan_bundles

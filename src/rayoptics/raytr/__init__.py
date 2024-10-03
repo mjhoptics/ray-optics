@@ -21,6 +21,11 @@
 
 from collections import namedtuple
 
+RayResult = namedtuple('RayResult', ['pkg', 'err'])
+RayResult.__doc__ = "A RayPkg and either a RayError or None"
+RayResult.pkg.__doc__ = "a RayPkg"
+RayResult.err.__doc__ = "a RayError or None, if success"
+
 RayPkg = namedtuple('RayPkg', ['ray', 'op', 'wvl'])
 RayPkg.__doc__ = "Ray and optical path length, plus wavelength"
 RayPkg.ray.__doc__ = "list of RaySegs"

@@ -506,18 +506,14 @@ class MainWindow(QMainWindow):
         fi = 0
         wl = osp.spectral_region.reference_wvl
         fld, wvl, foc = osp.lookup_fld_wvl_focus(fi, wl)
-        try:
-            ray, ray_op, wvl = trace.trace_base(opt_model, pupil, fld, wvl)
-        except terr.TraceError as rayerr:
-            ray, op_delta, wvl = rayerr.ray_pkg
-        finally:
-            ray = [RaySeg(*rs) for rs in ray]
+        ray_pkg, ray_error = trace.trace_ray(opt_model, pupil, fld, wvl)
+ 
 #        ray, ray_op, wvl, opd = trace.trace_with_opd(opt_model, pupil,
 #                                                     fld, wvl, foc)
 
 #        cr = trace.RayPkg(ray, ray_op, wvl)
 #        s, t = trace.trace_coddington_fan(opt_model, cr, foc)
-        model = cmds.create_ray_table_model(opt_model, ray)
+        model = cmds.create_ray_table_model(opt_model, ray_pkg.ray)
         self.create_table_view(model, "Ray Table")
 
     def create_table_view(self, table_model, table_title, 

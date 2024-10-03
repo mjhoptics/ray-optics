@@ -37,6 +37,7 @@ class InteractiveLayout(InteractiveFigure):
                  do_draw_edge_rays=True,
                  do_draw_ray_fans=False,
                  num_rays_in_fan=11,
+                 clip_rays=False,
                  do_paraxial_layout=False,
                  entity_factory_list=None,
                  **kwargs):
@@ -58,6 +59,7 @@ class InteractiveLayout(InteractiveFigure):
         self.do_draw_ray_fans = do_draw_ray_fans
         self.num_rays_in_fan = num_rays_in_fan
         self.do_paraxial_layout = do_paraxial_layout
+        self.clip_rays = clip_rays
         self.offset_factor = offset_factor
         
         if entity_factory_list is None:
@@ -104,13 +106,14 @@ class InteractiveLayout(InteractiveFigure):
         if self.do_draw_beams or self.do_draw_edge_rays:
             if build == 'rebuild':
                 self.ray_shapes = layout.create_ray_entities(
-                    self, start_offset)
+                    self, start_offset, clip_rays=self.clip_rays)
             self.ray_bbox = self.update_patches(self.ray_shapes)
 
         if self.do_draw_ray_fans:
             if build == 'rebuild':
                 self.rayfan_shapes = layout.create_ray_fan_entities(
-                    self, start_offset, num_rays=self.num_rays_in_fan)
+                    self, start_offset, num_rays=self.num_rays_in_fan, 
+                    clip_rays=self.clip_rays)
             self.rayfan_bbox = self.update_patches(self.rayfan_shapes)
 
         if self.do_paraxial_layout:
