@@ -195,10 +195,10 @@ class SequentialModel:
         tfrms = self.compute_local_transforms(step=-1)
         wl_idx = self.index_for_wavelength(wl)
         rndx = [n[wl_idx] for n in self.rndx[rndx_start:stop:step]]
-        z_dir = [-z_dir for z_dir in self.z_dir[start:stop:step]]
+        z_dir = [z_dir for z_dir in self.z_dir[start:stop:step]]
         path = itertools.zip_longest(self.ifcs[start:stop:step],
                                      self.gaps[gap_start:stop:step],
-                                     tfrms,
+                                     tfrms[-(start+1)::+1],
                                      rndx,
                                      z_dir)
         return path
