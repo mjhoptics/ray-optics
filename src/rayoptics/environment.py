@@ -50,7 +50,7 @@ import rayoptics.parax.thirdorder as to
 from rayoptics.parax.thirdorder import compute_third_order
 
 # ray tracing
-from rayoptics.raytr import (RayPkg, RaySeg)
+from rayoptics.raytr import (RayResult, RayPkg, RaySeg)
 from rayoptics.raytr.trace import (trace_ray, list_ray, trace_safe,
                                    retrieve_ray, trace, trace_base, 
                                    trace_with_opd, trace_astigmatism)
