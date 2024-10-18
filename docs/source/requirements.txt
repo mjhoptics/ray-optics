@@ -30,7 +30,7 @@ numpy==1.26.4
     #   pandas
     #   rayoptics (setup.py)
     #   scipy
-opticalglass==1.0.8
+opticalglass==1.0.9
     # via rayoptics (setup.py)
 packaging==24.0
     # via
@@ -72,7 +72,7 @@ traitlets==5.14.3
     #   matplotlib-inline
     #   qtconsole
     #   rayoptics (setup.py)
-transforms3d==0.4.1
+transforms3d==0.4.2
     # via rayoptics (setup.py)
 sphinx==7.2.6
 sphinx_rtd_theme==2.0.0

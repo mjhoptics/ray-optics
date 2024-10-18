@@ -84,5 +84,6 @@ from rayoptics.mpl.interactivelayout import InteractiveLayout
 from opticalglass.glassfactory import create_glass
 from opticalglass.modelglass import ModelGlass
 from opticalglass.opticalmedium import Air, ConstantIndex, InterpolatedMedium
+import opticalglass.rindexinfo as rii
 
 from opticalglass.spectral_lines import get_wavelength
