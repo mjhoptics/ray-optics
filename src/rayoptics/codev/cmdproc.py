@@ -115,9 +115,9 @@ def process_command(cmd):
                 if data_type == 'String':
                     dlist.append(t)
                 elif data_type == 'Double':
-                    dlist.append(eval("float("+t+")"))
+                    dlist.append(float(t))
                 elif data_type == 'Integer':
-                    dlist.append(eval("int("+t+")"))
+                    dlist.append(int(t))
                 elif data_type == 'Boolean':
                     if t[:1].upper() == 'N':
                         dlist.append(False)
@@ -137,12 +137,15 @@ def process_command(cmd):
     elif _reading_private_catalog and isinstance(cmd[0], str):
         global _private_catalog_wvls, _private_catalog_glasses
         label = cmd[0]
-        for t in cmd[1:]:
-            dlist.append(eval("float("+t+")"))
-        prv_glass = om.InterpolatedMedium(label, 
-                                          wvls=_private_catalog_wvls, 
-                                          rndx=dlist, cat='CV private catalog')
-        _private_catalog_glasses[label] = prv_glass
+        if isanumber(cmd[1]):
+            for t in cmd[1:]:
+                dlist.append(float(t))
+            prv_glass = om.InterpolatedMedium(label, 
+                                            wvls=_private_catalog_wvls, 
+                                            rndx=dlist, cat='CV private catalog')
+            _private_catalog_glasses[label] = prv_glass
+        else:
+            logger.debug(f"Unsupported PRV glass def: {cmd[0]} {cmd[1]}")
 
     return cmd_fct, tla, qlist, dlist
 
