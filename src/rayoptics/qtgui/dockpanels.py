@@ -197,11 +197,11 @@ class SpectrumWavelengthsPanel(QWidget):
         self.setLayout(wavlnsLayout)
 
     def root(self):
-        return self.gui_app.app_manager.model.optical_spec['wvls']
+        return self.gui_app.app_manager.model['optical_spec']['wvls']
 
     def update(self, opt_model):
         """ push backend data to widgets """
-        num_wvls = len(opt_model.optical_spec.spectral_region.wavelengths)
+        num_wvls = len(opt_model['optical_spec']['wvls'].wavelengths)
         if num_wvls == 1:
             self.ctrl_wvl_edit.refresh()
             self.red_wvl_edit.widget.setText('')
@@ -248,7 +248,7 @@ class AperturePanel(QWidget):
         self.setLayout(apertureLayout)
 
     def root(self):
-        return self.gui_app.app_manager.model.optical_spec['pupil']
+        return self.gui_app.app_manager.model['optical_spec']['pupil']
 
     def update(self, opt_model):
         """ push backend data to widgets """
@@ -290,7 +290,7 @@ class FieldOfViewPanel(QWidget):
         self.setLayout(fieldLayout)
 
     def root(self):
-        return self.gui_app.app_manager.model.optical_spec['fov']
+        return self.gui_app.app_manager.model['optical_spec']['fov']
 
     def update(self, opt_model):
         """ push backend data to widgets """
@@ -316,7 +316,7 @@ class FocusRangePanel(QWidget):
         self.setLayout(focusRangeLayout)
 
     def root(self):
-        return self.gui_app.app_manager.model.optical_spec['focus']
+        return self.gui_app.app_manager.model['optical_spec']['focus']
 
     def update(self, opt_model):
         """ push backend data to widgets """
