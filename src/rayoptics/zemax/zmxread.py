@@ -347,7 +347,7 @@ def handle_types_and_params(optm, cur, cmd, inputs):
                 ifc.decenter.euler[2] = param_val
             elif i == 6:
                 if param_val != 0:
-                    ifc.decenter.self.dtype = 'reverse'
+                    ifc.decenter.dtype = 'reverse'
             ifc.decenter.update()
         elif ifc.z_type == 'DGRATING':
             if i == 1:
