@@ -100,7 +100,7 @@ class Ray():
                 self.output_filter, self.rayerr_filter, 
                 use_named_tuples=True, check_apertures=self.clip_rays, 
                 **kwargs)
-            ray_pkg, ray_err = trace.retrieve_ray(ray_result)
+            ray_pkg, ray_err = ray_result
             self.ray_seg = ray_pkg.ray[self.srf_indx]
 
             if self.srf_save == 'all':
@@ -221,7 +221,7 @@ def trace_ray_fan(opt_model, fan_rng, fld, wvl, foc,
         ray_result = trace.trace_safe(opt_model, pupil, fld, wvl, 
                                       output_filter, rayerr_filter, 
                                       use_named_tuples=True, **kwargs)
-        ray_pkg, ray_err = trace.retrieve_ray(ray_result)
+        ray_pkg, ray_err = ray_result
 
         if ray_pkg is not None:
             fan.append([pupil[0], pupil[1], ray_pkg])
@@ -446,7 +446,7 @@ def trace_ray_list(opt_model, pupil_coords, fld, wvl, foc,
         ray_result = trace.trace_safe(opt_model, pupil, fld, wvl, 
                                       output_filter, rayerr_filter, 
                                       **kwargs)
-        ray_pkg, ray_err = trace.retrieve_ray(ray_result)
+        ray_pkg, ray_err = ray_result
         if ray_pkg is not None:
             ray_list.append([pupil[0], pupil[1], ray_pkg])
         else:  # ray outside pupil or failed
@@ -662,7 +662,7 @@ def trace_ray_grid(opt_model, grid_rng, fld, wvl, foc, append_if_none=True,
             ray_result = trace.trace_safe(opt_model, pupil, fld, wvl, 
                                           output_filter, rayerr_filter, 
                                           **kwargs)
-            ray_pkg, ray_err = trace.retrieve_ray(ray_result)
+            ray_pkg, ray_err = ray_result
             if ray_pkg is not None:
                     grid_row.append([pupil[0], pupil[1], ray_pkg])
             else:  # ray outside pupil or failed

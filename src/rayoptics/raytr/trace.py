@@ -151,12 +151,11 @@ def trace_ray(opt_model, pupil, fld, wvl,
     ray_result = trace_safe(opt_model, pupil, fld, wvl, 
                             output_filter, rayerr_filter, 
                             use_named_tuples=unt, **kwargs)
-    ray_pkg, ray_err = retrieve_ray(ray_result)
-    return RayResult(ray_pkg, ray_err)
+    return ray_result
 
 
 def trace_safe(opt_model, pupil, fld, wvl,
-               output_filter, rayerr_filter, **kwargs):
+               output_filter, rayerr_filter, **kwargs) -> RayResult:
     """Wrapper for trace_base that handles exceptions.
     
     Args:
@@ -183,7 +182,7 @@ def trace_safe(opt_model, pupil, fld, wvl,
     """
     use_named_tuples = kwargs.get('use_named_tuples', False)
 
-    ray_result = None
+    ray_result = None, None
 
     try:
         ray_pkg = trace_base(opt_model, pupil, fld, wvl, **kwargs)
@@ -195,10 +194,10 @@ def trace_safe(opt_model, pupil, fld, wvl,
             ray, op_delta, wvl = rayerr.ray_pkg
             ray = [RaySeg(*rs) for rs in ray]
             rayerr.ray_pkg = RayPkg(ray, op_delta, wvl)
-            ray_result = rayerr
+            ray_result = rayerr.ray_pkg, rayerr
         elif rayerr_filter == 'summary':
             rayerr.ray_pkg = None
-            ray_result = rayerr
+            ray_result = rayerr.ray_pkg, rayerr
         else:
             pass
     else:
@@ -208,29 +207,15 @@ def trace_safe(opt_model, pupil, fld, wvl,
             ray_pkg = RayPkg(ray, op_delta, wvl)
 
         if output_filter is None:
-            ray_result = ray_pkg
+            ray_result = ray_pkg, None
         elif output_filter == 'last':
             ray, op_delta, wvl = ray_pkg
             final_seg_pkg = RayPkg([ray[-1]], op_delta, wvl)
-            ray_result = final_seg_pkg
+            ray_result = final_seg_pkg, None
         else:
-            ray_result = output_filter(ray_pkg)
+            ray_result = output_filter(ray_pkg), None
 
-    return ray_result
-
-
-def retrieve_ray(ray_result):
-    """ Retrieve the ray (the list of ray segs) from ray_result.
-    
-    This function handles the normal case where the ray traces successfully
-    and the case of a ray failure, which returns a TraceError instance.
-    
-    Returns a ray_pkg and the trace error or None, if traced successfully
-    """
-    if isinstance(ray_result, TraceError):
-        return ray_result.ray_pkg, ray_result
-    else:
-        return ray_result, None
+    return RayResult(*ray_result)
 
 
 def trace(seq_model, pt0, dir0, wvl, **kwargs):
@@ -509,8 +494,7 @@ def trace_chief_ray(opt_model, fld, wvl, foc):
     ray_result = trace_safe(opt_model, [0., 0.], fld, wvl,
                             output_filter=None, rayerr_filter='full')
 
-    ray_pkg, ray_err = retrieve_ray(ray_result)
-    cr = RayPkg(*ray_pkg)
+    cr = RayPkg(*ray_result.pkg)
 
     # cr_exp_pt: E upper bar prime: pupil center for pencils from Q
     # cr_exp_pt, cr_b4_dir, cr_exp_dist
@@ -534,14 +518,13 @@ def trace_fan(opt_model, fan_rng, fld, wvl, foc, img_filter=None,
         ray_result = trace_safe(opt_model, pupil, fld, wvl, 
                                 output_filter, rayerr_filter, 
                                 **kwargs)
-        ray_pkg, ray_err = retrieve_ray(ray_result)
 
-        if ray_pkg is not None:
+        if ray_result.pkg is not None:
             if img_filter:
-                result = img_filter(pupil, ray_pkg)
+                result = img_filter(pupil, ray_result.pkg)
                 fan.append([pupil, result])
             else:
-                fan.append([pupil, ray_pkg])
+                fan.append([pupil, ray_result.pkg])
 
         start += step
     return fan
@@ -568,13 +551,13 @@ def trace_grid(opt_model, grid_rng, fld, wvl, foc, img_filter=None,
             ray_result = trace_safe(opt_model, pupil, fld, wvl, 
                                     output_filter, rayerr_filter, 
                                     check_apertures=True, **kwargs)
-            ray_pkg, ray_err = retrieve_ray(ray_result)
-            if ray_pkg is not None:
+
+            if ray_result.pkg is not None:
                 if img_filter:
-                    result = img_filter(pupil, ray_pkg)
+                    result = img_filter(pupil, ray_result.pkg)
                     working_grid.append(result)
                 else:
-                    working_grid.append([pupil[0], pupil[1], ray_pkg])
+                    working_grid.append([pupil[0], pupil[1], ray_result.pkg])
             else:  # ray outside pupil or failed
                 if img_filter:
                     result = img_filter(pupil, None)
@@ -679,8 +662,7 @@ def refocus(opt_model):
                             output_filter=None, rayerr_filter='full', 
                             use_named_tuples=True)
 
-    ray_pkg, ray_err = retrieve_ray(ray_result)
-    df_ray, ray_op, wvl = ray_pkg
+    df_ray, ray_op, wvl = ray_result.pkg
 
     defocus = -df_ray[-1].p[1]/(df_ray[-2].d[1]/df_ray[-2].d[2])
 

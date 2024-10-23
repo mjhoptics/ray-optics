@@ -96,7 +96,7 @@ def set_pupil(opm):
     ray_result = trace.trace_safe(opm, start_coords, fld, wvl, 
                                   None, None, apply_vignetting=False, 
                                   check_apertures=True)
-    ray_pkg, ray_err = trace.retrieve_ray(ray_result)
+    ray_pkg, ray_err = ray_result
 
     obj_img_key = osp['pupil'].key[0]
     pupil_spec = osp['pupil'].key[1]

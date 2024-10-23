@@ -24,7 +24,7 @@ from rayoptics.gui.util import (GUIHandle, transform_ray_seg, bbox_from_poly,
 
 from rayoptics.raytr.analyses import RayFan
 from rayoptics.raytr.trace import (trace_boundary_rays_at_field,
-                                   boundary_ray_dict, retrieve_ray)
+                                   boundary_ray_dict)
 from rayoptics.elem import elements as ele
 
 import rayoptics.optical.model_constants as mc
@@ -357,7 +357,7 @@ class RayFanBundle():
 
         ray_list = []
         for ray_item in fan:
-            ray_pkg, ray_err = retrieve_ray(ray_item[2])
+            ray_pkg = ray_item[2]
             ray_list.append(ray_pkg)
 
         ray_color = lo_rgb['ray'] if ray_fan.color is None else ray_fan.color
