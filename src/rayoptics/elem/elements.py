@@ -1665,6 +1665,7 @@ class CementedElement(Part):
         surfaces has a flat and the inner surface would intersect this flat.
         All inner cemented surfaces are assumed to be spherical.
         See model US007277232_Example04P.roa
+        See also cv_fisheye.roa
         '''
         def sphere_sag_to_zone(sag, c):
             if c == 0.:
@@ -1678,7 +1679,10 @@ class CementedElement(Part):
             return zone
 
         p = self.profiles[idx]
-        
+        R = 0 if p.cv == 0 else abs(1/p.cv)
+        ifc = self.ifcs[idx]
+        ca = ifc.surface_od()
+
         flat_0 = self.flats[0]
         sag0 = self.profiles[0].sag(0., flat_0) if flat_0 else 0.0
         flat_k = self.flats[k]
@@ -1692,11 +1696,20 @@ class CementedElement(Part):
 
         flat_i = None
         if p.cv < 0.0:
+            # if there's a first flat, check for intersection
             if self.flats[0] is not None:
                 flat_i = sphere_sag_to_zone(sag0 + thi_b4, p.cv)
+            # check if radius is smaller than semi-diameter, add flat if needed
+            elif R < sd:
+                flat_i = ca if ca < R else R
         elif p.cv > 0.0:
+            # if there's a last flat, check for intersection
             if self.flats[k] is not None:
                 flat_i = sphere_sag_to_zone(sagk + thi_aftr, p.cv)
+
+        # check if radius is smaller than semi-diameter, add flat if needed
+        if R < sd:
+            flat_i = ca if ca < R else R
 
         if flat_i is not None and flat_i > sd:
             flat_i = sd

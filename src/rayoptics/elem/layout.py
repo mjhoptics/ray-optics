@@ -542,30 +542,23 @@ class LensLayout():
 
     def system_length(self, ele_bbox, offset_factor=0.05):
         """ returns system length and ray start offset """
-        specsheet = self.opt_model['specsheet']
+        sm = self.opt_model['seq_model']
+        osp = self.opt_model['optical_spec']
         fod = self.opt_model['ar']['parax_data'].fod
         ele_length = ele_bbox[1][0] - ele_bbox[0][0]
         image_thi = abs(self.opt_model['seq_model'].gaps[-1].thi)
-        if specsheet.imager_defined():
-            if specsheet.conjugate_type == 'finite':
-                return specsheet.imager.tt, (2/3)*specsheet.imager.sp
-            elif specsheet.conjugate_type == 'infinite':
-                if fod.efl == 0:
-                    estimated_length = ele_length
-                else:
-                    # img_dist = abs(fod.img_dist)
-                    # estimated_length = ele_length + img_dist
-                    estimated_length = ele_length + image_thi
-                return estimated_length, offset_factor*estimated_length
-                # return specsheet.imager.sp, offset_factor*specsheet.imager.sp
-            elif specsheet.conjugate_type == 'afocal':
-                return ele_length, offset_factor*ele_length
-        else:
+        obj_conj = osp.conjugate_type('object')
+        if obj_conj == 'finite':
+            estimated_length = sm.total_track()
+            return estimated_length, offset_factor*sm.overall_length()
+        elif obj_conj == 'infinite':
             if fod.efl == 0:
                 estimated_length = ele_length
             else:
                 estimated_length = ele_length + image_thi
             return estimated_length, offset_factor*estimated_length
+        elif osp.is_afocal():
+            return ele_length, offset_factor*ele_length
 
     def renderable_pt_nodes(self, part_filter=''):
         opm = self.opt_model
