@@ -270,6 +270,7 @@ def post_process_input(opt_model, filename, **kwargs):
     _track_contents['fov'] = fov.key
 
     max_fld, max_fld_idx = fov.max_field()
+    fov.value = max_fld
     fov.fields = [f for f in fov.fields[:max_fld_idx+1]]
     _track_contents['# fields'] = len(fov.fields)
     # switch vignetting definition to asymmetric vly, vuy style
@@ -355,7 +356,7 @@ def handle_types_and_params(optm, cur, cmd, inputs):
             elif i == 2:
                 ifc.phase_element.order = param_val
         elif ifc.z_type == 'EVENASPH':
-            ifc.profile.coefs.append(param_val)
+            ifc.profile.coefs[i-1] = param_val
         elif ifc.z_type == 'PARAXIAL':
             if i == 1:
                 ifc.optical_power = 1/param_val

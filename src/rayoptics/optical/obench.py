@@ -58,7 +58,7 @@ def read_obench_url(url, **kwargs):
     return opt_model, _track_contents
 
 
-def read_lens(inpts):
+def read_lens(inpts, opt_model=None):
     global _track_contents
     def read_float(s):
         if s == 'Infinity':
@@ -95,7 +95,9 @@ def read_lens(inpts):
         conj_type = 'infinite'
     _track_contents['conj type'] = conj_type
 
-    opt_model = OpticalModel(do_init=True, radius_mode=True)
+    if opt_model is None:
+        opt_model = OpticalModel(do_init=True)
+    opt_model.radius_mode = True
 
     sm = opt_model['sm']
     sm.do_apertures = False

@@ -187,9 +187,12 @@ def post_process_input(opt_model, filename, **kwargs):
         sm.do_apertures = False
 
     _track_contents['# wvls'] = len(osp['wvls'].wavelengths)
-    _track_contents['fov'] = osp['fov'].key
-    _track_contents['# fields'] = len(osp['fov'].fields)
-
+    
+    fov = osp['fov']
+    _track_contents['fov'] = fov.key
+    _track_contents['# fields'] = len(fov.fields)
+    max_fld, max_fld_idx = fov.max_field()
+    fov.value = max_fld
 
 def wvl_spec_data(optm, tla, qlist, dlist):
     osp = optm.optical_spec
