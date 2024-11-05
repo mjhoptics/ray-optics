@@ -72,6 +72,37 @@ def compute_global_coords(seq_model, glo=1, origin=None):
     return tfrms
 
 
+def compute_local_transforms(seq_model, seq, step):
+    """ Return forward surface coordinates (r.T, t) for each interface. """
+    def local_transform(seq, transform_calc, tfrm_dir: int):
+        b4_ifc, b4_gap = next(seq)
+        for (ifc, gap) in seq:
+            zdist = tfrm_dir * b4_gap.thi
+            r, t = transform_calc(b4_ifc, zdist, ifc)
+            rt = r.transpose()
+            tfrms.append((rt, t))
+            b4_ifc, b4_gap = ifc, gap
+        return tfrms
+
+    num_ifcs = seq_model.get_num_surfaces()
+    tfrms = []
+    if step == -1:
+        if seq is None:
+            seq = itertools.zip_longest(seq_model.ifcs[num_ifcs::step], 
+                                        seq_model.gaps[num_ifcs-1::step])
+        tfrms = local_transform(seq, reverse_transform, -1)
+    elif step == 1:
+        if seq is None:
+            seq = itertools.zip_longest(seq_model.ifcs[::step],
+                                        seq_model.gaps[::step])
+        tfrms = local_transform(seq, forward_transform, 1)
+    else:
+        tfrms = []
+
+    tfrms.append((np.identity(3), np.array([0., 0., 0.])))
+    return tfrms
+
+
 def forward_transform(s1, zdist, s2):
     """ generate transform rotation and translation from
         s1 coords to s2 coords """

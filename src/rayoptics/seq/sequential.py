@@ -129,7 +129,7 @@ class SequentialModel:
     def reset(self):
         self.__init__(self.opt_model)
 
-    def get_num_surfaces(self):
+    def get_num_surfaces(self) -> int:
         return len(self.ifcs)
 
     def path(self, wl=None, start=None, stop=None, step=1):
@@ -195,7 +195,7 @@ class SequentialModel:
         tfrms = self.compute_local_transforms(step=-1)
         wl_idx = self.index_for_wavelength(wl)
         rndx = [n[wl_idx] for n in self.rndx[rndx_start:stop:step]]
-        z_dir = [z_dir for z_dir in self.z_dir[start:stop:step]]
+        z_dir = [-z_dir for z_dir in self.z_dir[start:stop:step]]
         path = itertools.zip_longest(self.ifcs[start:stop:step],
                                      self.gaps[gap_start:stop:step],
                                      tfrms[-(start+1)::+1],
@@ -1002,25 +1002,6 @@ class SequentialModel:
                                 wave(p, ray_pkg, fld, wvl, foc), form='grid')
         return grid
 
-    # def set_clear_apertures(self):
-    #     def rd(v):
-    #         """ take 2d length of input vector v """
-    #         return np.sqrt(v[0]*v[0]+v[1]*v[1])
-
-    #     if self.get_num_surfaces() > 2:
-    #         fields_df = trace.trace_all_fields(self.opt_model)
-    #         # a) Select the inc_pt data from the unstacked result and
-    #         #    transpose so that intrfcs are the index
-    #         inc_pts = fields_df.unstack()['inc_pt'].T
-    #         # b) applymap() is used to apply the function rd() to each
-    #         #    element in the dataframe
-    #         inc_pts_rd = inc_pts.applymap(rd)
-    #         # c) apply max() function to each row (i.e. across columns,
-    #         #    axis=1)
-    #         semi_ap = inc_pts_rd.max(axis=1)
-    #         for s, max_ap in zip(self.ifcs[1:-1], semi_ap[1:-1]):
-    #             s.set_max_aperture(max_ap)
-
     def set_clear_apertures_paraxial(self):
         ax_ray, pr_ray, _ = self.opt_model['analysis_results']['parax_data']
         for i, ifc in enumerate(self.ifcs):
@@ -1059,20 +1040,7 @@ class SequentialModel:
 
     def compute_local_transforms(self, seq=None, step=1):
         """ Return forward surface coordinates (r.T, t) for each interface. """
-        tfrms = []
-        if seq is None:
-            seq = itertools.zip_longest(self.ifcs[::step],
-                                        self.gaps[::step])
-        b4_ifc, b4_gap = next(seq)
-        for (ifc, gap) in seq:
-            zdist = b4_gap.thi
-            r, t = trns.forward_transform(b4_ifc, zdist, ifc)
-            rt = r.transpose()
-            tfrms.append((rt, t))
-            b4_ifc, b4_gap = ifc, gap
-
-        tfrms.append((np.identity(3), np.array([0., 0., 0.])))
-        return tfrms
+        return trns.compute_local_transforms(self, seq, step)
 
     def list_lcl_tfrms(self, *args):
         self.list_tfrms(self.lcl_tfrms, *args)
