@@ -192,7 +192,7 @@ class MainWindow(QMainWindow):
             # self.open_file(path / "zemax/tests/HoO-V2C18Ex27.zmx")
             # self.open_file(path / "zemax/tests/HoO-V2C18Ex46.zmx")
             # self.open_file(path / "zemax/tests/HoO-V2C18Ex66.zmx")
-            # self.open_file(path / "zemax/tests/US05831776-1.zmx")
+            # self.open_file(path / "zemax/tests/US05831776-1.zmx")  # litho lens
             # self.open_file(path / "zemax/tests/zmax_37992.zmx")
             # self.open_file(path / "zemax/tests/354710-C-Zemax(ZMX).zmx")
 
@@ -208,9 +208,16 @@ class MainWindow(QMainWindow):
             # self.open_file(path / "zemax/models/PhotoPrime/US05331467-1.zmx")
             # self.open_file(path / "zemax/models/PhotoPrime/US05331467-1_asm.roa")
 
-            # ro_test_files = Path("/Users/Mike/Developer/PyProjects/ro_test_files")
+            # root_pth = Path("/Users/Mike/Developer/PyProjects") 
+            # ro_test_files = root_pth / 'ro_test_files'
             # self.cur_dir = ro_test_files / "optical"
             # self.open_file(ro_test_files / "optical/Nikon Nikkor Z 14-30mm f-4 S real glasses.roa")
+
+            # lens_designs_path = root_pth / 'lens-designs-dotcom'
+            # self.cur_dir = lens_path = lens_designs_path / "PhotoPrime"
+            # self.open_file(lens_path / "US007161746_Example09P.zmx")
+            # self.open_file(lens_path / "US20190086648_Example02P.zmx")
+            # self.open_file(lens_path / "US20130235467_Example01P.zmx")
 
     def add_subwindow(self, widget, model_info):
         sub_wind = self.mdi.addSubWindow(widget)

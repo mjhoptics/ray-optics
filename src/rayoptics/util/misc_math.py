@@ -108,6 +108,24 @@ def projected_point_on_radial_line_full(pt, radial_pt):
     return p, dist
 
 
+def rot_v1_into_v2(v1, v2):
+    """ rotate v1 into v2 using equivalent angle rotation. 
+    
+    Compute a rotation matrix from v1 to v2. Take the cross product of the input vectors to get the rotation axis. The eqivalent angle rotation is equation 2.80 from Introduction to Robotics, 2nd ed, by John J Craig.
+    """
+    rot_axis = -np.cross(v1, v2)
+    s = np.linalg.norm(rot_axis)
+    c = cosine_ang = np.dot(v1, v2)
+    v = 1 - cosine_ang
+    ax = normalize(rot_axis)
+    rot_mat = np.array(
+        [[ax[0]*ax[0]*v + c, ax[0]*ax[1]*v - ax[2]*s, ax[0]*ax[2]*v + ax[1]*s],
+         [ax[0]*ax[1]*v + ax[2]*s, ax[1]*ax[1]*v + c, ax[1]*ax[2]*v + ax[0]*s],
+         [ax[0]*ax[2]*v + ax[1]*s, ax[1]*ax[2]*v + ax[0]*s, ax[2]*ax[2]*v + c]]
+         )
+    return rot_mat
+
+
 def euler2opt(e):
     """ convert right-handed euler angles to optical design convention,
         i.e. alpha and beta are left-handed

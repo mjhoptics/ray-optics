@@ -193,22 +193,23 @@ def post_process_input(opt_model, filename, **kwargs):
     _track_contents['# fields'] = len(fov.fields)
     max_fld, max_fld_idx = fov.max_field()
     fov.value = max_fld
+    fov.is_wide_angle = fov.check_is_wide_angle()
 
-def wvl_spec_data(optm, tla, qlist, dlist):
-    osp = optm.optical_spec
+def wvl_spec_data(opm, tla, qlist, dlist):
+    osp = opm['optical_spec']
     if tla == "WL":
-        osp.spectral_region.wavelengths = dlist
-        osp.spectral_region.calc_colors()
+        osp['wvls'].wavelengths = dlist
+        osp['wvls'].calc_colors()
     elif tla == "WTW":
-        osp.spectral_region.spectral_wts = dlist
+        osp['wvls'].spectral_wts = dlist
     elif tla == "REF":
-        osp.spectral_region.reference_wvl = dlist[0]-1
+        osp['wvls'].reference_wvl = dlist[0]-1
     elif tla == "CWL":
-        osp.spectral_region.coating_wvl = dlist
+        osp['wvls'].coating_wvl = dlist
 
 
-def pupil_spec_data(optm, tla, qlist, dlist):
-    pupil = optm.optical_spec.pupil
+def pupil_spec_data(opm, tla, qlist, dlist):
+    pupil = opm['optical_spec']['pupil']
     if tla == "EPD":
         pupil.key = 'object', 'epd'
     elif tla == "NAO":
@@ -222,14 +223,18 @@ def pupil_spec_data(optm, tla, qlist, dlist):
     logger.debug("pupil_spec_data: %s %f", tla, dlist[0])
 
 
-def field_spec_data(optm, tla, qlist, dlist):
-    fov = optm.optical_spec.field_of_view
+def field_spec_data(opm, tla, qlist, dlist):
+    fov = opm['optical_spec']['fov']
     if tla == 'XOB' or tla == 'YOB':
         fov.key = 'object', 'height'
     elif tla == 'XAN' or tla == 'YAN':
         fov.key = 'object', 'angle'
     elif tla == 'XIM' or tla == 'YIM':
         fov.key = 'image', 'height'
+    elif tla == 'XRI' or tla == 'YRI':
+        fov.key = 'image', 'real height'
+    elif tla == 'WID':
+        fov.is_wide_angle = dlist[0]
 
     if len(fov.fields) != len(dlist):
         fov.fields = [Field() for f in range(len(dlist))]
@@ -242,23 +247,23 @@ def field_spec_data(optm, tla, qlist, dlist):
         attr = 'wt'
 
     for i, f in enumerate(fov.fields):
-        f.__setattr__(attr, dlist[i])
+        setattr(f, attr, dlist[i])
 
     log_cmd("field_spec_data", tla, qlist, dlist)
 
 
-def spec_data(optm, tla, qlist, dlist):
+def spec_data(opm, tla, qlist, dlist):
     if tla == "LEN":
         pass
     elif tla == "RDM":
         if len(dlist) == 0:
-            optm.radius_mode = True
+            opm.radius_mode = True
         else:
-            optm.radius_mode = dlist[0]
+            opm.radius_mode = dlist[0]
     elif tla == "TIT":
-        optm.system_spec.title = dlist[0]
+        opm['system_spec'].title = dlist[0]
     elif tla == "INI":
-        optm.system_spec.initials = dlist[0]
+        opm['system_spec'].initials = dlist[0]
     elif tla == "DIM":
         dim = dlist[0].upper()
         if dim == 'M' or dim == 'MM':
@@ -267,11 +272,11 @@ def spec_data(optm, tla, qlist, dlist):
             dim = 'cm'
         elif dim == 'I' or dim == 'IN':
             dim = 'inches'
-        optm.system_spec.dimensions = dim
+        opm['system_spec'].dimensions = dim
     elif tla == "TEM":
-        optm.system_spec.temperature = dlist[0]
+        opm['system_spec'].temperature = dlist[0]
     elif tla == "PRE":
-        optm.system_spec.pressure = dlist[0]
+        opm['system_spec'].pressure = dlist[0]
     log_cmd("spec_data", tla, qlist, dlist)
 
 
@@ -349,8 +354,8 @@ def private_catalog(optm, tla, qlist, dlist):
     log_cmd("private_catalog", tla, qlist, dlist)
 
 
-def surface_data(optm, tla, qlist, dlist):
-    seq_model = optm.seq_model
+def surface_data(opm, tla, qlist, dlist):
+    seq_model = opm['seq_model']
     idx = get_index_qualifier(seq_model, 'S', qlist)
     if not idx:
         idx = seq_model.cur_surface
@@ -382,8 +387,8 @@ def update_surface_profile(seq_model, profile_type, idx=None):
     return seq_model.ifcs[idx].profile
 
 
-def profile_data(optm, tla, qlist, dlist):
-    seq_model = optm.seq_model
+def profile_data(opm, tla, qlist, dlist):
+    seq_model = opm['seq_model']
     idx = get_index_qualifier(seq_model, 'S', qlist)
     if not idx:
         idx = seq_model.cur_surface
@@ -426,7 +431,7 @@ def profile_data(optm, tla, qlist, dlist):
 
 def aperture_data(opm, tla, qlist, dlist):
     """ add aperture data, either creating a new aperture or modifying the last """
-    seq_model = opm.seq_model
+    seq_model = opm['seq_model']
     idx = get_index_qualifier(seq_model, 'S', qlist)
     lbl = get_index_qualifier(seq_model, 'L', qlist)
     if not idx:
@@ -473,7 +478,7 @@ def aperture_data(opm, tla, qlist, dlist):
 
 def aperture_data_general(opm, tla, qlist, dlist):
     """ handle the general aperture commands, add to end of list """
-    seq_model = opm.seq_model
+    seq_model = opm['seq_model']
     idx = get_index_qualifier(seq_model, 'S', qlist)
     if not idx:
         idx = seq_model.cur_surface
@@ -498,7 +503,7 @@ def aperture_data_general(opm, tla, qlist, dlist):
 
 def aperture_offset(opm, tla, qlist, dlist):
     """ handle the aperture offset commands, assume last aperture in list """
-    seq_model = opm.seq_model
+    seq_model = opm['seq_model']
     idx = get_index_qualifier(seq_model, 'S', qlist)
     if not idx:
         idx = seq_model.cur_surface
@@ -515,8 +520,8 @@ def aperture_offset(opm, tla, qlist, dlist):
     log_cmd("aperture_offset", tla, qlist, dlist)
 
 
-def decenter_data(optm, tla, qlist, dlist):
-    seq_model = optm.seq_model
+def decenter_data(opm, tla, qlist, dlist):
+    seq_model = opm['seq_model']
     idx = get_index_qualifier(seq_model, 'S', qlist)
     if not idx:
         idx = seq_model.cur_surface
@@ -554,8 +559,8 @@ def decenter_data(optm, tla, qlist, dlist):
 #  HOR 1.0
 #  HWL 587.5618; HCT R
 #  HCO C1 -0.001807322521767816; HCC C1 100
-def diffractive_optic(optm, tla, qlist, dlist):
-    seq_model = optm.seq_model
+def diffractive_optic(opm, tla, qlist, dlist):
+    seq_model = opm['seq_model']
     idx = get_index_qualifier(seq_model, 'S', qlist)
     if not idx:
         idx = seq_model.cur_surface

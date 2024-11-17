@@ -59,13 +59,13 @@ def set_ape(opm):
     opm['em'].sync_to_seq(opm['sm'])
 
 
-def set_vig(opm):
+def set_vig(opm, **kwargs):
     """ From existing fields and clear apertures, calculate vignetting. """
     osp = opm['osp']
     for fi in range(len(osp['fov'].fields)):
         fld, wvl, foc = osp.lookup_fld_wvl_focus(fi)
         logger.debug(f"set vig field {fi}:")
-        calc_vignetting_for_field(opm, fld, wvl)
+        calc_vignetting_for_field(opm, fld, wvl, **kwargs)
 
 
 def set_pupil(opm):
@@ -103,7 +103,7 @@ def set_pupil(opm):
     pupil_value_orig = osp['pupil'].value
 
     if obj_img_key == 'object':
-        if pupil_spec == 'epd' or pupil_spec == 'pupil':
+        if pupil_spec == 'epd':
             rs1 = RaySeg(*ray_pkg[0][1])
             ht = rs1.p[1]
             osp['pupil'].value = 2*ht
@@ -118,7 +118,7 @@ def set_pupil(opm):
                 osp['pupil'].value = 1/(2*slp0)
     elif obj_img_key == 'image':
         rsm2 = RaySeg(*ray_pkg[0][-2])
-        if pupil_spec == 'epd' or pupil_spec == 'pupil':
+        if pupil_spec == 'epd':
             ht = rsm2.p[1]
             osp['pupil'].value = 2*ht
         else:
@@ -135,14 +135,21 @@ def set_pupil(opm):
         set_vig(opm)
 
 
-def calc_vignetting_for_field(opm, fld, wvl):
+def calc_vignetting_for_field(opm, fld, wvl, **kwargs):
     """Calculate and set the vignetting parameters for `fld`. """
+    use_bisection = kwargs.get('use_bisection', 
+                               opm['osp']['fov'].is_wide_angle)
     pupil_starts = opm['osp']['pupil'].pupil_rays[1:]
     vig_factors = [0.]*4
     for i in range(4):
         xy = i//2
         start = pupil_starts[i]
-        vig, last_indx, ray_pkg = calc_vignetted_ray(opm, xy, start, fld, wvl)
+        if use_bisection:
+            vig, last_indx, ray_pkg = calc_vignetted_ray_by_bisection(
+                opm, xy, start, fld, wvl)
+        else:
+            vig, last_indx, ray_pkg = calc_vignetted_ray(
+                opm, xy, start, fld, wvl)
         logger.debug(f"ray: ({start[0]:2.0f}, {start[1]:2.0f}), "
                      f"vig={vig:8.4f}, limited at ifcs[{last_indx}]")
         vig_factors[i] = vig
@@ -184,7 +191,8 @@ def calc_vignetted_ray(opm, xy, start_dir, fld, wvl, max_iter_count=10):
         try:
             ray_pkg = trace.trace_base(opm, rel_p1, fld, wvl, 
                                        apply_vignetting=False, 
-                                       check_apertures=True)
+                                       check_apertures=True,
+                                       pt_inside_fuzz=1e-4)
 
         except terr.TraceError as ray_error:
             indx = ray_error.surf
@@ -216,6 +224,56 @@ def calc_vignetted_ray(opm, xy, start_dir, fld, wvl, max_iter_count=10):
                     last_indx = indx
                 else: # floating stop, exit
                     still_iterating = False
+
+    vig = 1.0 - (rel_p1[xy]/start_dir[xy])
+    return vig, last_indx, ray_pkg
+
+
+def calc_vignetted_ray_by_bisection(opm, xy, start_dir, fld, wvl, 
+                                    max_iter_count=10):
+    """ Find the limiting aperture and return the vignetting factor. 
+
+    Args:
+        opm: :class:`~.OpticalModel` instance
+        xy: 0 or 1 depending on x or y axis as the pupil direction
+        start_dir: the unit length starting pupil coordinates, e.g [1., 0.]. 
+                   This establishes the radial direction of the ray iteration.
+        fld: :class:`~.Field` point for wave aberration calculation
+        wvl: wavelength of ray (nm)
+        max_iter_count: fail-safe limit on aperture search
+
+    Returns:
+        (**vig**, **last_indx**, **ray_pkg**)
+
+        - **vig** - vignetting factor
+        - **last_indx** - the index of the limiting interface
+        - **ray_pkg** - the vignetting-limited ray
+ 
+    """
+    rel_p1 = np.array(start_dir)
+    sm = opm['sm']
+    still_iterating = True
+    last_indx = None
+    iter_count = 0  # safe guard against runaway iteration
+    step_size = 1.0
+    while still_iterating and iter_count<max_iter_count:
+        iter_count += 1
+        try:
+            step_size /= 2
+            ray_pkg = trace.trace_base(opm, rel_p1, fld, wvl, 
+                                       apply_vignetting=False, 
+                                       check_apertures=True,
+                                       pt_inside_fuzz=1e-4)
+
+        except terr.TraceError as ray_error:
+            ray_pkg = RayPkg(*ray_error.ray_pkg)
+            last_indx = ray_error.surf
+            rel_p1 = -step_size*np.array(start_dir) + rel_p1
+            logger.debug(f"{xy_str[xy]} = {rel_p1[xy]:10.6f}: "
+                         f"blocked at {last_indx}")
+        else:  # ray successfully traced.
+            rel_p1 = step_size*np.array(start_dir) + rel_p1
+            logger.debug(f"{xy_str[xy]} = {rel_p1[xy]:10.6f}: passed")
 
     vig = 1.0 - (rel_p1[xy]/start_dir[xy])
     return vig, last_indx, ray_pkg
@@ -254,12 +312,16 @@ def iterate_pupil_ray(opt_model, indx, xy, start_r0, r_target, fld, wvl, **kwarg
                                        check_apertures=False)
         except terr.TraceError as ray_error:
             ray_pkg = ray_error.ray_pkg
-            if ray_error.surf < indx:
-                raise ray_error
+            if isinstance(ray_error, terr.TraceMissedSurfaceError):
+                # no surface intersection, so no ray data at indx
+                if ray_error.surf <= indx:
+                    raise ray_error
+            else:
+                if ray_error.surf < indx:
+                    raise ray_error
 
         ray = ray_pkg[mc.ray]
         r_ray = ray[indx][mc.p][xy]
-        # print(xy_coord, r_ray, r_target, r_ray - r_target)
         return r_ray - r_target
 
     start_coords = np.array([0., 0.])

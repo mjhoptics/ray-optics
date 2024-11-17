@@ -20,3 +20,4 @@ Submodules
    rayoptics.raytr.traceerror
    rayoptics.raytr.vigcalc
    rayoptics.raytr.waveabr
+   rayoptics.raytr.wideangle

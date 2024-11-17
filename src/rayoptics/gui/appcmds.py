@@ -367,9 +367,9 @@ def create_parax_design_commands(fig):
         return cmds
 
 
-def set_vignetting(opt_model, gui_parent=None):
+def set_vignetting(opt_model, gui_parent=None, **kwargs):
     """ From existing fields and clear apertures, calculate vignetting. """
-    vigcalc.set_vig(opt_model)
+    vigcalc.set_vig(opt_model, **kwargs)
     if gui_parent is None:
         opt_model.update_model(src_model=opt_model['seq_model'])
     else:

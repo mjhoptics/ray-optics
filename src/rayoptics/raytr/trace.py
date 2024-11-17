@@ -9,6 +9,7 @@
 """
 
 import itertools
+import logging
 import warnings
 import math
 import numpy as np
@@ -20,10 +21,12 @@ from . import raytrace as rt
 from . import RayPkg, RaySeg, RayResult
 from .waveabr import (wave_abr_full_calc, calculate_reference_sphere, 
                       transfer_to_exit_pupil)
+from .wideangle import find_real_enp, enp_z_coordinate
 from rayoptics.optical import model_constants as mc
 from .traceerror import TraceError, TraceMissedSurfaceError, TraceTIRError
 from rayoptics.util.misc_math import normalize
 
+logger = logging.getLogger(__name__)
 
 def ray_pkg(ray_pkg):
     """ return a |Series| containing a ray package (RayPkg) """
@@ -98,7 +101,7 @@ def list_in_out_dir(path, ray):
 
 
 def trace_ray(opt_model, pupil, fld, wvl, 
-              output_filter=None, rayerr_filter=None,
+              output_filter=None, rayerr_filter='full',
                **kwargs) -> RayResult:
     """ Trace a single ray via pupil, field and wavelength specs.
     
@@ -218,7 +221,7 @@ def trace_safe(opt_model, pupil, fld, wvl,
     return RayResult(*ray_result)
 
 
-def trace(seq_model, pt0, dir0, wvl, **kwargs):
+def trace(seq_model, pt0, dir0, wvl, **kwargs) -> RayPkg:
     """ returns (ray, ray_opl, wvl)
 
     Args:
@@ -244,12 +247,12 @@ def trace(seq_model, pt0, dir0, wvl, **kwargs):
           optical axis
         - **wvl** - wavelength (in nm) that the ray was traced in
     """
-    return rt.trace(seq_model, pt0, dir0, wvl, **kwargs)
+    return RayPkg(*rt.trace(seq_model, pt0, dir0, wvl, **kwargs))
 
 
 def trace_base(opt_model, pupil, fld, wvl, 
                apply_vignetting=True, pupil_type='rel pupil', 
-               **kwargs):
+               **kwargs) -> RayPkg:
     """Trace ray specified by relative aperture and field point.
     
     `pupil_type` controls how `pupil` data is interpreted when calculating the starting ray coordinates.
@@ -293,6 +296,17 @@ def trace_base(opt_model, pupil, fld, wvl,
     pt0, dir0 = opt_model['optical_spec'].ray_start_from_osp(pupil_coords, fld,
                                                              pupil_type)
 
+    # if wide_angle, don't try to intercept object and don't disallow 
+    # propagation against z_dir; this will be the case for rays exceeding 
+    # 90 degrees at the first surface.
+    if opt_model['optical_spec']['fov'].is_wide_angle:
+        kwargs['intersect_obj'] = False
+    else:  # otherwise, if not wide angle, propagation against z_dir means 
+        # a virtual object. To handle virtual object distances, always 
+        # propagate from the object in a positive Z direction.
+        if dir0[2] * opt_model['seq_model'].z_dir[0] < 0:
+            dir0 = -dir0
+
     return rt.trace(opt_model['seq_model'], pt0, dir0, wvl, **kwargs)
 
 
@@ -304,53 +318,65 @@ def iterate_ray(opt_model, ifcx, xy_target, fld, wvl, **kwargs):
 
     If the iteration fails, a TraceError will be raised
     """
-    ray_pkg = None
+    rr = None
     def y_stop_coordinate(y1, *args):
-        nonlocal ray_pkg
-        seq_model, ifcx, pt0, dist, wvl, y_target = args
-        pt1 = np.array([0., y1, dist])
+        nonlocal rr
+        seq_model, ifcx, pt0, obj2enp_dist, wvl, y_target, not_wa = args
+        pt1 = np.array([0., y1, obj2enp_dist])
         dir0 = normalize(pt1 - pt0)
         # handle case where entrance pupil is behind the object (issue #120)
-        if dir0[2] * seq_model.z_dir[0] < 0:
+        if not_wa and dir0[2] * seq_model.z_dir[0] < 0:
             dir0 = -dir0
 
         try:
-            ray, _, _ = ray_pkg = rt.trace(seq_model, pt0, dir0, wvl)
+            ray_pkg = RayPkg(*rt.trace(seq_model, pt0, dir0, wvl))
 
         except TraceError as ray_error:
-            ray, _, _ = ray_pkg = ray_error.ray_pkg
+            logger.debug(f'ray_error: "{type(ray_error).__name__}", '
+                        f'{ray_error.surf=}')
+            ray_pkg = RayPkg(*ray_error.ray_pkg)
+            rr = RayResult(ray_pkg, ray_error)
+            final_coord = np.array([0., 0., 0.])
             if ray_error.surf < ifcx:
                 raise ray_error
+ 
+        else:
+            rr = RayResult(ray_pkg, None)
+            final_coord = ray_pkg.ray[ifcx][mc.p]
 
-        y_ray = ray[ifcx][mc.p][1]
-#        print(y1, y_ray)
+        y_ray = final_coord[1]
         return y_ray - y_target
 
     def surface_coordinate(coord, *args):
-        nonlocal ray_pkg
-        seq_model, ifcx, pt0, dist, wvl, target = args
+        nonlocal rr
+        seq_model, ifcx, pt0, dist, wvl, target, not_wa = args
         pt1 = np.array([coord[0], coord[1], dist])
         dir0 = normalize(pt1 - pt0)
-        if dir0[2] * seq_model.z_dir[0] < 0:
+        if not_wa and dir0[2] * seq_model.z_dir[0] < 0:
             dir0 = -dir0
         
         try:
-            ray, _, _ = ray_pkg = rt.trace(seq_model, pt0, dir0, wvl)
+            ray_pkg = RayPkg(*rt.trace(seq_model, pt0, dir0, wvl))
             
         except TraceError as ray_error:
-            ray, _, _ = ray_pkg = ray_error.ray_pkg
+            ray_pkg = RayPkg(*ray_error.ray_pkg)
+            rr = RayResult(ray_pkg, ray_error)
+            final_coord = np.array([0., 0., 0.])
             if ray_error.surf < ifcx:
                 raise ray_error
-
-        xy_ray = np.array([ray[ifcx][mc.p][0], ray[ifcx][mc.p][1]])
-#        print(coord[0], coord[1], xy_ray[0], xy_ray[1])
+        else:
+            rr = RayResult(ray_pkg, None)
+            final_coord = ray_pkg.ray[ifcx][mc.p]
+        xy_ray = np.array([final_coord[0], final_coord[1]])
         return xy_ray - target
 
-    seq_model = opt_model.seq_model
-    osp = opt_model.optical_spec
+    seq_model = opt_model['seq_model']
+    osp = opt_model['optical_spec']
 
     fod = opt_model['analysis_results']['parax_data'].fod
-    dist = fod.obj_dist + fod.enp_dist
+    obj2enp_dist = fod.obj_dist + fod.enp_dist
+    
+    not_wa = not osp['fov'].is_wide_angle
 
     pt0, d0 = osp.obj_coords(fld)
     with warnings.catch_warnings():
@@ -361,9 +387,9 @@ def iterate_ray(opt_model, ifcx, xy_target, fld, wvl, **kwargs):
                 y_target = xy_target[1]
                 try:
                     start_y, results = newton(y_stop_coordinate, 0.,
-                                            args=(seq_model, ifcx, pt0,
-                                                    dist, wvl, y_target),
-                                            disp=False, full_output=True)
+                                              args=(seq_model, ifcx, pt0,
+                                                    obj2enp_dist, wvl, y_target, not_wa),
+                                              disp=False, full_output=True)
                 except RuntimeError as rte:
                     # if we come here, start_y is a RuntimeResults object
                     # print(rte)
@@ -375,16 +401,18 @@ def iterate_ray(opt_model, ifcx, xy_target, fld, wvl, **kwargs):
                 # do 2D iteration. epsfcn is a parameter increment,
                 #  make proportional to pupil radius
                 try:
-                    start_coords = fsolve(surface_coordinate, np.array([0., 0.]),
-                                        epsfcn=0.0001*fod.enp_radius,
-                                        args=(seq_model, ifcx, pt0, dist,
-                                                wvl, xy_target))
+                    start_coords = fsolve(surface_coordinate, 
+                                          np.array([0., 0.]),
+                                          epsfcn=0.0001*fod.enp_radius,
+                                          args=(seq_model, ifcx, pt0, 
+                                                obj2enp_dist, wvl, 
+                                                xy_target, not_wa))
                 except TraceError:
                     start_coords = np.array([0., 0.])
         else:  # floating stop surface - use entrance pupil for aiming
             start_coords = np.array([0., 0.]) + xy_target
 
-    return start_coords, ray_pkg
+    return start_coords, rr
 
 
 def trace_with_opd(opt_model, pupil, fld, wvl, foc, **kwargs):
@@ -596,12 +624,18 @@ def setup_pupil_coords(opt_model, fld, wvl, foc,
 
 def aim_chief_ray(opt_model, fld, wvl=None):
     """ aim chief ray at center of stop surface and save results on **fld** """
-    seq_model = opt_model.seq_model
+    seq_model = opt_model['seq_model']
+    osp = opt_model['optical_spec']
     if wvl is None:
         wvl = seq_model.central_wavelength()
     stop = seq_model.stop_surface
-    aim_pt, cr_ray = iterate_ray(opt_model, stop, np.array([0., 0.]), fld, wvl)
-    return aim_pt
+    if osp['fov'].is_wide_angle:
+        aim_info, rr = find_real_enp(opt_model, stop, fld, wvl)
+
+    else:
+        aim_info, cr_ray = iterate_ray(opt_model, stop, np.array([0., 0.]),
+                                       fld, wvl)
+    return aim_info
 
 
 def apply_paraxial_vignetting(opt_model):
@@ -642,7 +676,7 @@ def get_chief_ray_pkg(opt_model, fld, wvl, foc):
 
     """
     if fld.chief_ray is None:
-        aim_chief_ray(opt_model, fld, wvl=wvl)
+        fld.aim_info = aim_chief_ray(opt_model, fld, wvl=wvl)
         chief_ray_pkg = trace_chief_ray(opt_model, fld, wvl, foc)
     elif fld.chief_ray[0][2] != wvl:
         chief_ray_pkg = trace_chief_ray(opt_model, fld, wvl, foc)
@@ -824,3 +858,101 @@ def trace_astigmatism(opt_model, fld, wvl, foc, dx=0.001, dy=0.001):
         s_foc -= focus_shift
         t_foc -= focus_shift
     return s_foc, t_foc
+
+
+def iterate_ray_raw(pthlist, ifcx, xy_target, pt0, d0, 
+                    obj2pup_dist, eprad, wvl, not_wa, **kwargs):
+    """ iterates a ray to xy_target on interface ifcx, returns aim points on
+    the paraxial entrance pupil plane
+
+    If idcx is None, i.e. a floating stop surface, returns xy_target.
+
+    If the iteration fails, a TraceError will be raised
+    """
+    rr = None
+    def y_stop_coordinate(y1, *args):
+        nonlocal rr
+        pthlist, ifcx, pt0, obj2pup_dist, wvl, y_target, not_wa = args
+        pt1 = np.array([0., y1, obj2pup_dist])
+        dir0 = normalize(pt1 - pt0)
+        # handle case where entrance pupil is behind the object (issue #120)
+        if not_wa and dir0[2] * pthlist[0][mc.Zdir] < 0:
+            dir0 = -dir0
+
+        try:
+            ray_pkg = RayPkg(*rt.trace_raw(iter(pthlist), pt0, dir0, wvl))
+
+        except TraceError as ray_error:
+            logger.debug(f'ray_error: "{type(ray_error).__name__}", '
+                        f'{ray_error.surf=}')
+            ray_pkg = RayPkg(*ray_error.ray_pkg)
+            rr = RayResult(ray_pkg, ray_error)
+            final_coord = np.array([0., 0., 0.])
+            if ray_error.surf < ifcx:
+                raise ray_error
+ 
+        else:
+            rr = RayResult(ray_pkg, None)
+            final_coord = ray_pkg.ray[ifcx][mc.p]
+
+        y_ray = final_coord[1]
+        return y_ray - y_target
+
+    def surface_coordinate(coord, *args):
+        nonlocal rr
+        pthlist, ifcx, pt0, dist, wvl, target, not_wa = args
+        pt1 = np.array([coord[0], coord[1], dist])
+        dir0 = normalize(pt1 - pt0)
+        if not_wa and dir0[2] * pthlist[0][mc.Zdir] < 0:
+            dir0 = -dir0
+        
+        try:
+            ray_pkg = RayPkg(*rt.trace_raw(iter(pthlist), pt0, dir0, wvl))
+            
+        except TraceError as ray_error:
+            ray_pkg = RayPkg(*ray_error.ray_pkg)
+            rr = RayResult(ray_pkg, ray_error)
+            final_coord = np.array([0., 0., 0.])
+            if ray_error.surf < ifcx:
+                raise ray_error
+        else:
+            rr = RayResult(ray_pkg, None)
+            final_coord = ray_pkg.ray[ifcx][mc.p]
+        xy_ray = np.array([final_coord[0], final_coord[1]])
+        return xy_ray - target
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        if ifcx is not None:
+            if pt0[0] == 0.0 and xy_target[0] == 0.0:
+                # do 1D iteration if field and target points are zero in x
+                y_target = xy_target[1]
+                try:
+                    start_y, results = newton(y_stop_coordinate, 0.,
+                                              args=(pthlist, ifcx, 
+                                                    pt0, obj2pup_dist, wvl, 
+                                                    y_target, not_wa),
+                                              disp=False, full_output=True)
+                except RuntimeError as rte:
+                    # if we come here, start_y is a RuntimeResults object
+                    # print(rte)
+                    start_y = results.root
+                except TraceError:
+                    start_y = 0.0
+                start_coords = np.array([0., start_y])
+            else:
+                # do 2D iteration. epsfcn is a parameter increment,
+                #  make proportional to pupil radius
+                try:
+                    start_coords = fsolve(surface_coordinate, 
+                                          np.array([0., 0.]),
+                                          epsfcn=0.0001*eprad,
+                                          args=(pthlist, ifcx, pt0, 
+                                                obj2pup_dist, wvl, 
+                                                xy_target, not_wa))
+                except TraceError:
+                    start_coords = np.array([0., 0.])
+        else:  # floating stop surface - use entrance pupil for aiming
+            start_coords = np.array([0., 0.]) + xy_target
+
+    return start_coords, rr

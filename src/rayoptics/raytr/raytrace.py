@@ -56,7 +56,6 @@ def trace(seq_model, pt0, dir0, wvl, **kwargs):
         pt0: starting point in coords of first interface
         dir0: starting direction cosines in coords of first interface
         wvl: wavelength in nm
-        eps: accuracy tolerance for surface intersection calculation
 
     Returns:
         (**ray**, **op_delta**, **wvl**)
@@ -81,19 +80,22 @@ def trace(seq_model, pt0, dir0, wvl, **kwargs):
     return trace_raw(path, pt0, dir0, wvl, **kwargs)
 
 
-def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, check_apertures=False, **kwargs):
+def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, check_apertures=False, 
+              intersect_obj=True, **kwargs):
     """ fundamental raytrace function
 
     Args:
         path: an iterator containing interfaces and gaps to be traced.
               for each iteration, the sequence or generator should return a
               list containing: **Intfc, Gap, Trfm, Index, Z_Dir**
-        pt0: starting point in coords of first interface
-        dir0: starting direction cosines in coords of first interface
+        pt0: starting point in coords of object interface
+        dir0: starting direction cosines in coords of object interface
         wvl: wavelength in nm
         eps: accuracy tolerance for surface intersection calculation
         check_apertures: if True, do point_inside() test on inc_pt
-
+        intersect_obj: if True, intersect the ray with the object, otherwise 
+                       trace input ray coords directly.
+        pt_inside_fuzz: accuracy tolerance for aperture clipping check
 
     Returns:
         (**ray**, **op_delta**, **wvl**)
@@ -114,6 +116,8 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, check_apertures=False, **kwargs
 
     first_surf = kwargs.get('first_surf', 0)
     last_surf = kwargs.get('last_surf', None)
+    pt_inside_fuzz = kwargs.get('pt_inside_fuzz', None)
+    fuzz = {} if pt_inside_fuzz is None else {'fuzz': pt_inside_fuzz}
 
     def in_gap_range(gap_indx, include_last_surf=False):
         if first_surf == last_surf:
@@ -137,14 +141,16 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, check_apertures=False, **kwargs
             return True
 
     # trace object surface
-    obj = next(path)
-    srf_obj = obj[mc.Intfc]
-    dst_b4, pt_obj = srf_obj.intersect(pt0, dir0, z_dir=obj[mc.Zdir])
+    before = obj = next(path)
+    if intersect_obj:
+        srf_obj = obj[mc.Intfc]
+        _, before_pt = srf_obj.intersect(pt0, dir0, z_dir=obj[mc.Zdir])
+        before_normal = srf_obj.normal(before_pt)
+    else:
+        before_pt = pt0
+        before_normal = np.array([0., 0., 1.])
 
-    before = obj
-    before_pt = pt_obj
     before_dir = dir0
-    before_normal = srf_obj.normal(before_pt)
     tfrm_from_before = before[mc.Tfrm]
     z_dir_before = before[mc.Zdir]
 
@@ -181,7 +187,7 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, check_apertures=False, **kwargs
             normal = ifc.normal(inc_pt)
 
             if check_apertures and in_surface_range(surf):
-                if not ifc.point_inside(inc_pt[0], inc_pt[1]):
+                if not ifc.point_inside(inc_pt[0], inc_pt[1], **fuzz):
                     raise TraceRayBlockedError(ifc, inc_pt)
 
             # if present, use the phase element to calculate after_dir

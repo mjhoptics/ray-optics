@@ -259,7 +259,7 @@ class AperturePanel(QWidget):
 
 class FieldOfViewPanel(QWidget):
     obj_img_items = ["object", "image"]
-    field_type_items = ["height", "angle"]
+    field_type_items = ["height", "angle", "real height"]
 
     def __init__(self, gui_app, parent=None):
         super().__init__(parent)
@@ -294,6 +294,7 @@ class FieldOfViewPanel(QWidget):
 
     def update(self, opt_model):
         """ push backend data to widgets """
+        self.obj_img_combo.refresh()
         self.field_combo.refresh()
         self.field_edit.refresh()
 

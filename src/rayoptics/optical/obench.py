@@ -107,7 +107,9 @@ def read_lens(inpts, opt_model=None):
     osp['pupil'].key = ('image', 'f/#')
     osp['pupil'].value = read_float(var_dists['F-Number'][0])
 
-    osp['fov'].key = ('image', 'height')
+    angle_of_view = read_float(var_dists['Angle of View'][0])
+    osp['fov'].is_wide_angle = True if angle_of_view/2 > 45. else False
+    osp['fov'].key = ('image', 'real height')
     osp['fov'].value = read_float(var_dists['Image Height'][0])/2
     osp['fov'].is_relative = True
     osp['fov'].set_from_list([0., .707, 1.])
@@ -126,9 +128,10 @@ def read_lens(inpts, opt_model=None):
                 inpt.append('')
             else:
                 inpt.append(read_float(line[3]))  # nd
-                inpt.append(read_float(line[5]))  # vd
-            inpt.append(read_float(line[4])/2)  # sd
-            sm.add_surface(inpt)
+                if line[5] != '':
+                    inpt.append(read_float(line[5]))  # vd
+            diam = read_float(line[4])
+            sm.add_surface(inpt, sd=diam/2)
             if line[1] == 'AS':
                 sm.set_stop()
     if 'aspherical data' in inpts:

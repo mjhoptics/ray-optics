@@ -119,8 +119,8 @@ def read_lens(filename, inpt, **kwargs):
 
 def process_line(opt_model, line, line_no):
     global _glass_handler, _cmd_not_handled, _track_contents
-    sm = opt_model.seq_model
-    osp = opt_model.optical_spec
+    sm = opt_model['seq_model']
+    osp = opt_model['optical_spec']
     cur = sm.cur_surface
     if not line.strip():
         return
@@ -133,9 +133,9 @@ def process_line(opt_model, line, line_no):
             dim = 'mm'
         elif dim == 'IN' or dim == 'INCH':
             dim = 'inches'
-        opt_model.system_spec.dimensions = dim
+        opt_model['system_spec'].dimensions = dim
     elif cmd == "NAME":
-        opt_model.system_spec.title = inputs.strip("\"")
+        opt_model['system_spec'].title = inputs.strip("\"")
     elif cmd == "NOTE":
         opt_model.note = inputs.strip("\"")
     elif cmd == "VERS":
@@ -219,16 +219,16 @@ def process_line(opt_model, line, line_no):
 
 def post_process_input(opt_model, filename, **kwargs):
     global _track_contents
-    sm = opt_model.seq_model
+    sm = opt_model['seq_model']
     sm.gaps.pop()
     sm.z_dir.pop()
     sm.rndx.pop()
 
-    if opt_model.system_spec.title == '' and filename is not None:
+    if opt_model['system_spec'].title == '' and filename is not None:
         fname_full = filename.resolve()
         cat, fname = fname_full.parts[-2:]
         title = "{:s}: {:s}".format(cat, fname)
-        opt_model.system_spec.title = title
+        opt_model['system_spec'].title = title
 
     conj_type = 'finite'
     if math.isinf(sm.gaps[0].thi):
@@ -257,8 +257,8 @@ def post_process_input(opt_model, filename, **kwargs):
         if kwargs.get('do_collapse_cb', True):
             zmx2ro.apply_fct_to_sm(opt_model, zmx2ro.collapse_coordbrk)
 
-    osp = opt_model.optical_spec
-    sr = osp.spectral_region
+    osp = opt_model['optical_spec']
+    sr = osp['wvls']
     if len(sr.wavelengths) > 1:
         if sr.wavelengths[-1] == 550.0:
             sr.wavelengths.pop()
@@ -266,7 +266,7 @@ def post_process_input(opt_model, filename, **kwargs):
     sr.reference_wvl = len(sr.wavelengths)//2
     _track_contents['# wvls'] = len(sr.wavelengths)
 
-    fov = osp.field_of_view
+    fov = osp['fov']
     _track_contents['fov'] = fov.key
 
     max_fld, max_fld_idx = fov.max_field()
@@ -283,6 +283,7 @@ def post_process_input(opt_model, filename, **kwargs):
         if hasattr(f, 'vcy') and hasattr(f, 'vdy'):
             f.vly = f.vcy + f.vdy
             f.vuy = f.vcy - f.vdy
+    fov.is_wide_angle = fov.check_is_wide_angle()
 
 
 def log_cmd(label, cmd, inputs):
@@ -495,7 +496,7 @@ def field_spec_data(optm, cmd, inputs):
         elif ftyp == 2:
             fov.key = 'image', 'height'
         elif ftyp == 3:
-            fov.key = 'image', 'height'
+            fov.key = 'image', 'real height'
         return True
     elif cmd == 'VDXN' or cmd == 'VDYN':
         attr = 'vd' + cmd[2].lower()
@@ -510,11 +511,11 @@ def field_spec_data(optm, cmd, inputs):
 
     inputs = inputs.split()
 
-    if len(fov.fields) != len(inputs):
-        fov.fields = [Field() for f in range(len(inputs))]
+    if len(fov.fields) < len(inputs):
+        fov.fields += [Field() for f in range(len(fov.fields), len(inputs))]
 
-    for i, f in enumerate(fov.fields):
-        f.__setattr__(attr, float(inputs[i]))
+    for i, inpt in enumerate(inputs):
+        setattr(fov.fields[i], attr, float(inpt))
 
     log_cmd("field_spec_data", cmd, inputs)
 

@@ -11,15 +11,18 @@
 import math
 import numpy as np
 
+
 from rayoptics.parax.firstorder import (compute_first_order,
                                         list_parax_trace_fotr)
 from rayoptics.parax import etendue
 from rayoptics.parax import idealimager
 from rayoptics.raytr.trace import aim_chief_ray
+from rayoptics.raytr.wideangle import eval_real_image_ht
 import rayoptics.optical.model_constants as mc
 from opticalglass.spectral_lines import get_wavelength
 import rayoptics.util.colour_system as cs
-from rayoptics.util.misc_math import transpose, normalize, is_kinda_big
+from rayoptics.util.misc_math import (transpose, normalize, is_kinda_big, 
+                                      rot_v1_into_v2)
 import rayoptics.gui.util as gui_util
 from rayoptics.util import colors
 srgb = cs.cs_srgb
@@ -256,8 +259,7 @@ class OpticalSpecs:
 
             if self.do_aiming:
                 for i, fld in enumerate(self.field_of_view.fields):
-                    aim_pt = aim_chief_ray(opm, fld, wvl)
-                    fld.aim_pt = aim_pt
+                    fld.aim_info = aim_chief_ray(opm, fld, wvl)
 
     def apply_scale_factor(self, scale_factor):
         self['wvls'].apply_scale_factor(scale_factor)
@@ -282,17 +284,13 @@ class OpticalSpecs:
         fov_oi_key, fov_value_key = self['fov'].key
         p0, d0 = self.obj_coords(fld)
 
-        aim_pt = np.array([0., 0.])
-        if pupil_type == 'aim pt':
-            aim_pt = pupil
-        elif hasattr(fld, 'aim_pt') and fld.aim_pt is not None:
-            aim_pt = fld.aim_pt
-        
         opt_model = self.opt_model
         fod = opt_model['analysis_results']['parax_data'].fod
+        # if image space specification, swap in the corresponding first order 
+        # object space parameter
         if pupil_oi_key == 'image':
             if abs(fod.m) < 1e-10:   # infinite object distance
-                if 'epd' == pupil_value_key or 'pupil' == pupil_value_key:
+                if 'epd' == pupil_value_key:
                     pupil_value = 2*fod.enp_radius
                 else:
                     pupil_value_key = 'epd'
@@ -305,22 +303,40 @@ class OpticalSpecs:
                     pupil_value_key = 'epd'
                     pupil_value = 2*fod.enp_radius
 
-        if 'epd' == pupil_value_key or 'pupil' == pupil_value_key:
+        aim_info = None
+        if hasattr(fld, 'aim_info') and fld.aim_info is not None:
+            aim_info = fld.aim_info
+        z_enp = fod.enp_dist
+        # generate starting pt and dir depending on whether the pupil spec is 
+        # spatial or angular
+        if 'epd' == pupil_value_key:
             if pupil_type == 'aim pt':
-                pt1 = np.array([aim_pt[0], aim_pt[1],
-                                fod.obj_dist+fod.enp_dist])
+                pt1 = np.array([pupil[0], pupil[1],
+                                fod.obj_dist + z_enp])
             else:             
                 eprad = pupil_value/2
-                pt1 = np.array([eprad*pupil[0]+aim_pt[0], 
-                                eprad*pupil[1]+aim_pt[1],
-                                fod.obj_dist+fod.enp_dist])
+                if self['fov'].is_wide_angle:
+                    pupil_pt = eprad * np.array([pupil[0], pupil[1], 0.])
+                    rot_mat = rot_v1_into_v2(np.array([0., 0., 1.]), d0)
+                    pt1 = np.matmul(rot_mat, pupil_pt)
+                    if aim_info is not None:
+                        z_enp = aim_info
+                    obj2enp_dist = -(fod.obj_dist + z_enp)
+                    enp_pt = np.array([0., 0., obj2enp_dist])
+                    pt0 = np.matmul(rot_mat, enp_pt) - enp_pt
+                    pt1[2] -= obj2enp_dist
+                    d0 = normalize(pt1 - pt0)
+                    p0 = pt0
+                else:
+                    aim_pt = aim_info
+                    obj2enp_dist = -(fod.obj_dist + z_enp)
+                    pt1 = np.array([eprad*pupil[0]+aim_pt[0], 
+                                    eprad*pupil[1]+aim_pt[1],
+                                    fod.obj_dist+z_enp])
+                    pt0 = obj2enp_dist*np.array([d0[0]/d0[2], d0[1]/d0[2], 0.])
 
-            if 'angle' in fov_value_key:
-                dir0 = d0
-                pt0 = pt1
-            elif 'height' in fov_value_key:
-                pt0 = p0
-                dir0 = normalize(pt1 - pt0)
+            pt0 = p0
+            dir0 = normalize(pt1 - pt0)
 
         else:  # an angular based measure
             if pupil_type == 'aim dir':
@@ -342,6 +358,7 @@ class OpticalSpecs:
                 if d0 is not None:
                     cr_dir = d0[:2]
                 else:
+                    aim_pt = aim_info
                     pt1 = np.array([aim_pt[0], aim_pt[1], 
                                     fod.obj_dist+fod.enp_dist])
                     cr_dir = normalize(pt1 - pt0)[:2]
@@ -349,12 +366,6 @@ class OpticalSpecs:
 
             dir0 = np.array([dir_tot[0], dir_tot[1], 
                              np.sqrt(1 - np.dot(dir_tot, dir_tot))])
-
-        sm = opt_model['seq_model']
-        # To handle virtual object distances, always propagate from 
-        #  the object in a positive Z direction.
-        if dir0[2] * sm.z_dir[0] < 0:
-            dir0 = -dir0
         
         return pt0, dir0
 
@@ -661,7 +672,8 @@ class FieldSpec:
     """
 
     def __init__(self, parent, key=('object', 'angle'), value=0, flds=None,
-                 index_labels=None, is_relative=False, do_init=True, **kwargs):
+                 index_labels=None, is_relative=False, is_wide_angle=False, 
+                 do_init=True, **kwargs):
         self.optical_spec = parent
         self.set_key_value(key, value)
         self.is_relative = is_relative
@@ -671,6 +683,8 @@ class FieldSpec:
         else:
             self.index_labels = index_labels
             self.index_label_type = 'user'
+
+        self.is_wide_angle = is_wide_angle
 
         if do_init:
             flds = flds if flds is not None else [0., 1.]
@@ -693,6 +707,8 @@ class FieldSpec:
     def listobj_str(self):
         _key = self._key
         o_str = f"{_key[0]}: {_key[1]} {_key[2]}; value={self.value}\n"
+        o_str += (f"is_relative={self.is_relative}, "
+                  f"is_wide_angle={self.is_wide_angle}\n")
         for i, fld in enumerate(self.fields):
             o_str += fld.listobj_str()
         return o_str
@@ -712,7 +728,7 @@ class FieldSpec:
         self.key = key
         self.value = value
         return self
-    
+
     def sync_to_parax(self, parax_model):
         """ Use the parax_model database to update the field specs. """
         fov_oi_key, fov_value_key = self.key
@@ -753,6 +769,11 @@ class FieldSpec:
             field_key = 'height'
             field_value = height_bar
 
+        elif 'real height' in fov_value_key:
+            height_bar = fov_value
+            field_key = 'height'
+            field_value = height_bar
+
         return fov_oi_key, field_key, field_value
 
     def sync_to_restore(self, optical_spec):
@@ -762,6 +783,8 @@ class FieldSpec:
             self.value, _ = self.max_field()
         if not hasattr(self, 'index_label_type'):
             self.index_label_type = 'auto'
+        if not hasattr(self, 'is_wide_angle'):
+            self.is_wide_angle = False
         self.optical_spec = optical_spec
 
     def __str__(self):
@@ -791,6 +814,17 @@ class FieldSpec:
 
     def get_input_for_specsheet(self):
         return self.key, self.value
+
+    def check_is_wide_angle(self, angle_threshold=45.) -> bool:
+        """ Checks for object angles greater than the threshold. """
+        is_wide_angle = False
+        if (self.key == ('image', 'real height') and 
+            self.optical_spec.conjugate_type('object') == 'infinite'):
+            is_wide_angle = True
+        if self.key == ('object', 'angle'):
+            max_angle, fld_idx = self.max_field()
+            is_wide_angle = max_angle > angle_threshold
+        return is_wide_angle
 
     def update_model(self, **kwargs):
         for f in self.fields:
@@ -851,8 +885,6 @@ class FieldSpec:
         
         If a field point is defined in image space, the paraxial object
         space data is used to calculate the field coordinates.
-
-        Depending on the `key` settings, obj_dir could be None. 
         """
         def hypot(dir_tan):
             return np.sqrt(1 + dir_tan[0]**2 + dir_tan[1]**2)
@@ -867,27 +899,59 @@ class FieldSpec:
             if self.value != 0:
                 rel_fld_coord /= self.value
 
-        ax, pr, fod = self.optical_spec.opt_model['ar']['parax_data']
+        opt_model = self.optical_spec.opt_model
+        ax, pr, fod = opt_model['ar']['parax_data']
         obj_pt = None
         obj_dir = None
 
-        if value_key == 'angle':
+        obj2enp_dist = -(fod.obj_dist + fod.enp_dist)
+        pt1 = np.array([0., 0., obj2enp_dist])
+        obj_conj = self.optical_spec.conjugate_type('object')
+        if obj_conj == 'infinite':
+            # generate 'object', 'angle' fld_spec
             if obj_img_key == 'image':
-                max_field_ang = np.atan(pr[0][mc.slp])
-                fld_angle = max_field_ang*rel_fld_coord
-            elif obj_img_key == 'object':
-                fld_angle = np.deg2rad(fld_coord)
+                if value_key == 'real height':
+                     wvl = self.optical_spec['wvls'].central_wvl
+                     pkg = eval_real_image_ht(opt_model, fld, wvl)
+                     (obj_pt, obj_dir), z_enp = pkg
+                     fld.aim_info = z_enp
+                     return obj_pt, obj_dir
+                else:
+                    max_field_ang = math.atan(pr[0][mc.slp])
+                    fld_angle = max_field_ang*rel_fld_coord
+            else:  # obj_img_key == 'object'
+                if value_key == 'angle':
+                    fld_angle = np.deg2rad(fld_coord)
+                else:
+                    obj_pt = fld_coord
+                    obj_dir = normalize(pt1 - obj_pt)
+                    return obj_pt, obj_dir
             dir_cos = np.sin(fld_angle)
             dir_cos[2] = np.sqrt(1 - dir_cos[0]**2 - dir_cos[1]**2)
-            sep = -(fod.obj_dist+fod.enp_dist)
-            obj_pt = sep * np.array([dir_cos[0]/dir_cos[2], 
-                                     dir_cos[1]/dir_cos[2], 0.0])
+            if self.is_wide_angle:
+                rot_mat = rot_v1_into_v2(np.array([0., 0., 1.]), dir_cos)
+                obj_pt = np.matmul(rot_mat, pt1) - pt1
+            else:
+                obj_pt = obj2enp_dist * np.array([dir_cos[0]/dir_cos[2], 
+                                                  dir_cos[1]/dir_cos[2], 0.0])
             obj_dir = dir_cos
-        elif value_key == 'height':
+
+        elif obj_conj == 'finite':
             if obj_img_key == 'image':
-                obj_pt = pr[0][mc.ht]*rel_fld_coord
-            elif obj_img_key == 'object':
-                obj_pt = fld_coord
+                max_field_ht = pr[0][mc.ht]
+                obj_pt = max_field_ht*rel_fld_coord
+            else:  # obj_img_key == 'object'
+                if value_key == 'angle':
+                    fld_angle = np.deg2rad(fld_coord)
+                    obj_dir = np.sin(fld_angle)
+                    obj_dir[2] = np.sqrt(1 - obj_dir[0]**2 - obj_dir[1]**2)
+                    obj_pt = obj2enp_dist * np.array([obj_dir[0]/obj_dir[2], 
+                                                      obj_dir[1]/obj_dir[2], 
+                                                      0.0])
+                    return obj_pt, obj_dir
+                else:
+                    obj_pt = fld_coord
+            obj_dir = normalize(pt1 - obj_pt)
 
         return obj_pt, obj_dir
     
@@ -926,7 +990,8 @@ class Field:
         vlx: -x vignetting factor
         vly: -y vignetting factor
         wt: field weight
-        aim_pt: x, y chief ray coords on the paraxial entrance pupil plane
+        aim_info: x, y chief ray coords on the paraxial entrance pupil plane, 
+                  or z_enp for wide angle fovs
         chief_ray: ray package for the ray from the field point throught the
                    center of the aperture stop, traced in the central
                    wavelength
@@ -942,7 +1007,7 @@ class Field:
         self.vlx = 0.0
         self.vly = 0.0
         self.wt = wt
-        self.aim_pt = None
+        self.aim_info = None
         self.chief_ray = None
         self.ref_sphere = None
 
@@ -953,6 +1018,13 @@ class Field:
             if item in attrs:
                 del attrs[item]
         return attrs
+
+    def __json_decode__(self, **attrs):
+        for a_key, a_val in attrs.items():
+            if a_key == 'aim_pt':
+                a_key = 'aim_info'
+
+            setattr(self, a_key, a_val)
 
     def __str__(self):
         return "{}, {}".format(self.x, self.y)
@@ -980,6 +1052,7 @@ class Field:
         return o_str
 
     def update(self):
+        self.aim_info = None
         self.chief_ray = None
         self.ref_sphere = None
 
