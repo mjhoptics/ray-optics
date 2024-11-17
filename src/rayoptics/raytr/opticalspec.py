@@ -668,6 +668,7 @@ class FieldSpec:
         value: maximum field, per the key
         fields: list of Field instances
         is_relative: if True, `fields` are relative to max field
+        is_wide_angle: if True, aim at real entrance pupil
 
     """
 
