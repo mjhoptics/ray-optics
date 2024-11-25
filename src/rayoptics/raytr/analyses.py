@@ -267,7 +267,7 @@ def eval_fan(opt_model, fld, wvl, foc, xy,
             opd = convert_to_opd*opdelta
             return (pupil_x, pupil_y), (t_abr[0], t_abr[1], opd)
         else:
-            return pupil_x, pupil_y, np.NaN
+            return pupil_x, pupil_y, np.nan
     fan_data = [rfc(i) for i in fan]
 
     return fan_data
@@ -335,7 +335,7 @@ def focus_fan(opt_model, fan_pkg, fld, wvl, foc,
             opd = convert_to_opd*opdelta
             return (pupil_x, pupil_y), (t_abr[0], t_abr[1], opd)
         else:
-            return pupil_x, pupil_y, np.NaN
+            return pupil_x, pupil_y, np.nan
     fan_data = [rfc(fi, fiu) for fi, fiu in zip(fan, upd_fan)]
     return fan_data
 
@@ -538,7 +538,7 @@ def eval_pupil_coords(opt_model, fld, wvl, foc, image_pt_2d=None,
             t_abr = defocused_pt - image_pt
             return t_abr[0], t_abr[1]
         else:
-            return np.NaN
+            return np.nan
     ray_list_data = [rfc(ri) for ri in ray_list]
     return np.array(ray_list_data)
 
@@ -576,7 +576,7 @@ def focus_pupil_coords(opt_model, ray_list, fld, wvl, foc,
             t_abr = defocused_pt - image_pt
             return t_abr[0], t_abr[1]
         else:
-            return np.NaN
+            return np.nan
     ray_list_data = [rfc(ri) for ri in ray_list]
     return np.array(ray_list_data)
 
@@ -597,7 +597,7 @@ class RayGrid():
 
     def __init__(self, opt_model, f=0, wl=None, foc=None, image_pt_2d=None,
                  image_delta=None, output_filter=None, rayerr_filter=None, 
-                 num_rays=21, clip_rays=True, value_if_none=np.NaN, 
+                 num_rays=21, clip_rays=True, value_if_none=np.nan, 
                  **kwargs):
         self.opt_model = opt_model
         osp = opt_model.optical_spec
@@ -679,7 +679,7 @@ def trace_ray_grid(opt_model, grid_rng, fld, wvl, foc, append_if_none=True,
 
 
 def eval_wavefront(opt_model, fld, wvl, foc, image_pt_2d=None, 
-                   image_delta=None, num_rays=21, value_if_none=np.NaN, 
+                   image_delta=None, num_rays=21, value_if_none=np.nan, 
                    **kwargs):
     """Trace a grid of rays and evaluate the OPD across the wavefront."""
     fod = opt_model['analysis_results']['parax_data'].fod
@@ -746,7 +746,7 @@ def trace_wavefront(opt_model, fld, wvl, foc,
 
 
 def focus_wavefront(opt_model, grid_pkg, fld, wvl, foc, image_pt_2d=None,
-                    image_delta=None, value_if_none=np.NaN, **kwargs):
+                    image_delta=None, value_if_none=np.nan, **kwargs):
     """Given pre-traced rays and a ref. sphere, return the ray's OPD."""
     fod = opt_model['analysis_results']['parax_data'].fod
     grid, upd_grid = grid_pkg
