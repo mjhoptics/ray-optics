@@ -9,15 +9,15 @@
 """
 import logging
 
-from PyQt5.QtCore import Qt, QAbstractTableModel
-from PyQt5.QtCore import pyqtSignal
+from PySide6 import QtCore
+from PySide6.QtCore import Qt
 
 from rayoptics.util.misc_math import isanumber
 
 logger = logging.getLogger(__name__)
 
 
-class PyTableModel(QAbstractTableModel):
+class PyTableModel(QtCore.QAbstractTableModel):
     """Table model supporting data content via python eval() fct.
 
     Model interface for table view of list structures.
@@ -43,7 +43,7 @@ class PyTableModel(QAbstractTableModel):
                          headers for the table
     """
 
-    update = pyqtSignal(object, int)
+    update = QtCore.Signal(object, int)
 
     def __init__(self, root, rootEvalStr, colEvalStr, rowHeaders,
                  colHeaders, colFormats, is_editable=False, get_num_rows=None,
@@ -75,10 +75,10 @@ class PyTableModel(QAbstractTableModel):
         return len(self.colHeaders)
 
     def headerData(self, section, orientation, role):
-        if role == Qt.DisplayRole:
-            if orientation == Qt.Horizontal:
+        if role == Qt.ItemDataRole.DisplayRole:
+            if orientation == Qt.Orientation.Horizontal:
                 return self.colHeaders[section]
-            elif orientation == Qt.Vertical:
+            elif orientation == Qt.Orientation.Vertical:
                 if self.get_row_headers is not None:
                     self.rowHeaders = self.get_row_headers()
                 if len(self.rowHeaders) == 0:
@@ -88,9 +88,9 @@ class PyTableModel(QAbstractTableModel):
             return None
 
     def flags(self, index):
-        base_flag = Qt.ItemIsEnabled | Qt.ItemIsSelectable
+        base_flag = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
         if self.is_editable:
-            return base_flag | Qt.ItemIsEditable
+            return base_flag | Qt.ItemFlag.ItemIsEditable
         else:
             return base_flag
 
@@ -107,7 +107,7 @@ class PyTableModel(QAbstractTableModel):
 
     def data(self, index, role):
         root = self.get_root_object()
-        if role == Qt.DisplayRole or role == Qt.EditRole:
+        if role == Qt.ItemDataRole.DisplayRole or role == Qt.ItemDataRole.EditRole:
             r = index.row()
             c = index.column()
             eval_str = ('root' + self.colEvalStr[c]).format(r)
@@ -125,7 +125,7 @@ class PyTableModel(QAbstractTableModel):
 
     def setData(self, index, value, role):
         root = self.get_root_object()
-        if role == Qt.EditRole:
+        if role == Qt.ItemDataRole.EditRole:
             r = index.row()
             c = index.column()
             exec_str = ('root' + self.colEvalStr[c]).format(r)

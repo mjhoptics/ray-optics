@@ -1,6 +1,6 @@
 """ package supplying Qt5 desktop application and associated functional support
 
-    The :mod:`~.qtgui` subpackage provides a desktop app using the PyQt5
+    The :mod:`~.qtgui` subpackage provides a desktop app using the PySide6
     interface to the Qt GUI library. It also provides a series of higher level
     interfaces used by rayoptics. These include:
 

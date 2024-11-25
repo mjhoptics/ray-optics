@@ -45,13 +45,13 @@ pandas==2.2.3
     #   rayoptics (setup.py)
 parsimonious==0.10.0
     # via rayoptics (setup.py)
-pyqt5<5.16
+pyside6==6.7.3
     # via
     #   opticalglass
     #   rayoptics (setup.py)
-qdarkstyle==3.0.3
+qdarkstyle==3.2.3
     # via rayoptics (setup.py)
-qtconsole==5.3.2
+qtconsole==5.6.1
     # via rayoptics (setup.py)
 requests==2.32.3
     # via

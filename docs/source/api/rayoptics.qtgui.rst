@@ -13,6 +13,7 @@ Submodules
    :maxdepth: 4
 
    rayoptics.qtgui.dockpanels
+   rayoptics.qtgui.guiappcmds
    rayoptics.qtgui.idealimagerdialog
    rayoptics.qtgui.ipyconsole
    rayoptics.qtgui.plotview

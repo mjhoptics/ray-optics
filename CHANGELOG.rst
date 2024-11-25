@@ -5,6 +5,11 @@ Changelog
 =========
 
 
+Version 0.9.4
+=============
+Port to PySide6 for Qt app support. This gains support for Mac silicon with conda-forge availability. Move to Numpy 2.1.3 and other dependency tweaks.
+
+
 Version 0.9.3
 =============
 In response to issue 157, a wide angle raytrace mode was added to the :class:`~.raytr.opticalspec.FieldSpec` model. This can handle lenses over 90 deg half angle, and performs well for fields>45 deg. Chief ray aiming is done by locating the real entrance pupil location in object space rather than aiming at the paraxial entrance pupil, as in the default field specification. Investigation led to the realization that many wide angle models were specified in terms of real image height, which can be vastly different from the paraxial value. The chief ray is traced in reverse from the image point into object space. Both the real entrance pupil and the real image height calculations are in the new :mod:`~.wideangle` module. A different approach towards calculating vignetting based on a binary search to find the limiting aperture was added. This performs better than the default for wide angle systems, where ray failures during the search need to be handled robustly. Finally, the entire ray trace stack from the :mod:`~.analyses` module to :func:`~.raytr.trace.trace_ray` to :func:`~.raytr.raytrace.trace_raw` was refactored to uniformly pass kwargs, and provide ray trace exception handling. The ability to display rays up to the point they were clipped is helpful for model debugging. The code will continue to be streamlined and refactored as needed to accomodate new functionality and get rid of obsolete ideas.

@@ -8,13 +8,10 @@
 .. codeauthor: Michael J. Hayford
 """
 
+from PySide6 import QtWidgets
+from PySide6.QtCore import Qt
 
-from PyQt5.QtCore import Qt as qt
-
-from PyQt5.QtWidgets import (QTableView)
-
-
-class TableView(QTableView):
+class TableView(QtWidgets.QTableView):
 
     def __init__(self, table_model, accept_drops=True):
         super().__init__()
@@ -24,7 +21,7 @@ class TableView(QTableView):
         # Next 2 lines are needed so that key press events are correctly
         #  passed with mouse events
         # https://github.com/matplotlib/matplotlib/issues/707/
-        self.setFocusPolicy(qt.ClickFocus)
+        self.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
         self.setFocus()
 
         self.drop_action = GlassDropAction()

@@ -9,10 +9,11 @@
 
 from collections import namedtuple
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QDoubleValidator
-from PyQt5.QtWidgets import (QCheckBox, QComboBox, QAction, QLineEdit,
-                             QDockWidget, QFormLayout, QWidget)
+from PySide6 import QtCore
+from PySide6.QtCore import Qt
+from PySide6 import QtGui
+from PySide6.QtWidgets import (QCheckBox, QComboBox, QLineEdit,
+                               QDockWidget, QFormLayout, QWidget)
 
 
 PanelInfo = namedtuple('PanelInfo', ['dock', 'panel_widget', 'menu_action'])
@@ -43,7 +44,7 @@ def create_dock_widget(gui_app, item_key, label, panel, state):
     panel_widget = panel(gui_app, dock)
     dock.setWidget(panel_widget)
     menu_action = create_menu_action(gui_app, item_key, label, state)
-    gui_app.addDockWidget(Qt.RightDockWidgetArea, dock)
+    gui_app.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
     dock.setVisible(state)
     return PanelInfo(dock, panel_widget, menu_action)
 
@@ -55,7 +56,7 @@ def update_dock_windows(gui_app):
 
 
 def create_menu_action(gui_app, item_key, label, state=False):
-    menu_action = QAction(label, gui_app, checkable=True)
+    menu_action = QtGui.QAction(label, gui_app, checkable=True)
     menu_action.setChecked(state)
     menu_action.triggered.connect(lambda state:
                                   togglePanel(gui_app, state, item_key))
@@ -152,7 +153,7 @@ class TextFieldWidget(ModelBinding):
     def __init__(self, gui_app, get_parent, field, valueFormat='{:s}'):
         super().__init__(gui_app, get_parent, field)
         w = QLineEdit()
-        w.setAlignment(Qt.AlignLeft)
+        w.setAlignment(Qt.AlignmentFlag.AlignLeft)
         w.editingFinished.connect(self.editingFinished)
         self.widget = w
         # valueFormat is how the data from the model is rendered in the textbox
@@ -173,7 +174,7 @@ class FloatFieldWidget(TextFieldWidget):
     def __init__(self, gui_app, root_fn, field, valueformat='{:.7g}'):
         super().__init__(gui_app, root_fn, field, valueformat)
         self.convert = float
-        self.widget.setValidator(QDoubleValidator())
+        self.widget.setValidator(QtGui.QDoubleValidator())
 
 
 class SpectrumWavelengthsPanel(QWidget):

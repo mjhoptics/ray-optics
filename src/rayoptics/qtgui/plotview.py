@@ -9,10 +9,10 @@
 """
 from pathlib import Path
 
-from PyQt5.QtCore import Qt as qt
-from PyQt5.QtCore import QSize
-from PyQt5 import QtGui
-from PyQt5.QtWidgets import (QHBoxLayout, QVBoxLayout, QWidget, QLineEdit,
+from PySide6 import QtCore
+from PySide6.QtCore import Qt
+from PySide6 import QtGui
+from PySide6.QtWidgets import (QHBoxLayout, QVBoxLayout, QWidget, QLineEdit,
                              QRadioButton, QGroupBox, QSizePolicy, QCheckBox,
                              QListWidget, QListWidgetItem, QToolBar, QMenu)
 
@@ -40,7 +40,7 @@ class PlotCanvas(FigureCanvas):
         # Next 2 lines are needed so that key press events are correctly
         #  passed with mouse events
         # https://github.com/matplotlib/matplotlib/issues/707/
-        self.setFocusPolicy(qt.ClickFocus)
+        self.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
         self.setFocus()
 
         FigureCanvas.setSizePolicy(self,
@@ -92,22 +92,22 @@ def update_figure_view(plotFigure, **kwargs):
 class CommandItem(QListWidgetItem):
     def __init__(self, parent, txt, cntxt):
         super().__init__(parent)
-        self.setData(qt.DisplayRole, txt)
-        self.setData(qt.EditRole, cntxt)
+        self.setData(Qt.ItemDataRole.DisplayRole, txt)
+        self.setData(Qt.ItemDataRole.EditRole, cntxt)
 
     def data(self, role):
-        if role == qt.DisplayRole:
+        if role == Qt.ItemDataRole.DisplayRole:
             return self.txt
-        elif role == qt.EditRole:
+        elif role == Qt.ItemDataRole.EditRole:
             return self.cntxt
         else:
             return None
 
     def setData(self, role, value):
-        if role == qt.DisplayRole:
+        if role == Qt.ItemDataRole.DisplayRole:
             self.txt = value
             return True
-        elif role == qt.EditRole:
+        elif role == Qt.ItemDataRole.EditRole:
             self.cntxt = value
             return True
         else:
@@ -135,7 +135,7 @@ def create_command_panel(fig, commands):
 
 
 def on_command_clicked(item):
-    cntxt = item.data(qt.EditRole)
+    cntxt = item.data(Qt.ItemDataRole.EditRole)
     fct, args, kwargs = cntxt
     fct(*args, **kwargs)
 
@@ -177,7 +177,7 @@ def create_plot_view(app, figure, title, view_width, view_ht, commands=None,
 
     if context_menu is not None:
         handle_context_menu = create_handle_context_menu(app, pc, context_menu)
-        pc.setContextMenuPolicy(qt.CustomContextMenu)
+        pc.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         pc.customContextMenuRequested.connect(handle_context_menu)
     mi = ModelInfo(app.app_manager.model, update_figure_view, (figure,))
     sub_window = app.add_subwindow(widget, mi)
@@ -332,7 +332,7 @@ def create_2d_figure_toolbar(app, pc):
     """
     icon_size = 24
     tb = QToolBar()
-    tb.setIconSize(QSize(icon_size, icon_size))
+    tb.setIconSize(QtCore.QSize(icon_size, icon_size))
     tb.setStyleSheet("QToolBar{spacing:0px;}")
 
     toolitems = (
@@ -378,7 +378,8 @@ def create_2d_figure_toolbar(app, pc):
                 a.setToolTip(tooltip_text)
 
     def attr_check(fig, attr, state):
-        checked = state == qt.Checked
+        state = Qt.CheckState(state)
+        checked = state == Qt.CheckState.Checked
         setattr(fig, attr, checked)
         fig.refresh()
 
@@ -397,7 +398,8 @@ def create_draw_rays_groupbox(app, pc):
     fig = pc.figure
 
     def attr_check(fig, attr, state):
-        checked = state == qt.Checked
+        state = Qt.CheckState(state)
+        checked = state == Qt.CheckState.Checked
 #        cur_value = getattr(fig, attr, None)
         setattr(fig, attr, checked)
         fig.refresh()
@@ -436,7 +438,8 @@ def create_diagram_controls_groupbox(app, pc):
     def on_barrel_constraint_toggled(cntxt, state):
         fig, barrel_wdgt = cntxt
         diagram = fig.diagram
-        checked = state == qt.Checked
+        state = Qt.CheckState(state)
+        checked = state == Qt.CheckState.Checked
         if checked:
             diagram.do_barrel_constraint = True
             barrel_wdgt.setReadOnly(False)
@@ -461,7 +464,8 @@ def create_diagram_controls_groupbox(app, pc):
     groupBox = QGroupBox("Controls", app)
 
     def attr_check(fig, attr, state):
-        checked = state == qt.Checked
+        state = Qt.CheckState(state)
+        checked = state == Qt.CheckState.Checked
         # cur_value = getattr(fig, attr, None)
         setattr(fig, attr, checked)
         # print('attr_check: {}={}'.format(attr, checked))

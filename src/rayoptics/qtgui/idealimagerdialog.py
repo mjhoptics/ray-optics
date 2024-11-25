@@ -15,11 +15,11 @@ from rayoptics.parax.etendue import (obj_img_set, fld_ape_set,
 
 from rayoptics.util.dict2d import dict2D
 
-from PyQt5.QtCore import Qt as qt
-from PyQt5.QtWidgets import (QApplication, QDialog, QRadioButton, QWidget,
-                             QStackedWidget, QGridLayout, QGroupBox,
-                             QHBoxLayout, QLabel, QLineEdit, QCheckBox,
-                             QVBoxLayout, QDialogButtonBox, QMessageBox)
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (QApplication, QDialog, QRadioButton, QWidget,
+                               QStackedWidget, QGridLayout, QGroupBox,
+                               QHBoxLayout, QLabel, QLineEdit, QCheckBox,
+                               QVBoxLayout, QDialogButtonBox, QMessageBox)
 
 
 def value_to_text(value, fmt_str="{:> #.5f}"):
@@ -94,7 +94,7 @@ class IdealImagerDialog(QWidget):
             else:
                 print(button.text(), 'button pressed')
 
-        buttonbox = QDialogButtonBox(qt.Horizontal, self)
+        buttonbox = QDialogButtonBox(Qt.Orientation.Horizontal, self)
         buttonbox.addButton('New', QDialogButtonBox.ApplyRole)
         buttonbox.addButton(QDialogButtonBox.Apply)
         buttonbox.addButton('Update', QDialogButtonBox.ApplyRole)
@@ -207,7 +207,7 @@ class ImagerSpecGroupBox(QGroupBox):
 
             if key in specsheet.imager_inputs:
                 if not checkBox.isChecked():
-                    checkBox.setCheckState(qt.Checked)
+                    checkBox.setCheckState(Qt.CheckState.Checked)
             checkBox.stateChanged.connect(lambda state, k=key:
                                           self.chkbox_change(state, k))
 
@@ -227,7 +227,7 @@ class ImagerSpecGroupBox(QGroupBox):
                 if imager_key in imager_inputs or len(imager_inputs) < 2:
                     imager_inputs[imager_key] = value
                     if not checkBox.isChecked():
-                        checkBox.setCheckState(qt.Checked)
+                        checkBox.setCheckState(Qt.CheckState.Checked)
             else:
                 if imager_key in imager_inputs:
                     del imager_inputs[imager_key]
@@ -238,7 +238,8 @@ class ImagerSpecGroupBox(QGroupBox):
     def chkbox_change(self, state, imager_key):
         label, lineEdit, checkBox = self.dlog_attrs[imager_key]
 
-        checked = state == qt.Checked
+        state = Qt.CheckState(state)
+        checked = state == Qt.CheckState.Checked
         if checked:
             try:
                 value = float(lineEdit.text())
@@ -301,10 +302,10 @@ class ImagerSpecGroupBox(QGroupBox):
 
             if key in self.specsheet.imager_inputs:
                 if not checkBox.isChecked():
-                    checkBox.setCheckState(qt.Checked)
+                    checkBox.setCheckState(Qt.CheckState.Checked)
             else:
                 if checkBox.isChecked():
-                    checkBox.setCheckState(qt.Unchecked)
+                    checkBox.setCheckState(Qt.CheckState.Unchecked)
 
             if self.specsheet.frozen_imager_inputs[i]:
                 enabled_list[i] = False
@@ -379,7 +380,7 @@ class EtendueGroupBox(QGroupBox):
             if (key in inputs or len(inputs) < 2):
                 inputs[key] = value
                 if not checkBox.isChecked():
-                    checkBox.setCheckState(qt.Checked)
+                    checkBox.setCheckState(Qt.CheckState.Checked)
             self.parent.update_values()
 
     def chkbox_change(self, state, fld_ape, obj_img, key):
@@ -387,7 +388,8 @@ class EtendueGroupBox(QGroupBox):
         inputs = self.specsheet.etendue_inputs[fld_ape][obj_img]
         gb = self.groupboxes[fld_ape][obj_img]
         label, lineEdit, checkBox = gb.dlog_attrs[key]
-        checked = state == qt.Checked
+        state = Qt.CheckState(state)
+        checked = state == Qt.CheckState.Checked
         if checked:
             try:
                 value = float(lineEdit.text())
@@ -509,12 +511,12 @@ class SpaceGroupBox(QGroupBox):
                     lineEdit.setEnabled(True)
                     checkBox.setEnabled(True)
                     if not checkBox.isChecked():
-                        checkBox.setCheckState(qt.Checked)
+                        checkBox.setCheckState(Qt.CheckState.Checked)
                 else:
                     lineEdit.setEnabled(False)
                     checkBox.setEnabled(False)
                     if checkBox.isChecked():
-                        checkBox.setCheckState(qt.Unchecked)
+                        checkBox.setCheckState(Qt.CheckState.Unchecked)
 
         else:
             for key in self.keys:
@@ -524,10 +526,10 @@ class SpaceGroupBox(QGroupBox):
 
                 if key in inputs:
                     if not checkBox.isChecked():
-                        checkBox.setCheckState(qt.Checked)
+                        checkBox.setCheckState(Qt.CheckState.Checked)
                 else:
                     if checkBox.isChecked():
-                        checkBox.setCheckState(qt.Unchecked)
+                        checkBox.setCheckState(Qt.CheckState.Unchecked)
 
 
 if __name__ == '__main__':

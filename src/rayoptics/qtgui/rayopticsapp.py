@@ -3,7 +3,7 @@
 # Copyright © 2018 Michael J. Hayford
 """ Ray Optics GUI Application
 
-Relies on PyQt5
+Relies on PySide6
 
 .. Created on Mon Feb 12 09:24:01 2018
 
@@ -14,22 +14,23 @@ import sys
 import logging
 from pathlib import Path
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtCore import QEvent
-from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import (QApplication, QAction, QMainWindow, QMdiArea,
-                             QFileDialog, QWidget, QMenu,
-                             QVBoxLayout)
-from PyQt5.QtCore import pyqtSlot
+from PySide6 import QtCore
+from PySide6.QtCore import Qt
+from PySide6 import QtGui
+from PySide6.QtWidgets import (QApplication, QMainWindow, QMdiArea,
+                               QFileDialog, QWidget, QMenu,
+                               QVBoxLayout)
+from PySide6.QtCore import Slot
 import qdarkstyle
 
 from traitlets.config.configurable import MultipleInstanceError
 
 import rayoptics
 from rayoptics.raytr.trace import RaySeg
-import rayoptics.gui.appcmds as cmds
+from rayoptics.gui import appcmds
 from rayoptics.gui.appmanager import ModelInfo, AppManager
 import rayoptics.qtgui.dockpanels as dock
+from rayoptics.qtgui import guiappcmds
 from rayoptics.qtgui.ipyconsole import create_ipython_console
 from rayoptics.qtgui.pytableview import TableView
 
@@ -72,7 +73,7 @@ class MainWindow(QMainWindow):
         file_menu.addAction("Save")
         file_menu.addAction("Save As...")
         file_menu.addAction("Close")
-        file_menu.triggered[QAction].connect(self.do_file_action)
+        file_menu.triggered[QtGui.QAction].connect(self.do_file_action)
 
         view_menu = bar.addMenu("Data View")
         view_menu.addAction("Spec Sheet")
@@ -81,7 +82,7 @@ class MainWindow(QMainWindow):
         view_menu.addAction("Element Table")
         view_menu.addAction("Glass Map")
         # view_menu.addAction("Lens View")
-        view_menu.triggered[QAction].connect(self.do_view_action)
+        view_menu.triggered[QtGui.QAction].connect(self.do_view_action)
 
         parax_menu = bar.addMenu("Paraxial Model")
         parax_menu.addAction("Paraxial Model")
@@ -89,7 +90,7 @@ class MainWindow(QMainWindow):
         parax_menu.addAction("nu-nubar View")
         parax_menu.addAction("yui Ray Table")
         parax_menu.addAction("3rd Order Aberrations")
-        parax_menu.triggered[QAction].connect(self.do_view_action)
+        parax_menu.triggered[QtGui.QAction].connect(self.do_view_action)
 
         analysis_menu = bar.addMenu("Analysis")
         analysis_menu.addAction("Ray Table")
@@ -98,14 +99,14 @@ class MainWindow(QMainWindow):
         analysis_menu.addAction("Spot Diagram")
         analysis_menu.addAction("Wavefront Map")
         analysis_menu.addAction("Astigmatism Curves")
-        analysis_menu.triggered[QAction].connect(self.do_view_action)
+        analysis_menu.triggered[QtGui.QAction].connect(self.do_view_action)
 
         tools_menu = bar.addMenu("Tools")
         tools_menu.addAction("Refocus")
         tools_menu.addAction("Set Vignetting")
         tools_menu.addAction("Set Apertures")
         tools_menu.addAction("Set Pupil")
-        tools_menu.triggered[QAction].connect(self.do_view_action)
+        tools_menu.triggered[QtGui.QAction].connect(self.do_view_action)
 
         wnd_menu = bar.addMenu("Window")
         wnd_menu.addAction("Cascade")
@@ -119,7 +120,7 @@ class MainWindow(QMainWindow):
         for pi in dock.panels.values():
             wnd_menu.addAction(pi.menu_action)
 
-        wnd_menu.triggered[QAction].connect(self.do_window_action)
+        wnd_menu.triggered[QtGui.QAction].connect(self.do_window_action)
 
         self.setWindowTitle("Ray Optics")
         self.show()
@@ -317,34 +318,34 @@ class MainWindow(QMainWindow):
             self.close_model()
 
     def new_model(self, **kwargs):
-        opt_model = cmds.create_new_optical_system(**kwargs)
+        opt_model = appcmds.create_new_optical_system(**kwargs)
         self.app_manager.set_model(opt_model)
         self.refresh_gui()
 
         self.create_lens_table()
-        cmds.create_live_layout_view(opt_model, gui_parent=self)
-        cmds.create_paraxial_design_view_v2(opt_model, 'ht',
-                                            gui_parent=self)
+        guiappcmds.create_live_layout_view(opt_model, gui_parent=self)
+        guiappcmds.create_paraxial_design_view_v2(opt_model, 'ht',
+                                                  gui_parent=self)
         self.refresh_gui()
 
         self.new_ipython_console(opt_model)
 
     def new_empty_model(self, **kwargs):
-        opt_model = cmds.create_empty_model(**kwargs)
+        opt_model = appcmds.create_empty_model(**kwargs)
         self.app_manager.set_model(opt_model)
         self.new_ipython_console(opt_model)
 
     def new_model_via_specsheet(self):
-        cmds.create_new_ideal_imager_dialog(gui_parent=self,
-                                            conjugate_type='infinite')
+        guiappcmds.create_new_ideal_imager_dialog(gui_parent=self,
+                                                  conjugate_type='infinite')
         self.new_ipython_console(None)
 
     def new_model_via_diagram(self, **kwargs):
         """ Define a new model using a |ybar| diagram. """
-        opt_model = cmds.create_empty_model(**kwargs)
+        opt_model = appcmds.create_empty_model(**kwargs)
         self.app_manager.set_model(opt_model)
 
-        cmds.create_paraxial_design_view_v2(opt_model, 'ht', gui_parent=self)
+        guiappcmds.create_paraxial_design_view_v2(opt_model, 'ht', gui_parent=self)
         self.new_ipython_console(opt_model)
 
     def new_ipython_console(self, opt_model):
@@ -352,10 +353,10 @@ class MainWindow(QMainWindow):
         self.refresh_app_ui()
 
     def open_file(self, file_name, **kwargs):
-        cur_model = cmds.open_model(file_name, **kwargs)
+        cur_model = appcmds.open_model(file_name, **kwargs)
         self.app_manager.set_model(cur_model, filename=file_name)
         self.create_lens_table()
-        cmds.create_live_layout_view(cur_model, gui_parent=self)
+        guiappcmds.create_live_layout_view(cur_model, gui_parent=self)
         self.add_ipython_subwindow(cur_model)
         self.refresh_app_ui()
 
@@ -375,70 +376,70 @@ class MainWindow(QMainWindow):
         opt_model = self.app_manager.model
 
         if action == "Spec Sheet":
-            cmds.create_new_ideal_imager_dialog(opt_model=opt_model,
-                                                gui_parent=self)
+            guiappcmds.create_new_ideal_imager_dialog(opt_model=opt_model,
+                                                      gui_parent=self)
 
         if action == "Optical Layout":
-            cmds.create_live_layout_view(opt_model, gui_parent=self)
+            guiappcmds.create_live_layout_view(opt_model, gui_parent=self)
 
         if action == "Lens Table":
             self.create_lens_table()
 
         if action == "Element Table":
-            model = cmds.create_element_table_model(opt_model)
+            model = guiappcmds.create_element_table_model(opt_model)
             self.create_table_view(model, "Element Table")
 
         if action == "Glass Map":
-            cmds.create_glass_map_view(opt_model, gui_parent=self)
+            guiappcmds.create_glass_map_view(opt_model, gui_parent=self)
 
         if action == "Ray Fans":
-            cmds.create_ray_fan_view(opt_model, "Ray", gui_parent=self)
+            guiappcmds.create_ray_fan_view(opt_model, "Ray", gui_parent=self)
 
         if action == "OPD Fans":
-            cmds.create_ray_fan_view(opt_model, "OPD", gui_parent=self)
+            guiappcmds.create_ray_fan_view(opt_model, "OPD", gui_parent=self)
 
         if action == "Spot Diagram":
-            cmds.create_ray_grid_view(opt_model, gui_parent=self)
+            guiappcmds.create_ray_grid_view(opt_model, gui_parent=self)
 
         if action == "Wavefront Map":
-            cmds.create_wavefront_view(opt_model, gui_parent=self)
+            guiappcmds.create_wavefront_view(opt_model, gui_parent=self)
 
         if action == "Astigmatism Curves":
-            cmds.create_field_curves(opt_model, gui_parent=self)
+            guiappcmds.create_field_curves(opt_model, gui_parent=self)
 
         if action == "3rd Order Aberrations":
-            cmds.create_3rd_order_bar_chart(opt_model, gui_parent=self)
+            guiappcmds.create_3rd_order_bar_chart(opt_model, gui_parent=self)
 
         if action == "y-ybar View":
-            cmds.create_paraxial_design_view_v2(opt_model, 'ht',
-                                                gui_parent=self)
+            guiappcmds.create_paraxial_design_view_v2(opt_model, 'ht',
+                                                    gui_parent=self)
 
         if action == "nu-nubar View":
-            cmds.create_paraxial_design_view_v2(opt_model, 'slp',
-                                                gui_parent=self)
+            guiappcmds.create_paraxial_design_view_v2(opt_model, 'slp',
+                                                      gui_parent=self)
 
         if action == "yui Ray Table":
-            model = cmds.create_parax_table_model(opt_model)
+            model = guiappcmds.create_parax_table_model(opt_model)
             self.create_table_view(model, "Paraxial Ray Table")
 
         if action == "Paraxial Model":
-            model = cmds.create_parax_model_table(opt_model)
+            model = guiappcmds.create_parax_model_table(opt_model)
             self.create_table_view(model, "Paraxial Model")
 
         if action == "Ray Table":
             self.create_ray_table(opt_model)
 
         if action == "Set Vignetting":
-            cmds.set_vignetting(opt_model, gui_parent=self)
+            appcmds.set_vignetting(opt_model, gui_parent=self)
 
         if action == "Set Apertures":
-            cmds.set_apertures(opt_model, gui_parent=self)
+            appcmds.set_apertures(opt_model, gui_parent=self)
 
         if action == "Set Pupil":
-            cmds.set_pupil(opt_model, gui_parent=self)
+            appcmds.set_pupil(opt_model, gui_parent=self)
 
         if action == "Refocus":
-            cmds.refocus(opt_model, gui_parent=self)
+            appcmds.refocus(opt_model, gui_parent=self)
 
     def do_window_action(self, q):
         self.window_action(q.text())
@@ -471,7 +472,7 @@ class MainWindow(QMainWindow):
         if is_dark:
             self.qtapp.setStyleSheet(qdarkstyle.load_stylesheet(qt_api='pyqt5'))
             colors = qdarkstyle.dark.palette.DarkPalette.to_dict()
-            self.mdi.setBackground(QColor(colors['COLOR_BACKGROUND_2']))
+            self.mdi.setBackground(QtCore.QColor(colors['COLOR_BACKGROUND_2']))
         else:
             self.qtapp.setStyleSheet('')
             self.mdi.setBackground(self.mdi_background)
@@ -501,10 +502,10 @@ class MainWindow(QMainWindow):
                                    lambda: set_stop_surface(None))
                 menu.popup(vheader.mapToGlobal(point))
 
-        model = cmds.create_lens_table_model(seq_model)
+        model = guiappcmds.create_lens_table_model(seq_model)
         view = self.create_table_view(model, "Surface Data Table")
         vheader = view.verticalHeader()
-        vheader.setContextMenuPolicy(Qt.CustomContextMenu)
+        vheader.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         vheader.customContextMenuRequested.connect(handle_context_menu)
 
     def create_ray_table(self, opt_model):
@@ -520,7 +521,7 @@ class MainWindow(QMainWindow):
 
 #        cr = trace.RayPkg(ray, ray_op, wvl)
 #        s, t = trace.trace_coddington_fan(opt_model, cr, foc)
-        model = cmds.create_ray_table_model(opt_model, ray_pkg.ray)
+        model = guiappcmds.create_ray_table_model(opt_model, ray_pkg.ray)
         self.create_table_view(model, "Ray Table")
 
     def create_table_view(self, table_model, table_title, 
@@ -541,7 +542,7 @@ class MainWindow(QMainWindow):
         widget.setLayout(layout)
 
         sub = self.add_subwindow(widget, ModelInfo(self.app_manager.model,
-                                                   cmds.update_table_view,
+                                                   guiappcmds.update_table_view,
                                                    (table_view,), {}))
         lens_title = self.app_manager.model.name()
         sub.setWindowTitle(table_title + ': ' + lens_title)
@@ -567,7 +568,7 @@ class MainWindow(QMainWindow):
 
     def eventFilter(self, obj, event):
         """Used by subwindows in response to installEventFilter."""
-        if (event.type() == QEvent.Close):
+        if (event.type() == QtCore.QEvent.Close):
             logger.debug(f"close event received: {obj}")
             self.delete_subwindow(obj)
         return False
@@ -601,7 +602,7 @@ class MainWindow(QMainWindow):
             iid.specsheet_dict[specsheet.conjugate_type] = specsheet
             iid.update_values()
         elif command == 'New':
-            opt_model = cmds.create_new_optical_model_from_specsheet(specsheet)
+            opt_model = appcmds.create_new_optical_model_from_specsheet(specsheet)
             self.app_manager.set_model(opt_model)
             for view, info in self.app_manager.view_dict.items():
                 if iid == info[0]:
@@ -613,12 +614,12 @@ class MainWindow(QMainWindow):
                     self.app_manager.view_dict[view] = w, new_mi
             self.refresh_gui()
             self.create_lens_table()
-            cmds.create_live_layout_view(opt_model, gui_parent=self)
-            cmds.create_paraxial_design_view_v2(opt_model, 'ht',
-                                                gui_parent=self)
+            guiappcmds.create_live_layout_view(opt_model, gui_parent=self)
+            guiappcmds.create_paraxial_design_view_v2(opt_model, 'ht',
+                                                      gui_parent=self)
             self.refresh_gui()
 
-    @pyqtSlot(object, int)
+    @Slot(object, int)
     def on_data_changed(self, rootObj, index):
         self.refresh_gui(src_model=rootObj)
 

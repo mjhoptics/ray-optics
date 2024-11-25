@@ -8,8 +8,9 @@
 .. codeauthor: Michael J. Hayford
 """
 
-from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import (QHBoxLayout, QVBoxLayout, QWidget, QPushButton)
+from PySide6.QtGui import QColor
+from PySide6 import QtWidgets
+
 from qtconsole.rich_jupyter_widget import RichJupyterWidget
 from qtconsole.inprocess import QtInProcessKernelManager
 from qtconsole import styles
@@ -89,24 +90,24 @@ def create_ipython_console(gui_parent, opt_model, title,
     ro_setup = 'from rayoptics.environment import *'
 
     # construct the top level widget
-    widget = QWidget()
+    widget = QtWidgets.QWidget()
 
-    top_layout = QVBoxLayout(widget)
+    top_layout = QtWidgets.QVBoxLayout(widget)
     # set the layout on the widget
     widget.setLayout(top_layout)
 
     ipy_console = ConsoleWidget()
     top_layout.addWidget(ipy_console)
 
-    button_panel_layout = QHBoxLayout()
+    button_panel_layout = QtWidgets.QHBoxLayout()
     top_layout.addLayout(button_panel_layout)
 
-    cmd_button_1 = QPushButton("refresh GUI")
+    cmd_button_1 = QtWidgets.QPushButton("refresh GUI")
     cmd_button_1.clicked.connect(
         lambda: ipy_console.execute_command('app.refresh_gui()'))
     button_panel_layout.addWidget(cmd_button_1)
 
-    cmd_button_2 = QPushButton("setup opm")
+    cmd_button_2 = QtWidgets.QPushButton("setup opm")
     opt_model = opt_model if opt_model else gui_parent.app_manager.model
     opm_vars = {
                 'opm': opt_model,
@@ -122,7 +123,7 @@ def create_ipython_console(gui_parent, opt_model, title,
         lambda: ipy_console.push_vars(opm_vars))
     button_panel_layout.addWidget(cmd_button_2)
 
-    cmd_button_3 = QPushButton("First order data")
+    cmd_button_3 = QtWidgets.QPushButton("First order data")
     cmd_button_3.clicked.connect(
         lambda: ipy_console.execute_command("app.model['pm'].first_order_data()"))
     button_panel_layout.addWidget(cmd_button_3)
