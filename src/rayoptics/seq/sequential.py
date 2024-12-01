@@ -315,45 +315,62 @@ class SequentialModel:
     def remove(self, *args, prev=False):
         """Remove surf and gap at cur_surface or an input index argument.
 
+        If no arguments are provided, the cur_surface is deleted. If a single 
+        index is provided, that interface/gap pair is deleted, otherwise a 
+        range of interface/gap pairs is deleted.
+
         To avoid invalid sequence states, both an interface and a gap must be
         removed at the same time. The ``prev`` argument, if True, removes the
         gap preceding the interface. The default behavior is to remove the
         following gap.
+
+        Neither the object not the image interfaces may be removed.
+
         """
-        if len(args) == 0:
-            idx = self.cur_surface
+        num_args = len(args)
+        if num_args == 0:
+            idx_1 = idx_k = self.cur_surface
+        elif num_args == 1:
+            idx_1 = idx_k = args[0]
         else:
-            idx = args[0]
+            idx_1 = args[0]
+            idx_k = args[1]
 
         num_ifcs = len(self.ifcs)
         # don't allow object or image interfaces to be removed
         if prev:
-            if idx == 0 or idx == 1 or idx == num_ifcs:
+            if idx_1 == 0 or idx_1 == 1 or idx_k == num_ifcs:
                 raise IndexError
         else:
-            if idx == 0 or idx == -1 or idx == num_ifcs:
+            if idx_1 == 0 or idx_k == -1 or idx_k == num_ifcs:
                 raise IndexError
 
-        if self.ifcs[idx].interact_mode == 'reflect':
-            self.update_reflections(start=idx)
+        # loop backward over the range to delete the intended objects
+        for idx in range(idx_k, idx_1-1, -1):
+            if self.ifcs[idx].interact_mode == 'reflect':
+                self.update_reflections(start=idx)
 
-        # decrement stop surface as needed
+            # decrement stop surface as needed
+            if self.stop_surface is not None:
+                if len(self.ifcs) > 2:
+                    if self.stop_surface > idx and self.stop_surface > 1:
+                        self.stop_surface -= 1
+
+            # interface related attribute lists
+            del self.ifcs[idx]
+            del self.gbl_tfrms[idx]
+            del self.lcl_tfrms[idx]
+
+            # gap node and related attribute lists
+            idx = idx-1 if prev else idx
+
+            del self.gaps[idx]
+            del self.z_dir[idx]
+            del self.rndx[idx]
+
         if self.stop_surface is not None:
-            if num_ifcs > 2:
-                if self.stop_surface > idx and self.stop_surface > 1:
-                    self.stop_surface -= 1
-
-        # interface related attribute lists
-        del self.ifcs[idx]
-        del self.gbl_tfrms[idx]
-        del self.lcl_tfrms[idx]
-
-        # gap node and related attribute lists
-        idx = idx-1 if prev else idx
-
-        del self.gaps[idx]
-        del self.z_dir[idx]
-        del self.rndx[idx]
+            if len(self.ifcs)-1 == self.stop_surface:
+                self.stop_surface -= 1
 
     def replace_node_with_seq(self, e_node, seq, **kwargs):
         """ Replace a sub-sequence of e_node with seq. """
@@ -394,24 +411,30 @@ class SequentialModel:
         
         Return the first and last ifc indices. 
         """
-        pt = self.opt_model.part_tree
-        ifcs = [n.id for n in pt.nodes_with_tag(tag='#ifc', root=e_node)]
-        idx_1, idx_k = self.ifcs.index(ifcs[0]), self.ifcs.index(ifcs[-1])
+        pt = self.opt_model['part_tree']
         idx_stop = self.stop_surface
-        for ifc in ifcs:
-            idx = self.ifcs.index(ifc)
-            del self.ifcs[idx]
-            del self.lcl_tfrms[idx]
-            del self.gbl_tfrms[idx]
+        ifcs = [n.id for n in pt.nodes_with_tag(tag='#ifc', root=e_node)]
+        if len(ifcs) > 0:
+            idx_1, idx_k = self.ifcs.index(ifcs[0]), self.ifcs.index(ifcs[-1])
+            for ifc in ifcs:
+                idx = self.ifcs.index(ifc)
+                del self.ifcs[idx]
+                del self.lcl_tfrms[idx]
+                del self.gbl_tfrms[idx]
+        else:
+            idx_1 = idx_k =  None
 
-        gaps = [n.id for n in pt.nodes_with_tag(tag='#gap', root=e_node)]
+        gaps = [n.id for n in pt.nodes_with_tag(
+            tag='#gap', not_tag='#airgap', root=e_node)]
+        if idx_1 is None:
+            idx_1, idx_k = self.gaps.index(gaps[0]), self.gaps.index(gaps[-1])
         for gz in gaps:
             g, z_dir = gz
             idx = self.gaps.index(g)
             del self.gaps[idx]
             del self.z_dir[idx]
             del self.rndx[idx]
-        
+
         return idx_1, idx_k, idx_stop
 
     def scan_for_reflections(self, start=0):

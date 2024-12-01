@@ -444,6 +444,12 @@ def sequence_to_elements(seq_model, ele_model, part_tree):
         for me in modified_ele:
             existing_ele, new_ele = me
             eme_dict[existing_ele].sync_to_ele_def(seq_model, new_ele)
+
+        # common elements use the `sync_to_seq` protocol to adjust to any additions
+        # or removals of other elements.
+        for ce in common_ele:
+            eme_dict[ce].sync_to_seq(seq_model)
+            
         is_consistent = False
 
     return (is_consistent, chg_list, sme, eme)
