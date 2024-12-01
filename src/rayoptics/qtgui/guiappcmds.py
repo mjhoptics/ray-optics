@@ -9,8 +9,6 @@
 """
 
 import logging
-import math
-import pathlib
 
 from opticalglass import glassmap as gm
 from opticalglass import glassfactory as gfact

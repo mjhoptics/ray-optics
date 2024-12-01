@@ -473,7 +473,7 @@ class MainWindow(QMainWindow):
         if is_dark:
             self.qtapp.setStyleSheet(qdarkstyle.load_stylesheet(qt_api='pyqt5'))
             colors = qdarkstyle.dark.palette.DarkPalette.to_dict()
-            self.mdi.setBackground(QtCore.QColor(colors['COLOR_BACKGROUND_2']))
+            self.mdi.setBackground(QtGui.QColor(colors['COLOR_BACKGROUND_2']))
         else:
             self.qtapp.setStyleSheet('')
             self.mdi.setBackground(self.mdi_background)
