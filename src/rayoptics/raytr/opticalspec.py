@@ -218,7 +218,7 @@ class OpticalSpecs:
                     field_key = 'height'  # infinite objects
                     field_value = ybark_star
                 else:  # field_key == 'angle'
-                    fov_oi_key = fov.key[1]
+                    fov_oi_key = fov.key[0]
                     field_key = 'angle'
                     oi_idx = 0 if fov_oi_key == 'object' else num_nodes-2
                     n = pm.sys[oi_idx][mc.indx]
