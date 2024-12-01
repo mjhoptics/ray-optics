@@ -7,7 +7,7 @@ Changelog
 
 Version 0.9.4
 =============
-Port to PySide6 for Qt app support. This gains support for Mac silicon with conda-forge availability. Move to Numpy 2.1.3 and other dependency tweaks.
+Port to PySide6 for Qt app support. This gains support for Mac silicon with conda-forge availability. Move to Numpy 2.1.3 and other dependency tweaks. Partially address removing elements from a model (issue 141).
 
 
 Version 0.9.3
