@@ -311,22 +311,26 @@ class OpticalSpecs:
         # spatial or angular
         if 'epd' == pupil_value_key:
             if pupil_type == 'aim pt':
+                pt0 = p0
                 pt1 = np.array([pupil[0], pupil[1],
                                 fod.obj_dist + z_enp])
             else:             
                 eprad = pupil_value/2
                 if self['fov'].is_wide_angle:
+                    # transform pupil_pt, in direction coords into surf#1 coordinates 
                     pupil_pt = eprad * np.array([pupil[0], pupil[1], 0.])
-                    rot_mat = rot_v1_into_v2(np.array([0., 0., 1.]), d0)
-                    pt1 = np.matmul(rot_mat, pupil_pt)
+                    rot_mat_d2s = rot_v1_into_v2(d0, np.array([0., 0., 1.]))
+                    pt1 = np.matmul(rot_mat_d2s, pupil_pt)
                     if aim_info is not None:
                         z_enp = aim_info
                     obj2enp_dist = -(fod.obj_dist + z_enp)
+                    # rotate the on-axis object pt into the incident direction 
+                    # and then position wrt z_enp
                     enp_pt = np.array([0., 0., obj2enp_dist])
-                    pt0 = np.matmul(rot_mat, enp_pt) - enp_pt
+                    rot_mat_s2d = rot_v1_into_v2(np.array([0., 0., 1.]), d0)
+                    pt0 = np.matmul(rot_mat_s2d, enp_pt) - enp_pt
                     pt1[2] -= obj2enp_dist
-                    d0 = normalize(pt1 - pt0)
-                    p0 = pt0
+
                 else:
                     aim_pt = aim_info
                     obj2enp_dist = -(fod.obj_dist + z_enp)
@@ -335,7 +339,6 @@ class OpticalSpecs:
                                     fod.obj_dist+z_enp])
                     pt0 = obj2enp_dist*np.array([d0[0]/d0[2], d0[1]/d0[2], 0.])
 
-            pt0 = p0
             dir0 = normalize(pt1 - pt0)
 
         else:  # an angular based measure
