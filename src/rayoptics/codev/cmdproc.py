@@ -409,23 +409,23 @@ def profile_data(opm, tla, qlist, dlist):
     elif tla == 'K':
         seq_model.ifcs[idx].profile.cc = dlist[0]
     elif tla == 'A':
-        seq_model.ifcs[idx].profile.coef4 = dlist[0]
+        seq_model.ifcs[idx].profile.set_by_order(4, dlist[0])
     elif tla == 'B':
-        seq_model.ifcs[idx].profile.coef6 = dlist[0]
+        seq_model.ifcs[idx].profile.set_by_order(6, dlist[0])
     elif tla == 'C':
-        seq_model.ifcs[idx].profile.coef8 = dlist[0]
+        seq_model.ifcs[idx].profile.set_by_order(8, dlist[0])
     elif tla == 'D':
-        seq_model.ifcs[idx].profile.coef10 = dlist[0]
+        seq_model.ifcs[idx].profile.set_by_order(10, dlist[0])
     elif tla == 'E':
-        seq_model.ifcs[idx].profile.coef12 = dlist[0]
+        seq_model.ifcs[idx].profile.set_by_order(12, dlist[0])
     elif tla == 'F':
-        seq_model.ifcs[idx].profile.coef14 = dlist[0]
+        seq_model.ifcs[idx].profile.set_by_order(14, dlist[0])
     elif tla == 'G':
-        seq_model.ifcs[idx].profile.coef16 = dlist[0]
+        seq_model.ifcs[idx].profile.set_by_order(16, dlist[0])
     elif tla == 'H':
-        seq_model.ifcs[idx].profile.coef18 = dlist[0]
+        seq_model.ifcs[idx].profile.set_by_order(18, dlist[0])
     elif tla == 'J':
-        seq_model.ifcs[idx].profile.coef20 = dlist[0]
+        seq_model.ifcs[idx].profile.set_by_order(20, dlist[0])
     log_cmd("profile_data", tla, qlist, dlist)
 
 

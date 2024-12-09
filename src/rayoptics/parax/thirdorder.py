@@ -74,7 +74,7 @@ def calc_4th_order_aspheric_term(p):
     elif type(p).__name__ == 'EvenPolynomial':
         cv = p.cv
         cc = p.cc
-        G = cc*cv**3/8.0 + p.coef4
+        G = cc*cv**3/8.0 + p.get_by_order(4)
 
     return G
 

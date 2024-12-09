@@ -686,6 +686,7 @@ class EvenPolynomial(SurfaceProfile):
 
     ---
     """
+    initial_size = 10
 
     def __init__(self, c=0.0, cc=0.0, r=None, ec=None, coefs=None):
         """ initialize a EvenPolynomial profile.
@@ -713,18 +714,8 @@ class EvenPolynomial(SurfaceProfile):
         if coefs is not None:
             self.coefs = coefs
         else:
-            self.coefs = []
+            self.coefs = [0.] * self.initial_size
         self.max_nonzero_coef = 0
-        self.coef2 = 0.0
-        self.coef4 = 0.0
-        self.coef6 = 0.0
-        self.coef8 = 0.0
-        self.coef10 = 0.0
-        self.coef12 = 0.0
-        self.coef14 = 0.0
-        self.coef16 = 0.0
-        self.coef18 = 0.0
-        self.coef20 = 0.0
 
         # ensure profile is in a valid state
         self.update()
@@ -751,6 +742,19 @@ class EvenPolynomial(SurfaceProfile):
     def ec(self, ec):
         self.cc = ec - 1.0
 
+    def get_by_order(self, order: int) -> float:
+        """ Access to coefficients via polynomial order """
+        return self.coefs[order//2 - 1]
+
+    def set_by_order(self, order: int, value: float):
+        """ Access to coefficients via polynomial order """
+        try:
+            self.coefs[order//2-1] = value
+        except IndexError:
+            self.coefs = resize_list(self.coefs, order//2, null_item=0.0)
+            self.coefs[order//2-1] = value
+        return self
+    
     def __str__(self):
         return type(self).__name__ + " " + str(self.cv) + " " + \
                                            str(self.cc)
@@ -759,6 +763,28 @@ class EvenPolynomial(SurfaceProfile):
         return (type(self).__name__ + '(c=' + repr(self.cv) +
                 ', cc=' + repr(self.cc) +
                 ', coefs=' + repr(self.coefs) + ')')
+
+    def __json_decode__(self, **attrs):
+        # for pre-0.9.5 files, if coefs is empty, fill 
+        # in from named attributes
+        if not any(attrs['coefs']) and 'coef2' in attrs:
+            coefs = []
+            coefs.append(attrs['coef2'])
+            coefs.append(attrs['coef4'])
+            coefs.append(attrs['coef6'])
+            coefs.append(attrs['coef8'])
+            coefs.append(attrs['coef10'])
+            coefs.append(attrs['coef12'])
+            coefs.append(attrs['coef14'])
+            coefs.append(attrs['coef16'])
+            coefs.append(attrs['coef18'])
+            coefs.append(attrs['coef20'])
+            attrs['coefs'] = coefs
+
+        # filter out explicit coefficent attributes, obsolete
+        for a_key, a_val in attrs.items():
+            if not (a_key[:4] == 'coef' and a_key[4:].isdigit()):
+                setattr(self, a_key, a_val)
 
     def listobj_str(self):
         o_str = f"profile: {type(self).__name__}\n"
@@ -772,31 +798,10 @@ class EvenPolynomial(SurfaceProfile):
     def copyDataFrom(self, other):
         self.cv = other.cv
         self.cc = other.cc
-        self.coef2 = other.coef2
-        self.coef4 = other.coef4
-        self.coef6 = other.coef6
-        self.coef8 = other.coef8
-        self.coef10 = other.coef10
-        self.coef12 = other.coef12
-        self.coef14 = other.coef14
-        self.coef16 = other.coef16
-        self.coef18 = other.coef18
-        self.coef20 = other.coef20
+        self.coefs = other.coefs.copy()
 
-    def gen_coef_list(self):
-        if len(self.coefs) == 0:
-            self.coefs = []
-            self.coefs.append(self.coef2)
-            self.coefs.append(self.coef4)
-            self.coefs.append(self.coef6)
-            self.coefs.append(self.coef8)
-            self.coefs.append(self.coef10)
-            self.coefs.append(self.coef12)
-            self.coefs.append(self.coef14)
-            self.coefs.append(self.coef16)
-            self.coefs.append(self.coef18)
-            self.coefs.append(self.coef20)
-            self.max_nonzero_coef = -1
+    def calc_max_nonzero_coef(self):
+        self.max_nonzero_coef = -1
         for i, c in enumerate(self.coefs):
             if c != 0.0:
                 self.max_nonzero_coef = i
@@ -805,16 +810,8 @@ class EvenPolynomial(SurfaceProfile):
     def apply_scale_factor(self, scale_factor):
         self.cv /= scale_factor
         sf_sqr = scale_factor**2
-        self.coef2 *= sf_sqr
-        self.coef4 *= sf_sqr**2
-        self.coef6 *= sf_sqr**3
-        self.coef8 *= sf_sqr**4
-        self.coef10 *= sf_sqr**5
-        self.coef12 *= sf_sqr**6
-        self.coef14 *= sf_sqr**7
-        self.coef16 *= sf_sqr**8
-        self.coef18 *= sf_sqr**9
-        self.coef20 *= sf_sqr**10
+        for i, c in enumerate(self.coefs):
+            self.coefs[i] = sf_sqr**(i+1) * c
 
     def flip(self):
         self.cv = -self.cv
@@ -822,7 +819,7 @@ class EvenPolynomial(SurfaceProfile):
             self.coefs[i] = -c
 
     def update(self):
-        self.gen_coef_list()
+        self.calc_max_nonzero_coef()
         return self
 
     def sag(self, x, y):
@@ -926,18 +923,8 @@ class RadialPolynomial(SurfaceProfile):
         if coefs:
             self.coefs = coefs
         else:
-            self.coefs = [0. for i in range(self.initial_size)]
+            self.coefs = [0.] * self.initial_size
         self.max_nonzero_coef = 0
-        self.coef1 = 0.0
-        self.coef2 = 0.0
-        self.coef3 = 0.0
-        self.coef4 = 0.0
-        self.coef5 = 0.0
-        self.coef6 = 0.0
-        self.coef7 = 0.0
-        self.coef8 = 0.0
-        self.coef9 = 0.0
-        self.coef10 = 0.0
 
         # ensure profile is in a valid state
         self.update()
@@ -976,6 +963,19 @@ class RadialPolynomial(SurfaceProfile):
             self.coefs = resize_list(self.coefs, exp, null_item=0.0)
             self.coefs[exp] = value
 
+    def get_by_order(self, order: int) -> float:
+        """ Access to coefficients via polynomial order """
+        return self.coefs[order-1]
+
+    def set_by_order(self, order: int, value: float):
+        """ Access to coefficients via polynomial order """
+        try:
+            self.coefs[order-1] = value
+        except IndexError:
+            self.coefs = resize_list(self.coefs, order, null_item=0.0)
+            self.coefs[order-1] = value
+        return self
+    
     def __str__(self):
         return type(self).__name__ + " " + str(self.cv) + " " + \
                                            str(self.ec)
@@ -984,6 +984,28 @@ class RadialPolynomial(SurfaceProfile):
         return (type(self).__name__ + '(c=' + repr(self.cv) +
                 ', ec=' + repr(self.ec) +
                 ', coefs=' + repr(self.coefs) + ')')
+
+    def __json_decode__(self, **attrs):
+        # for pre-0.9.5 files, if coefs is empty, fill 
+        # in from named attributes
+        if not any(attrs['coefs']) and 'coef2' in attrs:
+            coefs = []
+            coefs.append(attrs['coef1'])
+            coefs.append(attrs['coef2'])
+            coefs.append(attrs['coef3'])
+            coefs.append(attrs['coef4'])
+            coefs.append(attrs['coef5'])
+            coefs.append(attrs['coef6'])
+            coefs.append(attrs['coef7'])
+            coefs.append(attrs['coef8'])
+            coefs.append(attrs['coef9'])
+            coefs.append(attrs['coef10'])
+            attrs['coefs'] = coefs
+
+        # filter out explicit coefficent attributes, obsolete
+        for a_key, a_val in attrs.items():
+            if not (a_key[:4] == 'coef' and a_key[4:].isdigit()):
+                setattr(self, a_key, a_val)
 
     def listobj_str(self):
         o_str = f"profile: {type(self).__name__}\n"
@@ -998,32 +1020,9 @@ class RadialPolynomial(SurfaceProfile):
         self.cv = other.cv
         self.ec = other.ec
         self.coefs = other.coefs.copy()
-        self.coefs = other.coefs
-        self.coef1 = other.coef1
-        self.coef2 = other.coef2
-        self.coef3 = other.coef3
-        self.coef4 = other.coef4
-        self.coef5 = other.coef5
-        self.coef6 = other.coef6
-        self.coef7 = other.coef7
-        self.coef8 = other.coef8
-        self.coef9 = other.coef9
-        self.coef10 = other.coef10
 
-    def gen_coef_list(self):
-        if len(self.coefs) == 0:
-            self.coefs = []
-            self.coefs.append(self.coef1)
-            self.coefs.append(self.coef2)
-            self.coefs.append(self.coef3)
-            self.coefs.append(self.coef4)
-            self.coefs.append(self.coef5)
-            self.coefs.append(self.coef6)
-            self.coefs.append(self.coef7)
-            self.coefs.append(self.coef8)
-            self.coefs.append(self.coef9)
-            self.coefs.append(self.coef10)
-            self.max_nonzero_coef = -1
+    def calc_max_nonzero_coef(self):
+        self.max_nonzero_coef = -1
         for i, c in enumerate(self.coefs):
             if c != 0.0:
                 self.max_nonzero_coef = i
@@ -1031,16 +1030,8 @@ class RadialPolynomial(SurfaceProfile):
 
     def apply_scale_factor(self, scale_factor):
         self.cv /= scale_factor
-        self.coef1 *= scale_factor
-        self.coef2 *= scale_factor**2
-        self.coef3 *= scale_factor**3
-        self.coef4 *= scale_factor**4
-        self.coef5 *= scale_factor**5
-        self.coef6 *= scale_factor**6
-        self.coef7 *= scale_factor**7
-        self.coef8 *= scale_factor**8
-        self.coef9 *= scale_factor**9
-        self.coef10 *= scale_factor**10
+        for i, c in enumerate(self.coefs):
+            self.coefs[i] = scale_factor**(i+1) * c
 
     def flip(self):
         self.cv = -self.cv
@@ -1048,7 +1039,7 @@ class RadialPolynomial(SurfaceProfile):
             self.coefs[i] = -c
 
     def update(self):
-        self.gen_coef_list()
+        self.calc_max_nonzero_coef()
         return self
 
     def sag(self, x, y):
@@ -1132,6 +1123,7 @@ class YToroid(SurfaceProfile):
     is the sweep profile curve.
 
     """
+    initial_size = 10
 
     def __init__(self,
                  c=0.0, cR=0, cc=0.0,
@@ -1169,18 +1161,8 @@ class YToroid(SurfaceProfile):
         if coefs is not None:
             self.coefs = coefs
         else:
-            self.coefs = []
+            self.coefs = [0.] * self.initial_size
         self.max_nonzero_coef = 0
-        self.coef2 = 0.0
-        self.coef4 = 0.0
-        self.coef6 = 0.0
-        self.coef8 = 0.0
-        self.coef10 = 0.0
-        self.coef12 = 0.0
-        self.coef14 = 0.0
-        self.coef16 = 0.0
-        self.coef18 = 0.0
-        self.coef20 = 0.0
 
         # ensure profile is in a valid state
         self.update()
@@ -1221,6 +1203,19 @@ class YToroid(SurfaceProfile):
     def ec(self, ec):
         self.cc = ec - 1.0
 
+    def get_by_order(self, order: int) -> float:
+        """ Access to coefficients via polynomial order """
+        return self.coefs[order//2 - 1]
+
+    def set_by_order(self, order: int, value: float):
+        """ Access to coefficients via polynomial order """
+        try:
+            self.coefs[order//2-1] = value
+        except IndexError:
+            self.coefs = resize_list(self.coefs, order//2, null_item=0.0)
+            self.coefs[order//2-1] = value
+        return self
+
     def __str__(self):
         return type(self).__name__ + " " + str(self.cv) + " " + \
                                            str(self.cc)
@@ -1230,6 +1225,28 @@ class YToroid(SurfaceProfile):
                 ', cR=' + repr(self.cR) +
                 ', cc=' + repr(self.cc) +
                 ', coefs=' + repr(self.coefs) + ')')
+
+    def __json_decode__(self, **attrs):
+        # for pre-0.9.5 files, if coefs is empty, fill 
+        # in from named attributes
+        if not any(attrs['coefs']) and 'coef2' in attrs:
+            coefs = []
+            coefs.append(attrs['coef2'])
+            coefs.append(attrs['coef4'])
+            coefs.append(attrs['coef6'])
+            coefs.append(attrs['coef8'])
+            coefs.append(attrs['coef10'])
+            coefs.append(attrs['coef12'])
+            coefs.append(attrs['coef14'])
+            coefs.append(attrs['coef16'])
+            coefs.append(attrs['coef18'])
+            coefs.append(attrs['coef20'])
+            attrs['coefs'] = coefs
+
+        # filter out explicit coefficent attributes, obsolete
+        for a_key, a_val in attrs.items():
+            if not (a_key[:4] == 'coef' and a_key[4:].isdigit()):
+                setattr(self, a_key, a_val)
 
     def listobj_str(self):
         o_str = f"profile: {type(self).__name__}\n"
@@ -1246,31 +1263,10 @@ class YToroid(SurfaceProfile):
         self.cv = other.cv
         self.cR = other.cR
         self.cc = other.cc
-        self.coef2 = other.coef2
-        self.coef4 = other.coef4
-        self.coef6 = other.coef6
-        self.coef8 = other.coef8
-        self.coef10 = other.coef10
-        self.coef12 = other.coef12
-        self.coef14 = other.coef14
-        self.coef16 = other.coef16
-        self.coef18 = other.coef18
-        self.coef20 = other.coef20
+        self.coefs = other.coefs.copy()
 
-    def gen_coef_list(self):
-        if len(self.coefs) == 0:
-            self.coefs = []
-            self.coefs.append(self.coef2)
-            self.coefs.append(self.coef4)
-            self.coefs.append(self.coef6)
-            self.coefs.append(self.coef8)
-            self.coefs.append(self.coef10)
-            self.coefs.append(self.coef12)
-            self.coefs.append(self.coef14)
-            self.coefs.append(self.coef16)
-            self.coefs.append(self.coef18)
-            self.coefs.append(self.coef20)
-            self.max_nonzero_coef = -1
+    def calc_max_nonzero_coef(self):
+        self.max_nonzero_coef = -1
         for i, c in enumerate(self.coefs):
             if c != 0.0:
                 self.max_nonzero_coef = i
@@ -1280,16 +1276,8 @@ class YToroid(SurfaceProfile):
         self.cv /= scale_factor
         self.cR /= scale_factor
         sf_sqr = scale_factor**2
-        self.coef2 *= sf_sqr
-        self.coef4 *= sf_sqr**2
-        self.coef6 *= sf_sqr**3
-        self.coef8 *= sf_sqr**4
-        self.coef10 *= sf_sqr**5
-        self.coef12 *= sf_sqr**6
-        self.coef14 *= sf_sqr**7
-        self.coef16 *= sf_sqr**8
-        self.coef18 *= sf_sqr**9
-        self.coef20 *= sf_sqr**10
+        for i, c in enumerate(self.coefs):
+            self.coefs[i] = sf_sqr**(i+1) * c
 
     def flip(self):
         self.cv = -self.cv
@@ -1298,7 +1286,7 @@ class YToroid(SurfaceProfile):
             self.coefs[i] = -c
 
     def update(self):
-        self.gen_coef_list()
+        self.calc_max_nonzero_coef()
         return self
 
     def sag(self, x, y):
