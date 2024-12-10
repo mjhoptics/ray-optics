@@ -251,27 +251,14 @@ def eval_real_image_ht(opt_model, fld, wvl):
                                                   p_i, d_i, obj2pup_dist, 
                                                   eprad, wvl, not_wa)
     p_k = rrev_cr.pkg.ray[-2][mc.p]
+    p_k01 = np.sqrt(p_k[0]**2 + p_k[1]**2)
     d_k = rrev_cr.pkg.ray[-2][mc.d]
     d_o = -d_k
     d_k01 = np.sqrt(d_k[0]**2 + d_k[1]**2)
     if d_k01 == 0.:
         z_enp = fod.enp_dist
     else:
-        # Take the cross product of object space chief ray with unit z vector.
-        # This vector is normal to the plane of incidence of the object space chief ray.
-        xprod = np.array([d_o[1]/d_k01, d_o[0]/d_k01, 0.])
-        # gamma rotation matrix to bring chief ray into y-z plane
-        if abs(xprod[0]) == 1:  # aligned with +/-y
-            gamma_rot = np.identity(3)
-        else:  # rotation to take the normal vector to the +x axis.
-            gamma_rot = rot_v1_into_v2(xprod, np.array([1., 0., 0.]))
-
-        # rotate object space chief ray into y-z plane
-        p_rot = np.matmul(gamma_rot, p_k)
-        d_rot = np.matmul(gamma_rot, d_o)
-
-        # calculate the chief ray intersection with the optical axis
-        z_enp = p_rot[2] - p_rot[1]*d_rot[2]/d_rot[1]
+        z_enp = p_k[2] + p_k01*d_o[2]/d_k01
 
     obj2enp_dist = fod.obj_dist + z_enp
     enp_pt = np.array([0., 0., obj2enp_dist])
