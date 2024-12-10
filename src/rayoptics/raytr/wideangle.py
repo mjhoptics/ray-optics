@@ -48,9 +48,6 @@ def enp_z_coordinate(z_enp, *args):
     pt1 = np.array([0., 0., obj2enp_dist])
     rot_mat = rot_v1_into_v2(np.array([0., 0., 1.]), dir0)
     pt0 = np.matmul(rot_mat, pt1) - pt1
-    # handle case where entrance pupil is behind the object (issue #120)
-    # if dir0[2] * seq_model.z_dir[0] < 0:
-    #     dir0 = -dir0
 
     try:
         ray_pkg = RayPkg(*rt.trace(seq_model, pt0, dir0, wvl, 
@@ -237,18 +234,19 @@ def eval_real_image_ht(opt_model, fld, wvl):
     fov = osp['fov']
     fod = opt_model['analysis_results']['parax_data'].fod
 
+    not_wa = not fov.is_wide_angle
+    ifcx = len(sm.ifcs) - sm.stop_surface - 1
     rpath = sm.reverse_path(wl=wvl, start=len(sm.ifcs), stop=None, step=-1)
     rpath_list = list(rpath)
+    eprad = fod.exp_radius
     obj2pup_dist = fod.exp_dist - fod.img_dist
+    p_exp = np.array([0, 0, obj2pup_dist])
+    xy_target = [0., 0.]
+
     p_i = np.array([fld.x, fld.y, 0])
-    not_wa = not fov.is_wide_angle
     if fov.is_relative:
         p_i *= fov.value
-    p_exp = np.array([0, 0, obj2pup_dist])
     d_i = normalize(p_exp - p_i)
-    xy_target = [0., 0.]
-    eprad = fod.exp_radius
-    ifcx = len(sm.ifcs) - sm.stop_surface - 1
     start_coords, rrev_cr = trace.iterate_ray_raw(rpath_list, ifcx, xy_target, 
                                                   p_i, d_i, obj2pup_dist, 
                                                   eprad, wvl, not_wa)
@@ -259,7 +257,20 @@ def eval_real_image_ht(opt_model, fld, wvl):
     if d_k01 == 0.:
         z_enp = fod.enp_dist
     else:
-        z_enp = p_k[2] + p_k[1]*d_k[2]/d_k01
+        # cross product of object space chief ray with unit z vector
+        xprod = np.array([d_o[1]/d_k01, d_o[0]/d_k01, 0.])
+        # gamma rotation matrix to bring chief ray into y-z plane
+        if abs(xprod[0]) == 1:
+            gamma_rot = np.identity(3)
+        else:
+            gamma_rot = rot_v1_into_v2(xprod, np.array([1., 0., 0.]))
+
+        # rotate object space chief ray into y-z plane
+        p_rot = np.matmul(gamma_rot, p_k)
+        d_rot = np.matmul(gamma_rot, d_o)
+
+        # calculate the chief ray intersection with the optical axis
+        z_enp = p_rot[2] - p_rot[1]*d_rot[2]/d_rot[1]
 
     obj2enp_dist = fod.obj_dist + z_enp
     enp_pt = np.array([0., 0., obj2enp_dist])
