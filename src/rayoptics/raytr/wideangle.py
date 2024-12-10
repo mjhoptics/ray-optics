@@ -257,12 +257,13 @@ def eval_real_image_ht(opt_model, fld, wvl):
     if d_k01 == 0.:
         z_enp = fod.enp_dist
     else:
-        # cross product of object space chief ray with unit z vector
+        # Take the cross product of object space chief ray with unit z vector.
+        # This vector is normal to the plane of incidence of the object space chief ray.
         xprod = np.array([d_o[1]/d_k01, d_o[0]/d_k01, 0.])
         # gamma rotation matrix to bring chief ray into y-z plane
-        if abs(xprod[0]) == 1:
+        if abs(xprod[0]) == 1:  # aligned with +/-y
             gamma_rot = np.identity(3)
-        else:
+        else:  # rotation to take the normal vector to the +x axis.
             gamma_rot = rot_v1_into_v2(xprod, np.array([1., 0., 0.]))
 
         # rotate object space chief ray into y-z plane
