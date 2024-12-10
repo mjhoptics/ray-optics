@@ -3,11 +3,24 @@
 # Copyright © 2024 Michael J. Hayford
 """ Wide angle raytrace and ray aiming
 
-This package was developed to ray trace fisheye, i.e. very wide field, lenses. These lenses have significant pupil spherical aberration. In order to trace highly oblique field angles, one must locate the actual entrance pupil location for a field angle. The function find_real_enp implements the search by parameterizing the z offset from the 1st interface along the object space optical axis. For extreme field angles, the rays that successfully reach the stop surface are far from the z offset for the paraxial entrance pupil. 
+This package was developed to ray trace fisheye, i.e. very wide field, lenses. 
+These lenses have significant pupil spherical aberration. In order to trace 
+highly oblique field angles, one must locate the actual entrance pupil location 
+for a field angle. The function find_real_enp implements the search by 
+parameterizing the z offset from the 1st interface along the object space 
+optical axis. For extreme field angles, the rays that successfully reach the 
+stop surface are far from the z offset for the paraxial entrance pupil. 
 
-The function z_enp_coordinate is used to evaluate where the chief ray hits the stop surface. This function is evaluated at regular intervals, spaced between the z distance of the paraxial entrance pupil and the first surface vertex (i.e. z_enp = 0). When the range of z values is identified that pass rays through the complete system, find_z_enp is called to find the exact conjugate point to the center of the stop surface.
+The function z_enp_coordinate is used to evaluate where the chief ray hits the 
+stop surface. This function is evaluated at regular intervals, spaced between 
+the z distance of the paraxial entrance pupil and the first surface vertex (i.
+e. z_enp = 0). When the range of z values is identified that pass rays through 
+the complete system, find_z_enp is called to find the exact conjugate point to 
+the center of the stop surface.
 
-The entrance pupil for the wide angle package is taken as normal to the chief ray at that field angle. The set_vignetting function using bisection works well with this definition.
+The entrance pupil for the wide angle package is taken as normal to the chief 
+ray at that field angle. The set_vignetting function using bisection works well 
+with this definition.
 
 .. Created on Mon Oct 14 11:17 2024
 
@@ -81,7 +94,8 @@ def find_z_enp(opt_model, stop_idx, z_enp_0, fld, wvl, **kwargs):
 
     Returns z distance from 1st interface to the entrance pupil.
 
-    If stop_ifc is None, i.e. a floating stop surface, returns paraxial entrance pupil.
+    If stop_ifc is None, i.e. a floating stop surface, returns paraxial 
+    entrance pupil.
 
     If the iteration fails, a TraceError will be raised
     """
@@ -132,9 +146,20 @@ def find_z_enp(opt_model, stop_idx, z_enp_0, fld, wvl, **kwargs):
 def find_real_enp(opm, stop_idx, fld, wvl):
     """ Locate the z center of the real pupil for `fld`, wrt 1st ifc
     
-    This function implements a 2 step process to finding the chief ray for `fld` and `wvl`.
-    The first phase searches for the window of pupil locations by sampling the z coordinate from the paraxial pupil location towards the first interface vertex. Failed rays are discarded until a range of z coordinates is found where rays trace successfully. If only a single successful trace is in hand, a second, more finely subdivided search is conducted about the successful point.
-    The outcome is a range, start_z -> end_z, that is divided in 3 and a ray iteration to find the center of the stop surface is done. Sometimes the start point doesn't produce a solution; use of the mid-point as a start is a reliable second try.
+    This function implements a 2 step process to finding the chief ray 
+    for `fld` and `wvl`.
+
+    The first phase searches for the window of pupil locations by sampling the 
+    z coordinate from the paraxial pupil location towards the first interface 
+    vertex. Failed rays are discarded until a range of z coordinates is found 
+    where rays trace successfully. If only a single successful trace is in 
+    hand, a second, more finely subdivided search is conducted about the 
+    successful point.
+
+    The outcome is a range, start_z -> end_z, that is divided in 3 and a ray 
+    iteration to find the center of the stop surface is done. Sometimes the 
+    start point doesn't produce a solution; use of the mid-point as a start is 
+    a reliable second try.
     """
     sm = opm['seq_model']
     osp = opm['osp']
@@ -251,27 +276,14 @@ def eval_real_image_ht(opt_model, fld, wvl):
                                                   p_i, d_i, obj2pup_dist, 
                                                   eprad, wvl, not_wa)
     p_k = rrev_cr.pkg.ray[-2][mc.p]
+    p_k01 = np.sqrt(p_k[0]**2 + p_k[1]**2)
     d_k = rrev_cr.pkg.ray[-2][mc.d]
     d_o = -d_k
     d_k01 = np.sqrt(d_k[0]**2 + d_k[1]**2)
     if d_k01 == 0.:
         z_enp = fod.enp_dist
     else:
-        # Take the cross product of object space chief ray with unit z vector.
-        # This vector is normal to the plane of incidence of the object space chief ray.
-        xprod = np.array([d_o[1]/d_k01, d_o[0]/d_k01, 0.])
-        # gamma rotation matrix to bring chief ray into y-z plane
-        if abs(xprod[0]) == 1:  # aligned with +/-y
-            gamma_rot = np.identity(3)
-        else:  # rotation to take the normal vector to the +x axis.
-            gamma_rot = rot_v1_into_v2(xprod, np.array([1., 0., 0.]))
-
-        # rotate object space chief ray into y-z plane
-        p_rot = np.matmul(gamma_rot, p_k)
-        d_rot = np.matmul(gamma_rot, d_o)
-
-        # calculate the chief ray intersection with the optical axis
-        z_enp = p_rot[2] - p_rot[1]*d_rot[2]/d_rot[1]
+        z_enp = p_k[2] + p_k01*d_o[2]/d_k01
 
     obj2enp_dist = fod.obj_dist + z_enp
     enp_pt = np.array([0., 0., obj2enp_dist])
