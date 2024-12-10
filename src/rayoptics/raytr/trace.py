@@ -443,6 +443,10 @@ def trace_boundary_rays_at_field(opt_model, fld, wvl,
     """ returns a list of RayPkgs for the boundary rays for field fld
     """
     kwargs['rayerr_filter'] = kwargs.get('rayerr_filter', 'full')
+    ref_sphere, cr_pkg = setup_pupil_coords(opt_model, fld, wvl, 0.0)
+    fld.chief_ray = cr_pkg
+    fld.ref_sphere = ref_sphere
+
     rim_rays = []
     osp = opt_model.optical_spec
     for p in osp.pupil.pupil_rays:
