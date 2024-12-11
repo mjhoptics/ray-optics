@@ -94,32 +94,36 @@ class FirstOrderData:
         self.obj_na = None
         self.img_na = None
 
+    def listobj_str(self):
+        o_str = f"efl        {self.efl:12.4g}\n"
+        o_str += f"f          {self.fl_obj:12.4g}\n"
+        o_str += f"f'         {self.fl_img:12.4g}\n"
+        o_str += f"ffl        {self.ffl:12.4g}\n"
+        o_str += f"pp1        {self.pp1:12.4g}\n"
+        o_str += f"bfl        {self.bfl:12.4g}\n"
+        o_str += f"ppk        {self.ppk:12.4g}\n"
+        o_str += f"pp sep     {self.pp_sep:12.4g}\n"
+        o_str += f"f/#        {self.fno:12.4g}\n"
+        o_str += f"m          {self.m:12.4g}\n"
+        o_str += f"red        {self.red:12.4g}\n"
+        o_str += f"obj_dist   {self.obj_dist:12.4g}\n"
+        o_str += f"obj_ang    {self.obj_ang:12.4g}\n"
+        o_str += f"enp_dist   {self.enp_dist:12.4g}\n"
+        o_str += f"enp_radius {self.enp_radius:12.4g}\n"
+        o_str += f"na obj     {self.obj_na:12.4g}\n"
+        o_str += f"n obj      {self.n_obj:12.4g}\n"
+        o_str += f"img_dist   {self.img_dist:12.4g}\n"
+        o_str += f"img_ht     {self.img_ht:12.4g}\n"
+        o_str += f"exp_dist   {self.exp_dist:12.4g}\n"
+        o_str += f"exp_radius {self.exp_radius:12.4g}\n"
+        o_str += f"na img     {self.img_na:12.4g}\n"
+        o_str += f"n img      {self.n_img:12.4g}\n"
+        o_str += f"optical invariant {self.opt_inv:12.4g}"
+        return o_str
+    
     def list_first_order_data(self):
         """ list the first order properties """
-        print("efl        {:12.4g}".format(self.efl))
-        print("f          {:12.4g}".format(self.fl_obj))
-        print("f'         {:12.4g}".format(self.fl_img))
-        print("ffl        {:12.4g}".format(self.ffl))
-        print("pp1        {:12.4g}".format(self.pp1))
-        print("bfl        {:12.4g}".format(self.bfl))
-        print("ppk        {:12.4g}".format(self.ppk))
-        print("pp sep     {:12.4g}".format(self.pp_sep))
-        print("f/#        {:12.4g}".format(self.fno))
-        print("m          {:12.4g}".format(self.m))
-        print("red        {:12.4g}".format(self.red))
-        print("obj_dist   {:12.4g}".format(self.obj_dist))
-        print("obj_ang    {:12.4g}".format(self.obj_ang))
-        print("enp_dist   {:12.4g}".format(self.enp_dist))
-        print("enp_radius {:12.4g}".format(self.enp_radius))
-        print("na obj     {:12.4g}".format(self.obj_na))
-        print("n obj      {:12.4g}".format(self.n_obj))
-        print("img_dist   {:12.4g}".format(self.img_dist))
-        print("img_ht     {:12.4g}".format(self.img_ht))
-        print("exp_dist   {:12.4g}".format(self.exp_dist))
-        print("exp_radius {:12.4g}".format(self.exp_radius))
-        print("na img     {:12.4g}".format(self.img_na))
-        print("n img      {:12.4g}".format(self.n_img))
-        print("optical invariant {:12.4g}".format(self.opt_inv))
+        print(self.listobj_str())
 
 
 # paraxial_trace() - This routine performs a paraxial raytrace from object
