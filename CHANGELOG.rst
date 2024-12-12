@@ -5,6 +5,15 @@ Changelog
 =========
 
 
+Version 0.9.5
+=============
+Fix numerous issues with :class:`~.elem.profiles.EvenPolynomial` and similar aspherics (issue 164). Remove use of named coefficient attributes in favor of the `coefs` list. Added :meth:`~.elem.profiles.EvenPolynomial.get_by_order` /:meth:`~.elem.profiles.EvenPolynomial.set_by_order` pair to get coefficients by their order number rather than index directly into `coefs`. Updated CODE V import to use `coefs`.
+
+Fixed an issue with wide angle vignetting where a rotation was being applied incorrectly, driving vignetting to zero for 45 deg field angles. Fixed an issue with wide angle systems specified with a real image height that had an x component. This addresses all known problems with issue 157.
+
+:class:`~.parax.firstorder.FirstOrderData` can be printed using :func:`~listobj` now.
+
+
 Version 0.9.4
 =============
 Port to PySide6 for Qt app support. This gains support for Mac silicon with conda-forge availability. Move to Numpy 2.1.3 and other dependency tweaks. Partially address removing elements from a model (issue 141).

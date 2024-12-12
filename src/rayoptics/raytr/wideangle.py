@@ -147,7 +147,7 @@ def find_real_enp(opm, stop_idx, fld, wvl):
     """ Locate the z center of the real pupil for `fld`, wrt 1st ifc
     
     This function implements a 2 step process to finding the chief ray 
-    for `fld` and `wvl`.
+    for `fld` and `wvl` for wide angle systems. `fld` should be of type ('object', 'angle'), even for finite object distances.
 
     The first phase searches for the window of pupil locations by sampling the 
     z coordinate from the paraxial pupil location towards the first interface 
@@ -157,7 +157,7 @@ def find_real_enp(opm, stop_idx, fld, wvl):
     successful point.
 
     The outcome is a range, start_z -> end_z, that is divided in 3 and a ray 
-    iteration to find the center of the stop surface is done. Sometimes the 
+    iteration (using :func:`~.raytr.wideangle.find_z_enp`) to find the center of the stop surface is done. Sometimes the 
     start point doesn't produce a solution; use of the mid-point as a start is 
     a reliable second try.
     """
@@ -252,7 +252,9 @@ def find_real_enp(opm, stop_idx, fld, wvl):
 def eval_real_image_ht(opt_model, fld, wvl):
     """Trace reverse ray from image point to get object space inputs. 
     
-    This the implementation of obj_coords() for ('image', 'real height')
+    This function traces the chief ray for `fld` and `wvl` through the center of the stop surface, starting from the specified real image height.
+
+    This is the implementation of :meth:`~.raytr.opticalspec.FieldSpec.obj_coords` for ('image', 'real height'). It returns the starting ray in object space and the z entrance pupil distance wrt the first interface.
     """
     sm = opt_model['seq_model']
     osp = opt_model['optical_spec']
