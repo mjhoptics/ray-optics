@@ -1015,6 +1015,54 @@ class Field:
         self.chief_ray = None
         self.ref_sphere = None
 
+    @property
+    def x(self):
+        return self._x
+
+    @x.setter
+    def x(self, x_val):
+        self._x = x_val
+    
+    @property
+    def y(self):
+        return self._y
+
+    @y.setter
+    def y(self, y_val):
+        self._y = y_val
+
+    @property
+    def xf(self):
+        return self._xf
+
+    @xf.setter
+    def xf(self, x_fract):
+        self._xf = x_fract
+
+    @property
+    def yf(self):
+        return self._yf
+
+    @yf.setter
+    def yf(self, y_fract):
+        self._yf = y_fract
+
+    @property
+    def xr(self):
+        return self._xf * self.max_field
+
+    @xr.setter
+    def xr(self, xval):
+        self._xf = xval / self.max_field
+
+    @property
+    def yr(self):
+        return self._yf * self.max_field
+
+    @yr.setter
+    def yr(self, yval):
+        self._yf = yval / self.max_field
+
     def __json_encode__(self):
         attrs = dict(vars(self))
         items = ['chief_ray', 'ref_sphere', 'pupil_rays']
