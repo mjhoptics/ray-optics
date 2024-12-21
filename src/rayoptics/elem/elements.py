@@ -676,7 +676,7 @@ class Part(Protocol):
 
     @abstractmethod
     def render_shape(self) -> List[GraphicsHandle]:
-        '''return a polyline that is representative of the cemented element. '''
+        """ return a polyline that is representative of the Part. """
         raise NotImplementedError
 
     @abstractmethod
