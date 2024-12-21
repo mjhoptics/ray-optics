@@ -22,7 +22,14 @@ class InteractiveLayout(InteractiveFigure):
         opt_model: parent optical model
         refresh_gui: function to be called on refresh_gui event
         offset_factor: how much to draw rays before first surface
+        do_draw_parts: if True, draw parts that pass the part_filter
+        part_filter: include only parts with the specified tags
         do_draw_rays: if True, draw edge rays
+        do_draw_beams: draw a filled in area for each field point
+        do_draw_edge_rays: draw the boundary rays for each field point
+        do_draw_ray_fans: draw ray fans from each field point
+        num_rays_in_fan: number of rays to include in ray fans (default: 11)
+        clip_rays: if True, rays clipping by apertures is checked
         do_paraxial_layout: if True, draw editable paraxial axial and chief ray
         entity_factory_list: list of drawable entity factories. Allows new
                              drawables to be added to the layout.
