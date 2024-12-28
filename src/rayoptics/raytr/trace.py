@@ -807,10 +807,11 @@ def trace_astigmatism_curve(opt_model, num_points=21, **kwargs):
     t_data = []
     field_data = []
 
-    osp = opt_model.optical_spec
+    osp = opt_model['optical_spec']
+    fov = osp['fov']
     _, wvl, foc = osp.lookup_fld_wvl_focus(0)
-    fld = Field()
-    max_field = osp['fov'].max_field()[0]
+    fld = Field(fov=fov)
+    max_field = fov.max_field()[0]
     for f in np.linspace(0., max_field, num=num_points):
         fld.y = f
         ref_sphere, cr_pkg = setup_pupil_coords(opt_model, fld, wvl, foc)

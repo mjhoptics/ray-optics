@@ -781,6 +781,8 @@ class FieldSpec:
         return fov_oi_key, field_key, field_value
 
     def sync_to_restore(self, optical_spec):
+        for f in self.fields:
+            f.fov = self
         if not hasattr(self, 'is_relative'):
             self.is_relative = False
         if not hasattr(self, 'value'):
@@ -1130,10 +1132,13 @@ class Field:
     # 
     def __json_encode__(self):
         attrs = dict(vars(self))
-        items = ['chief_ray', 'ref_sphere', 'pupil_rays']
+        items = ['chief_ray', 'ref_sphere', 'pupil_rays', 'fov']
         for item in items:
             if item in attrs:
                 del attrs[item]
+        if '_max_field' in attrs:
+            if not isanumber(attrs['_max_field']):
+                del attrs['_max_field']
         return attrs
 
     def __json_decode__(self, **attrs):

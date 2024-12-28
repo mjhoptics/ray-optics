@@ -237,7 +237,7 @@ def field_spec_data(opm, tla, qlist, dlist):
         fov.is_wide_angle = dlist[0]
 
     if len(fov.fields) != len(dlist):
-        fov.fields = [Field() for f in range(len(dlist))]
+        fov.fields = [Field(fov=fov) for f in range(len(dlist))]
 
     if tla[0] == 'V':
         attr = tla.lower()

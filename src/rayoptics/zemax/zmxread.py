@@ -512,7 +512,8 @@ def field_spec_data(optm, cmd, inputs):
     inputs = inputs.split()
 
     if len(fov.fields) < len(inputs):
-        fov.fields += [Field() for f in range(len(fov.fields), len(inputs))]
+        fov.fields += [Field(fov=fov) for f in range(len(fov.fields), 
+                                                     len(inputs))]
 
     for i, inpt in enumerate(inputs):
         setattr(fov.fields[i], attr, float(inpt))

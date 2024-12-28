@@ -149,9 +149,10 @@ class AstigmatismCurvePlot(AnalysisPlot):
         self.field_data = []
 
         osp = self.opt_model.optical_spec
+        fov = osp['fov']
         _, wvl, foc = osp.lookup_fld_wvl_focus(0)
-        fld = Field()
-        max_field = osp.field_of_view.max_field()[0]
+        fld = Field(fov=fov)
+        max_field = fov.max_field()[0]
         for f in np.linspace(0., max_field, num=21):
             fld.y = f
             s_foc, t_foc = self.eval_fct(self.opt_model, fld, wvl, foc)
