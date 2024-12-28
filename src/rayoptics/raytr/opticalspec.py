@@ -544,7 +544,7 @@ class PupilSpec:
 
     def listobj_str(self):
         _key = self._key
-        o_str = f"{_key[0]}: {_key[1]} {_key[2]}; value={self.value}\n"
+        o_str = f"{_key[0]}: {_key[1]} {_key[2]}; value={self.value:#10.6g}\n"
         return o_str
 
     @property
@@ -710,11 +710,31 @@ class FieldSpec:
 
     def listobj_str(self):
         _key = self._key
-        o_str = f"{_key[0]}: {_key[1]} {_key[2]}; value={self.value}\n"
+        o_str = f"{_key[0]}: {_key[1]} {_key[2]}; value={self.value:#10.6g}\n"
+        
+        has_x = False
+        has_y = False
+        for fld in self.fields:
+            if fld.x != 0. and fld.y != 0.:
+                has_x = True
+                has_y = True
+            elif fld.x == 0. and fld.y != 0.:
+                has_y = True
+                fmtstr = 'y'
+            elif fld.x != 0. and fld.y == 0.:
+                has_x = True
+                fmtstr = 'x'
+            else:
+                fmtstr = ''
+        if has_x and has_y:
+            fmtstr = 'xy'
+
+        for fld in self.fields:
+            o_str += fld.listobj_str(format=fmtstr)
+
         o_str += (f"is_relative={self.is_relative}, "
                   f"is_wide_angle={self.is_wide_angle}\n")
-        for i, fld in enumerate(self.fields):
-            o_str += fld.listobj_str()
+        
         return o_str
 
     @property
@@ -1154,25 +1174,26 @@ class Field:
     def __repr__(self):
         return "Field(x={}, y={}, wt={})".format(self.x, self.y, self.wt)
 
-    def listobj_str(self):
-        if self.x != 0. and self.y != 0.:
-            o_str = (f"x={self.x}, y={self.y}"
+    def listobj_str(self, format='xy'):
+        if format == 'x':
+            o_str = (f"x ={self.xv:7.3f} ({self.xf:5.2f})"
                      f" vlx={self.vlx:6.3f} vux={self.vux:6.3f}"
                      f" vly={self.vly:6.3f} vuy={self.vuy:6.3f}\n")
-        elif self.x == 0. and self.y != 0.:
-            o_str = (f"y={self.y}"
-                     f" vly={self.vly:6.3f} vuy={self.vuy:6.3f}"
-                     f" vlx={self.vlx:6.3f} vux={self.vux:6.3f}\n")
-        elif self.x != 0. and self.y == 0.:
-            o_str = (f"x={self.x}"
+        elif format == 'y':
+            o_str = (f"y ={self.yv:7.3f} ({self.yf:5.2f})"
                      f" vlx={self.vlx:6.3f} vux={self.vux:6.3f}"
                      f" vly={self.vly:6.3f} vuy={self.vuy:6.3f}\n")
-        else:
-            o_str = (f"x,y={self.y}"
+        elif format == '':
+            o_str = (f"x,y={self.yv:4.2f}"
+                     f" vlx={self.vlx:6.3f} vux={self.vux:6.3f}"
+                     f" vly={self.vly:6.3f} vuy={self.vuy:6.3f}\n")
+        else:  # 'xy' or anything else
+            o_str = (f"xy=({self.xv:7.3f}, {self.yv:7.3f})"
+                     f" ({self.xf:5.2f}, {self.yf:5.2f})"
                      f" vlx={self.vlx:6.3f} vux={self.vux:6.3f}"
                      f" vly={self.vly:6.3f} vuy={self.vuy:6.3f}\n")
         return o_str
-
+    
     def update(self):
         self.aim_info = None
         self.chief_ray = None
