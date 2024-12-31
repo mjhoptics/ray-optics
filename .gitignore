@@ -25,7 +25,6 @@ MANIFEST
 
 # Documentation
 _build
-_static
 _templates
 
 # Jupyter Notebook

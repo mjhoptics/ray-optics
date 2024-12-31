@@ -1006,11 +1006,19 @@ class FieldSpec:
 
 
 class Field:
-    """ a single field point, largely a data container
+    """ a single field point, chief ray pkg and pupil limits
+
+    The Field class manages several types of data:
+
+    - the field coordinates, unscaled and fractional
+    - aim info for tracing through the stop surface
+    - the vignetting factors for the pupil definition
+    - pkgs for the chief ray and reference sphere
+
+    The Field can have a reference to a fov/FieldSpec (recommended!) which is used to support the fractional and value interfaces simultaneously. If
+    no fov is given, a max_field may be specified, with the default being unit field size.
 
     Attributes:
-        x: x field component
-        y: y field component
         vux: +x vignetting factor
         vuy: +y vignetting factor
         vlx: -x vignetting factor
@@ -1022,25 +1030,116 @@ class Field:
                    center of the aperture stop, traced in the central
                    wavelength
         ref_sphere: a tuple containing (image_pt, ref_dir, ref_sphere_radius)
+        fov: :class:`~.FieldSpec` to be used as reference or None
 
     """
 
-    def __init__(self, x=0., y=0., wt=1., fov=None, max_field=None):
+    def __init__(self, x: float=0., y: float=0., wt: float=1., 
+                 fov=None, max_field=None):
         self.x = x
         self.y = y
-        self.vux = 0.0
-        self.vuy = 0.0
-        self.vlx = 0.0
-        self.vly = 0.0
-        self.wt = wt
+        self.vux: float = 0.0
+        self.vuy: float = 0.0
+        self.vlx: float = 0.0
+        self.vly: float = 0.0
+        self.wt: float = wt
         self.aim_info = None
         self.chief_ray = None
         self.ref_sphere = None
         self.fov = fov
         self._max_field = max_field
 
+    # field coordinates, per self.fov.is_relative
+    @property
+    def x(self) -> float:
+        """ the x field value. """
+        return self._x
+
+    @x.setter
+    def x(self, x_val: float):
+        """ sets the x field value to x_val. """
+        self._x = x_val
+    
+    @property
+    def y(self) -> float:
+        """ the y field value. """
+        return self._y
+
+    @y.setter
+    def y(self, y_val: float):
+        """ sets the y field value to y_val. """
+        self._y = y_val
+
+    # value attribute access
+    @property
+    def xv(self) -> float:
+        """ the unscaled x field value. """
+        return self._get_x_by_fref() if self.is_relative else self._x
+
+    @xv.setter
+    def xv(self, x_val: float):
+        """ sets the x field value to the unscaled x field value, x_val. """
+        self._x = self._set_x_by_fref(x_val) if self.is_relative else x_val
+    
+    @property
+    def yv(self) -> float:
+        """ the unscaled y field value. """
+        return self._get_y_by_fref() if self.is_relative else self._y
+
+    @yv.setter
+    def yv(self, y_val: float):
+        """ sets the y field value to the unscaled y field value, y_val. """
+        self._y = self._set_y_by_fref(y_val) if self.is_relative else y_val
+
+    # fractional attribute access
+    @property
+    def xf(self) -> float:
+        """ the fractional x field value. """
+        return self._x if self.is_relative else self._get_x_by_vref()
+
+    @xf.setter
+    def xf(self, x_fract: float):
+        """ sets the x field value to the fractional x field value, x_fract. """
+        self._x = x_fract if self.is_relative else self._set_x_by_vref(x_fract)
+    
+    @property
+    def yf(self) -> float:
+        """ the fractional y field value. """
+        return self._y if self.is_relative else self._get_y_by_vref()
+
+    @yf.setter
+    def yf(self, y_fract: float):
+        """ sets the y field value to the fractional y field value, y_fract. """
+        self._y = y_fract if self.is_relative else self._set_y_by_vref(y_fract) 
+
+    # dispatch routines
+    def _get_x_by_vref(self) -> float:
+        return self._x / self.max_field
+
+    def _set_x_by_vref(self, x_fract: float):
+        return x_fract * self.max_field
+
+    def _get_y_by_vref(self) -> float:
+        return self._y / self.max_field
+
+    def _set_y_by_vref(self, y_fract: float):
+        return y_fract * self.max_field
+
+    def _get_x_by_fref(self) -> float:
+        return self._x * self.max_field
+
+    def _set_x_by_fref(self, xval: float):
+        return xval / self.max_field
+
+    def _get_y_by_fref(self) -> float:
+        return self._y * self.max_field
+
+    def _set_y_by_fref(self, yval: float):
+        return yval / self.max_field
+
     @property
     def max_field(self) -> float:
+        """ the maximum field value used for the fractional field calculation. """
         if self.fov is not None:
             return self.fov.value
         if self._max_field is not None:
@@ -1056,99 +1155,11 @@ class Field:
     
     @property
     def is_relative(self):
+        """ if True, x and y are normalized by max_field, else they are unscaled. """
         if self.fov is not None:
             return self.fov.is_relative
         else:
             return False
-
-    # field coordinates, per self.fov.is_relative
-    @property
-    def x(self):
-        """ returns the x field value. """
-        return self._x
-
-    @x.setter
-    def x(self, x_val):
-        """ sets the x field value to x_val. """
-        self._x = x_val
-    
-    @property
-    def y(self):
-        """ returns the y field value. """
-        return self._y
-
-    @y.setter
-    def y(self, y_val):
-        """ sets the y field value to y_val. """
-        self._y = y_val
-
-    # value attribute access
-    @property
-    def xv(self):
-        """ returns the unscaled x field value. """
-        return self._get_x_by_fref() if self.is_relative else self._x
-
-    @xv.setter
-    def xv(self, x_val):
-        """ sets the x field value to the unscaled x field value, x_val. """
-        self._x = self._set_x_by_fref(x_val) if self.is_relative else x_val
-    
-    @property
-    def yv(self):
-        """ returns the unscaled y field value. """
-        return self._get_y_by_fref() if self.is_relative else self._y
-
-    @yv.setter
-    def yv(self, y_val):
-        """ sets the y field value to the unscaled y field value, y_val. """
-        self._y = self._set_y_by_fref(y_val) if self.is_relative else y_val
-
-    # fractional attribute access
-    @property
-    def xf(self):
-        """ returns the fractional x field value. """
-        return self._x if self.is_relative else self._get_x_by_vref()
-
-    @xf.setter
-    def xf(self, x_fract):
-        """ sets the x field value to the fractional x field value, x_fract. """
-        self._x = x_fract if self.is_relative else self._set_x_by_vref(x_fract)
-    
-    @property
-    def yf(self):
-        """ returns the fractional y field value. """
-        return self._y if self.is_relative else self._get_y_by_vref()
-
-    @yf.setter
-    def yf(self, y_fract):
-        """ sets the y field value to the fractional y field value, y_fract. """
-        self._y = y_fract if self.is_relative else self._set_y_by_vref(y_fract) 
-
-    # dispatch routines
-    def _get_x_by_vref(self):
-        return self._x / self.max_field
-
-    def _set_x_by_vref(self, x_fract):
-        return x_fract * self.max_field
-
-    def _get_y_by_vref(self):
-        return self._y / self.max_field
-
-    def _set_y_by_vref(self, y_fract):
-        return y_fract * self.max_field
-
-    def _get_x_by_fref(self):
-        return self._x * self.max_field
-
-    def _set_x_by_fref(self, xval):
-        return xval / self.max_field
-
-    def _get_y_by_fref(self):
-        return self._y * self.max_field
-
-    def _set_y_by_fref(self, yval):
-        return yval / self.max_field
-
     # 
     def __json_encode__(self):
         attrs = dict(vars(self))
@@ -1199,7 +1210,7 @@ class Field:
         self.chief_ray = None
         self.ref_sphere = None
 
-    def apply_scale_factor(self, scale_factor):
+    def apply_scale_factor(self, scale_factor: float):
         self.x *= scale_factor
         self.y *= scale_factor
 
