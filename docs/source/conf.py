@@ -27,7 +27,7 @@ sys.path.insert(0, os.path.join(__location__, '../../src'))
 # -- Project information -----------------------------------------------------
 
 project = u'ray-optics'
-copyright = u'2017-2024, Michael J. Hayford'
+copyright = u'2017-2025, Michael J. Hayford'
 author = u'Michael J. Hayford'
 
 # The version info for the project you're documenting, acts as replacement for
