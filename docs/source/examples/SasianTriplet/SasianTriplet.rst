@@ -90,14 +90,14 @@ Define interface and gap data for the sequential model
 
 
 Update the model
-~~~~~~~~~~~~~~~~
+----------------
 
 .. code:: ipython3
 
     opm.update_model()
 
 List the sequential model
-~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------
 
 .. code:: ipython3
 
@@ -117,6 +117,66 @@ List the sequential model
       Img:     0.000000      0.00000                       1      18.217
 
 
+List the optical specifications
+-------------------------------
+
+Use the :func:`~.listobj` function to get formatted output of an object's contents.
+
+.. code:: ipython3
+
+    listobj(osp)
+
+
+.. parsed-literal::
+
+    aperture: object epd; value=   12.5000
+    field: object angle; value=   20.0000
+    y =  0.000 ( 0.00) vlx= 0.000 vux= 0.000 vly= 0.000 vuy= 0.000
+    y = 14.140 ( 0.71) vlx= 0.000 vux= 0.000 vly= 0.000 vuy= 0.000
+    y = 20.000 ( 1.00) vlx= 0.000 vux= 0.000 vly= 0.000 vuy= 0.000
+    is_relative=True, is_wide_angle=False
+    central wavelength=  587.5618 nm
+    wavelength (weight) =  486.1327 (0.500),  587.5618 (1.000)*,  656.2725 (0.500)
+    focus shift=0.0
+    
+
+
+List the first order properties
+-------------------------------
+
+.. code:: ipython3
+
+    pm.first_order_data()
+
+
+.. parsed-literal::
+
+    efl                  50
+    f                    50
+    f'                   50
+    ffl               -37.1
+    pp1                12.9
+    bfl               41.24
+    ppk              -8.763
+    pp sep           -2.047
+    f/#                   4
+    m                -5e-09
+    red              -2e+08
+    obj_dist          1e+10
+    obj_ang              20
+    enp_dist          11.68
+    enp_radius         6.25
+    na obj         6.25e-10
+    n obj                 1
+    img_dist          41.24
+    img_ht             18.2
+    exp_dist         -10.01
+    exp_radius        6.406
+    na img           -0.125
+    n img                 1
+    optical invariant        2.275
+
+
 Draw a lens picture
 -------------------
 
@@ -126,7 +186,7 @@ Draw a lens picture
 
 
 
-.. image:: output_21_0.png
+.. image:: output_25_0.png
 
 
 .. code:: ipython3
@@ -171,7 +231,7 @@ Draw a |ybar| diagram
 
 
 
-.. image:: output_25_0.png
+.. image:: output_29_0.png
 
 
 Plot the transverse ray aberrations
@@ -183,7 +243,7 @@ Plot the transverse ray aberrations
 
 
 
-.. image:: output_27_0.png
+.. image:: output_31_0.png
 
 
 Plot the wavefront aberration
@@ -195,43 +255,7 @@ Plot the wavefront aberration
 
 
 
-.. image:: output_29_0.png
-
-
-List the optical specifications
--------------------------------
-
-.. code:: ipython3
-
-    pm.first_order_data()
-
-
-.. parsed-literal::
-
-    efl                  50
-    f                    50
-    f'                   50
-    ffl               -37.1
-    pp1                12.9
-    bfl               41.24
-    ppk              -8.763
-    pp sep           -2.047
-    f/#                   4
-    m                -5e-09
-    red              -2e+08
-    obj_dist          1e+10
-    obj_ang              20
-    enp_dist          11.68
-    enp_radius         6.25
-    na obj         6.25e-10
-    n obj                 1
-    img_dist          41.24
-    img_ht             18.2
-    exp_dist         -10.01
-    exp_radius        6.406
-    na img           -0.124
-    n img                 1
-    optical invariant        2.275
+.. image:: output_33_0.png
 
 
 List the paraxial model
@@ -412,7 +436,7 @@ Bar chart for surface by surface third order aberrations
 
 
 
-.. image:: output_38_0.png
+.. image:: output_40_0.png
 
 
 convert aberration sums to transverse measure
