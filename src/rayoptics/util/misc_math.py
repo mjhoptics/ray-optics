@@ -135,7 +135,7 @@ def euler2opt(e):
 
 def euler2rot3d(euler):
     """ convert euler angle vector to a rotation matrix. """
-    rot_mat = t3d.euler.euler2mat(*np.deg2rad(euler2opt(euler)))
+    rot_mat = t3d.euler.euler2mat(*np.deg2rad(euler2opt(euler)), axes='rxyz')
     return rot_mat
 
 
