@@ -103,6 +103,31 @@ def compute_local_transforms(seq_model, seq, step):
     return tfrms
 
 
+def list_tfrms(tfrms, sel: str='r+t', *args):
+    """ Formatted output of transform lists.
+    
+    Args:
+        tfrms: list of transforms to be output
+        sel: output selector, rotations (r), translations (t) or both (r+t)
+
+    Returns:
+        tfrms
+    """
+    for i, tfrm in enumerate(tfrms):
+        r, t = tfrm
+        if sel=='r':
+            print(f"{i:2d}:  {r[0][0]:10.6f}  {r[0][1]:10.6f}  {r[0][2]:10.6f}")
+            print(f"     {r[1][0]:10.6f}  {r[1][1]:10.6f}  {r[1][2]:10.6f}")
+            print(f"     {r[2][0]:10.6f}  {r[2][1]:10.6f}  {r[2][2]:10.6f}\n")
+        elif sel=='t':
+            print(f"{i:2d}:  {t[0]:12.5f}  {t[1]:12.5f}  {t[2]:12.5f}")
+        else:
+            print(f"{i:2d}:  {r[0][0]:10.6f}  {r[0][1]:10.6f}  {r[0][2]:10.6f}  {t[0]:12.5f}")
+            print(f"     {r[1][0]:10.6f}  {r[1][1]:10.6f}  {r[1][2]:10.6f}  {t[1]:12.5f}")
+            print(f"     {r[2][0]:10.6f}  {r[2][1]:10.6f}  {r[2][2]:10.6f}  {t[2]:12.5f}\n")
+    return tfrms
+
+
 def forward_transform(s1, zdist, s2):
     """ generate transform rotation and translation from
         s1 coords to s2 coords """
