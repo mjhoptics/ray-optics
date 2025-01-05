@@ -2357,18 +2357,22 @@ class Space(Part):
 
         # Modify the tfrm to account for any decenters following
         #  the reference ifc.
-        tfrm = self.tfrm
         decenter = opt_model.seq_model.ifcs[self.idx].decenter
-        if decenter is not None:
-            r_global, t_global = tfrm
-            r_after_ifc, t_after_ifc = decenter.tform_after_surf()
-            t = r_global.dot(t_after_ifc) + t_global
-            r = r_global if r_after_ifc is None else r_global.dot(r_after_ifc)
-            tfrm = r, t
-
+        tfrm = self.apply_decenter_to_tfrm(decenter)
         self.handles['ct'] = GraphicsHandle(poly_ct, tfrm, 'polyline')
 
         return self.handles
+
+    def apply_decenter_to_tfrm(self, decenter):
+        """ Modify the tfrm using any decenters following the reference ifc."""
+        tfrm = self.tfrm
+        if decenter is not None:
+            r_global, t_global = tfrm
+            r_after_ifc, t_after_ifc = decenter.tform_after_surf()
+            r = r_global if r_after_ifc is None else r_global.dot(r_after_ifc)
+            t = r.dot(t_after_ifc) + t_global
+            tfrm = r, t
+        return tfrm
 
     def handle_actions(self):
         self.actions = {}
@@ -2416,15 +2420,8 @@ class AirGap(Space):
 
         # Modify the tfrm to account for any decenters following
         #  the reference ifc.
-        tfrm = self.tfrm
         decenter = opt_model.seq_model.ifcs[self.idx].decenter
-        if decenter is not None:
-            r_global, t_global = tfrm
-            r_after_ifc, t_after_ifc = decenter.tform_after_surf()
-            t = r_global.dot(t_after_ifc) + t_global
-            r = r_global if r_after_ifc is None else r_global.dot(r_after_ifc)
-            tfrm = r, t
-
+        tfrm = self.apply_decenter_to_tfrm(decenter)
         self.handles['ct'] = GraphicsHandle(poly_ct, tfrm, 'polyline')
 
         return self.handles
