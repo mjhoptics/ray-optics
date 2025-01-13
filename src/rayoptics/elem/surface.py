@@ -170,13 +170,13 @@ class Surface(interface.Interface):
     def flip(self):
         self.profile.flip()
 
-    def set_max_aperture(self, max_ap):
+    def set_max_aperture(self, max_ap: float):
         super().set_max_aperture(max_ap)
         for ap in self.clear_apertures:
             # print(f"max ap: {max_ap}")
             ap.set_dimension(max_ap, max_ap)
 
-    def surface_od(self):
+    def surface_od(self) -> float:
         od = 0
         if len(self.edge_apertures) > 0:
             for e in self.edge_apertures:

@@ -109,7 +109,7 @@ class Interface:
     def set_optical_power(self, pwr, n_before, n_after):
         pass
 
-    def surface_od(self):
+    def surface_od(self) -> float:
         pass
 
     def edge_pt_target(self, rel_dir):
@@ -143,7 +143,7 @@ class Interface:
         """
         return sqrt(x*x + y*y) <= self.max_aperture + fuzz
 
-    def set_max_aperture(self, max_ap):
+    def set_max_aperture(self, max_ap: float):
         """ max_ap is the max aperture radius """
         self.max_aperture = max_ap
 
