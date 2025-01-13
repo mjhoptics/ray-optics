@@ -809,9 +809,9 @@ class EvenPolynomial(SurfaceProfile):
 
     def apply_scale_factor(self, scale_factor):
         self.cv /= scale_factor
-        sf_sqr = scale_factor**2
+        sf = 1/scale_factor
         for i, c in enumerate(self.coefs):
-            self.coefs[i] = sf_sqr**(i+1) * c
+            self.coefs[i] = sf**(2*i+1) * c
 
     def flip(self):
         self.cv = -self.cv
@@ -1030,8 +1030,9 @@ class RadialPolynomial(SurfaceProfile):
 
     def apply_scale_factor(self, scale_factor):
         self.cv /= scale_factor
+        sf = 1/scale_factor
         for i, c in enumerate(self.coefs):
-            self.coefs[i] = scale_factor**(i+1) * c
+            self.coefs[i] = sf**i * c
 
     def flip(self):
         self.cv = -self.cv
@@ -1275,9 +1276,9 @@ class YToroid(SurfaceProfile):
     def apply_scale_factor(self, scale_factor):
         self.cv /= scale_factor
         self.cR /= scale_factor
-        sf_sqr = scale_factor**2
+        sf = 1/scale_factor
         for i, c in enumerate(self.coefs):
-            self.coefs[i] = sf_sqr**(i+1) * c
+            self.coefs[i] = sf**(2*i+1) * c
 
     def flip(self):
         self.cv = -self.cv
@@ -1325,11 +1326,11 @@ class YToroid(SurfaceProfile):
     def df(self, p):
         # sphere + conic contribution
         y2 = p[1]*p[1]
-        e = (self.cv*p[1])/sqrt(1. - (self.cc+1.0)*self.cv*self.cv*y2)
+        e = self.cv/sqrt(1. - (self.cc+1.0)*self.cv*self.cv*y2)
 
         # polynomial asphere contribution
         e_asp = 0.0
-        y_pow = 1.0
+        y_pow = 1
         c_coef = 2.0
         for i in range(self.max_nonzero_coef):
             e_asp += c_coef*self.coefs[i]*y_pow
@@ -1338,7 +1339,7 @@ class YToroid(SurfaceProfile):
 
         dfdY = e + e_asp
         Fx = -self.cR*p[0]
-        Fy = (self.cR*self.fY(p[1]) - 1)*(dfdY)
+        Fy = (self.cR*self.fY(p[1]) - 1)*(dfdY)*p[1]
         Fz = 1 - self.cR*p[2]
 
         return np.array([Fx, Fy, Fz])
