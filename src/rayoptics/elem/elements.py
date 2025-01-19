@@ -945,9 +945,9 @@ class Element(Part):
         thi = self.gap.thi
         if self.is_flipped:
             r_new = np.matmul(rot_around_y, r).T
-            t_new = t - r_new.dot(np.array([0, 0, thi]))
+            t_new = t - np.matmul(r_new, np.array([0, 0, thi]))
         else:
-            t_new = t + r.dot(np.array([0, 0, thi]))
+            t_new = t + np.matmul(r, np.array([0, 0, thi]))
             r_new = np.matmul(r, rot_around_y)
         self.tfrm = r_new, t_new
 
@@ -2668,14 +2668,14 @@ class ElementModel:
 
     def sync_to_seq(self, seq_model):
         """ Update element positions and ref_idx using the sequential model. """
-        tfrms = seq_model.compute_global_coords(1)
+        gbl_tfrms = seq_model.compute_global_coords(1)
 
         # update the elements
         for e in self.elements:
             e.update_size()
             e.sync_to_seq(seq_model)
-            r, t = tfrms[e.reference_idx()]
-            r_new = np.matmul(rot_around_y, r).T if e.is_flipped else r
+            r, t = gbl_tfrms[e.reference_idx()]
+            r_new = np.matmul(r, rot_around_y) if e.is_flipped else r
             e.tfrm = r_new, t
 
     def sequence_elements(self):
