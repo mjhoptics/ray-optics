@@ -366,13 +366,21 @@ class OpticalModel:
         """
         return self.system_spec.nm_to_sys_units(nm)
 
-    def add_part(self, factory_fct, *args, **kwargs):
-        """Use a factory_fct to create a new part and insert into optical model. """
+    def add_part(self, factory_fct, *args, do_update=False, **kwargs):
+        """Use a factory_fct to create a new part and insert into optical model. 
+        
+        Args:
+            factory_fct: factory producing a Part subclass
+            *args: optional arguments
+            do_update: if True, models will be updated after part is added
+            **kwargs: optical keyword arguments
+        """
         # check for pending seq_model updates
         sequence_to_elements(self['sm'], self['em'], self['pt'])
 
         descriptor = factory_fct(*args, **kwargs)
         kwargs['insert'] = True
+        kwargs['do_update'] = do_update
         self.insert_ifc_gp_ele(*descriptor, **kwargs)
 
     def add_lens(self, **kwargs):
@@ -516,12 +524,12 @@ class OpticalModel:
         Args:
             descriptor: a tuple of additions for the sequential, element and
                         part tree models
-            kwargs: keyword arguments including
-                idx: insertion point in the sequential model
-                insert: if True, insert the chunk, otherwise replace it
-                t: the thickness following a chunk when inserting
-                do_update: update seq_model and optical properties if True (default)
-                src_model: the model originating the changes
+            idx: insertion point in the sequential model
+            insert: if True, insert the chunk, otherwise replace it
+            t: the thickness following a chunk when inserting
+            do_update: update seq_model and optical properties if True (default)
+            src_model: the model originating the changes
+            **kwargs: keyword arguments including
         """
         sm = self['seq_model']
         osp = self['optical_spec']
