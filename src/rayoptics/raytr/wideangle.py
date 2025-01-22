@@ -115,7 +115,6 @@ def find_z_enp(opt_model, stop_idx, z_enp_0, fld, wvl, **kwargs):
     obj_dist = fod.obj_dist
 
     pt0, dir0 = osp.obj_coords(fld)
-    der = 0.005
     y_target = 0.  # chief ray -> center of stop surface
     results = None
     with warnings.catch_warnings():
@@ -125,8 +124,7 @@ def find_z_enp(opt_model, stop_idx, z_enp_0, fld, wvl, **kwargs):
             try:
                 z_enp, results = newton(eval_z_enp, z_enp,
                                         args=(seq_model, stop_idx, dir0,
-                                                obj_dist, wvl, y_target),
-                                        x1=(1+der)*z_enp,
+                                              obj_dist, wvl, y_target),
                                         disp=False, full_output=True)
             except RuntimeError as rte:
                 # if we come here, start_y is a RuntimeResults object

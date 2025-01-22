@@ -747,6 +747,14 @@ class FieldSpec:
         obj_img_key, value_key = k
         self._key = 'field', obj_img_key, value_key
 
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, v: float):
+        self._value = v
+
     def set_key_value(self, key, value):
         """ Set field keys and value for the fov specification. """
         self.key = key
