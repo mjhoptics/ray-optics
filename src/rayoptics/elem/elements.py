@@ -2496,7 +2496,7 @@ class Assembly(Part):
             part_tree = self.parent.opt_model['part_tree']
         default_tag = '#group#assembly'
         tag = default_tag + kwargs.get('tag', '')
-        asm = Node('ASM', id=self, tag=tag)
+        asm = Node(self.label, id=self, tag=tag)
         child_nodes = [part_tree.node(p) for p in self.parts]
         asm.children = child_nodes
         return asm

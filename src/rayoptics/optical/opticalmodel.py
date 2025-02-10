@@ -431,6 +431,21 @@ class OpticalModel:
         root_children.insert(start_idx, asm_node)
         pt.root_node.children = root_children
 
+    def remove_part(self, part: ele.Part, merge=True, do_update=False):
+        """ Remove `part` and all referenced objects. 
+        
+        Args:
+            part: part and sub parts to be removed
+            merge: if True, the 2 enclosing airgaps will be merged
+            do_update: if True, models will be updated after part is added
+            **kwargs: optional keyword arguments
+        """
+        pt = self['part_tree']
+        part_node = pt.node(part)
+        pt.remove_node(part_node, merge)
+        if do_update:
+            self.update_model()
+
     def rebuild_from_seq(self):
         """ Rebuild ele_model and part_tree from seq_model. 
         
@@ -623,14 +638,6 @@ class OpticalModel:
         pt.update_model()
         # re-sort the ele_model by position on Z axis
         em.sequence_elements()
-
-    def remove_node(self, e_node):
-        # remove interfaces from seq_model
-        self.seq_model.remove_node(e_node)
-        # remove elements from ele_model
-        self.ele_model.remove_node(e_node)
-        # unhook node
-        e_node.parent = None
 
     def replace_node_with_descriptor(self, e_node, *descriptor, **inputs):
         sm = self['seq_model']

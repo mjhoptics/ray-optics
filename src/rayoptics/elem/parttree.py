@@ -154,6 +154,50 @@ class PartTree():
         e_node.parent = None
         return e_node
 
+    def remove_node(self, e_node, merge=True, **kwargs):
+        """ Remove e_node and all related seq_model dependencies.
+         
+        If merge is True, delete the AirGap following e_node and add 
+        it's thickness to the AirGap preceding e_node. 
+        """
+        sm = self.opt_model['seq_model']
+        nodes = self.nodes_with_tag(tag='#element#assembly#airgap#dummyifc', 
+                                    root=e_node)
+        ifcs = [n.id for n in self.nodes_with_tag(tag='#ifc', root=e_node)]
+        if len(ifcs) > 0:
+            idx_1, idx_k = sm.ifcs.index(ifcs[0]), sm.ifcs.index(ifcs[-1])
+        else:
+            # don't allow deletion of solo airgaps
+            return
+
+        if merge:
+            idx_0 = idx_1-1 if idx_1 > 0 else 0 
+            prev_ag, _ = self.parent_object(
+                (sm.gaps[idx_0], sm.z_dir[idx_0]), 
+                tag='#space')
+            after_ag, after_agn = self.parent_object(
+                (sm.gaps[idx_k], sm.z_dir[idx_k]),
+                tag='#space')
+            prev_ag.gap.thi += after_ag.gap.thi
+        else:
+            after_agn = None
+
+        # remove interfaces from seq_model
+        sm.remove_node(idx_1, idx_k, merge, **kwargs)
+
+        # remove elements associated with the nodes
+        eles = [n.id for n in nodes]
+        for e in eles:
+            self.opt_model['ele_model'].remove_element(e)
+
+        # detach all of the descendants of e_node and after_agn
+        for node in e_node.descendants:
+            node.parent = None
+        if after_agn:
+            for agn in after_agn.descendants:
+                agn.parent = None
+        e_node.parent = None
+
     def node(self, obj):
         """ Return the node paired with `obj`. """
         return find_by_attr(self.root_node, name='id', value=obj)
