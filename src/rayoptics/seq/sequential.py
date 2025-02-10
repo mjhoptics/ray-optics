@@ -15,6 +15,7 @@ import rayoptics.optical.model_constants as mc
 
 from rayoptics.elem import surface
 from . import gap
+from rayoptics.seq.interface import Interface
 from . import medium
 from rayoptics.raytr import raytrace as rt
 from rayoptics.raytr import trace as trace
@@ -88,6 +89,8 @@ class SequentialModel:
         self.gbl_tfrms = []
         self.lcl_tfrms = []
 
+        self.seq_def = SequentialStr(self)
+
         # data for a wavelength vs index vs gap data arrays
         self.wvlns = []  # sampling wavelengths in nm
         self.rndx = []  # refractive index vs wv and gap
@@ -125,6 +128,8 @@ class SequentialModel:
         self.ifcs.append(surface.Surface('Img', interact_mode='dummy'))
         self.gbl_tfrms.append(tfrm)
         self.lcl_tfrms.append(tfrm)
+
+        self._seq_str.seq_str = "dad"
 
     def reset(self):
         self.__init__(self.opt_model)
@@ -205,18 +210,7 @@ class SequentialModel:
 
     def seq_str(self):
         """ return a character encoding of `ifcs` and `gaps` """
-        seq_str = ''
-        for sg in itertools.zip_longest(self.ifcs, self.gaps):
-            s, g = sg
-
-            s_str = s.ifc_token()
-            seq_str += s_str
-
-            if g is not None:
-                g_str = 'a' if g.medium.name() == 'air' else 't'
-                seq_str += g_str
-
-        return seq_str
+        return self.seq_def.seq_str
 
     def calc_ref_indices_for_spectrum(self, wvls):
         """ returns a list with refractive indices for all **wvls**
@@ -270,13 +264,6 @@ class SequentialModel:
         self.stop_surface = self.cur_surface
         return self.stop_surface
 
-    def __iadd__(self, node):
-        if isinstance(node, gap.Gap):
-            self.gaps.append(node)
-        else:
-            self.ifcs.insert(len(self.ifcs)-1, node)
-        return self
-
     def insert(self, ifc, gap, z_dir=1, idx=None):
         """ insert ifc and gap after cur_surface in seq_model lists """
 
@@ -293,8 +280,10 @@ class SequentialModel:
             self.cur_surface = idx
 
         self.ifcs.insert(idx, ifc)
+        self.seq_def.insert_token(idx, ifc)
         if gap is not None:
             self.gaps.insert(idx, gap)
+            self.seq_def.insert_token(idx, gap)
             z_dir = 1 if z_dir is None else z_dir
             new_z_dir = z_dir*self.z_dir[idx-1] if idx > 1 else z_dir
             self.z_dir.insert(idx, new_z_dir)
@@ -344,6 +333,8 @@ class SequentialModel:
         else:
             if idx_1 == 0 or idx_k == -1 or idx_k == num_ifcs:
                 raise IndexError
+
+        self.seq_def.remove_tokens(idx_1, idx_k)
 
         # loop backward over the range to delete the intended objects
         for idx in range(idx_k, idx_1-1, -1):
@@ -406,37 +397,36 @@ class SequentialModel:
         # handle inserted reflecting interfaces
         self.scan_for_reflections(start=idx_1)
 
-    def remove_node(self, e_node):
-        """ Remove the ifcs/gaps connected to **e_node**. 
-        
-        Return the first and last ifc indices. 
-        """
-        pt = self.opt_model['part_tree']
+    def remove_node(self, idx_1, idx_k, merge: bool = True, **kwargs):
+        """ Remove a range of ifcs/gaps by indices. """
         idx_stop = self.stop_surface
-        ifcs = [n.id for n in pt.nodes_with_tag(tag='#ifc', root=e_node)]
-        if len(ifcs) > 0:
-            idx_1, idx_k = self.ifcs.index(ifcs[0]), self.ifcs.index(ifcs[-1])
-            for ifc in ifcs:
-                idx = self.ifcs.index(ifc)
-                del self.ifcs[idx]
-                del self.lcl_tfrms[idx]
-                del self.gbl_tfrms[idx]
-        else:
-            idx_1 = idx_k =  None
+        if idx_stop > idx_1 and idx_stop <= idx_k:
+            idx_stop = idx_1
+        elif idx_stop > idx_k:
+            idx_stop -= idx_k - idx_1 + 1
+        
+        # make sure the stop and image surfs are separate;
+        #  move stop to previous surf if in conflict
+        img_adj = -1 if idx_k+2 == len(self.ifcs) else 0
+        idx_stop += img_adj
+        self.stop_surface = idx_stop
 
-        gaps = [n.id for n in pt.nodes_with_tag(
-            tag='#gap', not_tag='#airgap', root=e_node)]
-        if idx_1 is None:
-            idx_1, idx_k = self.gaps.index(gaps[0]), self.gaps.index(gaps[-1])
-        for gz in gaps:
-            g, z_dir = gz
-            idx = self.gaps.index(g)
+        idx_0 = idx_1-1 if idx_1 > 0 else 0 
+        if merge:
+            self.gaps[idx_0].thi += self.gaps[idx_k].thi
+    
+        # delete in reverse 
+        for idx in range(idx_k, idx_0, -1):
+            del self.ifcs[idx]
+            del self.lcl_tfrms[idx]
+            del self.gbl_tfrms[idx]
             del self.gaps[idx]
             del self.z_dir[idx]
             del self.rndx[idx]
 
-        return idx_1, idx_k, idx_stop
-
+        incr = 1 if merge else 0
+        self.seq_def.remove_tokens(idx_1, idx_k, inc_k=incr)
+    
     def scan_for_reflections(self, start=0):
         """ Rectify any inconsistent z_dir setting due to insertions. """
         b4_idx = start if start == 0 else start-1
@@ -531,6 +521,9 @@ class SequentialModel:
         self.ifcs[0].interact_mode = 'dummy'
         self.ifcs[-1].interact_mode = 'dummy'
                 
+        if not hasattr(self, 'seq_def'):
+            self.seq_def = SequentialStr(self)
+
         if not hasattr(self, 'do_apertures'):
             self.do_apertures = True
 
@@ -1210,3 +1203,45 @@ def create_surface_and_gap(surf_data, radius_mode=False, prev_medium=None,
     tfrm = np.identity(3), np.array([0., 0., thi])
 
     return s, g, z_dir, rndx, tfrm
+
+
+class SequentialStr:
+    """Manage the string representation of the sequential path. """
+    def __init__(self, seq_model: SequentialModel):
+        self.sm = seq_model
+        self.seq_str = self.gen_seq_str()
+    
+    @property
+    def seq_str(self) -> str:
+        return ''.join(self._seq_str_list)
+
+    @seq_str.setter
+    def seq_str(self, s: str):
+        self._seq_str_list = list(s)
+
+    def insert_token(self, idx: int, token: Interface|gap.Gap):
+        if isinstance(token, Interface):
+            self._seq_str_list.insert(2*idx, token.ifc_token())
+        elif isinstance(token, gap.Gap):
+            self._seq_str_list.insert(2*idx+1, token.gap_token())
+
+    def remove_tokens(self, idx_1: int, idx_k: int, 
+                      inc_1: int = 0, inc_k: int = 0):
+        """ Remove tokens from ifcs[idx_1] to ifcs[idx_k] """
+        self._seq_str_list[2*idx_1+inc_1:2*idx_k+1+inc_k] = []
+
+    def gen_seq_str(self) -> str:
+        """return a character encoding of `ifcs` and `gaps` """
+
+        seq_str = ''
+        for sg in itertools.zip_longest(self.sm.ifcs, self.sm.gaps):
+            s, g = sg
+
+            s_str = s.ifc_token()
+            seq_str += s_str
+
+            if g is not None:
+                g_str = g.gap_token()
+                seq_str += g_str
+
+        return seq_str

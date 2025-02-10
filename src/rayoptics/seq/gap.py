@@ -42,6 +42,10 @@ class Gap:
     def __repr__(self):
         return "Gap(t=%r, medium=%r)" % (self.thi, self.medium)
 
+    def gap_token(self):
+        g_str = 'a' if self.medium.name() == 'air' else 't'
+        return g_str
+
     def listobj_str(self):
         o_str = f"t={self.thi}"
         if self.medium is not None:
