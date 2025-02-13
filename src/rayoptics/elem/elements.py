@@ -1679,7 +1679,7 @@ class CementedElement(Part):
             return zone
 
         p = self.profiles[idx]
-        R = 0 if p.cv == 0 else abs(1/p.cv)
+        R = 1.0e12 if p.cv == 0 else abs(1/p.cv)
         ifc = self.ifcs[idx]
         ca = ifc.surface_od()
 
