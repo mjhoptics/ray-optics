@@ -129,7 +129,7 @@ class SequentialModel:
         self.gbl_tfrms.append(tfrm)
         self.lcl_tfrms.append(tfrm)
 
-        self._seq_str.seq_str = "dad"
+        self.seq_def.seq_str = "dad"
 
     def reset(self):
         self.__init__(self.opt_model)
@@ -565,6 +565,8 @@ class SequentialModel:
 
         self.gbl_tfrms = self.compute_global_coords()
         self.lcl_tfrms = self.compute_local_transforms()
+
+        self.seq_def.update()
 
     def update_optical_properties(self, **kwargs):
         if self.do_apertures:
@@ -1218,6 +1220,10 @@ class SequentialStr:
     @seq_str.setter
     def seq_str(self, s: str):
         self._seq_str_list = list(s)
+
+    def update(self):
+        """ Regenerate the seq_str from the current seq_model. """
+        self.seq_str = self.gen_seq_str()
 
     def insert_token(self, idx: int, token: Interface|gap.Gap):
         if isinstance(token, Interface):
