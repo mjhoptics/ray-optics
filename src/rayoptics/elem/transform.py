@@ -113,18 +113,26 @@ def list_tfrms(tfrms, sel: str='r+t', *args):
     Returns:
         tfrms
     """
+    has_labels = True if len(tfrms[0]) == 3 else False
     for i, tfrm in enumerate(tfrms):
-        r, t = tfrm
-        if sel=='r':
-            print(f"{i:2d}:  {r[0][0]:10.6f}  {r[0][1]:10.6f}  {r[0][2]:10.6f}")
-            print(f"     {r[1][0]:10.6f}  {r[1][1]:10.6f}  {r[1][2]:10.6f}")
-            print(f"     {r[2][0]:10.6f}  {r[2][1]:10.6f}  {r[2][2]:10.6f}\n")
-        elif sel=='t':
-            print(f"{i:2d}:  {t[0]:12.5f}  {t[1]:12.5f}  {t[2]:12.5f}")
+        if has_labels:
+            r, t, label = tfrm
+            lbl = f"{label+':':7s}"
+            spcr = '       '
         else:
-            print(f"{i:2d}:  {r[0][0]:10.6f}  {r[0][1]:10.6f}  {r[0][2]:10.6f}  {t[0]:12.5f}")
-            print(f"     {r[1][0]:10.6f}  {r[1][1]:10.6f}  {r[1][2]:10.6f}  {t[1]:12.5f}")
-            print(f"     {r[2][0]:10.6f}  {r[2][1]:10.6f}  {r[2][2]:10.6f}  {t[2]:12.5f}\n")
+            r, t = tfrm
+            lbl = f"{i:2d}:"
+            spcr = '  '
+        if sel=='r':
+            print(f"{lbl} {r[0][0]:10.6f}  {r[0][1]:10.6f}  {r[0][2]:10.6f}")
+            print(f"{spcr} {r[1][0]:10.6f}  {r[1][1]:10.6f}  {r[1][2]:10.6f}")
+            print(f"{spcr} {r[2][0]:10.6f}  {r[2][1]:10.6f}  {r[2][2]:10.6f}\n")
+        elif sel=='t':
+            print(f"{lbl}  {t[0]:12.5f}  {t[1]:12.5f}  {t[2]:12.5f}")
+        else:
+            print(f"{lbl} {r[0][0]:10.6f}  {r[0][1]:10.6f}  {r[0][2]:10.6f}  {t[0]:12.5f}")
+            print(f"{spcr} {r[1][0]:10.6f}  {r[1][1]:10.6f}  {r[1][2]:10.6f}  {t[1]:12.5f}")
+            print(f"{spcr} {r[2][0]:10.6f}  {r[2][1]:10.6f}  {r[2][2]:10.6f}  {t[2]:12.5f}\n")
     return tfrms
 
 
