@@ -404,8 +404,9 @@ def create_assembly_from_seq(opt_model, idx1, idx2, **kwargs):
 def render_lens_shape(s1, profile1, s2, profile2, thi, extent, sd, 
                       is_flipped, hole_sd=None, apply_tfrm=True,
                       flat1_pkg=None, flat2_pkg=None):
-    is_concave_s1 = s1.profile_cv < 0.0
-    is_concave_s2 = s2.profile_cv > 0.0
+
+    is_concave_s1 = is_concave(s1.profile_cv, 'entering', is_flipped)
+    is_concave_s2 = is_concave(s2.profile_cv, 'exiting', is_flipped)
 
     profile_polys = []
 
@@ -472,7 +473,8 @@ def render_lens_shape(s1, profile1, s2, profile2, thi, extent, sd,
 
 def render_surf_shape(srf, profile, extent, sd, is_flipped, 
                       hole_sd=None, flat_pkg=None):
-    is_concave_srf = srf.profile_cv < 0.0
+    flip = -1 if is_flipped else 1
+    is_concave_srf = is_concave(srf.profile_cv, 'entering', is_flipped)
 
     flat = None
     if flat_pkg is not None:
@@ -574,6 +576,16 @@ def full_profile(profile, is_flipped, edge_extent,
             prf = flip_profile(prf_lwr), flip_profile(prf_upr)
 
     return prf
+
+
+def is_concave(profile_cv: float, side: str, is_flipped: bool) -> bool:
+    flip = -1 if is_flipped else 1
+    if side == 'entering':
+        return flip*profile_cv < 0.0
+    elif side == 'exiting':
+        return flip*profile_cv > 0.0
+    else:
+        raise ValueError
 
 
 def use_flat(do_flat, is_concave):
@@ -1200,7 +1212,8 @@ class SurfaceInterface(Part):
             return self.edge_extent
 
     def render_shape(self):
-        is_concave_s = self.s.profile_cv < 0.0
+        is_concave_s = is_concave(self.s.profile_cv, 
+                                  'entering', self.is_flipped)
         
         self.profile_polys = []
 
@@ -1695,14 +1708,14 @@ class CementedElement(Part):
             thi_aftr += self.gaps[i].thi
 
         flat_i = None
-        if p.cv < 0.0:
+        if is_concave(p.cv, 'entering', self.is_flipped):
             # if there's a first flat, check for intersection
             if self.flats[0] is not None:
                 flat_i = sphere_sag_to_zone(sag0 + thi_b4, p.cv)
             # check if radius is smaller than semi-diameter, add flat if needed
             elif R < sd:
                 flat_i = ca if ca < R else R
-        elif p.cv > 0.0:
+        elif is_concave(p.cv, 'exiting', self.is_flipped):
             # if there's a last flat, check for intersection
             if self.flats[k] is not None:
                 flat_i = sphere_sag_to_zone(sagk + thi_aftr, p.cv)
@@ -1745,7 +1758,8 @@ class CementedElement(Part):
         
         # examine all profiles for possible (or required) flats.
         # only consider first profile for a flat if it is concave
-        is_concave_0 = self.profiles[0].cv < 0.0
+        is_concave_0 = is_concave(self.profiles[0].cv, 
+                                  'entering', self.is_flipped)
         if use_flat(self.do_flat_0, is_concave_0):
             self.flats[0] = compute_flat(self.ifcs[0], self.sd)
         else:
@@ -1758,7 +1772,8 @@ class CementedElement(Part):
         # only consider last profile for a flat if it is concave
         # note that "last profile" for a mangin mirror is 
         # the middle profile in the list.
-        is_concave_k = self.profiles[k].cv > 0.0
+        is_concave_k = is_concave(self.profiles[k].cv, 
+                                  'exiting', self.is_flipped)
         if use_flat(self.do_flat_k, is_concave_k):
             self.flats[k] = compute_flat(self.ifcs[k], self.sd)
         else:
@@ -1818,14 +1833,16 @@ class CementedElement(Part):
 
         # examine all profiles for possible (or required) flats.
         # only consider first profile for a flat if it is concave
-        is_concave_0 = self.profiles[0].cv < 0.0
+        is_concave_0 = is_concave(self.profiles[0].cv, 
+                                  'entering', self.is_flipped)
         if use_flat(self.do_flat_0, is_concave_0):
             self.flats[0] = compute_flat(self.ifcs[0], self.sd)
         else:
             self.flats[0] = None
 
         # only consider last profile for a flat if it is concave
-        is_concave_k = self.profiles[-1].cv > 0.0
+        is_concave_k = is_concave(self.profiles[-1].cv, 
+                                  'exiting', self.is_flipped)
         if use_flat(self.do_flat_k, is_concave_k):
             self.flats[-1] = compute_flat(self.ifcs[-1], self.sd)
         else:
