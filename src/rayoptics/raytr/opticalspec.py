@@ -186,7 +186,7 @@ class OpticalSpecs:
                 n = pm.sys[-2][mc.indx]
                 slope = pm.ax[-2][mc.slp]
                 pupil_value = pupil.get_aperture_from_slope(slope, n=n)
-            pupil_key = pupil.key[2]
+            pupil_key = pupil.key[1]
         else:
             if is_kinda_big(y1_star):  # telecentric, use angular aperture spec
                 pupil_oi_key = 'object'
