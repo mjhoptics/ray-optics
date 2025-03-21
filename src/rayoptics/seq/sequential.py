@@ -105,6 +105,7 @@ class SequentialModel:
         del attrs['lcl_tfrms']
         del attrs['wvlns']
         del attrs['rndx']
+        del attrs['seq_def']
         return attrs
 
     def _initialize_arrays(self):
