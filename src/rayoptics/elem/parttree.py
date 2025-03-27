@@ -318,46 +318,50 @@ class PartTree():
             print(f"{e.label}: {ele_type[0]} {idx_list} {gap_list}")
 
     def sync_part_tree_on_update(self, ele_model, seq_model, root_node):
-        """Update node names to track element labels. """
+        """Update node names to track element labels. 
+        
+        The node labels for the children of parts are handled here.
+        At the leaf level, the node names encode the interface or gap index.
+        At the element level, the indexing is modified for element flip.
+        """
         ele_dict = {e.label: e for e in ele_model.elements}
 
         for node in PreOrderIter(root_node):
-            name = node.name
-            if name[0] == 'i':
+            name, tag = node.name, node.tag
+            # handle leaf node labeling
+            if tag == '#ifc':
                 idx = seq_model.ifcs.index(node.id)
                 node.name = f'i{idx}'
-            elif name[0] == 'g':
+            elif tag == '#gap':
                 gap, z_dir = node.id
                 idx = seq_model.gaps.index(gap)
                 z_dir = seq_model.z_dir[idx]
                 node.id = (gap, z_dir)
                 node.name = f'g{idx}'
-            elif name[0] == 'p':
+            # handle element children labeling
+            elif tag == '#profile':
                 p_name = node.parent.name
                 e = ele_dict[p_name]
                 idx = int(name[1:])-1 if len(name) > 1 else 0
                 num_idxs = len(e.idx_list())
                 idx = (num_idxs-idx-1) if e.is_flipped else idx
                 node.id = e.profile_list()[idx]
-            elif name[:2] == 'tl':
-                p_name = node.parent.name
-                e = ele_dict[p_name]
-                node.id = e.intrfc
-                idx = seq_model.ifcs.index(node.id)
-                node.name = f'tl{idx}'
-            elif name[0] == 't':
+            elif tag == '#thic':
                 p_name = node.parent.name
                 e = ele_dict[p_name]
                 idx = int(name[1:])-1 if len(name) > 1 else 0
                 node.id = e.gap_list()[idx]
-            elif name == 'root':
+            # skip the root
+            elif '#root' in tag:
                 pass
+            # update node names to track element labels (finally!)
             else:
                 if hasattr(node, 'id'):
                     if hasattr(node.id, 'label'):
                         node.name = node.id.label
                 else:
-                    print(f"sync_part_tree_on_update: No id attribute: {node.name}, {node.tag}")
+                    print(f"sync_part_tree_on_update: No id attribute: "
+                          f"{node.name=}, {node.tag=}")
 
     def handle_object_image_tags(self, seq_model):
         """ Ensure nodes for object and image ifcs and gaps are tagged. """
@@ -563,13 +567,11 @@ def part_list_from_seq(opt_model, idx1, idx2):
     part_tree = opt_model['part_tree']
     node_set = set()
     for ifc, gap, z_dir in seq:
-        ifc_node = part_tree.node(ifc)
-        parent_asm = ifc_node.ancestors[1]
-        node_set.add(parent_asm)
+        parent_part = part_tree.parent_node(ifc)
+        node_set.add(parent_part)
         if gap is not None:
-            gap_node = part_tree.node((gap, z_dir))
-            parent_asm = gap_node.ancestors[1]
-            node_set.add(parent_asm)
+            parent_part = part_tree.parent_node((gap, z_dir))
+            node_set.add(parent_part)
 
     node_list = sorted(node_set, key=lambda node: node.id.reference_idx())
     part_list = [node.id for node in node_list]

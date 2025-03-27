@@ -1963,7 +1963,7 @@ class ThinElement(Part):
         default_tag = '#element#thinlens'
         tag = default_tag + kwargs.get('tag', '')
         tle = Node('TL', id=self, tag=tag)
-        Node('tl', id=self.intrfc, tag='#ifc', parent=tle)
+        Node(f'i{self.intrfc_indx}', id=self.intrfc, tag='#ifc', parent=tle)
         return tle
 
     def sync_to_restore(self, ele_model, surfs, gaps, tfrms, 
