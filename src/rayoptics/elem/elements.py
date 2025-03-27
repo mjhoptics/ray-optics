@@ -343,7 +343,17 @@ def create_air_gap(t=0., **kwargs):
     return g, ag, tree, None
 
 
-def create_from_file(filename, **kwargs):
+def create_from_file(filename, create_asm: bool=True, **kwargs):
+    """ Import an optical model into the current optical model.
+    
+    Args:
+        filename: filename or url
+        create_asm: if True, create an assembly for the imported model
+        label: used for assembly, if created
+
+    Returns: 
+        model descriptor: seq, parts, nodes, dgm
+    """
     opm_file = cmds.open_model(filename, post_process_imports=False)
     sm_file = opm_file['seq_model']
     osp_file = opm_file['optical_spec']
@@ -377,18 +387,24 @@ def create_from_file(filename, **kwargs):
                                         node_list=pt_file.root_node.children)
     parts = [part_node.id for part_node in part_nodes]
 
-    if (len(part_nodes) == 1 and '#assembly' in part_nodes[0].tag):
-        asm_node = part_nodes[0]
-        print("found root assembly node")
-    else:
-        # create an Assembly from the top level part list
-        label = kwargs.get('label', None)
-        tfrm = kwargs.get('tfrm', opm_file['seq_model'].gbl_tfrms[1])
-        asm = Assembly(parts, idx=1, label=label, tfrm=tfrm)
-        asm_node = asm.tree(part_tree=opm_file['part_tree'], tag='#file')
-    asm_node.parent = None
+    if create_asm:
+        if (len(part_nodes) == 1 and '#assembly' in part_nodes[0].tag):
+            asm_node = part_nodes[0]
+            print("found root assembly node")
+        else:
+            # create an Assembly from the top level part list
+            label = kwargs.get('label', None)
+            tfrm = kwargs.get('tfrm', opm_file['seq_model'].gbl_tfrms[1])
+            asm = Assembly(parts, idx=1, label=label, tfrm=tfrm)
+            asm_node = asm.tree(part_tree=opm_file['part_tree'], tag='#file')
+            parts.append(asm)
 
-    return seq, parts, part_nodes, dgm
+        asm_node.parent = None
+        nodes = asm_node
+    else:
+        nodes = part_nodes
+
+    return seq, parts, nodes, dgm
 
 
 def create_assembly_from_seq(opt_model, idx1, idx2, **kwargs):
@@ -401,12 +417,12 @@ def create_assembly_from_seq(opt_model, idx1, idx2, **kwargs):
     return asm, asm_node
 
 
-def render_lens_shape(s1, profile1, s2, profile2, thi, extent, sd, 
-                      is_flipped, hole_sd=None, apply_tfrm=True,
+def render_lens_shape(s1, profile1, s2, profile2, thi, z_dir, extent, sd, 
+                      is_flipped: bool, hole_sd=None, apply_tfrm=True,
                       flat1_pkg=None, flat2_pkg=None):
 
-    is_concave_s1 = is_concave(s1.profile_cv, 'entering', is_flipped)
-    is_concave_s2 = is_concave(s2.profile_cv, 'exiting', is_flipped)
+    is_concave_s1 = is_concave(s1.profile_cv, 'entering', z_dir, is_flipped)
+    is_concave_s2 = is_concave(s2.profile_cv, 'exiting', z_dir, is_flipped)
 
     profile_polys = []
 
@@ -578,8 +594,10 @@ def full_profile(profile, is_flipped, edge_extent,
     return prf
 
 
-def is_concave(profile_cv: float, side: str, is_flipped: bool) -> bool:
+def is_concave(profile_cv: float, side: str, 
+               z_dir: int, is_flipped: bool) -> bool:
     flip = -1 if is_flipped else 1
+    flip = -flip if z_dir == -1 else flip
     if side == 'entering':
         return flip*profile_cv < 0.0
     elif side == 'exiting':
@@ -758,6 +776,7 @@ class Element(Part):
         else:
             self.tfrm = (np.identity(3), np.array([0., 0., 0.]))
 
+        self.z_dir = 1
         if sg_def is not None:
             s1, s2, g = sg_def
             self.s1 = s1
@@ -850,6 +869,8 @@ class Element(Part):
             self.do_flat2 = 'if concave'
         if not hasattr(self, 'hole_sd'):
             self.hole_sd = None
+        if not hasattr(self, 'z_dir'):
+            self.z_dir = 1
         self.handles = {}
         self.actions = {}
 
@@ -861,6 +882,7 @@ class Element(Part):
         self.s2_indx = seq_model.ifcs.index(self.s2)
         self.profile1 = self.s1.profile
         self.profile2 = self.s2.profile
+        self.z_dir = seq_model.z_dir[self.s1_indx]
         self.medium_name = self.gap.medium.name()
 
     def sync_to_ele_def(self, seq_model, ele_def):
@@ -874,6 +896,7 @@ class Element(Part):
         self.profile1 = self.s1.profile
         self.profile2 = self.s2.profile
         self.gap = seq_model.gaps[gap_list[0]]
+        self.z_dir = seq_model.z_dir[self.s1_indx]
         self.medium_name = self.gap.medium.name()
 
     def tree(self, **kwargs):
@@ -982,7 +1005,7 @@ class Element(Part):
         flat1_pkg = self.do_flat1, self.flat1
         flat2_pkg = self.do_flat2, self.flat2
         poly, self.profile_polys = render_lens_shape(
-            s1, s1.profile, s2, s2.profile, self.gap.thi,
+            s1, s1.profile, s2, s2.profile, self.gap.thi, self.z_dir,
             self.extent(), self.sd, self.is_flipped, 
             hole_sd=self.hole_sd, flat1_pkg=flat1_pkg, flat2_pkg=flat2_pkg)
 
@@ -1082,7 +1105,7 @@ class SurfaceInterface(Part):
     default_ele_token = 'surface'
 
     def __init__(self, ifc=None, ele_def_pkg=None, tfrm=None, idx=0, sd=1., 
-                 z_dir=1.0, label=None):
+                 z_dir=1, label=None):
         if label is None:
             SurfaceInterface.serial_number += 1
             self.label = SurfaceInterface.label_format.format(
@@ -1213,7 +1236,7 @@ class SurfaceInterface(Part):
 
     def render_shape(self):
         is_concave_s = is_concave(self.s.profile_cv, 
-                                  'entering', self.is_flipped)
+                                  'entering', self.z_dir, self.is_flipped)
         
         self.profile_polys = []
 
@@ -1349,7 +1372,7 @@ class Mirror(SurfaceInterface):
         flat_pkg = self.do_flat, self.flat
 
         poly, self.profile_polys = render_lens_shape(
-            s, s.profile, s, s.profile, thi, 
+            s, s.profile, s, s.profile, thi, self.z_dir, 
             self.extent(), self.sd, self.is_flipped, apply_tfrm=False,
             hole_sd=self.hole_sd, flat1_pkg=flat_pkg, flat2_pkg=flat_pkg)
 
@@ -1550,6 +1573,8 @@ class CementedElement(Part):
             self.ele_token = CementedElement.default_ele_token
         if not hasattr(self, 'do_render_shape'):
             self.do_render_shape = True
+        if not hasattr(self, 'z_dir'):
+            self.z_dir = 1
         self.handles = {}
         self.actions = {}
 
@@ -1559,6 +1584,7 @@ class CementedElement(Part):
         # deletion of interfaces)
         self.idxs = [seq_model.ifcs.index(ifc) for ifc in self.ifcs]
         self.profiles = [ifc.profile for ifc in self.ifcs]
+        self.z_dir = seq_model.z_dir[self.idxs[0]]
 
     def sync_to_ele_def(self, seq_model, ele_def):
         ele_type, idx_list, gap_list = ele_def
@@ -1581,6 +1607,8 @@ class CementedElement(Part):
 
             self.gaps = [seq_model.gaps[i] for i in gap_list]
             self.medium_name = self._construct_medium_name()
+
+        self.z_dir = seq_model.z_dir[self.idxs[0]]
 
     def tree(self, **kwargs):
         default_tag = '#element#cemented'
@@ -1630,8 +1658,11 @@ class CementedElement(Part):
         return ce
 
     def idx_list(self):
-        seq_model = self.parent.opt_model['seq_model']
-        self.idxs = [seq_model.ifcs.index(ifc) for ifc in self.ifcs]
+        if self.parent is not None:
+            # if seq_model is accessible, refresh idxs
+            seq_model = self.parent.opt_model['seq_model']
+            self.idxs = [seq_model.ifcs.index(ifc) for ifc in self.ifcs]
+
         return self.idxs
 
     def reference_idx(self):
@@ -1708,14 +1739,14 @@ class CementedElement(Part):
             thi_aftr += self.gaps[i].thi
 
         flat_i = None
-        if is_concave(p.cv, 'entering', self.is_flipped):
+        if is_concave(p.cv, 'entering', self.z_dir, self.is_flipped):
             # if there's a first flat, check for intersection
             if self.flats[0] is not None:
                 flat_i = sphere_sag_to_zone(sag0 + thi_b4, p.cv)
             # check if radius is smaller than semi-diameter, add flat if needed
             elif R < sd:
                 flat_i = ca if ca < R else R
-        elif is_concave(p.cv, 'exiting', self.is_flipped):
+        elif is_concave(p.cv, 'exiting', self.z_dir, self.is_flipped):
             # if there's a last flat, check for intersection
             if self.flats[k] is not None:
                 flat_i = sphere_sag_to_zone(sagk + thi_aftr, p.cv)
@@ -1759,7 +1790,7 @@ class CementedElement(Part):
         # examine all profiles for possible (or required) flats.
         # only consider first profile for a flat if it is concave
         is_concave_0 = is_concave(self.profiles[0].cv, 
-                                  'entering', self.is_flipped)
+                                  'entering', self.z_dir, self.is_flipped)
         if use_flat(self.do_flat_0, is_concave_0):
             self.flats[0] = compute_flat(self.ifcs[0], self.sd)
         else:
@@ -1773,7 +1804,7 @@ class CementedElement(Part):
         # note that "last profile" for a mangin mirror is 
         # the middle profile in the list.
         is_concave_k = is_concave(self.profiles[k].cv, 
-                                  'exiting', self.is_flipped)
+                                  'exiting', self.z_dir, self.is_flipped)
         if use_flat(self.do_flat_k, is_concave_k):
             self.flats[k] = compute_flat(self.ifcs[k], self.sd)
         else:
@@ -1791,8 +1822,9 @@ class CementedElement(Part):
                 flat2_pkg = None
 
             poly_list, profile_polys = render_lens_shape(
-                ifcs[i], profiles[i], ifcs[i+1], profiles[i+1], gap.thi,
-                self.extent(), self.sd, self.is_flipped, hole_sd=self.hole_sd, 
+                ifcs[i], profiles[i], ifcs[i+1], profiles[i+1], 
+                gap.thi, self.z_dir, self.extent(), self.sd, 
+                self.is_flipped, hole_sd=self.hole_sd, 
                 flat1_pkg=flat1_pkg, flat2_pkg=flat2_pkg
                 )
 
@@ -1834,7 +1866,7 @@ class CementedElement(Part):
         # examine all profiles for possible (or required) flats.
         # only consider first profile for a flat if it is concave
         is_concave_0 = is_concave(self.profiles[0].cv, 
-                                  'entering', self.is_flipped)
+                                  'entering', self.z_dir, self.is_flipped)
         if use_flat(self.do_flat_0, is_concave_0):
             self.flats[0] = compute_flat(self.ifcs[0], self.sd)
         else:
@@ -1842,7 +1874,7 @@ class CementedElement(Part):
 
         # only consider last profile for a flat if it is concave
         is_concave_k = is_concave(self.profiles[-1].cv, 
-                                  'exiting', self.is_flipped)
+                                  'exiting', self.z_dir, self.is_flipped)
         if use_flat(self.do_flat_k, is_concave_k):
             self.flats[-1] = compute_flat(self.ifcs[-1], self.sd)
         else:
@@ -2230,6 +2262,7 @@ class Space(Part):
 
         if g is not None:
             self.gap = g
+            self.z_dir = 1
             self.idx = idx
             self.s1 = None
             self.s2 = None
@@ -2288,6 +2321,7 @@ class Space(Part):
         self.ele_token = ele_token
         self.idx = idx = gap_list[0]
         self.gap = seq_model.gaps[self.idx]
+        self.z_dir = seq_model.z_dir[self.idx]
         self.medium_name = self.gap.medium.name()
         self.s1 = seq_model.ifcs[idx]
         self.s2 = seq_model.ifcs[idx+1]
@@ -2354,7 +2388,7 @@ class Space(Part):
         s1 = self.s1
         s2 = self.s2
         poly_pkg, profile_polys = render_lens_shape(
-            s1, s1.profile, s2, s2.profile, self.gap.thi, 
+            s1, s1.profile, s2, s2.profile, self.gap.thi, self.z_dir, 
             self.extent(), self.sd, self.is_flipped
             )
         poly, = poly_pkg
@@ -2461,7 +2495,7 @@ class Assembly(Part):
         else:
             self.tfrm = (np.identity(3), np.array([0., 0., 0.]))
 
-        self.parts = part_list
+        self.parts = [p for p in part_list]
         self.idx = idx
         self.ele_token = Assembly.default_ele_token
         self.handles = {}
@@ -2705,10 +2739,9 @@ class ElementModel:
 
         # Make sure z_dir matches the sequential model. Used to get
         # the correct substrate offset.
-        if hasattr(seq_model, 'z_dir'):
-            for e in self.elements:
-                if hasattr(e, 'z_dir'):
-                    e.z_dir = seq_model.z_dir[e.reference_idx()]
+        for e in self.elements:
+            if hasattr(e, 'z_dir'):
+                e.z_dir = seq_model.z_dir[e.reference_idx()]
 
     def add_element(self, e: Part):
         e.parent = self
