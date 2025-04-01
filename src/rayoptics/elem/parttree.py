@@ -365,18 +365,23 @@ class PartTree():
 
     def handle_object_image_tags(self, seq_model):
         """ Ensure nodes for object and image ifcs and gaps are tagged. """
-        self._handle_object_image_tag(seq_model.ifcs[0], '#object', 
-                                      not_tag='#space#airgap')
-        self._handle_object_image_tag((seq_model.gaps[0], seq_model.z_dir[0]),
-                                      '#object', not_tag='#dummyifc#surface')
-        self._handle_object_image_tag(seq_model.ifcs[-1], '#image', 
-                                      not_tag='#space#airgap')
-        self._handle_object_image_tag((seq_model.gaps[-1],seq_model.z_dir[-1]),
-                                      '#image', not_tag='#dummyifc#surface')
+        oi_ifc_tags = '#dummyifc#surface'
+        oi_gap_tags = '#space#airgap'
+        self._handle_oi_tag(seq_model.ifcs[0], '#object', 
+                            not_tag=oi_gap_tags, parent_tag=oi_ifc_tags)
+        self._handle_oi_tag((seq_model.gaps[0], seq_model.z_dir[0]),
+                            '#object', not_tag=oi_ifc_tags,
+                            parent_tag=oi_gap_tags)
+        self._handle_oi_tag(seq_model.ifcs[-1], '#image', 
+                            not_tag=oi_gap_tags, parent_tag=oi_ifc_tags)
+        self._handle_oi_tag((seq_model.gaps[-1],seq_model.z_dir[-1]),
+                            '#image', not_tag=oi_ifc_tags,
+                            parent_tag=oi_gap_tags)
 
-    def _handle_object_image_tag(self, sm_leaf_key, oi_tag, not_tag=''):
+    def _handle_oi_tag(self, sm_leaf_id, oi_tag, parent_tag, not_tag=''):
+        """ using sm_leaf_id, find parent a """
         nodes = self.nodes_with_tag(tag=oi_tag, not_tag=not_tag)
-        oi_node = self.parent_node(sm_leaf_key)
+        oi_node = self.parent_node(sm_leaf_id, tag=parent_tag)
         found_it = False
         for n in nodes:
             if n != oi_node:
@@ -390,16 +395,16 @@ class PartTree():
 def sync_part_tree_on_restore(opt_model, ele_model, seq_model, root_node):
     ele_dict = {e.label: e for e in ele_model.elements}
     for node in PreOrderIter(root_node):
-        name = node.name
+        name, tag = node.name, node.tag
         if name in ele_dict:
             node.id = ele_dict[name]
-        elif name[0] == 'i':
+        elif tag == '#ifc':
             idx = int(name[1:])
             node.id = seq_model.ifcs[idx]
-        elif name[0] == 'g':
+        elif tag == '#gap':
             idx = int(name[1:])
             node.id = (seq_model.gaps[idx], seq_model.z_dir[idx])
-        elif name[0] == 'p':
+        elif tag == '#profile':
             p_name = node.parent.name
             e = ele_dict[p_name]
             try:
@@ -407,44 +412,30 @@ def sync_part_tree_on_restore(opt_model, ele_model, seq_model, root_node):
             except ValueError:
                 idx = 0
             node.id = e.profile_list()[idx]
-        elif name[:2] == 'tl':
-            p_name = node.parent.name
-            e = ele_dict[p_name]
-            node.id = e.intrfc
-        elif name[0] == 't':
+        elif tag == '#thic':
             p_name = node.parent.name
             e = ele_dict[p_name]
             idx = int(name[1:])-1 if len(name) > 1 else 0
             node.id = e.gap_list()[idx]
-        elif name[:1] == 'di':
-            p_name = node.parent.name
-            e = ele_dict[p_name]
-            node.id = e.ref_ifc
 
 
 def sync_part_tree_on_restore_idkey(opt_model, ele_model, seq_model, root_node):
     for node in PreOrderIter(root_node):
-        name = node.name
+        name, tag = node.name, node.tag
         if node.id_key in opt_model.parts_dict:
             node.id = opt_model.parts_dict[node.id_key]
-        elif name[0] == 'i':
+        elif tag == '#ifc':
             idx = int(name[1:])
             node.id = seq_model.ifcs[idx]
-        elif name[0] == 'g':
+        elif tag == '#gap':
             idx = int(name[1:])
             node.id = (seq_model.gaps[idx], seq_model.z_dir[idx])
-        elif name[0] == 'p':
+        elif tag == '#profile':
             node.id = opt_model.profile_dict[node.id_key]
-        elif name[:2] == 'tl':
-            e = opt_model.parts_dict[node.parent.id_key]
-            node.id = e.intrfc
-        elif name[0] == 't':
+        elif tag == '#thic':
             e = opt_model.parts_dict[node.parent.id_key]
             idx = int(name[1:])-1 if len(name) > 1 else 0
             node.id = e.gap_list()[idx]
-        elif name[:1] == 'di':
-            e = opt_model.parts_dict[node.parent.id_key]
-            node.id = e.ref_ifc
 
     for node in PreOrderIter(root_node):
         delattr(node, 'id_key')
