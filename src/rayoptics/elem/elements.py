@@ -1995,7 +1995,7 @@ class ThinElement(Part):
         default_tag = '#element#thinlens'
         tag = default_tag + kwargs.get('tag', '')
         tle = Node('TL', id=self, tag=tag)
-        Node(f'i{self.intrfc_indx}', id=self.intrfc, tag='#ifc', parent=tle)
+        Node(f'i{self.intrfc_indx}', id=self.intrfc, tag='#ifc#tl', parent=tle)
         return tle
 
     def sync_to_restore(self, ele_model, surfs, gaps, tfrms, 
@@ -2164,7 +2164,7 @@ class DummyInterface(Part):
         tag = default_tag + kwargs.get('tag', '')
         di = Node('DI', id=self, tag=tag)
         p = Node('p', id=self.profile, tag='#profile', parent=di)
-        Node(f'i{self.idx}', id=self.ref_ifc, tag='#ifc', parent=p)
+        Node(f'i{self.idx}', id=self.ref_ifc, tag='#ifc#di', parent=p)
         return di
 
     def reference_interface(self):

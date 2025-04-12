@@ -398,13 +398,13 @@ def sync_part_tree_on_restore(opt_model, ele_model, seq_model, root_node):
         name, tag = node.name, node.tag
         if name in ele_dict:
             node.id = ele_dict[name]
-        elif tag == '#ifc':
+        elif '#ifc' in tag:
             idx = int(name[1:])
             node.id = seq_model.ifcs[idx]
-        elif tag == '#gap':
+        elif '#gap' in tag:
             idx = int(name[1:])
             node.id = (seq_model.gaps[idx], seq_model.z_dir[idx])
-        elif tag == '#profile':
+        elif '#profile' in tag:
             p_name = node.parent.name
             e = ele_dict[p_name]
             try:
@@ -412,7 +412,7 @@ def sync_part_tree_on_restore(opt_model, ele_model, seq_model, root_node):
             except ValueError:
                 idx = 0
             node.id = e.profile_list()[idx]
-        elif tag == '#thic':
+        elif '#thic' in tag:
             p_name = node.parent.name
             e = ele_dict[p_name]
             idx = int(name[1:])-1 if len(name) > 1 else 0
@@ -424,15 +424,22 @@ def sync_part_tree_on_restore_idkey(opt_model, ele_model, seq_model, root_node):
         name, tag = node.name, node.tag
         if node.id_key in opt_model.parts_dict:
             node.id = opt_model.parts_dict[node.id_key]
-        elif tag == '#ifc':
-            idx = int(name[1:])
-            node.id = seq_model.ifcs[idx]
-        elif tag == '#gap':
+        elif '#ifc' in tag:
+            if '#tl' in tag or name[:2] == 'tl':
+                e = opt_model.parts_dict[node.parent.id_key]
+                node.id = e.intrfc
+            elif '#di' in tag or name[:2] == 'di':
+                e = opt_model.parts_dict[node.parent.id_key]
+                node.id = e.ref_ifc
+            else:
+                idx = int(name[1:])
+                node.id = seq_model.ifcs[idx]
+        elif '#gap' in tag:
             idx = int(name[1:])
             node.id = (seq_model.gaps[idx], seq_model.z_dir[idx])
-        elif tag == '#profile':
+        elif '#profile' in tag:
             node.id = opt_model.profile_dict[node.id_key]
-        elif tag == '#thic':
+        elif '#thic' in tag:
             e = opt_model.parts_dict[node.parent.id_key]
             idx = int(name[1:])-1 if len(name) > 1 else 0
             node.id = e.gap_list()[idx]
