@@ -426,11 +426,13 @@ def sync_part_tree_on_restore_idkey(opt_model, ele_model, seq_model, root_node):
             node.id = opt_model.parts_dict[node.id_key]
         elif '#ifc' in tag:
             if '#tl' in tag or name[:2] == 'tl':
+                # ThinElement <- ThinLens
                 e = opt_model.parts_dict[node.parent.id_key]
                 node.id = e.intrfc
             elif '#di' in tag or name[:2] == 'di':
-                e = opt_model.parts_dict[node.parent.id_key]
-                node.id = e.ref_ifc
+                # DummyInterface <- Profile <- Interface
+                e_node = node.parent.parent
+                node.id = e_node.id.ref_ifc
             else:
                 idx = int(name[1:])
                 node.id = seq_model.ifcs[idx]
