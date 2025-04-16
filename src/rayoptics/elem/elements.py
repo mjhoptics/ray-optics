@@ -421,14 +421,11 @@ def render_lens_shape(s1, profile1, s2, profile2, thi, z_dir, extent, sd,
                       is_flipped: bool, hole_sd=None, apply_tfrm=True,
                       flat1_pkg=None, flat2_pkg=None):
 
-    is_concave_s1 = is_concave(s1.profile_cv, 'entering', z_dir, is_flipped)
-    is_concave_s2 = is_concave(s2.profile_cv, 'exiting', z_dir, is_flipped)
-
     profile_polys = []
 
     flat = None
     if flat1_pkg is not None:
-        do_flat1, flat1 = flat1_pkg
+        do_flat1, flat1, is_concave_s1 = flat1_pkg
         if use_flat(do_flat1, is_concave_s1):
             if flat1 is None:
                 flat = flat1 = compute_flat(s1, sd)
@@ -441,7 +438,7 @@ def render_lens_shape(s1, profile1, s2, profile2, thi, z_dir, extent, sd,
 
     flat = None
     if flat2_pkg is not None:
-        do_flat2, flat2 = flat2_pkg
+        do_flat2, flat2, is_concave_s2 = flat2_pkg
         if use_flat(do_flat2, is_concave_s2):
             if flat2 is None:
                 flat = flat2 = compute_flat(s2, sd)
@@ -489,12 +486,10 @@ def render_lens_shape(s1, profile1, s2, profile2, thi, z_dir, extent, sd,
 
 def render_surf_shape(srf, profile, extent, sd, is_flipped, 
                       hole_sd=None, flat_pkg=None):
-    flip = -1 if is_flipped else 1
-    is_concave_srf = is_concave(srf.profile_cv, 'entering', is_flipped)
 
     flat = None
     if flat_pkg is not None:
-        do_flat1, flat1 = flat_pkg
+        do_flat1, flat1, is_concave_srf = flat_pkg
         if use_flat(do_flat1, is_concave_srf):
             if flat1 is None:
                 flat = flat1 = compute_flat(srf, sd)
@@ -594,16 +589,19 @@ def full_profile(profile, is_flipped, edge_extent,
     return prf
 
 
-def is_concave(profile_cv: float, side: str, 
-               z_dir: int, is_flipped: bool) -> bool:
-    flip = -1 if is_flipped else 1
-    flip = -flip if z_dir == -1 else flip
-    if side == 'entering':
-        return flip*profile_cv < 0.0
-    elif side == 'exiting':
-        return flip*profile_cv > 0.0
-    else:
-        raise ValueError
+def is_concave(cv:float, cur_idx:int, other_idx:int, z_dir:int) -> bool:
+    """ returns whether a surface is concave or not. 
+    
+    Args:
+        cv: the curvature of the surface profile
+        cur_idx: The seq_model index of the surface
+        other_idx: The seq_model index of the surface at the other end of the part
+        z_dir: z-dir for the element
+
+    Returns: 
+        True if the surface is concave, False otherwise.
+    """
+    return z_dir*cv*(1 if cur_idx < other_idx else -1) < 0
 
 
 def use_flat(do_flat, is_concave):
@@ -616,7 +614,7 @@ def use_flat(do_flat, is_concave):
     return False
 
 
-def compute_flat(ifc, sd, under_fract=0.05):
+def compute_flat(ifc, sd, under_fract=0.005):
     ca = ifc.surface_od()
     if (1.0 - ca/sd) >= under_fract:
         flat = ca
@@ -1002,8 +1000,13 @@ class Element(Part):
     def render_shape(self):
         s1 = self.s1
         s2 = self.s2
-        flat1_pkg = self.do_flat1, self.flat1
-        flat2_pkg = self.do_flat2, self.flat2
+        is_cc_1 = is_concave(s1.profile_cv, self.s1_indx, self.s2_indx, 
+                             self.z_dir)
+        is_cc_2 = is_concave(s2.profile_cv, self.s2_indx, self.s1_indx, 
+                             self.z_dir)
+        flat1_pkg = self.do_flat1, self.flat1, is_cc_1
+        flat2_pkg = self.do_flat2, self.flat2, is_cc_2
+
         poly, self.profile_polys = render_lens_shape(
             s1, s1.profile, s2, s2.profile, self.gap.thi, self.z_dir,
             self.extent(), self.sd, self.is_flipped, 
@@ -1236,7 +1239,7 @@ class SurfaceInterface(Part):
 
     def render_shape(self):
         is_concave_s = is_concave(self.s.profile_cv, 
-                                  'entering', self.z_dir, self.is_flipped)
+                                  self.s_indx, self.s_indx, self.z_dir)
         
         self.profile_polys = []
 
@@ -1369,7 +1372,8 @@ class Mirror(SurfaceInterface):
     def render_shape(self):
         s = self.s
         thi = self.substrate_offset()
-        flat_pkg = self.do_flat, self.flat
+        is_cc = is_concave(s.profile_cv, self.s_indx, self.s_indx, self.z_dir)
+        flat_pkg = self.do_flat, self.flat, is_cc
 
         poly, self.profile_polys = render_lens_shape(
             s, s.profile, s, s.profile, thi, self.z_dir, 
@@ -1739,14 +1743,14 @@ class CementedElement(Part):
             thi_aftr += self.gaps[i].thi
 
         flat_i = None
-        if is_concave(p.cv, 'entering', self.z_dir, self.is_flipped):
+        if is_concave(p.cv, self.idxs[idx], self.idxs[0], self.z_dir):
             # if there's a first flat, check for intersection
             if self.flats[0] is not None:
                 flat_i = sphere_sag_to_zone(sag0 + thi_b4, p.cv)
             # check if radius is smaller than semi-diameter, add flat if needed
             elif R < sd:
                 flat_i = ca if ca < R else R
-        elif is_concave(p.cv, 'exiting', self.z_dir, self.is_flipped):
+        elif is_concave(p.cv, self.idxs[idx], self.idxs[k], self.z_dir):
             # if there's a last flat, check for intersection
             if self.flats[k] is not None:
                 flat_i = sphere_sag_to_zone(sagk + thi_aftr, p.cv)
@@ -1776,8 +1780,10 @@ class CementedElement(Part):
         of the interface list.
         '''
         ifcs = self.ifcs
+        idxs = self.idxs
         profiles = self.profiles
         gaps = self.gaps
+        z_dir = self.z_dir
         polygon_list = []
 
         len_gaps = len(gaps)
@@ -1789,10 +1795,9 @@ class CementedElement(Part):
         
         # examine all profiles for possible (or required) flats.
         # only consider first profile for a flat if it is concave
-        is_concave_0 = is_concave(self.profiles[0].cv, 
-                                  'entering', self.z_dir, self.is_flipped)
-        if use_flat(self.do_flat_0, is_concave_0):
-            self.flats[0] = compute_flat(self.ifcs[0], self.sd)
+        is_cc_0 = is_concave(profiles[0].cv, idxs[0], idxs[k], z_dir)
+        if use_flat(self.do_flat_0, is_cc_0):
+            self.flats[0] = compute_flat(ifcs[0], self.sd)
         else:
             self.flats[0] = None
         # for the mangin case, the first and last surfaces are the
@@ -1803,21 +1808,22 @@ class CementedElement(Part):
         # only consider last profile for a flat if it is concave
         # note that "last profile" for a mangin mirror is 
         # the middle profile in the list.
-        is_concave_k = is_concave(self.profiles[k].cv, 
-                                  'exiting', self.z_dir, self.is_flipped)
-        if use_flat(self.do_flat_k, is_concave_k):
-            self.flats[k] = compute_flat(self.ifcs[k], self.sd)
+        is_cc_k = is_concave(profiles[k].cv, idxs[k], idxs[0], z_dir)
+        if use_flat(self.do_flat_k, is_cc_k):
+            self.flats[k] = compute_flat(ifcs[k], self.sd)
         else:
             self.flats[k] = None
 
-        flat1_pkg = 'always', self.flats[0]
+        flat1_pkg = 'always', self.flats[0], is_cc_0
         for i, gap in enumerate(gaps):
             # compute flats for inner profiles that intersect outer flats
             if i+1<len(gaps) and i+1 != k:
                 self.flats[i+1] = self.compute_inner_flat(i+1, self.sd, k)
 
+            is_cc_1 = is_concave(profiles[i].cv, idxs[i], idxs[i+1], z_dir)
+            is_cc_2 = is_concave(profiles[i+1].cv, idxs[i+1], idxs[i], z_dir)
             if self.flats[i+1] is not None:
-                flat2_pkg = 'always', self.flats[i+1]
+                flat2_pkg = 'always', self.flats[i+1], is_cc_2
             else:
                 flat2_pkg = None
 
@@ -1853,8 +1859,10 @@ class CementedElement(Part):
     def render_as_surfs(self):
         '''return a tuple of polylines of the surfaces of the cemented element. '''
         ifcs = self.ifcs
+        idxs = self.idxs
         profiles = self.profiles
         gaps = self.gaps
+        z_dir = self.z_dir
         len_gaps = len(gaps)
         if self.ele_token == 'mangin':
             num_gaps = len_gaps>>1
@@ -1865,16 +1873,14 @@ class CementedElement(Part):
 
         # examine all profiles for possible (or required) flats.
         # only consider first profile for a flat if it is concave
-        is_concave_0 = is_concave(self.profiles[0].cv, 
-                                  'entering', self.z_dir, self.is_flipped)
+        is_concave_0 = is_concave(profiles[0].cv, idxs[0], idxs[k], z_dir)
         if use_flat(self.do_flat_0, is_concave_0):
             self.flats[0] = compute_flat(self.ifcs[0], self.sd)
         else:
             self.flats[0] = None
 
         # only consider last profile for a flat if it is concave
-        is_concave_k = is_concave(self.profiles[-1].cv, 
-                                  'exiting', self.z_dir, self.is_flipped)
+        is_concave_k = is_concave(profiles[k].cv, idxs[k], idxs[0], z_dir)
         if use_flat(self.do_flat_k, is_concave_k):
             self.flats[-1] = compute_flat(self.ifcs[-1], self.sd)
         else:
@@ -1883,9 +1889,10 @@ class CementedElement(Part):
         for i, ifc in enumerate(ifcs):
             # compute flats for inner profiles that intersect outer flats
             self.flats[i] = self.compute_inner_flat(i, self.sd, k)
+            is_concave_i = is_concave(profiles[i].cv, idxs[i], idxs[i], z_dir)
 
             if self.flats[i] is not None:
-                flat_pkg = 'always', self.flats[i]
+                flat_pkg = 'always', self.flats[i], is_concave_i
             else:
                 flat_pkg = None
 
