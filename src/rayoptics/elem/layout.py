@@ -29,7 +29,7 @@ from rayoptics.elem import elements as ele
 
 import rayoptics.optical.model_constants as mc
 from rayoptics.util.rgb2mpl import rgb2mpl
-import rayoptics.gui.appcmds as cmds
+from rayoptics.qtgui.guiappcmds import create_ray_table_model
 from rayoptics.util import colors
 
 
@@ -626,7 +626,7 @@ class LensLayout():
 
     def get_ray_table(self):
         if self.ray_table is None:
-            self.ray_table = cmds.create_ray_table_model(self.opt_model, None)
+            self.ray_table = create_ray_table_model(self.opt_model, None)
             gui_parent = self.opt_model.app_manager.gui_parent
             gui_parent.create_table_view(self.ray_table, "Ray Table")
 
