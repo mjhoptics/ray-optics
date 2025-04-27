@@ -314,7 +314,7 @@ def handle_types_and_params(optm, cur, cmd, inputs):
                                                   'RadialPolynomial')
             ifc.profile = new_profile
         elif typ == 'COORDBRK':
-            ifc.interact_mode = 'dummy'
+            ifc.interact_mode = 'phantom'
             ifc.decenter = DecenterData('decenter')
         elif typ == 'PARAXIAL':
             ifc = thinlens.ThinLens()

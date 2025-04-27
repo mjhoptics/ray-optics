@@ -450,12 +450,10 @@ def trace_boundary_rays_at_field(opt_model, fld, wvl,
     rim_rays = []
     osp = opt_model.optical_spec
     for p in osp.pupil.pupil_rays:
-        ray_pkg, ray_err = trace_ray(opt_model, p, fld, wvl, **kwargs)
-        ray, op, wvl = ray_pkg
-
-        if use_named_tuples:
-            ray = [RaySeg(*rs) for rs in ray]
-        rim_rays.append(RayPkg(ray, op, wvl))
+        ray_pkg, ray_err = trace_ray(opt_model, p, fld, wvl, 
+                                        use_named_tuples=use_named_tuples, 
+                                        **kwargs)
+        rim_rays.append(ray_pkg)
     return rim_rays
 
 

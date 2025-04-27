@@ -6,10 +6,11 @@
 The grammar is as follows::
 
     seq_model   = object space optics image
-    optics      = (part space)+
+    optics      = (part space)*
 
     part        = mangin / cemented / lens / mirror / surface / dummy / thin_lens
-    space        = ~r"a|t"
+
+    space        = phantom / ~r"a|t"
 
     surface      = "i"
     lens         = "iti"
@@ -19,6 +20,7 @@ The grammar is as follows::
     mangin       = ~r"it(?:r|(?R))*ti"
     thin_lens    = "l"
     dummy        = "d"
+    phantom      = "apa"
     object       = ~r"^d"
     image        = ~r"d$"
 
@@ -36,7 +38,8 @@ sgz2ele_spec =  \
     optics      = (part space)*
 
     part        = mangin / cemented / lens / mirror / surface / dummy / thin_lens
-    space        = ~r"a|t"
+
+    space        = phantom / ~r"a|t"
 
     surface      = "i"
     lens         = "iti"
@@ -46,6 +49,7 @@ sgz2ele_spec =  \
     mangin       = ~r"it(?:r|(?R))*ti"
     thin_lens    = "l"
     dummy        = "d"
+    phantom      = "apa"
     object       = ~r"^d"
     image        = ~r"d$"
     """
@@ -159,6 +163,17 @@ class SMVisitor(NodeVisitor):
         """ Gets each key/value pair, returns a tuple. """
         part_name = 'dummy', 'rayoptics.elem.elements', 'DummyInterface'
         return self._visit_surface_(node, part_name)
+
+    def visit_phantom(self, node, visited_children):
+        """ Create an AirGap that encompasses the phantom interface. """
+        idx1 = node.start >> 1
+        idxk = node.end >> 1
+        idx_list = ()
+        gap_list = tuple(idx for idx in range(idx1, idxk))
+        part_name = 'air', 'rayoptics.elem.elements', 'AirGap'
+        part_def = part_name, idx_list, gap_list
+        self.print_visit(node, part_name, idx_list, gap_list)
+        return part_def
 
     def visit_object(self, node, visited_children):
         """ Gets each key/value pair, returns a tuple. """

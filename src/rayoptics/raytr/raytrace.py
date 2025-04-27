@@ -81,7 +81,7 @@ def trace(seq_model, pt0, dir0, wvl, **kwargs):
 
 
 def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, check_apertures=False, 
-              intersect_obj=True, **kwargs):
+              intersect_obj=True, filter_out_phantoms=False, **kwargs):
     """ fundamental raytrace function
 
     Args:
@@ -96,6 +96,7 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, check_apertures=False,
         intersect_obj: if True, intersect the ray with the object, otherwise 
                        trace input ray coords directly.
         pt_inside_fuzz: accuracy tolerance for aperture clipping check
+        filter_out_phantoms: if True, no ray data is saved for phantom interfaces
 
     Returns:
         (**ray**, **op_delta**, **wvl**)
@@ -142,8 +143,10 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, check_apertures=False,
 
     # trace object surface
     before = obj = next(path)
+    b4_interact_mode = 'dummy'
     if intersect_obj:
         srf_obj = obj[mc.Intfc]
+        b4_interact_mode = srf_obj.interact_mode
         _, before_pt = srf_obj.intersect(pt0, dir0, z_dir=obj[mc.Zdir])
         before_normal = srf_obj.normal(before_pt)
     else:
@@ -171,22 +174,30 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, check_apertures=False,
             pp_pt_before = b4_pt + pp_dst*b4_dir
 
             ifc = after[mc.Intfc]
+            interact_mode = ifc.interact_mode
             z_dir_after = after[mc.Zdir]
 
             # intersect ray with profile
             pp_dst_intrsct, inc_pt = ifc.intersect(pp_pt_before, b4_dir,
-                                                   eps=eps, z_dir=z_dir_before)
+                                                    eps=eps, z_dir=z_dir_before)
             dst_b4 = pp_dst + pp_dst_intrsct
             
-            # add *previous* intersection point, direction, etc., to ray
-            ray.append([before_pt, before_dir, dst_b4, before_normal])
+            if b4_interact_mode == 'phantom' and filter_out_phantoms:
+                # if a phantom interface, don't add intersection point
+                #  but do add the path length.
+                ray[-1][mc.dst] += dst_b4
+            else:
+                # add *previous* intersection point, direction, etc., to ray
+                ray.append([before_pt, before_dir, dst_b4, before_normal])
 
             if in_gap_range(surf-1):
                 opl += before[mc.Indx] * dst_b4
 
             normal = ifc.normal(inc_pt)
 
-            if check_apertures and in_surface_range(surf):
+            if (check_apertures and 
+                in_surface_range(surf) and 
+                not interact_mode == 'phantom'):
                 if not ifc.point_inside(inc_pt[0], inc_pt[1], **fuzz):
                     raise TraceRayBlockedError(ifc, inc_pt)
 
@@ -194,15 +205,17 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, check_apertures=False,
             if hasattr(ifc, 'phase_element'):
                 ifc_cntxt = (z_dir_before, wvl, 
                              before[mc.Indx], after[mc.Indx],
-                             ifc.interact_mode)
+                             interact_mode)
                 after_dir, phs = phase(ifc, inc_pt, b4_dir, normal, ifc_cntxt)
                 op_delta += phs
             else:  # refract or reflect ray at interface
-                if ifc.interact_mode == 'reflect':
+                if interact_mode == 'reflect':
                     after_dir = reflect(b4_dir, normal)
-                elif ifc.interact_mode == 'transmit':
+                elif interact_mode == 'transmit':
                     after_dir = bend(b4_dir, normal, before[mc.Indx], after[mc.Indx])
-                elif ifc.interact_mode == 'dummy':
+                elif interact_mode == 'dummy':
+                    after_dir = b4_dir
+                elif interact_mode == 'phantom':
                     after_dir = b4_dir
                 else:  # no action, input becomes output
                     after_dir = b4_dir
@@ -211,6 +224,7 @@ def trace_raw(path, pt0, dir0, wvl, eps=1.0e-12, check_apertures=False,
             before_normal = normal
             before_dir = after_dir
             z_dir_before = z_dir_after
+            b4_interact_mode = interact_mode
             before = after
             tfrm_from_before = before[mc.Tfrm]
 

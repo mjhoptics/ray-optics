@@ -174,7 +174,8 @@ def paraxial_trace(path, start, start_yu, start_yu_bar):
             cur_htb = b4_yui_bar[ht] + t * b4_yui_bar[slp]
 
             # Refraction/Reflection
-            if ifc.interact_mode == 'dummy':
+            if (ifc.interact_mode == 'dummy' or 
+                ifc.interact_mode == 'phantom'):
                 cur_slp = b4_yui[slp]
                 cur_slpb = b4_yui_bar[slp]
             else:

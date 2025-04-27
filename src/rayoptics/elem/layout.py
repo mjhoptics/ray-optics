@@ -271,12 +271,13 @@ class RayBundle():
                                               self.fld, wvl,
                                               use_named_tuples=True,
                                               rayerr_filter='full',
-                                              check_apertures=view.clip_rays)
+                                              check_apertures=view.clip_rays,
+                                              filter_out_phantoms=True)
 
         self.rayset = boundary_ray_dict(self.opt_model, rayset)
 
-        seq_model = self.opt_model.seq_model
-        tfrms = seq_model.gbl_tfrms        #     shift_start_of_ray_bundle(start_bundle, ray_list, rot, t)
+        sm = self.opt_model['seq_model']
+        tfrms = sm.filter_out_phantoms(sm.gbl_tfrms)
 
         if view.do_draw_beams:
             poly, bbox = self.render_shape(self.rayset, tfrms)
@@ -352,8 +353,8 @@ class RayFanBundle():
         ray_fan.update_data()
         fan = ray_fan.fan_pkg[0]
 
-        seq_model = self.opt_model.seq_model
-        tfrms = seq_model.gbl_tfrms
+        sm = self.opt_model['seq_model']
+        tfrms = sm.filter_out_phantoms(sm.gbl_tfrms)
 
         ray_list = []
         for ray_item in fan:
@@ -408,10 +409,10 @@ class SingleRay():
 
     def update_shape(self, view):
         ray = self.ray
-        ray.update_data()
+        ray.update_data(filter_out_phantoms=True)
 
-        seq_model = self.opt_model['seq_model']
-        tfrms = seq_model.gbl_tfrms
+        sm = self.opt_model['seq_model']
+        tfrms = sm.filter_out_phantoms(sm.gbl_tfrms)
         global_ray = self.render_ray(ray.ray_pkg, tfrms)
 
         ray_color = lo_rgb['ray'] if ray.color is None else ray.color
@@ -459,8 +460,7 @@ class ParaxialRay():
         return np.array(poly)
 
     def update_shape(self, view):
-        seq_model = self.opt_model.seq_model
-        tfrms = seq_model.gbl_tfrms
+        tfrms = self.opt_model['seq_model'].gbl_tfrms
 
         ray_poly = self.render_ray(self.ray, tfrms)
 
@@ -595,7 +595,8 @@ class LensLayout():
         for i, fld in enumerate(fov.fields):
             fld_label = fov.index_labels[i]
             rb = RayBundle(self.opt_model, fld, fld_label, wvl, start_offset,
-                           ray_table_callback=self.get_ray_table, **kwargs)
+                           ray_table_callback=self.get_ray_table, 
+                           filter_out_phantoms=True, **kwargs)
             ray_bundles.append(rb)
         return ray_bundles
 
@@ -607,7 +608,7 @@ class LensLayout():
         for i, fld in enumerate(fov.fields):
             fld_label = fov.index_labels[i]
             rayfan = RayFan(opt_model, f=fld, xyfan='y', num_rays=num_rays,
-                            label=fld_label, **kwargs)
+                            label=fld_label, filter_out_phantoms=True, **kwargs)
             rb = RayFanBundle(opt_model, rayfan, start_offset)
             ray_fan_bundles.append(rb)
         return ray_fan_bundles

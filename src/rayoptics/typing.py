@@ -39,7 +39,7 @@ M4d = npt.ArrayLike
 T4d = tuple[M4d|None, V4d]
 
 DCenterTypes = Literal['decenter', 'reverse', 'dec and return', 'bend']
-InteractMode = Literal['transmit', 'reflect', 'dummy']
+InteractMode = Literal['transmit', 'reflect', 'dummy', 'phantom']
 
 Z_DIR = Literal[-1, 1]
 

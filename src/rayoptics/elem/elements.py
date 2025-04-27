@@ -2268,12 +2268,12 @@ class Space(Part):
             self.tfrm = (np.identity(3), np.array([0., 0., 0.]))
 
         if g is not None:
-            self.gap = g
+            self.gaps = [g]
+            self.idxs = [idx]
             self.z_dir = 1
-            self.idx = idx
             self.s1 = None
             self.s2 = None
-            self.medium_name = self.gap.medium.name()
+            self.medium_name = g.medium.name()
             self.ele_token = Space.default_ele_token
         elif ele_def_pkg is not None:
             seq_model, ele_def = ele_def_pkg
@@ -2291,7 +2291,7 @@ class Space(Part):
         del attrs['parent']
         del attrs['s1']
         del attrs['s2']
-        del attrs['gap']
+        del attrs['gaps']
         del attrs['handles']
         del attrs['actions']
         return attrs
@@ -2302,9 +2302,16 @@ class Space(Part):
     def sync_to_restore(self, ele_model, surfs, gaps, tfrms, 
                         profile_dict, parts_dict):
         self.parent = ele_model
-        self.gap = gaps[self.idx]
-        self.s1 = surfs[self.idx]
-        self.s2 = surfs[self.idx+1]
+        if hasattr(self, 'idx'):
+            idx = self.idx
+            self.idxs = [idx]
+            self.gaps = [gaps[idx]]
+            self.s1 = surfs[idx]
+            self.s2 = surfs[idx+1]
+            delattr(self, 'idx')
+        elif hasattr(self, 'idxs'):
+            self.gaps = [gaps[i] for i in self.idxs]
+
         if not hasattr(self, 'tfrm'):
             self.tfrm = tfrms[self.idx]
         if not hasattr(self, 'render_color'):
@@ -2317,56 +2324,66 @@ class Space(Part):
         self.actions = {}
 
     def sync_to_seq(self, seq_model):
-        self.idx = idx = seq_model.gaps.index(self.gap)
-        self.z_dir = seq_model.z_dir[self.idx]
-        self.s1 = seq_model.ifcs[idx]
-        self.s2 = seq_model.ifcs[idx+1]
+        self.idxs = [seq_model.gaps.index(g) for g in self.gaps]
+        idx_0 = self.idxs[0]
+        idx_k = self.idxs[-1]
+        self.s1 = seq_model.ifcs[idx_0]
+        self.s2 = seq_model.ifcs[idx_k+1]
+        self.z_dir = seq_model.z_dir[idx_0]
 
     def sync_to_ele_def(self, seq_model, ele_def):
         ele_type, idx_list, gap_list = ele_def
         ele_token, ele_module, ele_class = ele_type
         self.ele_token = ele_token
-        self.idx = idx = gap_list[0]
-        self.gap = seq_model.gaps[self.idx]
-        self.z_dir = seq_model.z_dir[self.idx]
-        self.medium_name = self.gap.medium.name()
-        self.s1 = seq_model.ifcs[idx]
-        self.s2 = seq_model.ifcs[idx+1]
+
+        self.idxs = [idx for idx in gap_list]
+        idx_0 = self.idxs[0]
+        idx_k = self.idxs[-1]
+
+        self.z_dir = seq_model.z_dir[idx_0]
+
+        self.s1 = seq_model.ifcs[idx_0]
+        self.s2 = seq_model.ifcs[idx_k+1]
+
+        self.gaps = [seq_model.gaps[i] for i in gap_list]
+        self.medium_name = self.gaps[0].medium.name()
 
     def tree(self, **kwargs):
         default_label_prefix = kwargs.get('default_label_prefix', 'SP')
         default_tag = kwargs.get('default_tag', '#space')
         if hasattr(self, 'parent'):
             seq_model = self.parent.opt_model['seq_model']
-            if self.idx == 0:
+            if self.idxs[0] == 0:
                 default_tag += '#object'
-            elif self.idx == len(seq_model.gaps)-1:
+            elif self.idxs[0] == len(seq_model.gaps)-1:
                 default_tag += '#image'
         tag = default_tag + kwargs.get('tag', '')
         sp = Node(default_label_prefix, id=self, tag=tag)
-        t = Node('t', id=self.gap, tag='#thic', parent=sp)
-        zdir = kwargs.get('z_dir', self.z_dir)
-        Node(f'g{self.idx}', id=(self.gap, zdir), tag='#gap', parent=t)
+        for i, g in enumerate(self.gaps):
+            i1 = i + 1
+            t = Node(f't{i1}', id=g, tag='#thic', parent=sp)
+            Node(f'g{self.idxs[i]}', id=(g, self.z_dir), tag='#gap', parent=t)
         return sp
 
     def reference_interface(self):
         return None
 
     def reference_idx(self):
-        return self.idx
+        return self.idxs[0]
 
     def profile_list(self):
         return []
 
     def idx_list(self):
-        return []
+        return self.idxs
 
     def gap_list(self):
-        return [self.gap]
+        return self.gaps
 
     def do_flip(self):
         r, t = self.tfrm
-        thi = self.gap.thi
+        thi = self.cumulative_thi()
+
         if self.is_flipped:
             r_new = np.matmul(rot_around_y, r).T
             t_new = t - r_new.dot(np.array([0, 0, thi]))
@@ -2391,11 +2408,18 @@ class Space(Part):
         else:
             return (-self.sd, self.sd)
 
+    def cumulative_thi(self):
+        thi = 0.
+        for g in self.gaps:
+            thi += g.thi
+        return thi
+
     def render_shape(self):
         s1 = self.s1
         s2 = self.s2
+        thi = self.cumulative_thi()
         poly_pkg, profile_polys = render_lens_shape(
-            s1, s1.profile, s2, s2.profile, self.gap.thi, self.z_dir, 
+            s1, s1.profile, s2, s2.profile, thi, self.z_dir, 
             self.extent(), self.sd, self.is_flipped
             )
         poly, = poly_pkg
@@ -2411,11 +2435,11 @@ class Space(Part):
 
         poly_ct = []
         poly_ct.append([0., 0.])
-        poly_ct.append([self.gap.thi, 0.])
+        poly_ct.append([self.cumulative_thi(), 0.])
 
         # Modify the tfrm to account for any decenters following
         #  the reference ifc.
-        decenter = opt_model.seq_model.ifcs[self.idx].decenter
+        decenter = opt_model.seq_model.ifcs[self.idxs[0]].decenter
         tfrm = self.apply_decenter_to_tfrm(decenter)
         self.handles['ct'] = GraphicsHandle(poly_ct, tfrm, 'polyline')
 
@@ -2436,7 +2460,7 @@ class Space(Part):
         self.actions = {}
 
         ct_action = {}
-        ct_action['x'] = AttrAction(self.gap, 'thi')
+        ct_action['x'] = AttrAction(self.gaps[0], 'thi')
         self.actions['ct'] = ct_action
 
         return self.actions
@@ -2474,11 +2498,11 @@ class AirGap(Space):
 
         poly_ct = []
         poly_ct.append([0., 0.])
-        poly_ct.append([self.gap.thi, 0.])
+        poly_ct.append([self.cumulative_thi(), 0.])
 
         # Modify the tfrm to account for any decenters following
         #  the reference ifc.
-        decenter = opt_model.seq_model.ifcs[self.idx].decenter
+        decenter = opt_model.seq_model.ifcs[self.idxs[0]].decenter
         tfrm = self.apply_decenter_to_tfrm(decenter)
         self.handles['ct'] = GraphicsHandle(poly_ct, tfrm, 'polyline')
 

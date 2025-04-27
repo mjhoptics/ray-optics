@@ -491,11 +491,19 @@ class SequentialModel:
                                                        **kwargs)
         self.insert(s, g, z_dir=z_dir)
 
-        root_node = self.opt_model['part_tree'].root_node
-        idx = self.cur_surface
-        Node(f'i{idx}', id=s, tag='#ifc', parent=root_node)
-        if gap is not None:
-            Node(f'g{idx}', id=(g, self.z_dir[idx]), tag='#gap', parent=root_node)
+    def add_coord_break(self, thi: float, decenter_data=None, **kwargs):
+        """ add a phantom dummy surface to alter the following coordinate systems
+
+        Args:
+            thi:  the gap thickness following the break
+            decenter_data: the coordinate transform to apply
+        """
+        s = surface.Surface(interact_mode='phantom', decenter=decenter_data)
+        mat = self.gaps[self.cur_surface].medium
+        g = gap.Gap(thi, mat)
+        z_dir = self.z_dir[self.cur_surface]
+
+        self.insert(s, g, z_dir=z_dir)
 
     def sync_to_restore(self, opt_model):
         self.opt_model = opt_model
@@ -769,7 +777,7 @@ class SequentialModel:
             if cvr != 0.0:
                 cvr = 1.0/cvr
         sd = ifc.surface_od()
-        imode = ifc.interact_mode if ifc.interact_mode == 'reflect' else ""
+        imode = "" if ifc.interact_mode == 'transmit' else ifc.interact_mode
 
         if gp is not None:
             thi = gp.thi
@@ -1053,7 +1061,7 @@ class SequentialModel:
         """ Return global surface coordinates (rot, t) wrt surface `glo`. 
         
         If origin isn't None, it should be a tuple (r, t) being the transform
-          from the desired global origin to the specified global surface.
+        from the desired global origin to the specified global surface.
         """
         return trns.compute_global_coords(self, glo, origin)
 
@@ -1069,6 +1077,14 @@ class SequentialModel:
 
     def list_tfrms(self, tfrms, sel: str='r+t', *args):
         return trns.list_tfrms(tfrms, sel, *args)
+
+    def filter_out_phantoms(self, items: list) -> list:
+        """ given items, filter out those corresponding to a phantom interface.
+
+        len(items) == len(self.ifcs)
+        """
+        return [gt for ifc, gt in zip(self.ifcs, items) 
+                    if not ifc.interact_mode == 'phantom']
 
     def find_matching_ifcs(self):
         rot_tols = dict(atol=1e-14, rtol=1e-8)

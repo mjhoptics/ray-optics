@@ -41,7 +41,7 @@ class Interface:
         - supports a basic idea of size, the max_aperture
 
     Attributes:
-        interact_mode: 'transmit' | 'reflect' | 'dummy'
+        interact_mode: 'transmit' | 'reflect' | 'dummy' | 'phantom'
         delta_n: refractive index difference across the interface
         decenter: :class:`~rayoptics.elem.surface.DecenterData` for the interface, if specified
         max_aperture: the maximum aperture radius on the interface
@@ -80,6 +80,8 @@ class Interface:
             tkn = 'r'
         elif self.interact_mode == 'dummy':
             tkn = 'd'
+        elif self.interact_mode == 'phantom':
+            tkn = 'p'
         return tkn
 
     def sync_to_restore(self, opt_model):
