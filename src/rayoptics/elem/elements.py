@@ -1542,7 +1542,7 @@ class CementedElement(Part):
         o_str = f"{ele_type[0]}: {ele_type[2]}\n"
         o_str += f"idx={idx_list},   gaps={gap_list}\n"
         return o_str
-        fmt = f"Element: {self.s1.profile!r}, {self.s2.profile!r}, t={self.gap.thi:.4f}, sd={self.sd:.4f}, glass: {self.gap.medium.name()}"
+        #fmt = f"Element: {self.s1.profile!r}, {self.s2.profile!r}, t={self.gap.thi:.4f}, sd={self.sd:.4f}, glass: {self.gap.medium.name()}"
 
     def sync_to_restore(self, ele_model, surfs, gaps, tfrms, 
                         profile_dict, parts_dict):
@@ -2297,7 +2297,7 @@ class Space(Part):
         return attrs
 
     def __str__(self):
-        return str(self.gap)
+        return str(self.gaps[0])
 
     def sync_to_restore(self, ele_model, surfs, gaps, tfrms, 
                         profile_dict, parts_dict):
@@ -2311,13 +2311,15 @@ class Space(Part):
             delattr(self, 'idx')
         elif hasattr(self, 'idxs'):
             self.gaps = [gaps[i] for i in self.idxs]
+            self.s1 = surfs[self.idxs[0]]
+            self.s2 = surfs[self.idxs[-1]+1]
 
         if not hasattr(self, 'tfrm'):
             self.tfrm = tfrms[self.idx]
         if not hasattr(self, 'render_color'):
             self.render_color = (237, 243, 254, 64)  # light blue
         if not hasattr(self, 'medium_name'):
-            self.medium_name = self.gap.medium.name()
+            self.medium_name = self.gaps[0].medium.name()
         if not hasattr(self, 'ele_token'):
             self.ele_token = Space.default_ele_token
         self.handles = {}
@@ -2429,7 +2431,7 @@ class Space(Part):
         self.handles = {}
 
         shape = self.render_shape()
-        color = calc_render_color_for_material(self.gap.medium)
+        color = calc_render_color_for_material(self.gaps[0].medium)
         self.handles['shape'] = GraphicsHandle(shape, self.tfrm, 'polygon',
                                                color)
 
@@ -2837,7 +2839,10 @@ def build_ele_def(e, seq_model):
         except ValueError:
             return str(id(g))
     ele_type = e.ele_token, type(e).__module__, type(e).__name__
-    idx_list = tuple(i for i in e.idx_list())
+    if e.ele_token == 'air' or e.ele_token == 'space':
+        idx_list = ()
+    else:
+        idx_list = tuple(i for i in e.idx_list())
     gap_list = tuple(guarded_gap_idx(g) for g in e.gap_list())
     if e.is_flipped:
         # reverse the list contents to match sequential order

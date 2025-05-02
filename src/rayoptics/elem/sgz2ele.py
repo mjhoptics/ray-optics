@@ -10,12 +10,13 @@ The grammar is as follows::
 
     part        = mangin / cemented / lens / mirror / surface / dummy / thin_lens
 
-    space        = phantom / ~r"a|t"
+    space        = phantom / air / thickness
 
     surface      = "i"
     lens         = "iti"
     mirror       = "r"
     air          = "a"
+    thickness    = "t"
     cemented     = "ititi"("ti")*
     mangin       = ~r"it(?:r|(?R))*ti"
     thin_lens    = "l"
@@ -39,12 +40,13 @@ sgz2ele_spec =  \
 
     part        = mangin / cemented / lens / mirror / surface / dummy / thin_lens
 
-    space        = phantom / ~r"a|t"
+    space        = phantom / air / thickness
 
     surface      = "i"
     lens         = "iti"
     mirror       = "r"
     air          = "a"
+    thickness    = "t"
     cemented     = "ititi"("ti")*
     mangin       = ~r"it(?:r|(?R))*ti"
     thin_lens    = "l"
@@ -115,15 +117,6 @@ class SMVisitor(NodeVisitor):
         part_def = part_name, idx_list, gap_list
         return part_def
 
-    def visit_space(self, node, visited_children):
-        """ Gets each key/value pair, returns a tuple. """
-        space_token = node.full_text[node.start]
-        if space_token == 'a':
-            part_name = 'air', 'rayoptics.elem.elements', 'AirGap'
-        else:
-            part_name = 'space', 'rayoptics.elem.elements', 'Space'
-        return self._visit_space_(node, part_name)
-
     def visit_surface(self, node, visited_children):
         """ Gets each key/value pair, returns a tuple. """
         part_name = 'surface', 'rayoptics.elem.elements', 'SurfaceInterface'
@@ -142,6 +135,11 @@ class SMVisitor(NodeVisitor):
     def visit_air(self, node, visited_children):
         """ Gets each key/value pair, returns a tuple. """
         part_name = 'air', 'rayoptics.elem.elements', 'AirGap'
+        return self._visit_space_(node, part_name)
+
+    def visit_thickness(self, node, visited_children):
+        """ Gets each key/value pair, returns a tuple. """
+        part_name = 'space', 'rayoptics.elem.elements', 'Space'
         return self._visit_space_(node, part_name)
 
     def visit_cemented(self, node, visited_children):
