@@ -491,7 +491,15 @@ def sequence_to_elements(seq_model, ele_model, part_tree):
         # existing element to a new ele_def
         for me in modified_ele:
             existing_ele, new_ele = me
-            eme_dict[existing_ele].sync_to_ele_def(seq_model, new_ele)
+            e = eme_dict[existing_ele]
+            e_node = part_tree.node(e)
+            # update the element definition
+            e.sync_to_ele_def(seq_model, new_ele)
+            # rebuild subtree
+            new_e_node = e.tree()
+            new_e_node.tag = e_node.tag
+            new_e_node.parent = e_node.parent
+            e_node.parent = None
 
         # common elements use the `sync_to_seq` protocol to adjust to any additions
         # or removals of other elements.
