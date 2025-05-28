@@ -102,6 +102,7 @@ class MainWindow(QMainWindow):
         analysis_menu.triggered[QtGui.QAction].connect(self.do_view_action)
 
         tools_menu = bar.addMenu("Tools")
+        tools_menu.addAction("Set Paraxial Focus")
         tools_menu.addAction("Refocus")
         tools_menu.addAction("Set Vignetting")
         tools_menu.addAction("Set Apertures")
@@ -441,6 +442,9 @@ class MainWindow(QMainWindow):
 
         if action == "Refocus":
             appcmds.refocus(opt_model, gui_parent=self)
+
+        if action == "Set Paraxial Focus":
+            appcmds.set_paraxial_focus(opt_model, gui_parent=self)
 
     def do_window_action(self, q):
         self.window_action(q.text())

@@ -702,8 +702,8 @@ class ParaxialModel():
         """ Return single lens constructional parameters from parax_model. 
         
         This method uses a method for thickening a lens element developed by
-        Lopez-Lopez in his `PhD dissertation <https://repository.arizona.edu/handle/10150/582195>`_  
-        The application of the Delano |ybar| diagram to optical design. 
+        Lopez-Lopez in his `PhD dissertation <https://repository.arizona.edu/handle/10150/582195>`_, 
+        *The application of the Delano* |ybar| *diagram to optical design*. 
         
         The variables are named following the notation in the thesis. He used
         `z` for the |ybar| coordinates; the reduced slopes and system
@@ -805,24 +805,33 @@ class ParaxialModel():
         return y_star, ybar_star
 
     # --- power and thickness solves
-    def pwr_slope_solve(self, ray, surf: int, slp_new):
-        p = ray[surf-1]
-        c = ray[surf]
+    def pwr_slope_solve(self, parax_ray, surf: int, slp_new: float) -> float:
+        """ solve for power to give `parax_ray.slp_new` after `surf` """
+        p = parax_ray[surf-1]
+        c = parax_ray[surf]
         pwr = (p[mc.slp] - slp_new)/c[mc.ht]
         return pwr
 
-    def pwr_ht_solve(self, ray, surf: int, ht_new):
+    def pwr_ht_solve(self, parax_ray, surf: int, ht_new: float) -> float:
+        """ solve for power to give `parax_ray.ht_new` on `surf` +1 """
         sys = self.sys
-        p = ray[surf-1]
-        c = ray[surf]
+        p = parax_ray[surf-1]
+        c = parax_ray[surf]
         slp_new = (ht_new - c[mc.ht])/sys[surf][mc.tau]
         pwr = (p[mc.slp] - slp_new)/ht_new
         return pwr
 
-    def thi_ht_solve(self, ray, surf: int, ht_new):
-        c = ray[surf]
-        thi = (ht_new - c[mc.ht])/c[mc.slp]
+    def thi_ht_solve(self, parax_ray, surf: int, ht_new: float) -> float:
+        """ solve for thi to give `parax_ray.ht_new` on `surf` +1 """
+        sys = self.sys
+        c = parax_ray[surf]
+        thi = sys[surf][mc.indx]*(ht_new - c[mc.ht])/c[mc.slp]
         return thi
+
+    def set_paraxial_focus(self, seq_model):
+        """ Set the image at the paraxial image point using the final gap."""
+        pim = self.thi_ht_solve(self.ax, -1, 0)
+        seq_model.gaps[-1].thi += pim
 
     # --- calculations
     def compute_principle_points_from_dgm(self, os_idx=0, is_idx=-2):

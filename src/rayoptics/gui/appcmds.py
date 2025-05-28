@@ -283,3 +283,11 @@ def refocus(opt_model, gui_parent=None):
         opt_model.update_model(src_model=opt_model['optical_spec'])
     else:
         gui_parent.refresh_gui(src_model=opt_model['optical_spec'])
+
+def set_paraxial_focus(opt_model, gui_parent=None):
+    """ Set the image at the paraxial image point using the final gap."""
+    opt_model['parax_model'].set_paraxial_focus(opt_model['seq_model'])
+    if gui_parent is None:
+        opt_model.update_model(src_model=opt_model['optical_spec'])
+    else:
+        gui_parent.refresh_gui(src_model=opt_model['optical_spec'])
