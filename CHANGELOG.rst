@@ -5,6 +5,11 @@ Changelog
 =========
 
 
+Version 0.9.7
+=============
+Resolve build and deployment issues. Next time, maybe do a test deployment to testpypi?
+
+
 Version 0.9.6
 =============
 Added ability to set/get :class:`~.raytr.opticalspec.Field` values, in either relative (xf, yf) or absolute (xv, yv) terms.
