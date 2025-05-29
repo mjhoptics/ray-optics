@@ -437,7 +437,7 @@ class OpticalModel:
         Args:
             part: part and sub parts to be removed
             merge: if True, the 2 enclosing airgaps will be merged
-            do_update: if True, models will be updated after part is added
+            do_update: if True, models will be updated after part is removed
             **kwargs: optional keyword arguments
         """
         pt = self['part_tree']
