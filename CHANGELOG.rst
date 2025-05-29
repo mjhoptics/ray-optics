@@ -5,6 +5,17 @@ Changelog
 =========
 
 
+Version 0.9.6
+=============
+Added ability to set/get :class:`~.raytr.opticalspec.Field` values, in either relative (xf, yf) or absolute (xv, yv) terms.
+
+Added :meth:`~.optical.opticalmodel.OpticalModel.remove_part` method to OpticalModel. A significant amount of work was done to handle seq_model to ele_model changes. This included getting lens rendering for flipped parts and reflections working consistently.
+
+Add `phantom` interact_mode type to :class:`~.seq.interface.Interface` to support multi-step decenter transformations without rendering them or raytracing them. Zemax coordinate break surfaces are modeled as phantom interfaces by default. Add a new method, :meth:`~.seq.sequential.SequentialModel.add_coord_break`, to add these interfaces to the seq_model.
+
+Add :func:`~.gui.appcmds.set_paraxial_focus` function to use the last gap thickness to set the paraxial focus at the image surface. This was added to the Tools menu as well.
+
+
 Version 0.9.5
 =============
 Fix numerous issues with :class:`~.elem.profiles.EvenPolynomial` and similar aspherics (issue 164). Remove use of named coefficient attributes in favor of the `coefs` list. Added :meth:`~.elem.profiles.EvenPolynomial.get_by_order` /:meth:`~.elem.profiles.EvenPolynomial.set_by_order` pair to get coefficients by their order number rather than index directly into `coefs`. Updated CODE V import to use `coefs`.
