@@ -74,5 +74,5 @@ traitlets==5.14.3
     #   rayoptics (setup.py)
 transforms3d==0.4.2
     # via rayoptics (setup.py)
-sphinx==8.2.3
+sphinx==8.1.3
 sphinx_rtd_theme==3.0.1
