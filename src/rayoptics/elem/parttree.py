@@ -178,7 +178,7 @@ class PartTree():
             after_ag, after_agn = self.parent_object(
                 (sm.gaps[idx_k], sm.z_dir[idx_k]),
                 tag='#space')
-            prev_ag.gap.thi += after_ag.gap.thi
+            prev_ag.gaps[0].thi += after_ag.gaps[0].thi
         else:
             after_agn = None
 
