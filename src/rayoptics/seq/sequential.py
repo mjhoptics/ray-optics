@@ -400,17 +400,18 @@ class SequentialModel:
 
     def remove_node(self, idx_1, idx_k, merge: bool = True, **kwargs):
         """ Remove a range of ifcs/gaps by indices. """
-        idx_stop = self.stop_surface
-        if idx_stop > idx_1 and idx_stop <= idx_k:
-            idx_stop = idx_1
-        elif idx_stop > idx_k:
-            idx_stop -= idx_k - idx_1 + 1
         
-        # make sure the stop and image surfs are separate;
-        #  move stop to previous surf if in conflict
-        img_adj = -1 if idx_k+2 == len(self.ifcs) else 0
-        idx_stop += img_adj
-        self.stop_surface = idx_stop
+        if idx_stop:=self.stop_surface is not None:
+            if idx_stop > idx_1 and idx_stop <= idx_k:
+                idx_stop = idx_1
+            elif idx_stop > idx_k:
+                idx_stop -= idx_k - idx_1 + 1
+            
+            # make sure the stop and image surfs are separate;
+            #  move stop to previous surf if in conflict
+            img_adj = -1 if idx_k+2 == len(self.ifcs) else 0
+            idx_stop += img_adj
+            self.stop_surface = idx_stop
 
         idx_0 = idx_1-1 if idx_1 > 0 else 0 
         if merge:
