@@ -1665,7 +1665,8 @@ class CementedElement(Part):
         if self.parent is not None:
             # if seq_model is accessible, refresh idxs
             seq_model = self.parent.opt_model['seq_model']
-            self.idxs = [seq_model.ifcs.index(ifc) for ifc in self.ifcs]
+            self.idxs = [seq_model.ifcs.index(ifc) for ifc in self.ifcs 
+                         if ifc in seq_model.ifcs]
 
         return self.idxs
 
