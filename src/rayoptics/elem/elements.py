@@ -16,6 +16,7 @@ from packaging import version
 
 from abc import abstractmethod
 from typing import Protocol, ClassVar, List, Dict, Any, runtime_checkable
+from rayoptics.typing import SeqPath
 
 from math import sqrt
 import numpy as np
@@ -675,6 +676,10 @@ class Part(Protocol):
         raise NotImplementedError
 
     @abstractmethod
+    def seq(self, **kwargs) -> SeqPath:
+        raise NotImplementedError
+
+    @abstractmethod
     def tree(self, **kwargs) -> Node:
         raise NotImplementedError
 
@@ -896,6 +901,10 @@ class Element(Part):
         self.gap = seq_model.gaps[gap_list[0]]
         self.z_dir = seq_model.z_dir[self.s1_indx]
         self.medium_name = self.gap.medium.name()
+
+    def seq(self, **kwargs) -> SeqPath:
+        rndx = self.gap.medium.rindex('d')
+        return [[self.s1, self.gap, None, rndx, 1], [self.s2, None, None, 1, 1]]
 
     def tree(self, **kwargs):
         """Build tree linking sequence to element model. """
@@ -1187,6 +1196,9 @@ class SurfaceInterface(Part):
         self.s = seq_model.ifcs[idx_list[0]]
         self.profile = self.s.profile
 
+    def seq(self, **kwargs) -> SeqPath:
+        return [[self.s, None, None, 1, 1]]
+    
     def tree(self, **kwargs):
         default_label_prefix = kwargs.get('default_label_prefix', 'S')
         default_tag = kwargs.get('default_tag', '#element#surface')
@@ -1355,7 +1367,10 @@ class Mirror(SurfaceInterface):
         if self.thi is None:
             thi = 0.05*self.sd
         return thi
-    
+
+    def seq(self, **kwargs) -> SeqPath:
+        return [[self.s, None, None, -1, -1]]
+        
     def tree(self, **kwargs):
         kwargs['default_label_prefix'] = 'M'
         kwargs['default_tag'] = '#element#mirror'
@@ -1614,6 +1629,31 @@ class CementedElement(Part):
 
         self.z_dir = seq_model.z_dir[self.idxs[0]]
 
+    def seq(self, **kwargs) -> SeqPath:
+        ifcs = self.ifcs
+        gaps = self.gaps
+        seq_seg_list = []
+        if self.ele_token == 'cemented':
+            for i, sg in enumerate(zip_longest(ifcs, gaps)):
+                s, gap = sg
+                rndx = gap.medium.rindex('d') if gap is not None else 1
+                seq_seg_list.append([s, gap, None, rndx, 1])
+
+        elif self.ele_token == 'mangin':
+            for i, gap in enumerate(gaps):
+                rndx = gap.medium.rindex('d') if gap is not None else 1
+                seq_seg_list.append([ifcs[i], gap, None, rndx, 1])
+
+            seq_seg_list.append([ifcs[i+1], gap, None, -rndx, -1])         
+
+            for i, sg in enumerate(zip_longest(ifcs[len(ifcs)-2::-1], 
+                                               gaps[len(gaps)-2::-1])):
+                s, gap = sg
+                rndx = gap.medium.rindex('d') if gap is not None else -1
+                seq_seg_list.append([s, gap, None, rndx, -1])
+
+        return seq_seg_list
+    
     def tree(self, **kwargs):
         default_tag = '#element#cemented'
         tag = default_tag + kwargs.get('tag', '')
@@ -1998,6 +2038,10 @@ class ThinElement(Part):
 
     def __str__(self):
         return str(self.intrfc)
+    
+    def seq(self, **kwargs) -> SeqPath:
+        tl_ifc = self.intrfc
+        return [[tl_ifc, None, None, tl_ifc.ref_index, 1]]
 
     def tree(self, **kwargs):
         default_tag = '#element#thinlens'
@@ -2163,6 +2207,9 @@ class DummyInterface(Part):
         self.ref_ifc = seq_model.ifcs[self.idx]
         self.profile = self.ref_ifc.profile
 
+    def seq(self, **kwargs) -> SeqPath:
+        return [[self.ref_ifc, None, None, 1, 1]]
+    
     def tree(self, **kwargs):
         default_tag = '#dummyifc'
         if self.ele_token == 'object':
@@ -2351,6 +2398,10 @@ class Space(Part):
         self.gaps = [seq_model.gaps[i] for i in gap_list]
         self.medium_name = self.gaps[0].medium.name()
 
+    def seq(self, **kwargs) -> SeqPath:
+        rndx = self.gaps[0].medium.rindex('d')
+        return [[None, self.gaps[0], None, rndx, 1]]
+    
     def tree(self, **kwargs):
         default_label_prefix = kwargs.get('default_label_prefix', 'SP')
         default_tag = kwargs.get('default_tag', '#space')
@@ -2491,6 +2542,10 @@ class AirGap(Space):
             self.ele_token = AirGap.default_ele_token
         super().sync_to_restore(ele_model, surfs, gaps, tfrms, 
                                 profile_dict, parts_dict)
+
+    def seq(self, **kwargs) -> SeqPath:
+        return [[None, self.gaps[0], None, 1, 1]]
+        
     def tree(self, **kwargs):
         kwargs['default_label_prefix'] = 'AG'
         kwargs['default_tag'] = '#space#airgap'
@@ -2574,6 +2629,12 @@ class Assembly(Part):
                 p_node = part_tree.node(p)
         self.medium_name = self._construct_medium_name()
 
+    def seq(self, **kwargs) -> SeqPath:
+        asm_seq = []
+        for p in self.parts:
+            asm_seq.extend(p.seq())
+        return asm_seq
+    
     def tree(self, **kwargs):
         if 'part_tree' in kwargs:
             part_tree = kwargs.get('part_tree')
