@@ -2594,7 +2594,10 @@ class Assembly(Part):
 
     def reference_idx(self):
         idxs = self.idx_list()
-        self.idx = idxs[0]
+        if len(idxs) > 0:
+            self.idx = idxs[0]
+        else:
+            self.idx = 0
         return self.idx
 
     def reference_interface(self):
