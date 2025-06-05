@@ -347,6 +347,12 @@ class SequentialModel:
                 if len(self.ifcs) > 2:
                     if self.stop_surface > idx and self.stop_surface > 1:
                         self.stop_surface -= 1
+        
+            # decrement cur_surface as needed
+            if self.cur_surface is not None:
+                if len(self.ifcs) > 2:
+                    if self.cur_surface > idx and self.cur_surface > 0:
+                        self.cur_surface -= 1
 
             # interface related attribute lists
             del self.ifcs[idx]
@@ -546,6 +552,15 @@ class SequentialModel:
         self.wvlns = spectral_region.wavelengths
         self.rndx = self.calc_ref_indices_for_spectrum(self.wvlns)
 
+        num_ifcs = len(self.ifcs)
+        if self.cur_surface is not None:
+            if num_ifcs == 2:
+                self.cur_surface = 0
+            elif self.cur_surface >= num_ifcs:
+                self.cur_surface = num_ifcs - 1
+        else:  # if None set cur_surface to insert before image surface
+            self.cur_surface = num_ifcs - 2
+        
         start = kwargs.get('start', 0)
         b4_idx = start if start == 0 else start-1
         n_before = self.rndx[b4_idx][ref_wl]
