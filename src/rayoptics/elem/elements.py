@@ -315,8 +315,8 @@ def create_cemented_doublet(power=0., bending=0., th=None, sd=1.,
     ce = CementedElement(ifc_list=ifc_list)
     tree = ce.tree()
 
-    return [[s1, g1, None, rndx_a, 1],
-            [s2, g2, None, rndx_b, 1],
+    return [[s1, g1, None, rndx_a[0], 1],
+            [s2, g2, None, rndx_b[0], 1],
             [s3, None, None, 1, 1]], [ce], tree, None
 
 
