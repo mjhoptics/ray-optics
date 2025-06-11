@@ -53,7 +53,7 @@ qdarkstyle==3.2.3
     # via rayoptics (setup.py)
 qtconsole==5.6.1
     # via rayoptics (setup.py)
-requests==2.32.3
+requests==2.32.4
     # via
     #   opticalglass
     #   rayoptics (setup.py)
