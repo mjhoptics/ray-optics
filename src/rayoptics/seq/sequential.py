@@ -257,16 +257,21 @@ class SequentialModel:
             g = self.gaps[srf]
         return s, g
 
-    def set_cur_surface(self, s):
+    def set_cur_surface(self, s: int):
         self.cur_surface = s
 
-    def set_stop(self):
+    def set_stop(self, cur_idx: int = None) -> int:
         """ sets the stop surface to the current surface """
-        self.stop_surface = self.cur_surface
+        if cur_idx is None:
+            cur_idx = self.cur_surface
+        if cur_idx is not None and len(self.ifcs)>2:
+            self.stop_surface = cur_idx if cur_idx>0 else 1
+        else:
+            self.stop_surface = None
         return self.stop_surface
 
     def insert(self, ifc, gap, z_dir=1, idx=None):
-        """ insert ifc and gap after cur_surface in seq_model lists """
+        """ insert ifc and gap *after* cur_surface in seq_model lists """
 
         if idx is None:
             if self.stop_surface is not None:
@@ -373,9 +378,17 @@ class SequentialModel:
     def replace_node_with_seq(self, e_node, seq, **kwargs):
         """ Replace a sub-sequence of e_node with seq. """
         if e_node is None:
-            idx_1 = kwargs.get('idx', self.cur_surface)
+            idx_1 = idx_k = kwargs.get('idx', self.cur_surface)
         else:
-            idx_1, idx_k, idx_stop = self.remove_node(e_node)
+            pt = self.opt_model['part_tree']
+            ifcs = [n.id for n in pt.nodes_with_tag(tag='#ifc', root=e_node)]
+            if len(ifcs) > 0:
+                idx_1 = self.ifcs.index(ifcs[0])
+                idx_k = self.ifcs.index(ifcs[-1])
+            else:
+                idx_1 = idx_k = self.cur_surface
+
+        self.remove_node(idx_1, idx_k, merge=False)
 
         # add seq into self.
         tfrm = np.identity(3), np.array([0., 0., 0.])
@@ -390,6 +403,7 @@ class SequentialModel:
 
         # figure out where the stop belongs
         if self.stop_surface is not None:
+            idx_stop = self.stop_surface
             if idx_stop <= idx_1:
                 pass
             elif idx_stop <= idx_k:
@@ -398,7 +412,7 @@ class SequentialModel:
                 self.stop_surface = None
             else:
                 idx_delta = idx_stop - idx_k
-                idx_stop_new = idx + idx_delta
+                idx_stop_new = idx_1 + idx_delta
                 self.stop_surface = idx_stop_new
 
         # handle inserted reflecting interfaces
@@ -407,16 +421,17 @@ class SequentialModel:
     def remove_node(self, idx_1, idx_k, merge: bool = True, **kwargs):
         """ Remove a range of ifcs/gaps by indices. """
         
-        if idx_stop:=self.stop_surface is not None:
+        if (idx_stop:=self.stop_surface) is not None:
             if idx_stop > idx_1 and idx_stop <= idx_k:
                 idx_stop = idx_1
             elif idx_stop > idx_k:
                 idx_stop -= idx_k - idx_1 + 1
             
-            # make sure the stop and image surfs are separate;
-            #  move stop to previous surf if in conflict
-            img_adj = -1 if idx_k+2 == len(self.ifcs) else 0
-            idx_stop += img_adj
+                # make sure the stop and image surfs are separate;
+                #  move stop to previous surf if in conflict
+                img_adj = -1 if idx_k+2 == len(self.ifcs) else 0
+                idx_stop += img_adj
+
             self.stop_surface = idx_stop
 
         idx_0 = idx_1-1 if idx_1 > 0 else 0 
@@ -428,9 +443,10 @@ class SequentialModel:
             del self.ifcs[idx]
             del self.lcl_tfrms[idx]
             del self.gbl_tfrms[idx]
-            del self.gaps[idx]
-            del self.z_dir[idx]
-            del self.rndx[idx]
+            if idx != idx_k or merge:
+                del self.gaps[idx]
+                del self.z_dir[idx]
+                del self.rndx[idx]
 
         incr = 1 if merge else 0
         self.seq_def.remove_tokens(idx_1, idx_k, inc_k=incr)

@@ -11,6 +11,7 @@ import math
 from itertools import zip_longest
 import numpy as np
 
+from rayoptics.typing import SeqPath
 import rayoptics.optical.model_constants as mc
 import rayoptics.parax.firstorder as fo
 from rayoptics.parax.idealimager import ideal_imager_setup
@@ -337,24 +338,24 @@ class ParaxialModel():
             if flip < 0:
                 ss[mc.indx] = -ss[mc.indx]
 
-    def replace_node_with_seq(self, node, sys_seq, pp_info):
-        """ replaces the data at node with sys_seq """
+    def replace_node_with_seq(self, node_idx, sys_seq, pp_info):
+        """ replaces the data at node_idx with sys_seq """
         sys = self.sys
         ax = self.ax
         pr = self.pr
         if len(sys_seq) == 1:
-            sys[node] = sys_seq[0]
+            sys[node_idx] = sys_seq[0]
         else:
             opt_inv = self.opt_inv
-            power, efl, fl_obj, fl_img, pp1, ppk, pp_sep, ffl, bfl = pp_info[2]
-            sys[node-1][mc.tau] -= pp1/sys[node-1][mc.indx]
+            power, efl, fl_obj, fl_img, pp1, ppk, pp_sep, ffl, bfl = pp_info
+            sys[node_idx-1][mc.tau] -= pp1/sys[node_idx-1][mc.indx]
     
-            # sys_seq[-1][tau] = sys[node][tau] - ppk/sys_seq[-1][indx]
-            p0 = [ax[node][mc.ht], pr[node][mc.ht]]
-            pn = [ax[node+1][mc.ht], pr[node+1][mc.ht]]
-            slp0 = [ax[node][mc.slp], pr[node][mc.slp]]
+            # sys_seq[-1][tau] = sys[node_idx][tau] - ppk/sys_seq[-1][indx]
+            p0 = [ax[node_idx][mc.ht], pr[node_idx][mc.ht]]
+            pn = [ax[node_idx+1][mc.ht], pr[node_idx+1][mc.ht]]
+            slp0 = [ax[node_idx][mc.slp], pr[node_idx][mc.slp]]
     
-            for n, ss in enumerate(sys_seq[:-1], start=node):
+            for n, ss in enumerate(sys_seq[:-1], start=node_idx):
                 sys.insert(n, ss)
     
                 ax_ht = ax[n-1][mc.ht] + sys[n-1][mc.tau]*ax[n-1][mc.slp]
@@ -365,7 +366,7 @@ class ParaxialModel():
                 pr_slp = pr[n-1][mc.slp] - pr_ht*sys[n][mc.pwr]
                 pr.insert(n, [pr_ht, pr_slp])
     
-            # replace the original node data
+            # replace the original node_idx data
             ax[n+1][mc.slp] = slp0[0]
             pr[n+1][mc.slp] = slp0[1]
             sys[n+1][mc.pwr] = (ax[n][mc.slp]*pr[n+1][mc.slp] -
@@ -380,19 +381,19 @@ class ParaxialModel():
                 (ax[n][mc.ht]*pr[n+1][mc.ht] - ax[n+1][mc.ht]*pr[n][mc.ht])/opt_inv)
             sys[n+1][mc.tau] = (p2int[0]*pn[1] - pn[0]*p2int[1])/opt_inv
 
-    def get_object_for_node(self, node):
+    def get_object_for_node(self, node_idx):
         ''' basic 1:1 relationship between seq and parax model sequences '''
-        ifc = self.seq_model.ifcs[node]
+        ifc = self.seq_model.ifcs[node_idx]
         e_node = self.opt_model.part_tree.parent_node(ifc)
-        prx = self, node, mc.ht
-        dgm_pkg = [self.get_pt(node)], [self.sys[node][mc.indx:mc.rmd+1]]
+        prx = self, node_idx, mc.ht
+        dgm_pkg = [self.get_pt(node_idx)], [self.sys[node_idx][mc.indx:mc.rmd+1]]
         dgm = prx, dgm_pkg
         args = [[ifc, None, None, 1, 1]], [e_node.id], e_node, dgm
-        kwargs = {'idx': node}
+        kwargs = {'idx': node_idx}
         return args, kwargs
 
     def delete_node(self, surf):
-        """ delete the node at position surf """
+        """ delete the dgm node at position surf """
         del self.sys[surf]
         del self.ax[surf]
         del self.pr[surf]
@@ -661,7 +662,7 @@ class ParaxialModel():
 
     # --- convert to/from sequential model
 
-    def seq_path_to_paraxial_lens(self, path):
+    def seq_path_to_paraxial_lens(self, path: SeqPath):
         """ returns lists of power, reduced thickness, signed index and refract
             mode
         """
@@ -834,12 +835,12 @@ class ParaxialModel():
         seq_model.gaps[-1].thi += pim
 
     # --- calculations
-    def compute_principle_points_from_dgm(self, os_idx=0, is_idx=-2):
+    def compute_principle_points_from_dgm(self, idx_os=0, idx_is=-2):
         """ Calculate focal points and principal points.
 
         Args:
-            os_idx: object space gap index
-            is_idx: image space gap index
+            idx_os: object space gap index
+            idx_is: image space gap index
 
         Returns:
             (power, efl, fl_obj, fl_img, pp1, ppk, pp_sep, ffl, bfl)
@@ -860,7 +861,7 @@ class ParaxialModel():
         pp_info = compute_principle_points_from_dgm(self.ztwp[0], 
                                                     self.sys, 
                                                     self.opt_inv, 
-                                                    os_idx, is_idx)
+                                                    idx_os, idx_is)
         return pp_info
 
     def apply_conjugate_shift(self, nodes, k, mat, line_type):
@@ -1421,15 +1422,15 @@ def calc_object_and_pupil_from_dgm(Z, idx: int):
     return y_star, ybar_star
 
 
-def compute_principle_points_from_dgm(Z, sys, opt_inv, os_idx=0, is_idx=-2):
+def compute_principle_points_from_dgm(Z, sys, opt_inv, idx_os=0, idx_is=-2):
     """ Calculate focal points and principal points.
 
     Args:
         Z: array of diagram points
         sys: the system data for the diagram
         opt_inv: optical invariant
-        os_idx: object space gap index
-        is_idx: image space gap index
+        idx_os: object space gap index
+        idx_is: image space gap index
 
     Returns:
         (power, efl, fl_obj, fl_img, pp1, ppk, pp_sep, ffl, bfl)
@@ -1440,12 +1441,9 @@ def compute_principle_points_from_dgm(Z, sys, opt_inv, os_idx=0, is_idx=-2):
         - fl_img: image space focal length, f'
         - pp1: distance from the 1st interface to the front principle plane
         - ppk: distance from the last interface to the rear principle plane
-        - pp_sep: distance from the front principle plane to the rear 
-                  principle plane
-        - ffl: front focal length, distance from the 1st interface to the 
-               front focal point
-        - bfl: back focal length, distance from the last interface to the back
-               focal point
+        - pp_sep: distance from the front principle plane to the rear principle plane
+        - ffl: front focal length, distance from the 1st interface to the front focal point
+        - bfl: back focal length, distance from the last interface to the back focal point
     """
     def oal():
         oal = 0
@@ -1453,13 +1451,13 @@ def compute_principle_points_from_dgm(Z, sys, opt_inv, os_idx=0, is_idx=-2):
             oal += s[mc.indx]*s[mc.tau]
         return oal
     
-    n_o = sys[os_idx][mc.indx]
-    n_i = sys[is_idx][mc.indx]
+    n_o = sys[idx_os][mc.indx]
+    n_i = sys[idx_is][mc.indx]
 
-    z0 = Z[os_idx]
-    z1o = Z[os_idx+1]
-    z1i = Z[is_idx]
-    z2 = Z[is_idx+1]
+    z0 = Z[idx_os]
+    z1o = Z[idx_os+1]
+    z1i = Z[idx_is]
+    z2 = Z[idx_is+1]
 
     z1 = np.array(get_intersect(z0, z1o, z1i, z2))
 

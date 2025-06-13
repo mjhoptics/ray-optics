@@ -427,7 +427,7 @@ def compute_principle_points(path, oal, n_0=1.0, n_k=1.0):
         n_k: refractive index following last interface
 
     Returns:
-        (p_ray, q_ray, (efl, fl_obj, fl_img, pp1, ppk, ffl, bfl))
+        (p_ray, q_ray, (efl, fl_obj, fl_img, pp1, ppk, pp_sep, ffl, bfl))
 
         - p_ray: [ht, slp, aoi], [1, 0, -]
         - q_ray: [ht, slp, aoi], [0, 1, -]
