@@ -16,12 +16,13 @@ import rayoptics
 
 import rayoptics.elem.elements as ele
 import rayoptics.optical.model_constants as mc
+import rayoptics.parax.firstorder as fo
 
 #from rayoptics.elem import elements
 from rayoptics.elem import parttree
 from rayoptics.elem.parttree import (PartTree, sequence_to_elements)
 from rayoptics.parax.paraxialdesign import ParaxialModel
-from rayoptics.seq.sequential import SequentialModel
+from rayoptics.seq.sequential import SequentialModel, overall_length
 from rayoptics.raytr.opticalspec import OpticalSpecs
 from rayoptics.parax.specsheet import create_specsheet_from_model
 from rayoptics.optical.model_enums import get_dimension_for_type
@@ -653,6 +654,12 @@ class OpticalModel:
         # remove interfaces from seq_model
         if dgm is not None:
             pm.replace_node_with_dgm(e_node, dgm, **inputs)
+        else:
+            _, _, pp_info = fo.compute_principle_points(iter(seq), 
+                                                        overall_length(seq),
+                                                        os_idx=0, is_idx=-1)
+            sys_seq = pm.seq_path_to_paraxial_lens(seq)
+            pm.replace_node_with_seq(inputs['idx'], sys_seq, pp_info)
 
         # remove elements from ele_model
         em.remove_node(e_node)

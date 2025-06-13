@@ -12,6 +12,7 @@ import numpy as np
 from collections import namedtuple
 from rayoptics.optical.model_constants import ht, slp, aoi
 import rayoptics.optical.model_constants as mc
+from rayoptics.typing import Path
 from rayoptics.parax.idealimager import ideal_imager_setup
 from rayoptics.util import misc_math
 
@@ -415,7 +416,9 @@ def compute_first_order(opt_model, stop, wvl, src_model=None):
     return ParaxData(ax_ray, pr_ray, fod)
 
 
-def compute_principle_points(path, oal, n_0=1.0, n_k=1.0):
+def compute_principle_points(path: Path, oal: float, 
+                             n_0: float=1.0, n_k: float=1.0,
+                             os_idx: int=1, is_idx: int|None=None):
     """ Returns paraxial p and q rays, plus partial first order data.
 
     Args:
@@ -445,9 +448,12 @@ def compute_principle_points(path, oal, n_0=1.0, n_k=1.0):
                focal point
     """
     uq0 = 1/n_0
-    p_ray, q_ray = paraxial_trace(path, 1, [1., 0.], [0., uq0])
+    p_ray, q_ray = paraxial_trace(path, os_idx, [1., 0.], [0., uq0])
 
-    img = -2 if len(p_ray) > 2 else -1
+    if is_idx is None:
+        img = -2 if len(p_ray) > 2 else -1
+    else:
+        img = is_idx
     ak1 = p_ray[img][ht]
     bk1 = q_ray[img][ht]
     ck1 = n_k*p_ray[img][slp]

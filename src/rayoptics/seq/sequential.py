@@ -12,6 +12,7 @@ import logging
 from anytree import Node
 
 import rayoptics.optical.model_constants as mc
+from rayoptics.typing import SeqPath
 
 from rayoptics.elem import surface
 from . import gap
@@ -1254,6 +1255,21 @@ def create_surface_and_gap(surf_data, radius_mode=False, prev_medium=None,
     tfrm = np.identity(3), np.array([0., 0., thi])
 
     return s, g, z_dir, rndx, tfrm
+
+
+def overall_length(path: SeqPath) -> float:
+    """ Sum gap thicknesses for `path` 
+
+    Returns:
+        oal: float, overal length of gap range
+    """
+    oal = 0
+    for sg in path:
+        g = sg[mc.Gap]
+        if g is not None:
+            oal += g.thi
+        # print(f"{oal}    +{g.thi}")
+    return oal
 
 
 class SequentialStr:
