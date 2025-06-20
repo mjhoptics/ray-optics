@@ -16,7 +16,7 @@ from rayoptics.util.misc_math import isanumber
 from opticalglass import glass as cat_glass
 from opticalglass import glassfactory as gfact
 from opticalglass import glasserror
-from opticalglass import util
+import opticalglass as og
 
 from opticalglass import opticalmedium as om
 from opticalglass import modelglass as mg
@@ -127,8 +127,8 @@ class GlassHandlerBase():
 
     def __init__(self, filename):
         self.glass_catalogs = []
-        self.glasses_not_found = util.Counter()
-        self.track_contents = util.Counter()
+        self.glasses_not_found = og.util.Counter()
+        self.track_contents = og.util.Counter()
         self.filename = None
         if filename:
             self.filename = filename.with_suffix('.smx')
@@ -138,7 +138,7 @@ class GlassHandlerBase():
                                       for key, value in gfact._custom_glass_registry.items()}
 
     def load_replacements(self, filename):
-        glasses_not_found = util.Counter()
+        glasses_not_found = og.util.Counter()
         if filename.exists():
             with filename.open('r') as file:
                 glasses_not_found = json.load(file)

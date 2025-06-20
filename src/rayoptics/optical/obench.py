@@ -25,12 +25,13 @@ from rayoptics.util.misc_math import isanumber, is_kinda_big
 
 from opticalglass import util
 
-_track_contents = None
+_track_contents: dict|None = None
 
 
-def read_obench_url(url, **kwargs):
+def read_obench_url(url, **kwargs) -> tuple["OpticalModel", tuple[dict, dict]]:
     ''' given a url to a OpticalBench file, return an OpticalModel and info. '''
     global _track_contents
+
     url1 = url.replace('OpticalBench.htm#', '')
     url2 = url1.partition(',')[0]
     r = requests.get(url2, allow_redirects=True)
@@ -52,13 +53,13 @@ def read_obench_url(url, **kwargs):
             obench_dict[key].append(line)
 
     opt_model = read_lens(obench_dict, **kwargs)
-    _track_contents['obench db'] = obench_dict
-    _track_contents['encoding'] = apparent_encoding
+    _track_contents['obench db'] = obench_dict   # type: ignore
+    _track_contents['encoding'] = apparent_encoding   # type: ignore
 
-    return opt_model, _track_contents
+    return opt_model, (_track_contents, {})   # type: ignore
 
 
-def read_lens(inpts, opt_model=None):
+def read_lens(inpts, opt_model=None) -> OpticalModel:
     global _track_contents
     def read_float(s):
         if s == 'Infinity':

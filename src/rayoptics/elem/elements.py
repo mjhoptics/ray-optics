@@ -36,7 +36,6 @@ from rayoptics.seq.medium import decode_medium
 from rayoptics.seq.sequential import SequentialModel
 from rayoptics.seq.interface import Interface
 
-import rayoptics.gui.appcmds as cmds
 from rayoptics.gui.actions import (Action, AttrAction, SagAction, BendAction,
                                    ReplaceGlassAction)
 from rayoptics.gui.util import (calc_render_color_for_material, transform_poly)
@@ -354,6 +353,7 @@ def create_from_file(filename, create_asm: bool=True, **kwargs):
     Returns: 
         model descriptor: seq, parts, nodes, dgm
     """
+    import rayoptics.gui.appcmds as cmds
     opm_file = cmds.open_model(filename, post_process_imports=False)
     sm_file = opm_file['seq_model']
     osp_file = opm_file['optical_spec']
@@ -1350,18 +1350,18 @@ class Mirror(SurfaceInterface):
         super().sync_to_restore(ele_model, surfs, gaps, tfrms, 
                                 profile_dict, parts_dict)
 
-    def get_thi(self):
+    def get_thi(self) -> float:
         thi = self.thi
-        if self.thi is None:
+        if thi is None:
             thi = 0.05*self.sd
         return thi
-    
+
     def tree(self, **kwargs):
         kwargs['default_label_prefix'] = 'M'
         kwargs['default_tag'] = '#element#mirror'
         return super().tree(**kwargs)
 
-    def substrate_offset(self):
+    def substrate_offset(self) -> float:
         thi = self.get_thi()
         # We want to extend the mirror substrate along the same direction
         # of the incoming ray. The mirror's z_dir is following reflection so

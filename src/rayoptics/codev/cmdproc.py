@@ -53,7 +53,7 @@ def fictitious_glass_decode(gc):
     return n, v
 
 
-def read_lens(filename, **kwargs):
+def read_lens(filename, **kwargs) -> tuple["OpticalModel", tuple[dict, dict]]:
     """ given a CODE V .seq filename, return an OpticalModel
     
     Args:
@@ -63,12 +63,12 @@ def read_lens(filename, **kwargs):
     Returns:
         an OpticalModel instance and a info tuple
     """
-    import rayoptics.optical.opticalmodel as opticalmodel
+    from rayoptics.optical.opticalmodel import OpticalModel
     global _glass_handler, _track_contents
     global _reading_private_catalog
     _reading_private_catalog = False
     _track_contents = util.Counter()
-    opt_model = opticalmodel.OpticalModel(do_init=False)
+    opt_model = OpticalModel(do_init=False)
     _glass_handler = CVGlassHandler(filename)
     cmds = cvr.read_seq_file(filename)
     for i, c in enumerate(cmds):
