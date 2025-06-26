@@ -13,14 +13,13 @@ import logging
 
 from rayoptics.util.misc_math import isanumber
 
+import opticalglass as og
 from opticalglass import glass as cat_glass
 from opticalglass import glassfactory as gfact
-from opticalglass import glasserror
-import opticalglass as og
-
 from opticalglass import opticalmedium as om
 from opticalglass import modelglass as mg
 from opticalglass import rindexinfo as rii
+from opticalglass import glasserror
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +32,7 @@ def glass_decode(gc: float) -> tuple[float, float]:
     return round(1.0 + (int(gc)/1000), 3), round(100.0*(gc - int(gc)), 3)
 
 
-def decode_medium(*inputs, **kwargs):
+def decode_medium(*inputs, **kwargs) -> om.OpticalMedium:
     """ Input utility for parsing various forms of glass input. 
 
     The **inputs** can have several forms:
@@ -111,12 +110,13 @@ class GlassHandlerBase():
     This class is used to match catalog glasses to input glass names. It is
     implemented as a class for ease of use by file importers. If the
     glass can be matched up with an existing :mod:`opticalglass` catalog, the
-    glass is instantiated and entered into the model. If the glass cannot be
-    found, a search for a .smx file of the same name as the model file is made.
-    If found, it is a JSON file with a dict that provides an eval() string to
-    create an instance to replace the missing glass name. If this file
-    isn't found, it is created and contains a JSON template of a dict that has
-    the missing glass names as keys; the values are the number of times the
+    glass is instantiated and entered into the model. Searching includes the 
+    custom_glass_registry from the `opticalglass` package. If the glass cannot
+    be found, a search for a .smx file of the same name as the model file is 
+    made. If found, it is a JSON file with a dict that provides an eval() 
+    string to create an instance to replace the missing glass name. If this 
+    file isn't found, it is created and contains a JSON template of a dict that 
+    has the missing glass names as keys; the values are the number of times the 
     glass occurs in the file. These values should be replaced with the desired
     eval() string to create a replacement glass.
 
@@ -161,7 +161,7 @@ class GlassHandlerBase():
                 with self.filename.open('w') as file:
                     json.dump(self.glasses_not_found, file)
 
-    def find_glass(self, name, catalog, always=True):
+    def find_glass(self, name, catalog, always=True) -> om.OpticalMedium|None:
         """ find `name` glass or a substitute or, if always is True, n=1.5 
         
         Include searching the custom_glass_registry from the 
@@ -194,7 +194,7 @@ class GlassHandlerBase():
 
         return medium
 
-    def find_6_digit_code(self, name):
+    def find_6_digit_code(self, name) -> om.OpticalMedium|None:
         """ process `name` as a 6 digit glass code"""
         if isanumber(name):
             if len(name) == 6:
@@ -207,7 +207,7 @@ class GlassHandlerBase():
         else:
             return None
 
-    def find_substitute_glass(self, name):
+    def find_substitute_glass(self, name) -> om.OpticalMedium|None:
         """Try to find a similar glass to ``name``."""
 
         # create a list of catalogs
@@ -256,7 +256,7 @@ class GlassHandlerBase():
         else:
             return None
 
-    def handle_glass_not_found(self, name):
+    def handle_glass_not_found(self, name) -> om.OpticalMedium|None:
         """Record missing glasses or create new replacement glass instances."""
 
         if self.no_replacements:                # track the number of times
