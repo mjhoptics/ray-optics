@@ -570,7 +570,7 @@ class InteractiveFigure(StyledFigure):
 
         artist_infos = self.find_artists_and_hilite(event)
         self.artist_infos = artist_infos
-        selection: SelectInfo = (artist_infos[0]
+        selection: SelectInfo|None = (artist_infos[0]
                            if len(artist_infos) > 0 else None)
 
         self.is_mouse_down = True
