@@ -32,10 +32,10 @@ class Gap:
 
     Attributes:
         thi: the length (along z) of the gap
-        medium: a :class:`~optical.medium.Medium` or a catalog glass instance
+        medium: an :class:`~opticalglass.opticalmedium.OpticalMedium` instance
     """
 
-    def __init__(self, t=0.0, med=om.Air()):
+    def __init__(self, t: float=0.0, med: om.OpticalMedium=om.Air()):
         self.thi = t
         self.medium = med
 

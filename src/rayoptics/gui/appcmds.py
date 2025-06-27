@@ -11,13 +11,14 @@
 import logging
 import math
 import pathlib
+from typing import Optional
 
 from rayoptics.gui.roafile import open_roa
 from rayoptics.codev import cmdproc
 from rayoptics.optical import obench
 from rayoptics.zemax import zmxread
 
-from rayoptics.optical import opticalmodel
+from rayoptics.optical.opticalmodel import OpticalModel
 from rayoptics.elem.profiles import Spherical, Conic
 import rayoptics.elem.elements as ele
 from rayoptics.elem import layout
@@ -35,7 +36,7 @@ from rayoptics.mpl import interactivefigure
 logger = logging.getLogger(__name__)
 
 
-def open_model(file_url, info=False, **kwargs):
+def open_model(file_url, info=False, **kwargs) -> Optional[OpticalModel] | tuple[OpticalModel, tuple[dict, dict]]:
     """ open a file or url and populate an optical model with the data
 
     Args:
@@ -53,7 +54,7 @@ def open_model(file_url, info=False, **kwargs):
     """
     file_url_pth = pathlib.Path(file_url)
     file_extension = file_url_pth.suffix.lower()
-    opm = None
+    opm: OpticalModel|None = None
     if file_extension == '.roa':
         # if we have a rayoptics file, we just read it
         opm = open_roa(file_url_pth, **kwargs)
@@ -75,7 +76,7 @@ def open_model(file_url, info=False, **kwargs):
 
 def create_empty_model(**kwargs):
     """ factory function returns an instance of OpticalModel """
-    opt_model = opticalmodel.OpticalModel(**kwargs)
+    opt_model = OpticalModel(**kwargs)
     return opt_model
 
 
@@ -106,7 +107,7 @@ def create_new_optical_system(efl=10.0, epd=1, fov=1.0):
 
 def create_new_optical_model_from_specsheet(specsheet):
     """ create an OpticalModel with a basic thinlens model, given specsheet """
-    opt_model = opticalmodel.OpticalModel(specsheet=specsheet)
+    opt_model = OpticalModel(specsheet=specsheet)
 
     # enter a basic thinlens model for the given specsheet
     imager = specsheet.imager
@@ -130,7 +131,7 @@ def update_specsheet(iid, opt_model):
 
 
 def create_yybar_model():
-    opt_model = opticalmodel.OpticalModel()
+    opt_model = OpticalModel()
 
     # put in minimum calculation defaults
     opt_model.seq_model.gaps[0].thi = 1.0
