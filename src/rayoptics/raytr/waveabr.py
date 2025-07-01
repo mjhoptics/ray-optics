@@ -395,19 +395,24 @@ def wave_abr_full_calc_inf_ref(fod, fld, wvl, foc, ray_pkg,
     op_b4 = ray_dist_to_perp_from_origin((p_b4, d_b4))
     op_cr_b4 = ray_dist_to_perp_from_origin((p_cr_b4, d_cr_b4))
 
-    P1, P2 = dist_to_shortest_join((cr_ray[-1][mc.p], cr_ray[-1][mc.d]), 
-                                   (ray[-1][mc.p], ray[-1][mc.d]))
-    rF0 = (P1[0] + P2[0])/2
-
     V_B = ray_op + op_b4
     V_BE = cr_op + op_cr_b4
 
-    W0 = V_B - V_BE + n_img * np.dot((d_b4 - d_cr_b4), rF0)
+    if not (d_b4 - d_cr_b4).any() :  # d_b4 - d_cr_b4 == [0, 0, 0]
+        # parallel rays, no particular point with the shortest distance from the two rays
+        W_inf = V_B - V_BE
 
-    ta = ray[-1][mc.p] - image_pt
-    numer = np.dot(d_cr_b4 - d_b4*np.dot(d_b4, d_cr_b4), ta)
-    denom = 1 + np.dot(d_b4, d_cr_b4)
-    W_inf = W0 + n_img * numer / denom
+    else:
+        P1, P2 = dist_to_shortest_join((cr_ray[-1][mc.p], cr_ray[-1][mc.d]),
+                                       (ray[-1][mc.p], ray[-1][mc.d]))
+        rF0 = (P1[0] + P2[0]) / 2
+
+        W0 = V_B - V_BE + n_img * np.dot((d_b4 - d_cr_b4), rF0)
+
+        ta = ray[-1][mc.p] - image_pt
+        numer = np.dot(d_cr_b4 - d_b4 * np.dot(d_b4, d_cr_b4), ta)
+        denom = 1 + np.dot(d_b4, d_cr_b4)
+        W_inf = W0 + n_img * numer / denom
 
     opd = -n_obj*e1 - W_inf
 
@@ -445,14 +450,19 @@ def wave_abr_pre_calc_inf_ref(fod, fld, wvl, foc,
     op_b4 = ray_dist_to_perp_from_origin((p_b4, d_b4))
     op_cr_b4 = ray_dist_to_perp_from_origin((p_cr_b4, d_cr_b4))
 
-    P1, P2 = dist_to_shortest_join((cr_ray[-1][mc.p], cr_ray[-1][mc.d]), 
-                                   (ray[-1][mc.p], ray[-1][mc.d]))
-    rF0 = (P1[0] + P2[0])/2
-
     V_B = ray_op + op_b4
     V_BE = cr_op + op_cr_b4
 
-    W0 = V_B - V_BE + n_img * np.dot((d_b4 - d_cr_b4), rF0)
+    if not (d_b4 - d_cr_b4).any() :  # d_b4 - d_cr_b4 == [0, 0, 0]
+        # parallel rays, no particular point with the shortest distance from the two rays
+        W0 = V_B - V_BE
+
+    else:
+        P1, P2 = dist_to_shortest_join((cr_ray[-1][mc.p], cr_ray[-1][mc.d]),
+                                       (ray[-1][mc.p], ray[-1][mc.d]))
+        rF0 = (P1[0] + P2[0]) / 2
+
+        W0 = V_B - V_BE + n_img * np.dot((d_b4 - d_cr_b4), rF0)
 
     pre_opd = -n_obj*e1 - W0
 
