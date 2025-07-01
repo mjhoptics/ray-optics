@@ -577,7 +577,7 @@ class ZmxGlassHandler(GlassHandlerBase):
                     self.track_contents['6 digit code'] += 1
                     return True
             else:  # must be a glass type
-                medium = self.find_glass(name, '')
+                medium = self.find_glass(name, self.glass_catalogs)
                 g.medium = medium
                 return True
 
