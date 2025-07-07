@@ -13,6 +13,9 @@
 from math import sqrt
 import numpy as np
 
+from rayoptics.coord_geometry_types import Vec3d, Dir3d
+Ray3d = tuple[Vec3d, Dir3d]
+
 from rayoptics.optical import model_constants as mc
 from rayoptics.elem.transform import transform_after_surface
 
@@ -109,7 +112,7 @@ def transfer_to_exit_pupil(interface, ray_seg, exp_dst_parax):
 
 
 # --- Wavefront aberration
-def eic_distance(r, r0):
+def eic_distance(r: Ray3d, r0: Ray3d) -> float:
     """ calculate equally inclined chord distance between 2 rays
 
     Args:
@@ -127,7 +130,7 @@ def eic_distance(r, r0):
     return e
 
 
-def ray_dist_to_perp_from_pt(r, pt):
+def ray_dist_to_perp_from_pt(r: Ray3d, pt: Vec3d) -> float:
 #def ray_dist_to_perp_from_pt(p, d, pt):
     """ compute distance along ray to perpendicular to `pt`. 
 
@@ -143,7 +146,7 @@ def ray_dist_to_perp_from_pt(r, pt):
     return np.dot(d, (pt - p))
 
 
-def ray_dist_to_perp_from_origin(r):
+def ray_dist_to_perp_from_origin(r: Ray3d) -> float:
     """ compute distance along ray to perpendicular to the origin.
 
     Args:
@@ -156,7 +159,7 @@ def ray_dist_to_perp_from_origin(r):
     return np.dot(d, -p)
 
 
-def dist_to_shortest_join(r1, r2):
+def dist_to_shortest_join(r1: Ray3d, r2: Ray3d) -> tuple[tuple[Vec3d, float], tuple[Vec3d, float]]:
     """ compute distance to pts at the closest join between 2 rays. 
     
     Args:
@@ -174,11 +177,16 @@ def dist_to_shortest_join(r1, r2):
     del_p = p2 - p1
     n = np.cross(d1, d2)
     nn = np.dot(n, n)
-    t1 = np.dot( np.cross(d2, n), del_p) / nn
-    t2 = np.dot( np.cross(d1, n), del_p) / nn
-    p1_min = p1 + t1*d1
-    p2_min = p2 + t2*d2
-    return (p1_min, t1), (p2_min, t2)
+    if nn == 0:
+        t2 = np.dot((p1 - p2), d1)*np.dot(d1, d2)
+        p2_min = p2 + t2*d2
+        return (p1, 0), (p2_min, t2)
+    else:
+        t1 = np.dot( np.cross(d2, n), del_p) / nn
+        t2 = np.dot( np.cross(d1, n), del_p) / nn
+        p1_min = p1 + t1*d1
+        p2_min = p2 + t2*d2
+        return (p1_min, t1), (p2_min, t2)
 
 
 def wave_abr_full_calc(fod, fld, wvl, foc, ray_pkg, chief_ray_pkg, ref_sphere):

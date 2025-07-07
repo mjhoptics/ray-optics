@@ -21,8 +21,8 @@ from rayoptics.seq.medium import GlassHandlerBase
 from rayoptics.raytr.opticalspec import Field
 from rayoptics.util.misc_math import isanumber
 
-from opticalglass import util
-
+import opticalglass as og
+from opticalglass import glassfactory as gfact
 from opticalglass import opticalmedium as om
 from opticalglass import modelglass as mg
 
@@ -53,7 +53,7 @@ def fictitious_glass_decode(gc):
     return n, v
 
 
-def read_lens(filename, **kwargs):
+def read_lens(filename, **kwargs) -> tuple["OpticalModel", tuple[dict, dict]]:
     """ given a CODE V .seq filename, return an OpticalModel
     
     Args:
@@ -63,12 +63,12 @@ def read_lens(filename, **kwargs):
     Returns:
         an OpticalModel instance and a info tuple
     """
-    import rayoptics.optical.opticalmodel as opticalmodel
+    from rayoptics.optical.opticalmodel import OpticalModel
     global _glass_handler, _track_contents
     global _reading_private_catalog
     _reading_private_catalog = False
-    _track_contents = util.Counter()
-    opt_model = opticalmodel.OpticalModel(do_init=False)
+    _track_contents = og.util.Counter()
+    opt_model = OpticalModel(do_init=False)
     _glass_handler = CVGlassHandler(filename)
     cmds = cvr.read_seq_file(filename)
     for i, c in enumerate(cmds):
@@ -144,6 +144,7 @@ def process_command(cmd):
                                             wvls=_private_catalog_wvls, 
                                             rndx=dlist, cat='CV private catalog')
             _private_catalog_glasses[label] = prv_glass
+            gfact.register_glass(prv_glass)
         else:
             logger.debug(f"Unsupported PRV glass def: {cmd[0]} {cmd[1]}")
 
@@ -604,7 +605,7 @@ class CVGlassHandler(GlassHandlerBase):
     needed to find the requested glass or a substitute.
     """
 
-    def process_glass_data(self, glass_data):
+    def process_glass_data(self, glass_data) -> om.OpticalMedium:
         if isanumber(glass_data):
             # process as a 6 digit code, no decimal point
             medium = self.find_6_digit_code(glass_data)

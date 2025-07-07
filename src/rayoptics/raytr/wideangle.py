@@ -164,6 +164,8 @@ def find_real_enp(opm, stop_idx, fld, wvl):
 
     fod = opm['ar']['parax_data'].fod
 
+    stop_idx = 1 if stop_idx is None else stop_idx
+
     pt0, dir0 = osp.obj_coords(fld)
     #print(f"field angle={fld_ang}:   sine={dir0[1]:8.4f}")
 
@@ -260,7 +262,8 @@ def eval_real_image_ht(opt_model, fld, wvl):
     fod = opt_model['analysis_results']['parax_data'].fod
 
     not_wa = not fov.is_wide_angle
-    ifcx = len(sm.ifcs) - sm.stop_surface - 1
+    stop_idx = 1 if sm.stop_surface is None else sm.stop_surface
+    ifcx = len(sm.ifcs) - stop_idx - 1
     rpath = sm.reverse_path(wl=wvl, start=len(sm.ifcs), stop=None, step=-1)
     rpath_list = list(rpath)
     eprad = fod.exp_radius

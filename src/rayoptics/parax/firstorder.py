@@ -374,7 +374,10 @@ def compute_first_order(opt_model, stop, wvl, src_model=None):
         fod.pp1 = 0.0
         fod.ppk = 0.0
     else:
-        fod.img_dist = img_dist = -ax_ray[img][ht]/ax_ray[img][slp]
+        if ax_ray[img][slp] != 0:
+            fod.img_dist = img_dist = -ax_ray[img][ht]/ax_ray[img][slp]
+        else:
+            fod.img_dist = img_dist = math.copysign(1e10, sm.gaps[-1].thi)
         fod.power = power = -ck1
         fod.fl_obj = fl_obj = n_0/power
         fod.fl_img = fl_img = n_k/power
@@ -386,13 +389,17 @@ def compute_first_order(opt_model, stop, wvl, src_model=None):
     fod.bfl = fod.ppk + fl_img
     fod.pp_sep = oal - fod.pp1 + fod.ppk
 
-    fod.fno = -1.0/(2.0*n_k*ax_ray[-1][slp])
+    if ax_ray[img][slp] != 0:
+        fod.fno = -1.0/(2.0*n_k*ax_ray[-1][slp])
+        fod.img_ht = -fod.opt_inv/(n_k*ax_ray[-1][slp])
+    else:
+        fod.fno = 1e10
+        fod.img_ht = 1e10
 
     fod.m = ak1 + ck1*img_dist/n_k
     fod.red = dk1 + ck1*obj_dist
     fod.n_obj = n_0
     fod.n_img = n_k
-    fod.img_ht = -fod.opt_inv/(n_k*ax_ray[-1][slp])
     fod.obj_ang = math.degrees(math.atan(pr_ray[0][slp]))
     if pr_ray[0][slp] != 0:
         nu_pr0 = n_0*pr_ray[0][slp]

@@ -5,6 +5,22 @@ Changelog
 =========
 
 
+Version 0.9.8
+=============
+Integrate changes in the **opticalglass** package to use it's custom glass 
+registry to support model import. In addition to the manufacturers' glass 
+catalogs that are searched during import, the custom glass registry will be 
+searched first. If there is a .smx file for a model, those material 
+definitions will be added to the custom glass registry. Thanks to @fujiisoup 
+for the suggestion and help with the **opticalglass** implementation.
+
+Thanks to @quentGit for finding and fixing an issue with the wave aberration 
+calculation (issue #178) and for an improvement to Zemax file import (issue 
+#177).
+
+Various additional bug fixes, doc updates and type hinting.
+
+
 Version 0.9.7
 =============
 Resolve build and deployment issues. Next time, maybe do a test deployment to testpypi?

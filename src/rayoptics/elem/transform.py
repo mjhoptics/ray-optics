@@ -122,7 +122,7 @@ def list_tfrms(tfrms, sel: str='r+t', *args):
         else:
             r, t = tfrm
             lbl = f"{i:2d}:"
-            spcr = '  '
+            spcr = '   '
         if sel=='r':
             print(f"{lbl} {r[0][0]:10.6f}  {r[0][1]:10.6f}  {r[0][2]:10.6f}")
             print(f"{spcr} {r[1][0]:10.6f}  {r[1][1]:10.6f}  {r[1][2]:10.6f}")

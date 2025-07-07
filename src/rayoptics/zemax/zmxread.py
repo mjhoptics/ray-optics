@@ -21,11 +21,11 @@ import rayoptics.zemax.zmx2ro as zmx2ro
 from rayoptics.oprops import doe
 import rayoptics.oprops.thinlens as thinlens
 
+import opticalglass as og
 from opticalglass import glassfactory as gfact
 from opticalglass import modelglass as mg
 from opticalglass import opticalmedium as om
 from opticalglass import glasserror
-from opticalglass import util
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -75,7 +75,7 @@ def read_lens_file(filename, **kwargs):
     return opt_model, info
 
 
-def read_lens_url(url, **kwargs):
+def read_lens_url(url, **kwargs) -> tuple["OpticalModel", tuple[dict, dict]]:
     ''' given a url to a Zemax file, return an OpticalModel  '''
     global _track_contents
     r = requests.get(url, allow_redirects=True)
@@ -90,15 +90,16 @@ def read_lens_url(url, **kwargs):
     return opt_model, info
 
 
-def read_lens(filename, inpt, **kwargs):
+def read_lens(filename, inpt, **kwargs) -> tuple["OpticalModel", 
+                                                 tuple[dict, dict]]:
     ''' given inpt str of a Zemax .zmx file, return an OpticalModel  '''
-    import rayoptics.optical.opticalmodel as opticalmodel
+    from rayoptics.optical.opticalmodel import OpticalModel
     global _glass_handler, _cmd_not_handled, _track_contents
-    _cmd_not_handled = util.Counter()
-    _track_contents = util.Counter()
+    _cmd_not_handled = og.util.Counter()
+    _track_contents = og.util.Counter()
 
     # create an empty optical model; all surfaces will come from .zmx file
-    opt_model = opticalmodel.OpticalModel(do_init=False)
+    opt_model = OpticalModel(do_init=False)
 
     input_lines = inpt.splitlines()
 
@@ -576,7 +577,7 @@ class ZmxGlassHandler(GlassHandlerBase):
                     self.track_contents['6 digit code'] += 1
                     return True
             else:  # must be a glass type
-                medium = self.find_glass(name, '')
+                medium = self.find_glass(name, self.glass_catalogs)
                 g.medium = medium
                 return True
 

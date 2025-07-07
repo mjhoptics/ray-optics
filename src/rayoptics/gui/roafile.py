@@ -13,6 +13,8 @@ import logging
 from packaging import version
 from pathlib import Path
 
+from rayoptics.optical.opticalmodel import OpticalModel
+
 logger = logging.getLogger(__name__)
 
 module_repl_050 = {
@@ -56,7 +58,8 @@ def preprocess_roa(file_name, str_replacements):
     return contents
 
 
-def postprocess_roa(opt_model, file_path, **kwargs):
+def postprocess_roa(opt_model: OpticalModel, 
+                    file_path: Path, **kwargs) -> OpticalModel:
     """Post processing for raw optical_model, including sync_to_restore. """
 
     # Force rebuild of ele_model for pre-0.8.5 models.
@@ -81,7 +84,7 @@ def postprocess_roa(opt_model, file_path, **kwargs):
     return opt_model
 
 
-def save_updated_roa(file_path: Path, opt_model):
+def save_updated_roa(file_path: Path, opt_model: OpticalModel):
     """ rename file_path to file_path_version# and save new file_path version """
 
     forig = file_path.stem
@@ -100,7 +103,7 @@ def save_updated_roa(file_path: Path, opt_model):
     logger.info(msg2)
 
 
-def open_roa(file_name, mapping=None, **kwargs):
+def open_roa(file_name, mapping=None, **kwargs) -> OpticalModel | None:
     """ open a ray-optics file and populate an optical model with the data
 
     Args:
