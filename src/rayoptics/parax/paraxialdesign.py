@@ -1128,10 +1128,10 @@ def generate_mapping_for_key(opm, key):
     return seq_mapping, dgm_list
 
 
-def air_gaps_to_node_defs(air_gap_list):
+def air_gaps_to_node_defs(air_gap_list: list[int]) -> list[tuple[int, ...]]:
     """ generate the node defs for composite layers, based on airgaps. """
     prev_gap_idx = 0
-    node_defs = [(prev_gap_idx,)]
+    node_defs: list[tuple[int, ...]] = [(prev_gap_idx,)]
     for gap_idx in air_gap_list[1:]:
         if gap_idx - prev_gap_idx < 2:
             node_defs.append((gap_idx,))
@@ -1586,9 +1586,9 @@ def update_from_dgm(Z, opt_inv, osp):
         
         Wo = Wi
 
-    T.append(0)
+    T.append(np.array(0.))
     W.append(Wi)
-    Pwr.append(0)
+    Pwr.append(np.array(0.))
  
     return Z, np.array(T), np.array(W), np.array(Pwr)
 
