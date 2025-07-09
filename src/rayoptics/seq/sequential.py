@@ -496,6 +496,8 @@ class SequentialModel:
             - blank -> defaults to :class:`~opticalglass.opticalmedium.Air`
             - **'REFL'** -> set interact_mode to 'reflect'
 
+        If no catalog_name is provided, the gfact._cat_names list is used.
+
         The `semi-diameter` entry is optional. It may also be entered using 
         the `sd` keyword argument.
 
@@ -1197,6 +1199,8 @@ def create_surface_and_gap(surf_data, radius_mode=False, prev_medium=None,
         - **air**, str -> :class:`~opticalglass.opticalmedium.Air`
         - blank -> defaults to :class:`~opticalglass.opticalmedium.Air`
         - **'REFL'** -> set interact_mode to 'reflect'
+
+    If no catalog_name is provided, the gfact._cat_names list is used.
 
     The `semi-diameter` entry is optional. It may also be entered using the 
     `sd` keyword argument.

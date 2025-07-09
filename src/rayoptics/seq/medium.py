@@ -44,6 +44,7 @@ def decode_medium(*inputs, **kwargs) -> om.OpticalMedium:
         - **air**: str -> :class:`~opticalglass.opticalmedium.Air`
         - blank -> defaults to :class:`~opticalglass.opticalmedium.Air`
 
+        If no catalog is provided, the gfact._cat_names list is passed to create_glass(). Note that create_glass() checks the custom glass registry before searching the catalog list.
     """
     if 'cat_list' in kwargs:
         cat = kwargs['cat_list']
@@ -78,10 +79,13 @@ def decode_medium(*inputs, **kwargs) -> om.OpticalMedium:
             if inputs[0].upper() == 'AIR':
                 mat = om.Air()
             elif cat is not None:
-                name = inputs[0]
-            else:
+                name = inputs[0].strip()
+            elif ',' in inputs[0]:
                 name, cat = inputs[0].split(',')
                 name, cat = name.strip(), cat.strip()
+            else:  # no catalog name, go with the default catalogs
+                name = inputs[0].strip()
+                cat = gfact._cat_names
         elif num_str_args == 0:
             mat = om.Air()
 
