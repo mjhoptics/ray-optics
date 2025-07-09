@@ -37,12 +37,12 @@ def decode_medium(*inputs, **kwargs) -> om.OpticalMedium:
 
     The **inputs** can have several forms:
         
-        - **refractive_index, v-number**: float -> :class:`opticalglass.modelglass.ModelGlass`
-        - **refractive_index** only: float -> :class:`opticalglass.opticalmedium.ConstantIndex`
+        - **refractive_index, v-number**: float -> :class:`~opticalglass.modelglass.ModelGlass`
+        - **refractive_index** only: float -> :class:`~opticalglass.opticalmedium.ConstantIndex`
         - **glass_name, catalog_name** as 1 or 2 strings
-        - an instance with a `rindex` attribute
-        - **air**: str -> :class:`opticalglass.opticalmedium.Air`
-        - blank -> defaults to :class:`opticalglass.opticalmedium.Air`
+        - an instance with a :meth:`~opticalglass.opticalmedium.OpticalMedium.rindex` attribute
+        - **air**: str -> :class:`~opticalglass.opticalmedium.Air`
+        - blank -> defaults to :class:`~opticalglass.opticalmedium.Air`
 
     """
     if 'cat_list' in kwargs:

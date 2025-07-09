@@ -491,9 +491,9 @@ class SequentialModel:
             - **refractive_index, v-number** (numeric)
             - **refractive_index** only -> constant index model
             - **glass_name, catalog_name** as 1 or 2 strings
-            - an instance with a `rindex` attribute
-            - **air**, str -> om.Air
-            - blank -> defaults to om.Air
+            - an instance with a :meth:`~opticalglass.opticalmedium.OpticalMedium.rindex` attribute
+            - **air**, str -> :class:`~opticalglass.opticalmedium.Air`
+            - blank -> defaults to :class:`~opticalglass.opticalmedium.Air`
             - **'REFL'** -> set interact_mode to 'reflect'
 
         The `semi-diameter` entry is optional. It may also be entered using 
@@ -1193,9 +1193,9 @@ def create_surface_and_gap(surf_data, radius_mode=False, prev_medium=None,
         - **refractive_index, v-number** (numeric)
         - **refractive_index** only -> constant index model
         - **glass_name, catalog_name** as 1 or 2 strings
-        - an instance with a `rindex` attribute
-        - **air**, str -> om.Air
-        - blank -> defaults to om.Air
+        - an instance with a :meth:`~opticalglass.opticalmedium.OpticalMedium.rindex` attribute
+        - **air**, str -> :class:`~opticalglass.opticalmedium.Air`
+        - blank -> defaults to :class:`~opticalglass.opticalmedium.Air`
         - **'REFL'** -> set interact_mode to 'reflect'
 
     The `semi-diameter` entry is optional. It may also be entered using the 
