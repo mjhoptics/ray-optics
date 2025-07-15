@@ -214,6 +214,55 @@ def paraxial_trace(path, start, start_yu, start_yu_bar):
     return p_ray, p_ray_bar
 
 
+def paraxial_trace_pq(path, n_before):
+    """ Trace paraxial p & q rays """
+    p_ray = []
+    q_ray = []
+    b4_ynu = [1., 0.]
+    b4_ynu_bar = [0., 1.]
+    cur_ht = 1.
+    cur_htb = 0.
+
+    # loop over remaining surfaces in path
+    for ifc, gap, _, rndx, z_dir_after in path:
+        if rndx is None:
+            rndx = abs(n_before)
+
+        # Refraction/Reflection
+        if (ifc.interact_mode == 'dummy' or 
+            ifc.interact_mode == 'phantom'):
+            cur_slp = b4_ynu[slp]
+            cur_slpb = b4_ynu_bar[slp]
+        else:
+            n_after = rndx if z_dir_after > 0 else -rndx
+
+            k = n_before/n_after
+
+            # calculate slope after refraction/reflection
+            pwr = ifc.optical_power
+            cur_slp = b4_ynu[slp] - cur_ht * pwr
+            cur_slpb = b4_ynu_bar[slp] - cur_htb * pwr
+
+            n_before = n_after
+
+        ynu = [cur_ht, cur_slp]
+        ynu_bar = [cur_htb, cur_slpb]
+
+        # Transfer
+        if gap is not None:
+            t = gap.thi
+            cur_ht += t * cur_slp / n_after
+            cur_htb += t * cur_slpb / n_after
+
+        p_ray.append(ynu)
+        q_ray.append(ynu_bar)
+
+        b4_ynu = ynu
+        b4_ynu_bar = ynu_bar
+
+    return p_ray, q_ray
+
+
 def get_parax_matrix(p_ray, q_ray, kth, n_k):
     """ Calculate transfer matrix and inverse from 1st to kth surface. """
     ak1 = p_ray[kth][mc.ht]
@@ -465,6 +514,68 @@ def compute_principle_points(path: Path, oal: float,
     bk1 = q_ray[img][ht]
     ck1 = n_k*p_ray[img][slp]
     dk1 = n_k*q_ray[img][slp]
+
+    # print(p_ray[-2][ht], q_ray[-2][ht], n_k*p_ray[-2][slp], n_k*q_ray[-2][slp])
+    # print(ak1, bk1, ck1, dk1)
+
+    if ck1 == 0.0:
+        power = 0.0
+        fl_obj = 0.0
+        fl_img = 0.0
+        efl = 0.0
+        pp1 = 0.0
+        ppk = 0.0
+    else:
+        power = -ck1
+        fl_obj = n_0/power
+        fl_img = n_k/power
+        efl = fl_img
+        pp1 = (1.0 - dk1)*(fl_obj)
+        ppk = (ak1 - 1.0)*(fl_img)
+
+    ffl = pp1 + (-fl_obj)
+    bfl = ppk + fl_img
+    pp_sep = oal - pp1 + ppk
+
+    return p_ray, q_ray, (power, efl, fl_obj, fl_img, 
+                          pp1, ppk, pp_sep, ffl, bfl)
+
+
+def compute_principle_points_for_fragment(path: Path, oal: float):
+    """ Returns paraxial p and q rays, plus partial first order data.
+
+    Args:
+        path: an iterator containing interfaces and gaps to be traced.
+              for each iteration, the sequence or generator should return a
+              list containing: **Intfc, Gap, Trfm, Index, Z_Dir**
+        oal: overall geometric length of the gaps in `path`
+
+    Returns:
+        (p_ray, q_ray, (efl, fl_obj, fl_img, pp1, ppk, pp_sep, ffl, bfl))
+
+        - p_ray: [ht, n*slp], [1, 0, -]
+        - q_ray: [ht, n*slp], [0, 1, -]
+        - power: optical power of system
+        - efl: effective focal length
+        - fl_obj: object space focal length, f
+        - fl_img: image space focal length, f'
+        - pp1: distance from the 1st interface to the front principle plane
+        - ppk: distance from the last interface to the rear principle plane
+        - pp_sep: distance from the front principle plane to the rear 
+                  principle plane
+        - ffl: front focal length, distance from the 1st interface to the 
+               front focal point
+        - bfl: back focal length, distance from the last interface to the back
+               focal point
+    """
+    n_0 = n_k = 1.
+    p_ray, q_ray = paraxial_trace_pq(path, n_0)
+
+    img = -1
+    ak1 = p_ray[img][ht]
+    bk1 = q_ray[img][ht]
+    ck1 = p_ray[img][slp]
+    dk1 = q_ray[img][slp]
 
     # print(p_ray[-2][ht], q_ray[-2][ht], n_k*p_ray[-2][slp], n_k*q_ray[-2][slp])
     # print(ak1, bk1, ck1, dk1)

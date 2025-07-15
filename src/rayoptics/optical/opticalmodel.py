@@ -655,9 +655,8 @@ class OpticalModel:
         if dgm is not None:
             pm.replace_node_with_dgm(e_node, dgm, **inputs)
         else:
-            _, _, pp_info = fo.compute_principle_points(iter(seq), 
-                                                        overall_length(seq),
-                                                        os_idx=0, is_idx=-1)
+            _, _, pp_info = fo.compute_principle_points_for_fragment(iter(seq), 
+                                                        overall_length(seq))
             sys_seq = pm.seq_path_to_paraxial_lens(seq)
             pm.replace_node_with_seq(inputs['idx'], sys_seq, pp_info)
 
