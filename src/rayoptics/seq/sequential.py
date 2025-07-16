@@ -275,16 +275,16 @@ class SequentialModel:
         """ insert ifc and gap *after* cur_surface in seq_model lists """
 
         if idx is None:
+            num_ifcs = len(self.ifcs)
             if self.stop_surface is not None:
-                num_ifcs = len(self.ifcs)
                 if num_ifcs > 2:
                     if self.stop_surface > self.cur_surface and \
                     self.stop_surface < num_ifcs - 2:
                         self.stop_surface += 1
-            idx = self.cur_surface = (0 if self.cur_surface is None
-                                      else self.cur_surface+1)
-        else:
-            self.cur_surface = idx
+            
+            idx = 0 if num_ifcs < 1 else self.cur_surface+1
+
+        self.cur_surface = idx
 
         self.ifcs.insert(idx, ifc)
         self.seq_def.insert_token(idx, ifc)
