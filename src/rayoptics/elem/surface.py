@@ -30,6 +30,9 @@ from enum import Enum, auto
 from math import sqrt
 import numpy as np
 
+from typing import Optional
+from rayoptics.coord_geometry_types import V2d
+
 from rayoptics.seq import interface
 from . import profiles
 from rayoptics.optical.model_enums import get_decenter_for_type
@@ -58,15 +61,16 @@ class Surface(interface.Interface):
         edge_apertures: list of :class:`Aperture`
         """
 
-    def __init__(self, lbl='', profile=None,
+    def __init__(self, lbl: str='', 
+                 profile: Optional[profiles.SurfaceProfile]=None,
                  clear_apertures=None, edge_apertures=None,
                  **kwargs):
         super().__init__(**kwargs)
-        self.label = lbl
+        self.label: str = lbl
         if profile:
-            self.profile = profile
+            self.profile: profiles.SurfaceProfile = profile
         else:
-            self.profile = profiles.Spherical()
+            self.profile: profiles.SurfaceProfile = profiles.Spherical()
         self.clear_apertures = clear_apertures if clear_apertures else []
         self.edge_apertures = edge_apertures if edge_apertures else []
 
@@ -205,7 +209,7 @@ class Surface(interface.Interface):
 
         return is_inside
 
-    def edge_pt_target(self, rel_dir):
+    def edge_pt_target(self, rel_dir: V2d) -> float:
         """ Get a target for ray aiming to aperture boundaries.
         
         """
@@ -365,13 +369,13 @@ class Aperture():
                      f"   rotation={self.rotation}\n")
         return o_str
 
-    def dimension(self):
+    def dimension(self) -> tuple[float, float]:
         pass
 
-    def set_dimension(self, x, y):
+    def set_dimension(self, x:float, y:float):
         pass
 
-    def max_dimension(self):
+    def max_dimension(self) -> float:
         x, y = self.dimension()
         return sqrt(x*x + y*y)
 
@@ -403,13 +407,13 @@ class Circular(Aperture):
         o_str += super().listobj_str()
         return o_str
 
-    def dimension(self):
+    def dimension(self) -> tuple[float, float]:
         return (self.radius, self.radius)
 
-    def set_dimension(self, x, y):
+    def set_dimension(self, x: float, y: float):
         self.radius = x
 
-    def max_dimension(self):
+    def max_dimension(self) -> float:
         return self.radius
 
     def point_inside(self, x: float, y: float, fuzz: float = 1e-5) -> bool:
@@ -441,7 +445,7 @@ class Rectangular(Aperture):
         o_str += super().listobj_str()
         return o_str
 
-    def dimension(self):
+    def dimension(self) -> tuple[float, float]:
         return (self.x_half_width, self.y_half_width)
 
     def set_dimension(self, x, y):
@@ -477,7 +481,7 @@ class Elliptical(Aperture):
         o_str += super().listobj_str()
         return o_str
 
-    def dimension(self):
+    def dimension(self) -> tuple[float, float]:
         return (self.x_half_width, self.y_half_width)
 
     def set_dimension(self, x, y):

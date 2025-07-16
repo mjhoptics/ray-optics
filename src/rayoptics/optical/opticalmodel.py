@@ -270,8 +270,8 @@ class OpticalModel:
         """ build a profile dict for the union of the seq_model and part_tree. """
         profile_dict = {}
         for ifc in self.seq_model.ifcs:
-            if hasattr(ifc, 'profile') and ifc.profile is not None:
-                profile_dict[str(id(ifc.profile))] = ifc.profile
+            if hasattr(ifc, 'profile') and ifc.profile is not None: # type: ignore
+                profile_dict[str(id(ifc.profile))] = ifc.profile # type: ignore
         profile_nodes = self.part_tree.nodes_with_tag(tag='#profile')
         for profile_node in profile_nodes:
             profile = profile_node.id

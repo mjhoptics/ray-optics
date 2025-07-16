@@ -10,7 +10,9 @@
 import numpy as np
 from numpy import sqrt
 from enum import Enum, auto
-
+from typing import Optional
+from rayoptics.typing import Z_DIR
+from rayoptics.coord_geometry_types import V2d, Vec2d, Vec3d, Dir3d
 
 class InteractionMode(Enum):
     """ enum for different interact_mode specifications
@@ -48,14 +50,14 @@ class Interface:
     """
     def __init__(self, interact_mode='transmit', delta_n=0.0,
                  max_ap=1.0, decenter=None, phase_element=None, **kwargs):
-        self.interact_mode = interact_mode
-        self.delta_n = delta_n
+        self.interact_mode: str = interact_mode
+        self.delta_n: float = delta_n
         self.decenter = decenter
-        self.max_aperture = max_ap
+        self.max_aperture: float = max_ap
         if phase_element is not None:
             self.phase_element = phase_element
 
-    def listobj_str(self):
+    def listobj_str(self) -> str:
         o_str = (f"{self.interact_mode}   delta n={self.delta_n}   "
                  f"max aperture={self.max_aperture}\n")
         if hasattr(self, 'phase_element') and self.phase_element is not None:
@@ -69,10 +71,10 @@ class Interface:
         if self.decenter is not None:
             self.decenter.update()
 
-    def interface_type(self):
+    def interface_type(self) -> str:
         return type(self).__name__
 
-    def ifc_token(self):
+    def ifc_token(self) -> str:
         tkn = ''
         if self.interact_mode == 'transmit':
             tkn = 'i'
@@ -105,16 +107,16 @@ class Interface:
             delattr(self, 'refract_mode')
 
     @property
-    def profile_cv(self):
+    def profile_cv(self) -> float:
         return 0.0
 
-    def set_optical_power(self, pwr, n_before, n_after):
+    def set_optical_power(self, pwr: float, n_before: float, n_after: float):
         pass
 
     def surface_od(self) -> float:
         pass
 
-    def edge_pt_target(self, rel_dir):
+    def edge_pt_target(self, rel_dir: V2d) -> Vec2d:
         """ Get a target for ray aiming to aperture boundaries.
         
         The main use case for this function is iterating a ray to the internal 
@@ -130,8 +132,7 @@ class Interface:
         Returns:
             edge_pt: intersection point of rel_dir with the aperture boundary
         """
-        edge_pt = np.array([self.max_aperture*rel_dir[0], 
-                            self.max_aperture*rel_dir[1]])
+        edge_pt = self.max_aperture*np.array(rel_dir)
         return edge_pt
 
     def point_inside(self, x: float, y: float, fuzz: float = 1e-5) -> bool:
@@ -149,12 +150,13 @@ class Interface:
         """ max_ap is the max aperture radius """
         self.max_aperture = max_ap
 
-    def get_y_aperture_extent(self):
+    def get_y_aperture_extent(self) -> V2d:
         """ default behavior is returning +/-max_aperture """
         od = [-self.max_aperture, self.max_aperture]
         return od
 
-    def intersect(self, p0, d, eps=1.0e-12, z_dir=1):
+    def intersect(self, p0: Vec3d, d: Dir3d, z_dir: Z_DIR=1, 
+                  eps: float=1.0e-12) -> tuple[float, Vec3d]:
         ''' Intersect an :class:`~.Interface`, starting from an arbitrary point.
 
         Args:
@@ -171,12 +173,12 @@ class Interface:
         '''
         pass
 
-    def normal(self, p):
+    def normal(self, p: Vec3d) -> Dir3d:
         """Returns the unit normal of the interface at point *p*. """
         pass
 
-    def phase(self, pt, in_dir, srf_nrml, ifc_cntxt):
-        z_dir, wvl, n_in, n_out, interact_mode = ifc_cntxt
+    def phase(self, pt: Vec3d, in_dir: Dir3d, srf_nrml: Dir3d, 
+              ifc_cntxt: tuple) -> Optional[tuple[Dir3d, float]]:
         """Returns a diffracted ray direction and phase increment.
 
         Args:
@@ -197,10 +199,11 @@ class Interface:
             - out_dir: direction cosine of the out going ray
             - dW: phase added by diffractive interaction
         """
+        z_dir, wvl, n_in, n_out, interact_mode = ifc_cntxt
         if hasattr(self, 'phase_element'):
             return self.phase_element.phase(pt, in_dir, srf_nrml, ifc_cntxt)
 
-    def apply_scale_factor(self, scale_factor):
+    def apply_scale_factor(self, scale_factor: float):
         self.max_aperture *= abs(scale_factor)
         if self.decenter:
             self.decenter.apply_scale_factor(scale_factor)

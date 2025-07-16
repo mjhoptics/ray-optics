@@ -9,10 +9,13 @@
 import itertools
 import logging
 
+from typing import Optional
+
 from anytree import Node
 
 import rayoptics.optical.model_constants as mc
-from rayoptics.typing import SeqPath
+from rayoptics.typing import SeqPath, Z_DIR
+from rayoptics.coord_geometry_types import Tfm3d
 
 from rayoptics.elem import surface
 from . import gap
@@ -77,24 +80,24 @@ class SequentialModel:
     def __init__(self, opt_model, do_init=True, **kwargs):
         self.opt_model = opt_model
 
-        self.ifcs = []
-        self.gaps = []
-        self.z_dir = []
+        self.ifcs: list[Interface] = []
+        self.gaps: list[gap.Gap] = []
+        self.z_dir: list[Z_DIR] = []
 
-        self.do_apertures = True
+        self.do_apertures: bool = True
         
-        self.stop_surface = None
-        self.cur_surface = None
+        self.stop_surface: Optional[int] = None
+        self.cur_surface: int = 0
 
         # derived attributes
-        self.gbl_tfrms = []
-        self.lcl_tfrms = []
+        self.gbl_tfrms: list[Tfm3d] = []
+        self.lcl_tfrms: list[Tfm3d] = []
 
         self.seq_def = SequentialStr(self)
 
         # data for a wavelength vs index vs gap data arrays
-        self.wvlns = []  # sampling wavelengths in nm
-        self.rndx = []  # refractive index vs wv and gap
+        self.wvlns: list[float] = []  # sampling wavelengths in nm
+        self.rndx: list[list[float]] = []  # refractive index vs wv and gap
 
         if do_init:
             self._initialize_arrays()
@@ -174,7 +177,7 @@ class SequentialModel:
                                      self.z_dir[start:stop:step])
         return path
 
-    def reverse_path(self, wl=None, start=None, stop=None, step=-1):
+    def reverse_path(self, start: int, stop=None, step=-1, wl=None):
         """ returns an iterable path tuple for a range in the sequential model
     
         Args:
@@ -190,12 +193,8 @@ class SequentialModel:
             wl = self.central_wavelength()
     
         if step < 0:
-            if start is not None:
-                gap_start = start - 1
-                rndx_start = start - 1
-            else:
-                gap_start = start
-                rndx_start = -1
+            gap_start = start - 1
+            rndx_start = start - 1
         else:
             gap_start = start
     
@@ -248,7 +247,7 @@ class SequentialModel:
         central_wvl = spectral_region.reference_wvl
         return self.rndx[i][central_wvl]
 
-    def get_surface_and_gap(self, srf=None):
+    def get_surface_and_gap(self, srf: Optional[int]=None):
         if srf is None:
             srf = self.cur_surface
         s = self.ifcs[srf]
@@ -261,7 +260,7 @@ class SequentialModel:
     def set_cur_surface(self, s: int):
         self.cur_surface = s
 
-    def set_stop(self, cur_idx: int = None) -> int:
+    def set_stop(self, cur_idx: Optional[int] = None) -> Optional[int]:
         """ sets the stop surface to the current surface """
         if cur_idx is None:
             cur_idx = self.cur_surface
@@ -297,7 +296,7 @@ class SequentialModel:
         else:
             gap = self.gaps[idx]
 
-        tfrm = np.identity(3), np.array([0., 0., 0.])
+        tfrm: Tfm3d = np.identity(3), np.array([0., 0., 0.])
         self.gbl_tfrms.insert(idx, tfrm)
         self.lcl_tfrms.insert(idx, tfrm)
 
@@ -897,13 +896,6 @@ class SequentialModel:
 
             if gap:
                 print(fmt3.format(gap.thi, gap.medium.name()))
-
-    def list_elements(self):
-        for i, gp in enumerate(self.gaps):
-            if gp.medium.name().lower() != 'air':
-                print(self.ifcs[i].profile,
-                      self.ifcs[i+1].profile,
-                      gp)
 
     def list_sg_ele(self, part_tree):
         seq_str = ''

@@ -69,31 +69,31 @@ class FirstOrderData:
     """
 
     def __init__(self):
-        self.opt_inv = None
-        self.power = None
-        self.efl = None
-        self.fl_obj = None
-        self.fl_img = None
-        self.pp1 = None
-        self.ppk = None
-        self.pp_sep = None
-        self.ffl = None
-        self.bfl = None
-        self.fno = None
-        self.m = None
-        self.red = None
-        self.n_obj = None
-        self.n_img = None
-        self.obj_dist = None
-        self.img_dist = None
-        self.obj_ang = None
-        self.img_ht = None
-        self.enp_dist = None
-        self.enp_radius = None
-        self.exp_dist = None
-        self.exp_radius = None
-        self.obj_na = None
-        self.img_na = None
+        self.opt_inv: float
+        self.power: float
+        self.efl: float
+        self.fl_obj: float
+        self.fl_img: float
+        self.pp1: float
+        self.ppk: float
+        self.pp_sep: float
+        self.ffl: float
+        self.bfl: float
+        self.fno: float
+        self.m: float
+        self.red: float
+        self.n_obj: float
+        self.n_img: float
+        self.obj_dist: float
+        self.img_dist: float
+        self.obj_ang: float
+        self.img_ht: float
+        self.enp_dist: float
+        self.enp_radius: float
+        self.exp_dist: float
+        self.exp_radius: float
+        self.obj_na: float
+        self.img_na: float
 
     def listobj_str(self):
         o_str = f"efl        {self.efl:12.4g}\n"

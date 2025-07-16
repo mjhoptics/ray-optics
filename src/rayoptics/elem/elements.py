@@ -254,7 +254,7 @@ def create_lens_from_dgm(prx=None, **kwargs):
     return descriptor
 
 
-def achromat(power, Va, Vb):
+def achromat(power, Va, Vb) -> tuple[float, float]:
     """Compute lens powers for a thin doublet achromat, given their V-numbers."""
     power_a = (Va/(Va - Vb))*power
     power_b = (Vb/(Vb - Va))*power
