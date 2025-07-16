@@ -25,7 +25,6 @@ from rayoptics.parax.paraxialdesign import ParaxialModel
 from rayoptics.seq.sequential import SequentialModel, overall_length
 from rayoptics.raytr.opticalspec import OpticalSpecs
 from rayoptics.parax.specsheet import create_specsheet_from_model
-from rayoptics.optical.model_enums import get_dimension_for_type
 
 
 class SystemSpec:
@@ -40,25 +39,17 @@ class SystemSpec:
 
     def __init__(self, opt_model, **kwargs):
         self.opt_model = opt_model
-        self.title = ''
-        self.initials = ''
-        self.dimensions = 'mm'
-        self.temperature = 20.0
-        self.pressure = 760.0
+        self.title: str = ''
+        self.initials: str = ''
+        self._dimensions: str = 'mm'
+        self.temperature: float = 20.0
+        self.pressure: float = 760.0
 
     def __json_encode__(self):
         attrs = dict(vars(self))
         if hasattr(self, 'opt_model'):
             del attrs['opt_model']
         return attrs
-
-    def __json_decode__(self, **attrs):
-        for a_key, a_val in attrs.items():
-            if a_key == 'dimensions':
-                self._dimensions = (a_val if isinstance(a_val, str)
-                                    else get_dimension_for_type(a_val))
-            else:
-                setattr(self, a_key, a_val)
 
     def listobj_str(self):
         vs = vars(self)
@@ -68,14 +59,13 @@ class SystemSpec:
         return o_str
 
     @property
-    def dimensions(self):
+    def dimensions(self) -> str:
         """ the model linear units (str). """
         return self._dimensions
 
     @dimensions.setter
-    def dimensions(self, value):
-        self._dimensions = (value if isinstance(value, str)
-                            else get_dimension_for_type(value))
+    def dimensions(self, value: str):
+        self._dimensions = value
 
     def nm_to_sys_units(self, nm):
         """ convert nm to system units

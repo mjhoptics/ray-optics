@@ -9,20 +9,10 @@
 """
 import numpy as np
 from numpy import sqrt
-from enum import Enum, auto
+
 from typing import Optional
 from rayoptics.typing import Z_DIR
 from rayoptics.coord_geometry_types import V2d, Vec2d, Vec3d, Dir3d
-
-class InteractionMode(Enum):
-    """ enum for different interact_mode specifications
-
-    Retained to restore old files
-
-    .. deprecated:: 0.4.5
-    """
-    Transmit = auto()  #: propagate in transmission at this interface
-    Reflect = auto()   #: propagate in reflection at this interface
 
 
 class Interface:
@@ -89,22 +79,6 @@ class Interface:
     def sync_to_restore(self, opt_model):
         if not hasattr(self, 'max_aperture'):
             self.max_aperture = 1.0
-        if hasattr(self, 'interact_mode'):
-            # don't know why I need to test for the InteractionMode
-            #  enum like this, or have to compare enum values, but
-            #  that's what works...
-            if isinstance(self.interact_mode, Enum):
-                imode = self.interact_mode.value
-                if imode == InteractionMode.Reflect.value:
-                    self.interact_mode = 'reflect'
-                elif imode == InteractionMode.Transmit.value:
-                    self.interact_mode = 'transmit'
-        if hasattr(self, 'refract_mode'):  # really old models
-            if self.refract_mode == 'REFL':
-                self.interact_mode = 'reflect'
-            else:
-                self.interact_mode = 'transmit'
-            delattr(self, 'refract_mode')
 
     @property
     def profile_cv(self) -> float:

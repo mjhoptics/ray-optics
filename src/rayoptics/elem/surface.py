@@ -26,29 +26,17 @@
 .. codeauthor: Michael J. Hayford
 """
 
-from enum import Enum, auto
 from math import sqrt
 import numpy as np
 
 from typing import Optional
-from rayoptics.coord_geometry_types import V2d
+from rayoptics.coord_geometry_types import V2d, Vec3d, Mat3d, Tfm3d
 
 from rayoptics.seq import interface
 from . import profiles
-from rayoptics.optical.model_enums import get_decenter_for_type
+
 from rayoptics.raytr.traceerror import TraceError
 from rayoptics.util import misc_math
-
-
-class InteractionMode(Enum):
-    """ enum for different interact_mode specifications
-
-    Retained to restore old files
-
-    .. deprecated:: 0.4.5
-    """
-    Transmit = auto()  #: propagate in transmission at this interface
-    Reflect = auto()   #: propagate in reflection at this interface
 
 
 class Surface(interface.Interface):
@@ -284,22 +272,14 @@ class DecenterData():
     """
 
     def __init__(self, dtype, x=0., y=0., alpha=0., beta=0., gamma=0.):
-        self.dtype = dtype
+        self._dtype: str = dtype
         # x, y, z vertex decenter
-        self.dec = np.array([x, y, 0.])
+        self.dec: Vec3d = np.array([x, y, 0.])
         # alpha, beta, gamma euler angles
-        self.euler = np.array([alpha, beta, gamma])
+        self.euler: Vec3d = np.array([alpha, beta, gamma])
         # x, y, z rotation point offset
-        self.rot_pt = np.array([0., 0., 0.])
-        self.rot_mat = None
-
-    def __json_decode__(self, **attrs):
-        for a_key, a_val in attrs.items():
-            if a_key == 'dtype':
-                self._dtype = (a_val if isinstance(a_val, str)
-                               else get_decenter_for_type(a_val))
-            else:
-                setattr(self, a_key, a_val)
+        self.rot_pt: Vec3d = np.array([0., 0., 0.])
+        self.rot_mat: Optional[Mat3d] = None
 
     def __repr__(self):
         return "%r: Decenter: %r, Tilt: %r" % (self.dtype, self.dec,
@@ -312,13 +292,12 @@ class DecenterData():
         return o_str
 
     @property
-    def dtype(self):
+    def dtype(self) -> str:
         return self._dtype
 
     @dtype.setter
-    def dtype(self, value):
-        self._dtype = (value if isinstance(value, str)
-                       else get_decenter_for_type(value))
+    def dtype(self, value: str):
+        self._dtype = value
 
     def update(self):
         if self.euler.any():
@@ -326,17 +305,17 @@ class DecenterData():
         else:
             self.rot_mat = None
 
-    def apply_scale_factor(self, scale_factor):
+    def apply_scale_factor(self, scale_factor: float):
         self.dec *= scale_factor
         self.rot_pt *= scale_factor
 
-    def tform_before_surf(self):
+    def tform_before_surf(self) -> Tfm3d:
         if self.dtype != 'reverse':
             return self.rot_mat, self.dec
         else:
             return None, np.array([0., 0., 0.])
 
-    def tform_after_surf(self):
+    def tform_after_surf(self) -> Tfm3d:
         if self.dtype == 'reverse' or self.dtype == 'dec and return':
             rt = self.rot_mat
             if self.rot_mat is not None:
