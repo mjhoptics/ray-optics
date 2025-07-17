@@ -11,6 +11,9 @@ DirNd is used for vector directions, unit length
 MatNd is a N x N matrix
 TfmNd is used to package together a rotation matrix and translation vector
 
+Ray3d, a tuple of a Vec3d and Dir3d is defined by a point on the ray and 
+the ray direction.
+
 Created on Mon Jun  2 10:48:54 2025
 
 .. codeauthor: Michael J. Hayford
@@ -26,6 +29,7 @@ Vec3d = npt.NDArray
 Dir3d = npt.NDArray
 Mat3d = npt.NDArray
 Tfm3d = tuple[Mat3d|None, Vec3d]
+Ray3d = tuple[Vec3d, Dir3d]
 
 Vec4d = npt.NDArray
 Dir4d = npt.NDArray

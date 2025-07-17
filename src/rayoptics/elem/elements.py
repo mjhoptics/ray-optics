@@ -15,7 +15,7 @@ from itertools import zip_longest
 from packaging import version
 
 from abc import abstractmethod
-from typing import Protocol, ClassVar, List, Dict, Any, runtime_checkable
+from typing import Protocol, ClassVar, Any, runtime_checkable
 from rayoptics.typing import SeqPath
 
 from math import sqrt
@@ -684,7 +684,7 @@ class Part(Protocol):
         raise NotImplementedError
 
     @abstractmethod
-    def idx_list(self) -> List[int]:
+    def idx_list(self) -> list[int]:
         raise NotImplementedError
 
     @abstractmethod
@@ -696,11 +696,11 @@ class Part(Protocol):
         raise NotImplementedError
 
     @abstractmethod
-    def profile_list(self) -> List[SurfaceProfile]:
+    def profile_list(self) -> list[SurfaceProfile]:
         raise NotImplementedError
 
     @abstractmethod
-    def gap_list(self) -> List[Gap]:
+    def gap_list(self) -> list[Gap]:
         raise NotImplementedError
 
     @abstractmethod
@@ -708,20 +708,20 @@ class Part(Protocol):
         raise NotImplementedError
 
     @abstractmethod
-    def render_shape(self) -> List[GraphicsHandle]:
+    def render_shape(self) -> list[GraphicsHandle]:
         """ return a polyline that is representative of the Part. """
         raise NotImplementedError
 
     @abstractmethod
-    def render_handles(self, opt_model) -> Dict[str, GraphicsHandle]:
+    def render_handles(self, opt_model) -> dict[str, GraphicsHandle]:
         raise NotImplementedError
 
     @abstractmethod
-    def handle_actions(self) -> Dict[str, Any]:
+    def handle_actions(self) -> dict[str, Any]:
         raise NotImplementedError
 
 
-def do_flip_with_part_list(part_list: List[Part], flip_pt_tfrm) -> None:
+def do_flip_with_part_list(part_list: list[Part], flip_pt_tfrm) -> None:
     """Flip a list of parts around a flip_pt. """
 
     r_asm, flip_pt = flip_pt_tfrm
@@ -2713,7 +2713,7 @@ class ElementModel:
 
     def __init__(self, opt_model, **kwargs):
         self.opt_model = opt_model
-        self.elements: List[Part] = []
+        self.elements: list[Part] = []
 
     def reset(self):
         self.__init__(self.opt_model)

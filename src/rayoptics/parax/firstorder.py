@@ -10,8 +10,8 @@
 import math
 import numpy as np
 from collections import namedtuple
-from rayoptics.optical.model_constants import ht, slp, aoi
 import rayoptics.optical.model_constants as mc
+from rayoptics.coord_geometry_types import V2d
 from rayoptics.typing import Path
 from rayoptics.parax.idealimager import ideal_imager_setup
 from rayoptics.util import misc_math
@@ -145,15 +145,15 @@ def paraxial_trace(path, start, start_yu, start_yu_bar):
             obj_ht = 0.
             obj_htb = -np.inf
         else:
-            obj_ht = start_yu[ht] - t0*start_yu[slp]
-            obj_htb = start_yu_bar[ht] - t0*start_yu_bar[slp]
-        b4_yui = [obj_ht, start_yu[slp]]
-        b4_yui_bar = [obj_htb, start_yu_bar[slp]]
+            obj_ht = start_yu[mc.ht] - t0*start_yu[mc.slp]
+            obj_htb = start_yu_bar[mc.ht] - t0*start_yu_bar[mc.slp]
+        b4_yui = [obj_ht, start_yu[mc.slp]]
+        b4_yui_bar = [obj_htb, start_yu_bar[mc.slp]]
 
     cv = b4_ifc.profile_cv
     # calculate angle of incidence (aoi)
-    aoi = b4_yui[slp] + b4_yui[ht] * cv
-    aoi_bar = b4_yui_bar[slp] + b4_yui_bar[ht] * cv
+    aoi = b4_yui[mc.slp] + b4_yui[mc.ht] * cv
+    aoi_bar = b4_yui_bar[mc.slp] + b4_yui_bar[mc.ht] * cv
     b4_yui.append(aoi)
     b4_yui_bar.append(aoi_bar)
 
@@ -171,14 +171,14 @@ def paraxial_trace(path, start, start_yu, start_yu_bar):
 
             # Transfer
             t = b4_gap.thi
-            cur_ht = b4_yui[ht] + t * b4_yui[slp]
-            cur_htb = b4_yui_bar[ht] + t * b4_yui_bar[slp]
+            cur_ht = b4_yui[mc.ht] + t * b4_yui[mc.slp]
+            cur_htb = b4_yui_bar[mc.ht] + t * b4_yui_bar[mc.slp]
 
             # Refraction/Reflection
             if (ifc.interact_mode == 'dummy' or 
                 ifc.interact_mode == 'phantom'):
-                cur_slp = b4_yui[slp]
-                cur_slpb = b4_yui_bar[slp]
+                cur_slp = b4_yui[mc.slp]
+                cur_slpb = b4_yui_bar[mc.slp]
             else:
                 n_after = rndx if z_dir_after > 0 else -rndx
 
@@ -186,8 +186,8 @@ def paraxial_trace(path, start, start_yu, start_yu_bar):
     
                 # calculate slope after refraction/reflection
                 pwr = ifc.optical_power
-                cur_slp = k * b4_yui[slp] - cur_ht * pwr/n_after
-                cur_slpb = k * b4_yui_bar[slp] - cur_htb * pwr/n_after
+                cur_slp = k * b4_yui[mc.slp] - cur_ht * pwr/n_after
+                cur_slpb = k * b4_yui_bar[mc.slp] - cur_htb * pwr/n_after
 
                 n_before = n_after
                 z_dir_before = z_dir_after
@@ -214,12 +214,13 @@ def paraxial_trace(path, start, start_yu, start_yu_bar):
     return p_ray, p_ray_bar
 
 
-def paraxial_trace_pq(path, n_before):
-    """ Trace paraxial p & q rays """
-    p_ray = []
-    q_ray = []
-    b4_ynu = [1., 0.]
-    b4_ynu_bar = [0., 1.]
+def paraxial_trace_ynu(path: Path, n_before: float, 
+                       start_ynu: V2d, start_ynu_bar: V2d) -> tuple[list[V2d], list[V2d]]:
+    """ Trace paraxial ynu & ynu_bar rays """
+    ynu_ray = []
+    ynu_bar_ray = []
+    b4_ynu = start_ynu
+    b4_ynu_bar = start_ynu_bar
     cur_ht = 1.
     cur_htb = 0.
 
@@ -231,17 +232,15 @@ def paraxial_trace_pq(path, n_before):
         # Refraction/Reflection
         if (ifc.interact_mode == 'dummy' or 
             ifc.interact_mode == 'phantom'):
-            cur_slp = b4_ynu[slp]
-            cur_slpb = b4_ynu_bar[slp]
+            cur_slp = b4_ynu[mc.slp]
+            cur_slpb = b4_ynu_bar[mc.slp]
         else:
             n_after = rndx if z_dir_after > 0 else -rndx
 
-            k = n_before/n_after
-
             # calculate slope after refraction/reflection
             pwr = ifc.optical_power
-            cur_slp = b4_ynu[slp] - cur_ht * pwr
-            cur_slpb = b4_ynu_bar[slp] - cur_htb * pwr
+            cur_slp = b4_ynu[mc.slp] - cur_ht * pwr
+            cur_slpb = b4_ynu_bar[mc.slp] - cur_htb * pwr
 
             n_before = n_after
 
@@ -254,13 +253,13 @@ def paraxial_trace_pq(path, n_before):
             cur_ht += t * cur_slp / n_after
             cur_htb += t * cur_slpb / n_after
 
-        p_ray.append(ynu)
-        q_ray.append(ynu_bar)
+        ynu_ray.append(ynu)
+        ynu_bar_ray.append(ynu_bar)
 
         b4_ynu = ynu
         b4_ynu_bar = ynu_bar
 
-    return p_ray, q_ray
+    return ynu_ray, ynu_bar_ray
 
 
 def get_parax_matrix(p_ray, q_ray, kth, n_k):
@@ -285,14 +284,14 @@ def compute_first_order(opt_model, stop, wvl, src_model=None):
     p_ray, q_ray, pp_info = compute_principle_points(sm.path(wl=wvl), 
                                                      oal, n_0, n_k)
     img = -2 if sm.get_num_surfaces() > 2 else -1
-    ak1 = p_ray[img][ht]
-    bk1 = q_ray[img][ht]
-    ck1 = n_k*p_ray[img][slp]
-    dk1 = n_k*q_ray[img][slp]
+    ak1 = p_ray[img][mc.ht]
+    bk1 = q_ray[img][mc.ht]
+    ck1 = n_k*p_ray[img][mc.slp]
+    dk1 = n_k*q_ray[img][mc.slp]
     Mk1 = np.array([[ak1, bk1], [ck1, dk1]])
     M1k = np.array([[dk1, -bk1], [-ck1, ak1]])
 
-    # print(p_ray[-2][ht], q_ray[-2][ht], n_k*p_ray[-2][slp], n_k*q_ray[-2][slp])
+    # print(p_ray[-2][mc.ht], q_ray[-2][mc.ht], n_k*p_ray[-2][mc.slp], n_k*q_ray[-2][mc.slp])
     # print(ak1, bk1, ck1, dk1)
 
     # The code below computes the object yu and yu_bar values
@@ -301,15 +300,15 @@ def compute_first_order(opt_model, stop, wvl, src_model=None):
         # check for previously computed paraxial data and
         # use that to float the stop
         if (pm := opt_model['parax_model']) == src_model:
-            if pm.pr[0][slp] == 0:
+            if pm.pr[0][mc.slp] == 0:
                 enp_dist = misc_math.infinity_guard(np.inf)
             else:
-                enp_dist = -pm.pr[1][ht]/pm.pr[0][slp]
+                enp_dist = -pm.pr[1][mc.ht]/pm.pr[0][mc.slp]
         elif (opt_model['analysis_results'] is not None
             and 'parax_data' in opt_model['analysis_results'] 
             and opt_model['analysis_results']['parax_data'] is not None):
                 pr = opt_model['analysis_results']['parax_data'].pr_ray
-                enp_dist = -pr[1][ht]/(n_0*pr[0][slp])
+                enp_dist = -pr[1][mc.ht]/(n_0*pr[0][mc.slp])
         else:  # nothing pre-computed, assume 1st surface
             stop = 1
             ybar1 = 0.0
@@ -318,10 +317,10 @@ def compute_first_order(opt_model, stop, wvl, src_model=None):
 
     if stop is not None:
         n_s = sm.z_dir[stop]*sm.central_rndx(stop)
-        as1 = p_ray[stop][ht]
-        bs1 = q_ray[stop][ht]
-        cs1 = n_s*p_ray[stop][slp]
-        ds1 = n_s*q_ray[stop][slp]
+        as1 = p_ray[stop][mc.ht]
+        bs1 = q_ray[stop][mc.ht]
+        cs1 = n_s*p_ray[stop][mc.slp]
+        ds1 = n_s*q_ray[stop][mc.slp]
 
         # find entrance pupil location w.r.t. first surface
         ybar1 = -bs1
@@ -329,8 +328,8 @@ def compute_first_order(opt_model, stop, wvl, src_model=None):
         n_0 = sm.gaps[0].medium.rindex(wvl)
         enp_dist = -ybar1/(n_0*ubar1)
     else:
-        as1 = p_ray[1][ht]
-        bs1 = q_ray[1][ht]
+        as1 = p_ray[1][mc.ht]
+        bs1 = q_ray[1][mc.ht]
         ybar1 = -bs1
         ubar1 = as1
 
@@ -390,14 +389,14 @@ def compute_first_order(opt_model, stop, wvl, src_model=None):
             slp_i = -ht_i/img2exp_dist
             pr_ray_i = np.array([ht_i, slp_i])
             pr_ray_1 = np.matmul(M1i, pr_ray_i)
-            slpbar0 = pr_ray_1[slp]
+            slpbar0 = pr_ray_1[mc.slp]
             ybar0 = -slpbar0*obj2enp_dist
         if field_key == 'slope':
             slp_k = field_value
             ht_k = -slp_k*exp_dist
             pr_ray_k = np.array([ht_k, slp_k])
             pr_ray_1 = np.matmul(M1k, pr_ray_k)
-            slpbar0 = pr_ray_1[slp]
+            slpbar0 = pr_ray_1[mc.slp]
             ybar0 = -slpbar0*obj2enp_dist
     yu_bar = [ybar0, slpbar0]
 
@@ -408,7 +407,7 @@ def compute_first_order(opt_model, stop, wvl, src_model=None):
     ax_ray, pr_ray = paraxial_trace(sm.path(wl=wvl), idx, yu, yu_bar)
 
     # Calculate the optical invariant
-    opt_inv = n_0*(ax_ray[1][ht]*pr_ray[0][slp] - pr_ray[1][ht]*ax_ray[0][slp])
+    opt_inv = n_0*(ax_ray[1][mc.ht]*pr_ray[0][mc.slp] - pr_ray[1][mc.ht]*ax_ray[0][mc.slp])
 
     # Fill in the contents of the FirstOrderData struct
     fod = FirstOrderData()
@@ -423,8 +422,8 @@ def compute_first_order(opt_model, stop, wvl, src_model=None):
         fod.pp1 = 0.0
         fod.ppk = 0.0
     else:
-        if ax_ray[img][slp] != 0:
-            fod.img_dist = img_dist = -ax_ray[img][ht]/ax_ray[img][slp]
+        if ax_ray[img][mc.slp] != 0:
+            fod.img_dist = img_dist = -ax_ray[img][mc.ht]/ax_ray[img][mc.slp]
         else:
             fod.img_dist = img_dist = math.copysign(1e10, sm.gaps[-1].thi)
         fod.power = power = -ck1
@@ -438,9 +437,9 @@ def compute_first_order(opt_model, stop, wvl, src_model=None):
     fod.bfl = fod.ppk + fl_img
     fod.pp_sep = oal - fod.pp1 + fod.ppk
 
-    if ax_ray[img][slp] != 0:
-        fod.fno = -1.0/(2.0*n_k*ax_ray[-1][slp])
-        fod.img_ht = -fod.opt_inv/(n_k*ax_ray[-1][slp])
+    if ax_ray[img][mc.slp] != 0:
+        fod.fno = -1.0/(2.0*n_k*ax_ray[-1][mc.slp])
+        fod.img_ht = -fod.opt_inv/(n_k*ax_ray[-1][mc.slp])
     else:
         fod.fno = 1e10
         fod.img_ht = 1e10
@@ -449,25 +448,25 @@ def compute_first_order(opt_model, stop, wvl, src_model=None):
     fod.red = dk1 + ck1*obj_dist
     fod.n_obj = n_0
     fod.n_img = n_k
-    fod.obj_ang = math.degrees(math.atan(pr_ray[0][slp]))
-    if pr_ray[0][slp] != 0:
-        nu_pr0 = n_0*pr_ray[0][slp]
-        fod.enp_dist = -pr_ray[1][ht]/nu_pr0
+    fod.obj_ang = math.degrees(math.atan(pr_ray[0][mc.slp]))
+    if pr_ray[0][mc.slp] != 0:
+        nu_pr0 = n_0*pr_ray[0][mc.slp]
+        fod.enp_dist = -pr_ray[1][mc.ht]/nu_pr0
         fod.enp_radius = abs(fod.opt_inv/nu_pr0)
     else:
         fod.enp_dist = -1e10
         fod.enp_radius = 1e10
 
-    if pr_ray[-1][slp] != 0:
-        fod.exp_dist = -(pr_ray[-1][ht]/pr_ray[-1][slp] - fod.img_dist)
-        fod.exp_radius = abs(fod.opt_inv/(n_k*pr_ray[-1][slp]))
+    if pr_ray[-1][mc.slp] != 0:
+        fod.exp_dist = -(pr_ray[-1][mc.ht]/pr_ray[-1][mc.slp] - fod.img_dist)
+        fod.exp_radius = abs(fod.opt_inv/(n_k*pr_ray[-1][mc.slp]))
     else:
         fod.exp_dist = -1e10
         fod.exp_radius = 1e10
 
     # compute object and image space numerical apertures
-    fod.obj_na = n_0*sm.z_dir[0]*ax_ray[0][slp]
-    fod.img_na = n_k*sm.z_dir[-1]*ax_ray[-1][slp]
+    fod.obj_na = n_0*sm.z_dir[0]*ax_ray[0][mc.slp]
+    fod.img_na = n_k*sm.z_dir[-1]*ax_ray[-1][mc.slp]
 
     return ParaxData(ax_ray, pr_ray, fod)
 
@@ -510,12 +509,12 @@ def compute_principle_points(path: Path, oal: float,
         img = -2 if len(p_ray) > 2 else -1
     else:
         img = is_idx
-    ak1 = p_ray[img][ht]
-    bk1 = q_ray[img][ht]
-    ck1 = n_k*p_ray[img][slp]
-    dk1 = n_k*q_ray[img][slp]
+    ak1 = p_ray[img][mc.ht]
+    bk1 = q_ray[img][mc.ht]
+    ck1 = n_k*p_ray[img][mc.slp]
+    dk1 = n_k*q_ray[img][mc.slp]
 
-    # print(p_ray[-2][ht], q_ray[-2][ht], n_k*p_ray[-2][slp], n_k*q_ray[-2][slp])
+    # print(p_ray[-2][mc.ht], q_ray[-2][mc.ht], n_k*p_ray[-2][mc.slp], n_k*q_ray[-2][mc.slp])
     # print(ak1, bk1, ck1, dk1)
 
     if ck1 == 0.0:
@@ -544,6 +543,7 @@ def compute_principle_points(path: Path, oal: float,
 def compute_principle_points_for_fragment(path: Path, oal: float):
     """ Returns paraxial p and q rays, plus partial first order data.
 
+    
     Args:
         path: an iterator containing interfaces and gaps to be traced.
               for each iteration, the sequence or generator should return a
@@ -569,15 +569,17 @@ def compute_principle_points_for_fragment(path: Path, oal: float):
                focal point
     """
     n_0 = n_k = 1.
-    p_ray, q_ray = paraxial_trace_pq(path, n_0)
+    p_ray_0 = [1., 0.]
+    q_ray_0 = [0., 1.]
+    p_ray, q_ray = paraxial_trace_ynu(path, n_0, p_ray_0, q_ray_0)
 
     img = -1
-    ak1 = p_ray[img][ht]
-    bk1 = q_ray[img][ht]
-    ck1 = p_ray[img][slp]
-    dk1 = q_ray[img][slp]
+    ak1 = p_ray[img][mc.ht]
+    bk1 = q_ray[img][mc.ht]
+    ck1 = p_ray[img][mc.slp]
+    dk1 = q_ray[img][mc.slp]
 
-    # print(p_ray[-2][ht], q_ray[-2][ht], n_k*p_ray[-2][slp], n_k*q_ray[-2][slp])
+    # print(p_ray[-2][mc.ht], q_ray[-2][mc.ht], n_k*p_ray[-2][mc.slp], n_k*q_ray[-2][mc.slp])
     # print(ak1, bk1, ck1, dk1)
 
     if ck1 == 0.0:
@@ -627,11 +629,11 @@ def list_parax_trace(ax_ray, pr_ray, seq_model, reduced=False):
         n = seq_model.central_rndx(idx)
         n = n if seq_model.z_dir[idx] > 0 else -n
         
-        ax_slp = n*ax_ray[i][slp] if reduced else ax_ray[i][slp]
-        pr_slp = n*pr_ray[i][slp] if reduced else pr_ray[i][slp]
+        ax_slp = n*ax_ray[i][mc.slp] if reduced else ax_ray[i][mc.slp]
+        pr_slp = n*pr_ray[i][mc.slp] if reduced else pr_ray[i][mc.slp]
         print("{:2} {:12.6g} {:12.6g} {:12.6g} {:12.6g} {:12.6g} {:12.6g}"
-              .format(i, ax_ray[i][ht], ax_slp, n*ax_ray[i][aoi],
-                      pr_ray[i][ht], pr_slp, n*pr_ray[i][aoi]))
+              .format(i, ax_ray[i][mc.ht], ax_slp, n*ax_ray[i][mc.aoi],
+                      pr_ray[i][mc.ht], pr_slp, n*pr_ray[i][mc.aoi]))
 
 
 def specsheet_from_parax_data(opt_model, specsheet):

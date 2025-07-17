@@ -19,6 +19,8 @@
 from math import sqrt
 import numpy as np
 
+from rayoptics.typing import SeqPath, RaySeg
+from rayoptics.coord_geometry_types import Vec3d, Dir3d, Ray3d
 from rayoptics.optical import model_constants as mc
 
 from . import RayPkg
@@ -30,7 +32,7 @@ from rayoptics.elem.transform import (transform_before_surface,
                                       transform_after_surface)
 
 
-def eic_distance_from_axis(r, z_dir):
+def eic_distance_from_axis(r: Ray3d, z_dir: int) -> float:
     """ calculate equally inclined chord distance between a ray and the axis
 
     Args:
@@ -47,7 +49,7 @@ def eic_distance_from_axis(r, z_dir):
     return e
 
 
-def calc_delta_op_via_eic(ray, path):
+def calc_delta_op_via_eic(ray: list[RaySeg], path: SeqPath):
     """ computes equally inclined chords and path info for ray
 
     Args:
@@ -78,8 +80,8 @@ def calc_delta_op_via_eic(ray, path):
     for i, item in enumerate(ray_seq_iter):
         after_ray_seg, surf = item
 
-        inc_pt = after_ray_seg[mc.p]
-        after_dir = after_ray_seg[mc.d]
+        inc_pt: Vec3d = after_ray_seg[mc.p]
+        after_dir: Dir3d = after_ray_seg[mc.d]
         z_dir_after = (surf[mc.Zdir] if surf[mc.Zdir] is not None
                        else z_dir_before)
 
@@ -208,6 +210,8 @@ def calc_path_length(eic, offset=0):
 # *****************
 # not validated yet
 # *****************
+#def wave_abr_full_calc(fod, fld, wvl, foc, ray_pkg, chief_ray_pkg, ref_sphere):
+
 def wave_abr_full_calc_HHH(opm, fod, fld, wvl, foc, path,
                            ray_pkg, chief_ray_pkg, ref_sphere):
     """Given a ray, a chief ray and an image pt, evaluate the OPD.

@@ -11,8 +11,12 @@
 import numpy as np
 import itertools
 
+from typing import Optional
+from rayoptics.coord_geometry_types import Vec3d, Dir3d, Mat3d, Tfm3d, Ray3d
 
-def compute_global_coords(seq_model, glo=1, origin=None):
+
+def compute_global_coords(seq_model, glo: int=1, 
+                          origin: Optional[Tfm3d]=None) -> list[Tfm3d]:
     """ Return global surface coordinates (rot, t) wrt surface `glo`. 
     
     Args:
@@ -72,7 +76,7 @@ def compute_global_coords(seq_model, glo=1, origin=None):
     return tfrms
 
 
-def compute_local_transforms(seq_model, seq, step):
+def compute_local_transforms(seq_model, seq, step) -> list[Tfm3d]:
     """ Return forward surface coordinates (r.T, t) for each interface. """
     def local_transform(seq, transform_calc, tfrm_dir: int):
         b4_ifc, b4_gap = next(seq)
@@ -136,7 +140,7 @@ def list_tfrms(tfrms, sel: str='r+t', *args):
     return tfrms
 
 
-def forward_transform(s1, zdist, s2):
+def forward_transform(s1, zdist, s2) -> Tfm3d:
     """ generate transform rotation and translation from
         s1 coords to s2 coords """
 
@@ -162,7 +166,7 @@ def forward_transform(s1, zdist, s2):
     return r_cascade, t_orig
 
 
-def reverse_transform(s2, zdist, s1):
+def reverse_transform(s2, zdist, s1) -> Tfm3d:
     """ generate transform rotation and translation from
         s2 coords to s1 coords, applying transforms in the reverse order """
     t_orig = np.array([0., 0., zdist])
@@ -187,18 +191,20 @@ def reverse_transform(s2, zdist, s1):
     return r_cascade, t_orig
 
 
-def cascade_transform(r_prev, t_prev, r_seg, t_seg):
+def cascade_transform(r_prev: Mat3d, t_prev: Vec3d, 
+                      r_seg: Mat3d, t_seg: Vec3d) -> Tfm3d:
     """ take the seg transform and cascade it with the prev transform """
     return r_prev.dot(r_seg), r_prev.dot(t_seg) + t_prev
 
 
-def transfer_coords(r_seg, t_seg, pt_s1, dir_s1):
+def transfer_coords(r_seg: Mat3d, t_seg: Vec3d, 
+                    pt_s1: Vec3d, dir_s1: Dir3d) -> Tfm3d:
     """ take p and d in s1 coords of seg and transfer them to s2 coords """
     rt = r_seg.transpose()
     return rt.dot(pt_s1 - t_seg), rt.dot(dir_s1)
 
 
-def transform_before_surface(interface, ray_seg):
+def transform_before_surface(interface, ray_seg: Ray3d) -> Ray3d:
     """Transform ray_seg from interface to previous seg.
 
     Args:
@@ -225,7 +231,7 @@ def transform_before_surface(interface, ray_seg):
     return b4_pt, b4_dir
 
 
-def transform_after_surface(interface, ray_seg):
+def transform_after_surface(interface, ray_seg: Ray3d) -> Ray3d:
     """Transform ray_seg from interface to following seg.
 
     Args:

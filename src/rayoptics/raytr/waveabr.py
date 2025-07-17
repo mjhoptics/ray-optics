@@ -13,8 +13,7 @@
 from math import sqrt
 import numpy as np
 
-from rayoptics.coord_geometry_types import Vec3d, Dir3d
-Ray3d = tuple[Vec3d, Dir3d]
+from rayoptics.coord_geometry_types import Vec3d, Dir3d, Ray3d
 
 from rayoptics.optical import model_constants as mc
 from rayoptics.elem.transform import transform_after_surface
@@ -77,7 +76,7 @@ def calculate_reference_sphere(opt_model, fld, wvl, foc,
     return ref_sphere
 
 
-def transfer_to_exit_pupil(interface, ray_seg, exp_dst_parax):
+def transfer_to_exit_pupil(interface, ray_seg: Ray3d, exp_dst_parax: float) -> tuple[Vec3d, Dir3d, float, "Interface", Vec3d, Dir3d]:
     """Given the exiting interface and chief ray data, return exit pupil ray coords.
 
     Args:
@@ -91,6 +90,9 @@ def transfer_to_exit_pupil(interface, ray_seg, exp_dst_parax):
         - **exp_pt** - ray intersection with exit pupil plane
         - **exp_dir** - direction cosine of the ray in exit pupil space
         - **exp_dst** - distance from interface to exit pupil pt
+        - **interface** - exiting :class:'~.Interface' for the path sequence
+        - **b4_pt** - ray intersection pt wrt image gap coordinates
+        - **b4_dir** - ray direction cosine wrt image gap coordinates
     """
     b4_pt, b4_dir = transform_after_surface(interface, ray_seg)
 
