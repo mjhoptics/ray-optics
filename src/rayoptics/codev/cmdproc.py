@@ -364,8 +364,14 @@ def surface_data(opm, tla, qlist, dlist):
         seq_model.ifcs[idx].label = dlist[0]
     elif tla == 'STO':
         seq_model.stop_surface = idx
+    elif tla == 'CUX' or tla == 'CUY':
+        # check to see if qualifiers are present; if so, then solve definition
+        if len(qlist) == 0:
+            seq_model.ifcs[idx].profile_cv = dlist[0]
     elif tla == 'THI':
-        seq_model.gaps[idx].thi = dlist[0]
+        # check to see if qualifiers are present; if so, then solve definition
+        if len(qlist) == 0:
+            seq_model.gaps[idx].thi = dlist[0]
     elif tla == 'SPH':
         update_surface_profile(seq_model, 'Spherical', idx)
     elif tla == 'CON':

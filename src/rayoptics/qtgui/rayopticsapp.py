@@ -158,6 +158,7 @@ class MainWindow(QMainWindow):
             # self.open_file(path / "codev/tests/landscape_lens.seq")
             # self.open_file(path / "codev/tests/mangin.seq")
             # self.open_file(path / "codev/tests/CODV_32327.seq")
+            # self.open_file(path / "codev/tests/CODV_35571.seq")
             # self.open_file(path / "codev/tests/CODV_65988.seq")
             # self.open_file(path / "codev/tests/questar35.seq")
             # self.open_file(path / "codev/tests/dar_test.seq")
