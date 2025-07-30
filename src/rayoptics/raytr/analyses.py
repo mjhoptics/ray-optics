@@ -772,7 +772,9 @@ def focus_wavefront(opt_model, grid_pkg, fld, wvl, foc, image_pt_2d=None,
 
 
 # --- PSF calculation
-def psf_sampling(n=None, n_pupil=None, n_airy=None):
+def psf_sampling(n: Optional[int]=None, 
+                 n_pupil: Optional[int]=None, 
+                 n_airy: Optional[int]=None):
     """Given 2 of 3 parameters, calculate the third.
 
     Args:
@@ -793,11 +795,14 @@ def psf_sampling(n=None, n_pupil=None, n_airy=None):
     return n, n_pupil, n_airy
 
 
-def calc_psf_scaling(pupil_grid, ndim, maxdim):
+def calc_psf_scaling(opt_model: "OpticalModel", fld: "Field", wvl: float, 
+                     ndim: int, maxdim: int) -> tuple[float, float]:
     """Calculate the input and output grid spacings.
 
     Args:
-        pupil_grid: A RayGrid instance
+        opt_model: The optical model
+        fld: The field point for the grid
+        wvl: wavelength (nm)
         ndim: The sampling across the wavefront
         maxdim: The total width of the sampling grid
 
@@ -805,9 +810,8 @@ def calc_psf_scaling(pupil_grid, ndim, maxdim):
         delta_x: The linear grid spacing on the entrance pupil
         delta_xp: The linear grid spacing on the image plane
     """
-    opt_model = pupil_grid.opt_model
     fod = opt_model['analysis_results']['parax_data'].fod
-    wl = opt_model.nm_to_sys_units(pupil_grid.wvl)
+    wl = opt_model.nm_to_sys_units(wvl)
 
     fill_factor = ndim/maxdim
     max_D = 2 * fod.enp_radius / fill_factor
@@ -815,7 +819,7 @@ def calc_psf_scaling(pupil_grid, ndim, maxdim):
     C = wl/fod.exp_radius
 
     delta_theta = (fill_factor * C) / 2
-    ref_sphere_radius = pupil_grid.fld.ref_sphere[2]
+    ref_sphere_radius = fld.ref_sphere[2]
     delta_xp = delta_theta * ref_sphere_radius
 
     return delta_x, delta_xp

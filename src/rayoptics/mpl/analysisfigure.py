@@ -397,9 +397,7 @@ class DiffractionPSF():
 
     def init_axis(self, ax):
         pupil_grid = self.pupil_grid
-        delta_x, delta_xp = analyses.calc_psf_scaling(pupil_grid,
-                                                      pupil_grid.num_rays,
-                                                      self.maxdim)
+        delta_x, delta_xp = pupil_grid.calc_psf_scaling(self.maxdim)
         image_scale = self.image_scale = delta_xp * self.maxdim
         ax.set_xlim(-image_scale, image_scale)
         ax.set_ylim(-image_scale, image_scale)
