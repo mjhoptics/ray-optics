@@ -29,6 +29,7 @@
 
 .. codeauthor: Michael J. Hayford
 """
+from typing import Optional
 import numpy as np
 from numpy.fft import fftshift, fft2
 
@@ -598,7 +599,7 @@ class RayGrid():
     def __init__(self, opt_model, f=0, wl=None, foc=None, image_pt_2d=None,
                  image_delta=None, output_filter=None, rayerr_filter=None, 
                  num_rays=21, clip_rays=True, value_if_none=np.nan, 
-                 **kwargs):
+                 oversize=1., **kwargs):
         self.opt_model = opt_model
         osp = opt_model.optical_spec
         self.fld = osp.field_of_view.fields[f] if isinstance(f, int) else f
@@ -612,6 +613,7 @@ class RayGrid():
         self.value_if_none = value_if_none
 
         self.rt_kwargs = kwargs
+        self.rt_kwargs['oversize'] = oversize
         self.rt_kwargs['output_filter'] = output_filter
         self.rt_kwargs['rayerr_filter'] = rayerr_filter
         self.rt_kwargs['check_apertures'] = clip_rays
@@ -707,7 +709,9 @@ def eval_wavefront(opt_model, fld, wvl, foc, image_pt_2d=None,
     fld.chief_ray = cr_pkg
     fld.ref_sphere = ref_sphere
 
-    vig_bbox = fld.vignetting_bbox(opt_model['osp']['pupil'])
+    oversize = kwargs.get('oversize', 1.)
+    vig_bbox = fld.vignetting_bbox(opt_model['osp']['pupil'], 
+                                   oversize=oversize)
     vig_grid_def = [vig_bbox[0], vig_bbox[1], num_rays]
 
     kwargs['check_apertures'] = kwargs.get('check_apertures', True)
@@ -742,7 +746,9 @@ def trace_wavefront(opt_model, fld, wvl, foc,
     fld.chief_ray = cr_pkg
     fld.ref_sphere = ref_sphere
 
-    vig_bbox = fld.vignetting_bbox(opt_model['osp']['pupil'])
+    oversize = kwargs.get('oversize', 1.)
+    vig_bbox = fld.vignetting_bbox(opt_model['osp']['pupil'], 
+                                   oversize=oversize)
     vig_grid_def = [vig_bbox[0], vig_bbox[1], num_rays]
 
     kwargs['check_apertures'] = kwargs.get('check_apertures', True)

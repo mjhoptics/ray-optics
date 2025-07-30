@@ -1222,7 +1222,7 @@ class Field:
         self.x *= scale_factor
         self.y *= scale_factor
 
-    def vignetting_bbox(self, pupil_spec: PupilSpec, oversize=1.02):
+    def vignetting_bbox(self, pupil_spec: PupilSpec, oversize=1.):
         """ returns a bbox of the vignetted pupil ray extents. """
         poly = []
         for pup_ray in pupil_spec.pupil_rays:
