@@ -638,6 +638,14 @@ def sync_obj_reference(obj, obj_attr_str, obj_dict, alt_attr_value):
         setattr(obj, obj_attr_str, alt_attr_value)
 
 
+def validate_ifc(seq_model, ifc):
+    try:
+        indx = seq_model.ifcs.index(ifc)
+    except ValueError:
+        indx = str(ifc)
+    return indx
+
+
 # --- Element definitions
 @runtime_checkable
 class Part(Protocol):
@@ -931,14 +939,8 @@ class Element(Part):
     def idx_list(self):
         if hasattr(self, 'parent') and self.parent is not None:
             seq_model = self.parent.opt_model['seq_model']
-            try:
-                self.s1_indx = seq_model.ifcs.index(self.s1)
-            except ValueError:
-                self.s1_indx = str(self.s1_indx)
-            try:
-                self.s2_indx = seq_model.ifcs.index(self.s2)
-            except ValueError:
-                self.s2_indx = str(self.s2_indx)
+            self.s1_indx = validate_ifc(seq_model, self.s1)
+            self.s2_indx = validate_ifc(seq_model, self.s2)
             return [self.s1_indx, self.s2_indx]
         else:
             print(f"idx_list: {self.label}")
@@ -1220,7 +1222,7 @@ class SurfaceInterface(Part):
 
     def idx_list(self):
         seq_model = self.parent.opt_model['seq_model']
-        self.s_indx = seq_model.ifcs.index(self.s)
+        self.s_indx = validate_ifc(seq_model, self.s)
         return [self.s_indx]
 
     def profile_list(self):
@@ -2089,7 +2091,7 @@ class ThinElement(Part):
 
     def idx_list(self):
         seq_model = self.parent.opt_model['seq_model']
-        self.intrfc_indx = seq_model.ifcs.index(self.intrfc)
+        self.intrfc_indx = validate_ifc(seq_model, self.intrfc)
         return [self.intrfc_indx]
 
     def gap_list(self):
@@ -2236,7 +2238,7 @@ class DummyInterface(Part):
 
     def idx_list(self):
         seq_model = self.parent.opt_model['seq_model']
-        self.idx = seq_model.ifcs.index(self.ref_ifc)
+        self.idx = validate_ifc(seq_model, self.ref_ifc)
         return [self.idx]
 
     def gap_list(self):
