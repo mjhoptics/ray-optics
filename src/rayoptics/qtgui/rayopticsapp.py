@@ -129,7 +129,7 @@ class MainWindow(QMainWindow):
         path = Path(rayoptics.__file__).parent
         self.cur_dir = path / "models"
 
-        if False:
+        if True:
             # create new model
             # self.new_model()
             # self.new_model_via_diagram()
@@ -178,9 +178,9 @@ class MainWindow(QMainWindow):
             # self.open_file(path / "models/f2 focuser.roa")
             # self.open_file(path / "models/HybridAchromat.roa")
             # self.open_file(path / "models/Newtonian with diagonal.roa")
-            self.open_file(path / "models/petzval.roa")
+            # self.open_file(path / "models/petzval.roa")
             # self.open_file(path / "models/Ritchey_Chretien.roa")
-            # self.open_file(path / "models/Sasian Triplet.roa")
+            self.open_file(path / "models/Sasian Triplet.roa")
             # self.open_file(path / "models/singlet_f5.roa")
             # self.open_file(path / "models/thinlens.roa")
             # self.open_file(path / "models/telephoto.roa")
