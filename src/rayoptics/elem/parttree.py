@@ -9,12 +9,13 @@
 """
 from itertools import zip_longest
 
-from anytree import Node, RenderTree, PreOrderIter
+from anytree import RenderTree, PreOrderIter
 from anytree.exporter import DictExporter
 from anytree.importer import DictImporter
 from anytree.search import find_by_attr
 
 import rayoptics.elem.elements as ele_module
+from rayoptics.elem import RONode
 import rayoptics.elem.sgz2ele as sgz2ele
 import rayoptics.oprops.thinlens as thinlens
 from rayoptics.util import str_to_class
@@ -23,7 +24,7 @@ from rayoptics.util import str_to_class
 class PartTree():
     def __init__(self, opt_model, **kwargs):
         self.opt_model = opt_model
-        self.root_node = Node('root', id=self, tag='#group#root')
+        self.root_node = RONode('root', id=self, tag='#group#root')
 
     def __json_encode__(self):
         attrs = dict(vars(self))
@@ -69,7 +70,7 @@ class PartTree():
         self.sort_tree_using_sequence(seq_model)
 
     def is_empty(self):
-        if (isinstance(self.root_node, Node) and 
+        if (isinstance(self.root_node, RONode) and 
             len(self.root_node.children) == 0):
             return True
         else:
@@ -89,9 +90,9 @@ class PartTree():
         for i, sgz in enumerate(zip_longest(seq_model.ifcs, seq_model.gaps,
                                             seq_model.z_dir)):
             s, gap, z_dir = sgz
-            Node(f'i{i}', id=s, tag='#ifc', parent=root_node)
+            RONode(f'i{i}', id=s, tag='#ifc', parent=root_node)
             if gap is not None:
-                Node(f'g{i}', id=(gap, z_dir), tag='#gap', parent=root_node)
+                RONode(f'g{i}', id=(gap, z_dir), tag='#gap', parent=root_node)
 
     def sort_tree_using_sequence(self, seq_model):
         """Resequence part tree using a *seq_model*. """

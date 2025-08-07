@@ -11,3 +11,17 @@
 
     The element model is managed by the :class:`~.elements.ElementModel` class
 """
+
+from anytree import Node
+
+class RONode(Node):
+    """ RayOptics subclass of Node 
+    
+    When deleting parts that are contained in Assembly objs, use the action of disconnecting the Part from the parttree to remove the Part from the assembly's list of parts.
+    """
+    def _pre_detach(self, parent):
+        # print(f"{self.tag=},   {parent.tag=}")
+        if "#assembly" in parent.tag:
+            if self.id.parent is None:
+                parent.id.parts.remove(self.id)
+                # print(f"  Part {self.id.label} removed from assembly {parent.id.label}")

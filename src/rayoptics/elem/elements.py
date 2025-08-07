@@ -10,7 +10,6 @@
 
 from collections import namedtuple
 from copy import deepcopy
-import itertools
 from itertools import zip_longest
 from packaging import version
 
@@ -21,13 +20,12 @@ from rayoptics.typing import SeqPath
 from math import sqrt
 import numpy as np
 
-from anytree import Node  # type: ignore
-
 import rayoptics.optical.model_constants as mc
 
 import rayoptics.util.rgbtable as rgbt
 from rayoptics.oprops import thinlens
 from rayoptics.elem import parttree
+from rayoptics.elem import RONode
 from rayoptics.elem.profiles import SurfaceProfile, Spherical, Conic
 from rayoptics.elem.surface import Surface
 from rayoptics.elem import transform as trns
@@ -688,7 +686,7 @@ class Part(Protocol):
         raise NotImplementedError
 
     @abstractmethod
-    def tree(self, **kwargs) -> Node:
+    def tree(self, **kwargs) -> RONode:
         raise NotImplementedError
 
     @abstractmethod
@@ -922,17 +920,17 @@ class Element(Part):
         zdir = kwargs.get('z_dir', 1)
 
         # Interface branch 1
-        e = Node(self.label, id=self, tag=tag)
-        p1 = Node('p1', id=self.profile1, tag='#profile', parent=e)
-        Node(f'i{self.s1_indx}', id=self.s1, tag='#ifc', parent=p1)
+        e = RONode(self.label, id=self, tag=tag)
+        p1 = RONode('p1', id=self.profile1, tag='#profile', parent=e)
+        RONode(f'i{self.s1_indx}', id=self.s1, tag='#ifc', parent=p1)
 
         # Gap branch
-        t = Node('t', id=self.gap, tag='#thic', parent=e)
-        Node(f'g{self.s1_indx}', id=(self.gap, zdir), tag='#gap', parent=t)
+        t = RONode('t', id=self.gap, tag='#thic', parent=e)
+        RONode(f'g{self.s1_indx}', id=(self.gap, zdir), tag='#gap', parent=t)
 
         # Interface branch 2
-        p2 = Node('p2', id=self.profile2, tag='#profile', parent=e)
-        Node(f'i{self.s2_indx}', id=self.s2, tag='#ifc', parent=p2)
+        p2 = RONode('p2', id=self.profile2, tag='#profile', parent=e)
+        RONode(f'i{self.s2_indx}', id=self.s2, tag='#ifc', parent=p2)
 
         return e
 
@@ -1206,9 +1204,9 @@ class SurfaceInterface(Part):
         default_tag = kwargs.get('default_tag', '#element#surface')
         tag = default_tag + kwargs.get('tag', '')
         # Interface branch
-        m = Node(default_label_prefix, id=self, tag=tag)
-        p = Node('p', id=self.profile, tag='#profile', parent=m)
-        Node(f'i{self.s_indx}', id=self.s, tag='#ifc', parent=p)
+        m = RONode(default_label_prefix, id=self, tag=tag)
+        p = RONode('p', id=self.profile, tag='#profile', parent=m)
+        RONode(f'i{self.s_indx}', id=self.s, tag='#ifc', parent=p)
 
         # Gap branch = None
 
@@ -1660,18 +1658,18 @@ class CementedElement(Part):
         default_tag = '#element#cemented'
         tag = default_tag + kwargs.get('tag', '')
         zdir = kwargs.get('z_dir', 1)
-        ce = Node(self.label, id=self, tag=tag)
+        ce = RONode(self.label, id=self, tag=tag)
         if self.ele_token == 'cemented':
             for i, sg in enumerate(zip_longest(self.ifcs, self.gaps)):
                 i1 = i + 1
                 ifc, gap = sg
                 pid = f'p{i1}'
-                p = Node(pid, id=self.profiles[i], tag='#profile', parent=ce)
-                Node(f'i{self.idxs[i]}', id=ifc, tag='#ifc', parent=p)
+                p = RONode(pid, id=self.profiles[i], tag='#profile', parent=ce)
+                RONode(f'i{self.idxs[i]}', id=ifc, tag='#ifc', parent=p)
                 # Gap branch
                 if gap is not None:
-                    t = Node(f't{i1}', id=gap, tag='#thic', parent=ce)
-                    Node(f'g{self.idxs[i]}', id=(gap, zdir),
+                    t = RONode(f't{i1}', id=gap, tag='#thic', parent=ce)
+                    RONode(f'g{self.idxs[i]}', id=(gap, zdir),
                         tag='#gap', parent=t)
         elif self.ele_token == 'mangin':
             idx1 = self.idxs[0]
@@ -1684,22 +1682,22 @@ class CementedElement(Part):
                 ifc = self.ifcs[i]
                 gap = self.gaps[i]
                 pid = f'p{i1}'
-                p = Node(pid, id=self.profiles[i], tag='#profile', parent=ce)
-                Node(f'i{self.idxs[i]}', id=self.ifcs[i], tag='#ifc', parent=p)
+                p = RONode(pid, id=self.profiles[i], tag='#profile', parent=ce)
+                RONode(f'i{self.idxs[i]}', id=self.ifcs[i], tag='#ifc', parent=p)
                 i2 = len_ifcs - i1
-                Node(f'i{self.idxs[i2]}', id=self.ifcs[i2], 
+                RONode(f'i{self.idxs[i2]}', id=self.ifcs[i2], 
                      tag='#ifc', parent=p)
                 # Gap branch
-                t = Node(f't{i1}', id=self.gaps[i], tag='#thic', parent=ce)
-                Node(f'g{self.idxs[i]}', id=(self.gaps[i], zdir),
+                t = RONode(f't{i1}', id=self.gaps[i], tag='#thic', parent=ce)
+                RONode(f'g{self.idxs[i]}', id=(self.gaps[i], zdir),
                     tag='#gap', parent=t)
                 i2 = len_gaps - i1
-                Node(f'g{self.idxs[i2]}', id=(self.gaps[i2], -zdir),
+                RONode(f'g{self.idxs[i2]}', id=(self.gaps[i2], -zdir),
                     tag='#gap', parent=t)
             i += 1
             i1 += 1
-            p = Node(f'p{i1}', id=self.profiles[i], tag='#profile', parent=ce)
-            Node(f'i{self.idxs[i]}', id=self.ifcs[i], tag='#ifc', parent=p)
+            p = RONode(f'p{i1}', id=self.profiles[i], tag='#profile', parent=ce)
+            RONode(f'i{self.idxs[i]}', id=self.ifcs[i], tag='#ifc', parent=p)
 
         return ce
 
@@ -2048,8 +2046,8 @@ class ThinElement(Part):
     def tree(self, **kwargs):
         default_tag = '#element#thinlens'
         tag = default_tag + kwargs.get('tag', '')
-        tle = Node('TL', id=self, tag=tag)
-        Node(f'i{self.intrfc_indx}', id=self.intrfc, tag='#ifc#tl', parent=tle)
+        tle = RONode('TL', id=self, tag=tag)
+        RONode(f'i{self.intrfc_indx}', id=self.intrfc, tag='#ifc#tl', parent=tle)
         return tle
 
     def sync_to_restore(self, ele_model, surfs, gaps, tfrms, 
@@ -2219,9 +2217,9 @@ class DummyInterface(Part):
         elif self.ele_token == 'image':
             default_tag += '#image'
         tag = default_tag + kwargs.get('tag', '')
-        di = Node('DI', id=self, tag=tag)
-        p = Node('p', id=self.profile, tag='#profile', parent=di)
-        Node(f'i{self.idx}', id=self.ref_ifc, tag='#ifc#di', parent=p)
+        di = RONode('DI', id=self, tag=tag)
+        p = RONode('p', id=self.profile, tag='#profile', parent=di)
+        RONode(f'i{self.idx}', id=self.ref_ifc, tag='#ifc#di', parent=p)
         return di
 
     def reference_interface(self):
@@ -2414,11 +2412,11 @@ class Space(Part):
             elif self.idxs[0] == len(seq_model.gaps)-1:
                 default_tag += '#image'
         tag = default_tag + kwargs.get('tag', '')
-        sp = Node(default_label_prefix, id=self, tag=tag)
+        sp = RONode(default_label_prefix, id=self, tag=tag)
         for i, g in enumerate(self.gaps):
             i1 = i + 1
-            t = Node(f't{i1}', id=g, tag='#thic', parent=sp)
-            Node(f'g{self.idxs[i]}', id=(g, self.z_dir), tag='#gap', parent=t)
+            t = RONode(f't{i1}', id=g, tag='#thic', parent=sp)
+            RONode(f'g{self.idxs[i]}', id=(g, self.z_dir), tag='#gap', parent=t)
         return sp
 
     def reference_interface(self):
@@ -2644,7 +2642,7 @@ class Assembly(Part):
             part_tree = self.parent.opt_model['part_tree']
         default_tag = '#group#assembly'
         tag = default_tag + kwargs.get('tag', '')
-        asm = Node(self.label, id=self, tag=tag)
+        asm = RONode(self.label, id=self, tag=tag)
         child_nodes = [part_tree.node(p) for p in self.parts]
         asm.children = child_nodes
         return asm
