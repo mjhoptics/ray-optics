@@ -429,8 +429,10 @@ class SequentialModel:
             
             # make sure the stop and image surfs are separate;
             #  move stop to previous surf if in conflict
-            img_adj = -1 if idx_k+2 == len(self.ifcs) else 0
-            idx_stop += img_adj
+            if idx_stop == 0:
+                idx_stop = 1
+            elif idx_stop == len(self.ifcs)-1:
+                idx_stop = len(self.ifcs)-2
 
             self.stop_surface = idx_stop
 
