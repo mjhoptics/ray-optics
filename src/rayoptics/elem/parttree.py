@@ -47,7 +47,7 @@ class PartTree():
         self.opt_model = opt_model
         if hasattr(self, 'root_node'):
             root_node_compressed = self.root_node
-            importer = DictImporter()
+            importer = DictImporter(nodecls=RONode)
             self.root_node = importer.import_(root_node_compressed)
             self.root_node.id = self
             if hasattr(self.root_node, 'id_key'):
