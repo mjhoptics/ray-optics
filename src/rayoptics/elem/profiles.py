@@ -13,7 +13,7 @@ import numpy as np
 from math import sqrt, copysign, sin, acos
 from scipy import optimize
 
-from rayoptics.util.misc_math import normalize
+from rayoptics.util.misc_math import normalize, is_fuzzy_zero
 from rayoptics.raytr.traceerror import TraceError, TraceMissedSurfaceError
 
 
@@ -376,13 +376,22 @@ class Spherical(SurfaceProfile):
             sd_start = sd[0]
             sd_end = sd[1]
 
-        if self.cv != 0.0:
+        if is_fuzzy_zero(self.cv, fuzz=1e-8):
+            prf.append([0, dir*sd_start])
+            prf.append([0, dir*sd_end])
+        else:
             cv = self.cv
-            r = 1/cv
+            r = self.r
 
             # calculate distance from CofC to profile point at the sd limit
-            adj_start = copysign(sqrt(r*r - sd_start*sd_start), cv)
-            adj_end = copysign(sqrt(r*r - sd_end*sd_end), cv)
+            try:
+                adj_start = copysign(sqrt(r*r - sd_start*sd_start), cv)
+            except ValueError:
+                adj_start = 0.
+            try:
+                adj_end = copysign(sqrt(r*r - sd_end*sd_end), cv)
+            except ValueError:
+                adj_end = 0.
 
             # get direction vectors from CofC to limiting profile points
             dir1 = normalize(np.array([adj_start, sd_start]))
@@ -426,9 +435,6 @@ class Spherical(SurfaceProfile):
                 cb = cab
             prf.append([r*(1-cab), r*sab])
             # print(2*steps, r*(1-cab), r*sab)
-        else:
-            prf.append([0, dir*sd_start])
-            prf.append([0, dir*sd_end])
         return prf
 
 
@@ -642,7 +648,9 @@ def aspheric_profile(surface_profile, sd, dir=1, steps=21):
         sd_lwr = sd[0]
         sd_upr = sd[1]
 
-    if surface_profile.max_nonzero_coef > 0 or surface_profile.cv != 0.0:
+    if (surface_profile.max_nonzero_coef > 0 or 
+        not is_fuzzy_zero(surface_profile.cv, fuzz=1e-8)):
+
         delta = dir*(sd_upr-sd_lwr)/(2*steps)
         y = sd_lwr if dir > 0 else sd_upr
         append_pt_to_2d_profile(surface_profile, y, prf)

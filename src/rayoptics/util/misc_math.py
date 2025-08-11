@@ -28,6 +28,22 @@ def is_kinda_big(x: float, kinda_big: float = 1e8) -> bool:
         return False
 
 
+def is_fuzzy_zero(x: float, fuzz: float = 1e-14) -> bool:
+    """ Test for \|x| < fuzz  
+    
+    The choice of fuzz depends on the context of the test. The default is 
+    appropriate for ignoring small double precision rounding errors.
+    Chunkier values of fuzz are appropriate for different calculations.
+    Values in the ray trace typically are good to 1e-10 to 1e-12.
+    Values tied to geometric modeling or graphical rendering might be as loose 
+    as 1e-8 or even 1e-6.
+    """
+    if np.abs(x) < fuzz:
+        return True
+    else:
+        return False
+    
+
 def normalize(v):
     """ return normalized version of input vector v """
     length = norm(v)
