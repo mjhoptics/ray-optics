@@ -941,7 +941,7 @@ class Element(Part):
             self.s2_indx = validate_ifc(seq_model, self.s2)
             return [self.s1_indx, self.s2_indx]
         else:
-            print(f"idx_list: {self.label}")
+            # print(f"idx_list: {self.label}")
             return []
 
     def reference_idx(self):

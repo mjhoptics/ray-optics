@@ -258,9 +258,13 @@ def compute_slide_line(shape, node, imode):
             #  to the line between the previous and next nodes.
             origin2line = misc_math.perpendicular_from_origin(pt0, pt2)
             pt2line = misc_math.perpendicular_to_line(pt1, pt0, pt2)
-            scale_factor = (origin2line - pt2line)/origin2line
-            new_pt0 = scale_factor*pt0
-            new_pt2 = scale_factor*pt2
+            if origin2line == 0.:
+                new_pt0 = pt0 + pt1
+                new_pt2 = pt2 + pt1
+            else:
+                scale_factor = (origin2line - pt2line)/origin2line
+                new_pt0 = scale_factor*pt0
+                new_pt2 = scale_factor*pt2
             return new_pt0, new_pt2
         elif imode == 'reflect':
             # if reflecting, constrain movement to a radial line from the
@@ -955,7 +959,6 @@ class AddReplaceElementAction():
     from rayoptics.mpl.interactivefigure import SelectInfo
 
     def __init__(self, diagram, **kwargs):
-        seq_model = diagram.opt_model.seq_model
         parax_model = diagram.parax_model
         self.command_inputs = dict(kwargs)
         self.cur_node = None
@@ -994,8 +997,9 @@ class AddReplaceElementAction():
             factory = self.command_inputs['factory']
             self.init_inputs = diagram.assign_object_to_node(
                 *cur_node, factory, insert=do_insert, do_update=False)
-            parax_model.paraxial_lens_to_seq_model()
+            diagram.opt_model['parax_model'].paraxial_lens_to_seq_model()
             parax_model.update_parax_to_dgms()
+            paraxialdesign.update_layer_defs(diagram.opt_model)
             fig.refresh_gui(build='rebuild', src_model=parax_model)
 
         def on_drag_add_point(fig, event, shape):
