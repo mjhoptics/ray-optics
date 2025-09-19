@@ -410,7 +410,7 @@ class Spherical(SurfaceProfile):
 
             # use the sign of the sine to get the correct direction 
             #  for the angle
-            total_ang = total_ang_c if total_sin > 0 else -total_ang_c
+            total_ang = total_ang_c if total_sin >= 0 else -total_ang_c
 
             # calculate the increment and sin/cos
             da = total_ang/(2*steps)
