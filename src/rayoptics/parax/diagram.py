@@ -974,7 +974,8 @@ class AddReplaceElementAction():
                     node = shape.node
                     event_data = np.array([event.xdata, event.ydata])
                     interact = self.command_inputs['interact_mode']
-                    sys_data = [1.0, interact]
+                    gap_rindx = parax_model.sys[node][mc.indx]
+                    sys_data = [gap_rindx, interact]
                     new_node = parax_model.add_node(node, event_data, 
                                                     diagram.type_sel, sys_data)
                     self.cur_node = cur_node = node, new_node
