@@ -246,7 +246,6 @@ def _create_lens(power=0., bending=0., th=None, sd=1., med=None,
 
         """
     if med is None:
-        # mat = gfact.create_glass('N-BK7,Schott')
         mat = ModelGlass(1.517, 64.2, '517642')
     else:
         mat = decode_medium(med)
