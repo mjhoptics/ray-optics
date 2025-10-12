@@ -364,6 +364,23 @@ class PartTree():
                     print(f"sync_part_tree_on_update: No id attribute: "
                           f"{node.name=}, {node.tag=}")
 
+    def find_lca(self, seq_model, idx_1, idx_k):
+        """ Find the least common ancestor in the range idx_1 to idx_k """
+        if idx_1 == idx_k:
+            lca_node = self.parent_node(seq_model.ifcs[idx_1])
+        else:
+            lca_node = self.root_node
+            idx_1_ancestors = self.node(seq_model.ifcs[idx_1]).ancestors
+            for idx in range(idx_1, idx_k):
+                ifc_node_ancestors = self.node(seq_model.ifcs[idx+1]).ancestors
+                for (n1, n2) in zip(idx_1_ancestors, ifc_node_ancestors):
+                    if n1 == n2:
+                        prev_node = n1
+                    else:
+                        lca_node = prev_node
+                        break
+        return lca_node
+        
     def handle_object_image_tags(self, seq_model):
         """ Ensure nodes for object and image ifcs and gaps are tagged. """
         oi_ifc_tags = '#dummyifc#surface'

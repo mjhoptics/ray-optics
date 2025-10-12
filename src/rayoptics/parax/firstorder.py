@@ -235,7 +235,8 @@ def paraxial_trace_ynu(path: Path, n_before: float,
             cur_slp = b4_ynu[mc.slp]
             cur_slpb = b4_ynu_bar[mc.slp]
         else:
-            n_after = rndx if z_dir_after > 0 else -rndx
+            if z_dir_after is not None:
+                n_after = rndx if z_dir_after > 0 else -rndx
 
             # calculate slope after refraction/reflection
             pwr = ifc.optical_power

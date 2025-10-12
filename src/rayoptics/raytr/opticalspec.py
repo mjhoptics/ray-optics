@@ -332,7 +332,7 @@ class OpticalSpecs:
                     pt1[2] -= obj2enp_dist
 
                 else:
-                    aim_pt = aim_info
+                    aim_pt = [0., 0.] if aim_info is None else aim_info
                     obj2enp_dist = -(fod.obj_dist + z_enp)
                     pt1 = np.array([eprad*pupil[0]+aim_pt[0], 
                                     eprad*pupil[1]+aim_pt[1],

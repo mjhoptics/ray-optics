@@ -557,12 +557,14 @@ class OpticalModel:
         #  gap in two, and replacing a node, which uses the existing gaps.
         if kwargs.get('insert', False):
             t_after = kwargs['t'] if 't' in kwargs else 0.
+            rndx_b4 = sm.central_rndx(idx)
 
-            g, ag, ag_node, _ = ele.create_air_gap(t=t_after, 
-                                                   z_dir=seq[-1][mc.Zdir])
+            g, sp, sp_node, _ = ele.create_space(t=t_after, 
+                                                 med=sm.gaps[idx].medium, rndx=rndx_b4,
+                                                 z_dir=seq[-1][mc.Zdir])
             seq[-1][mc.Gap] = g
-            elm.append(ag)
-            ag_node.parent = pt.root_node
+            elm.append(sp)
+            sp_node.parent = pt.root_node
 
             # insert the new seq into the seq_model
             for sg in seq:
@@ -582,8 +584,10 @@ class OpticalModel:
                 pm.replace_node_with_dgm(e_nodez, dgm)
 
         else:  # replacing an existing node.
-            e_node = pt.parent_node(sm.ifcs[idx])
-            self.replace_node_with_descriptor(e_node, *descriptor, **kwargs)
+            e_node_pkg  = kwargs.get('replaced_node', 
+                                     (pt.parent_node(sm.ifcs[idx]), 
+                                      'ifcs', idx, idx))
+            self.replace_node_with_descriptor(e_node_pkg, *descriptor, **kwargs)
 
         if kwargs.get('do_update', True):
             src_model = kwargs.get('src_model', None)
@@ -630,25 +634,24 @@ class OpticalModel:
         # re-sort the ele_model by position on Z axis
         em.sequence_elements()
 
-    def replace_node_with_descriptor(self, e_node, *descriptor, **inputs):
+    def replace_node_with_descriptor(self, e_node_pkg, *descriptor, **inputs):
         sm = self['seq_model']
         pm = self['parax_model']
         em = self['ele_model']
         pt = self['part_tree']
 
-        seq, elm, e_nodez, dgm = descriptor
+        e_node, layer_key, idx_1, idx_k = e_node_pkg
+        seq, elm, e_nodez, _ = descriptor
 
         # remove interfaces from seq_model
         sm.replace_node_with_seq(e_node, seq, **inputs)
 
-        # remove interfaces from seq_model
-        if dgm is not None:
-            pm.replace_node_with_dgm(e_node, dgm, **inputs)
-        else:
-            _, _, pp_info = fo.compute_principle_points_for_fragment(iter(seq), 
-                                                        overall_length(seq))
-            sys_seq = pm.seq_path_to_paraxial_lens(seq)
-            pm.replace_node_with_seq(inputs['idx'], sys_seq, pp_info)
+        # remove interfaces from parax_model
+        _, _, pp_info = fo.compute_principle_points_for_fragment(iter(seq), 
+                                                    overall_length(seq))
+        sys_seq = pm.seq_path_to_paraxial_lens(seq)
+        pm.replace_node_with_seq(layer_key, inputs['idx'], idx_1, idx_k, 
+                                 sys_seq, pp_info)
 
         # remove elements from ele_model
         em.remove_node(e_node)

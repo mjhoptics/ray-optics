@@ -12,11 +12,78 @@ import numpy as np
 import pandas as pd
 
 from rayoptics.optical.model_constants import ht, slp, aoi
+import rayoptics.optical.model_constants as mc
+
+
+def compute_third_order_and_color(opt_model):
+    """ Compute Seidel aberration and primary chromatic coefficents. """
+    seq_model = opt_model['seq_model']
+    num_wvls = len(seq_model.rndx[0])
+    n_before = seq_model.central_rndx(0)
+    if num_wvls > 1:
+        dn_before = seq_model.rndx[0][0] - seq_model.rndx[0][-1]
+    else:
+        dn_before = 0.
+    parax_data = opt_model['analysis_results']['parax_data']
+    ax_ray, pr_ray, fod = parax_data
+    opt_inv = fod.opt_inv
+    opt_inv_sqr = opt_inv*opt_inv
+
+    third_order = {}
+
+    # Transfer from object
+    p = 0
+    pd_index = ['S-I', 'S-II', 'S-III', 'S-IV', 'S-V', 'C-I', 'C-II']
+    for c in range(1, len(ax_ray)-1):
+        n_after = seq_model.central_rndx(c)
+        n_after = n_after if seq_model.z_dir[c] > 0 else -n_after
+        if num_wvls > 2:
+            dn_after = seq_model.rndx[c][0] - seq_model.rndx[c][-1]
+        else:
+            dn_after = 0.
+        cv = seq_model.ifcs[c].profile_cv
+
+        A = n_after * ax_ray[c][mc.aoi]
+        Abar = n_after * pr_ray[c][mc.aoi]
+        P = cv*(1./n_after - 1./n_before)
+        delta_slp = ax_ray[c][mc.slp]/n_after - ax_ray[p][mc.slp]/n_before
+        SIi = -A**2 * ax_ray[c][mc.ht] * delta_slp
+        SIIi = -A*Abar * ax_ray[c][mc.ht] * delta_slp
+        SIIIi = -Abar**2 * ax_ray[c][mc.ht] * delta_slp
+        SIVi = -opt_inv_sqr * P
+        delta_n_sqr = 1./n_after**2 - 1./n_before**2
+        SVi = -Abar*(Abar * Abar * delta_n_sqr * ax_ray[c][mc.ht] -
+                     (opt_inv + Abar * ax_ray[c][mc.ht])*pr_ray[c][mc.ht]*P)
+
+        delta_rel_disp = (dn_after/n_after) - (dn_before/n_before)
+        CIi = A * ax_ray[c][mc.ht] * delta_rel_disp
+        CIIi = Abar * ax_ray[c][mc.ht] * delta_rel_disp
+        # print(f"{c}: {n_before:6.3f},  {n_after:6.3f}  {dn_before:9.3e},  {dn_after:9.3e}   {delta_rel_disp:9.3e}")
+        scoef = pd.Series([SIi, SIIi, SIIIi, SIVi, SVi, CIi, CIIi], 
+                          index=pd_index)
+        col = str(c)
+        third_order[col] = scoef
+
+        # handle case of aspheric profile
+        if hasattr(seq_model.ifcs[c], 'profile'):
+            to_asp = aspheric_seidel_contribution(seq_model, parax_data, c,
+                                                  n_before, n_after)
+            if to_asp:
+                ascoef = pd.Series(to_asp, index=pd_index)
+                third_order[col+'.asp'] = ascoef
+
+        p = c
+        n_before = n_after
+        dn_before = dn_after
+
+    third_order_df = pd.DataFrame(third_order, index=pd_index)
+    third_order_df['sum'] = third_order_df.sum(axis='columns')
+    return third_order_df.T
 
 
 def compute_third_order(opt_model):
     """ Compute Seidel aberration coefficents. """
-    seq_model = opt_model.seq_model
+    seq_model = opt_model['seq_model']
     n_before = seq_model.central_rndx(0)
     parax_data = opt_model['analysis_results']['parax_data']
     ax_ray, pr_ray, fod = parax_data

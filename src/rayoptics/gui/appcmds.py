@@ -213,6 +213,13 @@ def create_parax_design_commands(fig):
     cmds.append(('Add Cemented Doublet', (dgm.register_add_replace_element, 
                                           (), kwargs)))
 
+    # Add surface
+    cmds.append(('Add Surface',
+                 (dgm.register_add_replace_element, (),
+                  {'node_init': ele.create_surface,
+                   'factory': ele.create_surface,
+                   'interact_mode': 'transmit'})))
+    
     # Add mirror
     cmds.append(('Add Mirror',
                  (dgm.register_add_replace_element, (),

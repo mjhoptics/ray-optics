@@ -15,7 +15,7 @@ from rayoptics.mpl.styledfigure import StyledFigure
 
 from rayoptics.raytr.opticalspec import Field
 from rayoptics.raytr.trace import trace_astigmatism, trace_astigmatism_curve
-from rayoptics.parax.thirdorder import compute_third_order
+from rayoptics.parax.thirdorder import compute_third_order_and_color
 
 
 class FieldCurveFigure(StyledFigure):
@@ -88,7 +88,7 @@ class ThirdOrderBarChart(StyledFigure):
         return self
 
     def update_data(self, **kwargs):
-        self.to_pkg = compute_third_order(self.opt_model)
+        self.to_pkg = compute_third_order_and_color(self.opt_model)
 
     def plot(self):
         self.clf()

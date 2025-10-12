@@ -180,8 +180,10 @@ class MainWindow(QMainWindow):
             # self.open_file(path / "models/Newtonian with diagonal.roa")
             # self.open_file(path / "models/petzval.roa")
             # self.open_file(path / "models/Ritchey_Chretien.roa")
-            self.open_file(path / "models/Sasian Triplet.roa")
+            # self.open_file(path / "models/Sasian Triplet.roa")
             # self.open_file(path / "models/singlet_f5.roa")
+            # self.open_file(path / "models/f5_thin_singlet.roa")
+            self.open_file(path / "models/f5_thin_singlet_poly.roa")
             # self.open_file(path / "models/thinlens.roa")
             # self.open_file(path / "models/telephoto.roa")
             # self.open_file(path / "models/thin_triplet.roa")
@@ -212,10 +214,16 @@ class MainWindow(QMainWindow):
             # self.open_file(path / "zemax/models/PhotoPrime/US05331467-1.zmx")
             # self.open_file(path / "zemax/models/PhotoPrime/US05331467-1_asm.roa")
 
-            # root_pth = Path("/Users/Mike/Developer/PyProjects") 
+            # root_pth = Path("/Users/mike/Documents/developer/PyProjects") 
             # ro_test_files = root_pth / 'ro_test_files'
             # self.cur_dir = ro_test_files / "optical"
             # self.open_file(ro_test_files / "optical/Nikon Nikkor Z 14-30mm f-4 S real glasses.roa")
+
+            # root_pth = Path("/Users/mike/Documents/developer/PyProjects") 
+            # ro_nb_issues = root_pth / 'ray-optics-notebooks/issues'
+            # lens_path = ro_nb_issues / 'issue45_radiant_intensity_dist'
+            # self.cur_dir = lens_path
+            # self.open_file(lens_path / "CODV_45936.seq")
 
             # lens_designs_path = root_pth / 'lens-designs-dotcom'
             # self.cur_dir = lens_path = lens_designs_path / "PhotoPrime"
