@@ -111,7 +111,7 @@ def set_pupil(opm):
             rs0 = RaySeg(*ray_pkg[0][0])
             slp0 = rs0.d[1]/rs0.d[2]
             if pupil_spec == 'NA':
-                n0 = sm.rindx[0]
+                n0 = sm.central_rndx[0]
                 osp['pupil'].value = n0*rs0.d[1]
                 # osp['pupil'].value = etendue.slp2na(slp0)
             elif pupil_spec == 'f/#':
@@ -124,7 +124,7 @@ def set_pupil(opm):
         else:
             slpk = rsm2.d[1]/rsm2.d[2]
             if pupil_spec == 'NA':
-                nk = sm.rindx[-1]
+                nk = sm.central_rndx[-1]
                 osp['pupil'].value = -nk*rsm2.d[1]
                 # osp['pupil'].value = etendue.slp2na(slpk)
             elif pupil_spec == 'f/#':
