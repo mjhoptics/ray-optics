@@ -10,6 +10,7 @@
 import numpy as np
 from numpy.linalg import norm
 from math import sqrt, pi, acos
+from rayoptics.coord_geometry_types import V2d, Vec2d
 import transforms3d as t3d
 
 
@@ -56,6 +57,11 @@ def normalize(v):
 def distance_sqr_2d(pt0, pt1):
     """ return distance squared between 2d points pt0 and pt1 """
     return (pt0[0] - pt1[0])**2 + (pt0[1] - pt1[1])**2
+
+
+def cross2d(x: Vec2d, y: Vec2d) -> float:
+    # return x[..., 0] * y[..., 1] - x[..., 1] * y[..., 0]
+    return x[0] * y[1] - x[1] * y[0]
 
 
 def perpendicular_distance_2d(pt, pt1, pt2):

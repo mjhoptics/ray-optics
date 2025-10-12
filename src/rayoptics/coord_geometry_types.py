@@ -18,23 +18,24 @@ Created on Mon Jun  2 10:48:54 2025
 
 .. codeauthor: Michael J. Hayford
 """
+import numpy as np
 import numpy.typing as npt
 
-Vec2d = npt.NDArray
-Dir2d = npt.NDArray
-Mat2d = npt.NDArray
+Vec2d = npt.NDArray[np.double]
+Dir2d = npt.NDArray[np.double]
+Mat2d = npt.NDArray[np.double]
 Tfm2d = tuple[Mat2d|None, Vec2d]
 
-Vec3d = npt.NDArray
-Dir3d = npt.NDArray
-Mat3d = npt.NDArray
+Vec3d = npt.NDArray[np.double]
+Dir3d = npt.NDArray[np.double]
+Mat3d = npt.NDArray[np.double]
 Tfm3d = tuple[Mat3d|None, Vec3d]
 Ray3d = tuple[Vec3d, Dir3d]
 
-Vec4d = npt.NDArray
-Dir4d = npt.NDArray
-Mat4d = npt.NDArray
-Tfm2d = tuple[Mat4d|None, Vec4d]
+Vec4d = npt.NDArray[np.double]
+Dir4d = npt.NDArray[np.double]
+Mat4d = npt.NDArray[np.double]
+Tfm4d = tuple[Mat4d|None, Vec4d]
 
 V2d = npt.ArrayLike
 M2d = npt.ArrayLike

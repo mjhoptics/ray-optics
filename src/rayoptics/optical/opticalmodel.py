@@ -557,12 +557,14 @@ class OpticalModel:
         #  gap in two, and replacing a node, which uses the existing gaps.
         if kwargs.get('insert', False):
             t_after = kwargs['t'] if 't' in kwargs else 0.
+            rndx_b4 = sm.central_rndx(idx)
 
-            g, ag, ag_node, _ = ele.create_air_gap(t=t_after, 
-                                                   z_dir=seq[-1][mc.Zdir])
+            g, sp, sp_node, _ = ele.create_space(t=t_after, 
+                                                 med=sm.gaps[idx].medium, rndx=rndx_b4,
+                                                 z_dir=seq[-1][mc.Zdir])
             seq[-1][mc.Gap] = g
-            elm.append(ag)
-            ag_node.parent = pt.root_node
+            elm.append(sp)
+            sp_node.parent = pt.root_node
 
             # insert the new seq into the seq_model
             for sg in seq:

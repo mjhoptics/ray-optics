@@ -41,6 +41,7 @@ from rayoptics.gui.util import (calc_render_color_for_material, transform_poly)
 
 import opticalglass.glassfactory as gfact  # type: ignore
 from opticalglass.modelglass import ModelGlass  # type: ignore
+from opticalglass import opticalmedium as om
 
 GraphicsHandle = namedtuple('GraphicsHandle', ['polydata', 'tfrm', 'polytype',
                                                'color'], defaults=(None,))
@@ -77,6 +78,63 @@ def create_thinlens(power=0., indx=1.5, sd=None, **kwargs):
 
     descriptor = [[tl, None, None, 1, +1]], [tle], tree, dgm
     return descriptor
+
+
+def create_surface(c=0.0, r=None, cc=0.0, ec=None,
+                  power=None, profile=None, sd=None, **kwargs):
+    '''Create a sequence and element for a surface.
+
+    Args:
+        c: vertex curvature
+        r: vertex radius of curvature
+        cc: conic constant
+        ec: = 1 + cc
+        power:  optical power of the mirror
+        sd:  semi-diameter
+        profile: Spherical or Conic type, or a profile instance
+    '''
+    delta_n = kwargs['delta_n'] if 'delta_n' in kwargs else 0
+    if power:
+        cv = power/delta_n
+    elif r:
+        cv = 1.0/r
+    else:
+        cv = c
+
+    if ec:
+        k = ec - 1.0
+    else:
+        k = cc
+
+    if profile is Spherical:
+        prf = Spherical(c=cv)
+    elif profile is Conic:
+        prf = Conic(c=cv, cc=k)
+    elif profile is not None:
+        prf = profile
+    else:
+        if k == 0:
+            prf = Spherical(c=cv)
+        else:
+            prf = Conic(c=cv, cc=k)
+
+    sd = sd if sd is not None else 1
+
+    s = Surface(profile=prf, interact_mode='transmit', max_ap=sd,
+                delta_n=delta_n, **kwargs)
+    ele_kwargs = {'label': kwargs['label']} if 'label' in kwargs else {}
+    si = SurfaceInterface(ifc=s, sd=sd, **ele_kwargs)
+
+    tree = si.tree()
+
+    if 'prx' in kwargs:
+        pm, node, type_sel = prx = kwargs['prx']
+        dgm_pkg = [pm.get_pt(node)], [[1, 'transmit']]
+        dgm = prx, dgm_pkg
+    else:
+        dgm = None
+
+    return [[s, None, None, 1, 1]], [si], tree, dgm
 
 
 def create_mirror(c=0.0, r=None, cc=0.0, ec=None,
@@ -165,7 +223,7 @@ def lens_from_power(power=0., bending=0., th=None, sd=1.,
         if bending < 0:
             cv1, cv2 = -cv2, -cv1
 
-    return cv1, cv2, th, rndx, sd
+    return cv1, cv2, th, rndx, sd, med
 
 
 def _create_lens(power=0., bending=0., th=None, sd=1., med=None, 
@@ -184,23 +242,26 @@ def _create_lens(power=0., bending=0., th=None, sd=1., med=None,
                 - th: lens thickness
                 - glass_input: a str, e.g. 'N-BK7, Schott' or index (+V-number)
                 - sd: lens semi-diameter
+                - med: the OpticalMedium of the chunk | None
 
         """
     if med is None:
+        # mat = gfact.create_glass('N-BK7,Schott')
         mat = ModelGlass(1.517, 64.2, '517642')
     else:
         mat = decode_medium(med)
-        
+
     if lens is None:
         lens = lens_from_power(power=power, bending=bending, th=th, sd=sd,
                                med=mat)
-        cv1, cv2, th, rndx, sd = lens
+        cv1, cv2, th, rndx, sd, mat = lens
     else:
-        cv1, cv2, th, glass, sd = lens
-        mat = decode_medium(glass)
+        cv1, cv2, th, glass, sd, mat = lens
+        if mat is None:
+            mat = decode_medium(glass)
 
     rndx = mat.rindex('d')
-    lens = cv1, cv2, th, rndx, sd
+    lens = cv1, cv2, th, rndx, sd, mat
 
     s1 = Surface(profile=Spherical(c=cv1), max_ap=sd, delta_n=(rndx - 1))
     s2 = Surface(profile=Spherical(c=cv2), max_ap=sd, delta_n=(1 - rndx))
@@ -220,13 +281,14 @@ def create_lens(power=0., bending=0., th=None, sd=1., med=None,
 
             - idx: insertion point in the sequential model
             - t: the thickness following a chunk when inserting
-            - lens: tuple of `cv1, cv2, th, glass_name_catalog, sd` where:
+            - lens: tuple of `cv1, cv2, th, glass_name_catalog, sd, mat` where:
 
                 - cv1: front curvature
                 - cv2: rear curvature
                 - th: lens thickness
                 - glass_input: a str, e.g. 'N-BK7, Schott' or index (+V-number)
                 - sd: lens semi-diameter
+                - mat: an OpticalMedium instance
 
         """
     descriptor = _create_lens(power, bending, th, sd, med, lens, **kwargs)
@@ -234,7 +296,7 @@ def create_lens(power=0., bending=0., th=None, sd=1., med=None,
     return descriptor
 
 
-def create_lens_from_dgm(prx=None, **kwargs):
+def create_lens_from_dgm(prx, **kwargs):
     """ Use diagram points to create a lens. 
     
     Adds a |ybar| component to the descriptor tuple.
@@ -275,7 +337,7 @@ def create_cemented_doublet(power=0., bending=0., th=None, sd=1.,
     power_a, power_b = achromat(power, Va, Vb)
 
     if th is None:
-        th = sd/4
+        th = sd/2
     t1 = 3*th/4
     t2 = th/4
     if power_a < 0:
@@ -339,6 +401,17 @@ def create_air_gap(t=0., **kwargs):
     kwargs.pop('label', None)
     tree = ag.tree(**kwargs)
     return g, ag, tree, None
+
+
+def create_space(t=0., med=om.Air(), rndx=1., **kwargs):
+    g = Gap(t=t, med=med)
+    if rndx > 1.:
+        sp = Space(g=g, **kwargs)
+    else:
+        sp = AirGap(g=g, **kwargs)
+    kwargs.pop('label', None)
+    tree = sp.tree(**kwargs)
+    return g, sp, tree, None
 
 
 def create_from_file(filename, create_asm: bool=True, **kwargs):
@@ -523,7 +596,8 @@ def full_profile(profile, is_flipped, edge_extent,
     """
     from rayoptics.raytr.traceerror import TraceError
     def flip_profile(prf):
-        return [[-pt[0], pt[1]] for pt in prf]
+        return [[pt[0], pt[1]] for pt in prf]
+        # return [[-pt[0], pt[1]] for pt in prf]
 
     if len(edge_extent) == 1:
         sd_upr = edge_extent[0]

@@ -973,10 +973,17 @@ class AddReplaceElementAction():
 
                     node = shape.node
                     event_data = np.array([event.xdata, event.ydata])
+                    Z, T, W, Pwr = parax_model.ztwp
+                    pt1 = parax_model.get_pt(node)
+                    pt2 = parax_model.get_pt(node+1)
+                    snap_pt = misc_math.projected_point_on_line(event_data, 
+                                                                Z[node],
+                                                                Z[node+1])
+                                                                # pt1, pt2)
                     interact = self.command_inputs['interact_mode']
                     gap_rindx = parax_model.sys[node][mc.indx]
                     sys_data = [gap_rindx, interact]
-                    new_node = parax_model.add_node(node, event_data, 
+                    new_node = parax_model.add_node(node, snap_pt, 
                                                     diagram.type_sel, sys_data)
                     self.cur_node = cur_node = node, new_node
                     do_insert = True

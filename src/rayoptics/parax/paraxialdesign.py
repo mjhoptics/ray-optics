@@ -10,18 +10,21 @@
 import math
 from itertools import zip_longest
 import numpy as np
-from typing import NamedTuple, Optional
 
+from typing import NamedTuple, Optional
 from rayoptics.typing import SeqPath
+from rayoptics.coord_geometry_types import V2d, Vec2d
 import rayoptics.optical.model_constants as mc
+
 import rayoptics.parax.firstorder as fo
 from rayoptics.parax.idealimager import ideal_imager_setup
 from rayoptics.parax.specsheet import SpecSheet
 from rayoptics.seq.gap import Gap
 from rayoptics.elem.surface import Surface
+from opticalglass import opticalmedium as om
 
 from rayoptics.util.line_intersection import get_intersect
-from rayoptics.util.misc_math import normalize
+from rayoptics.util.misc_math import normalize, cross2d
 from rayoptics.util.misc_math import infinity_guard, is_kinda_big
 from numpy.linalg import norm
 
@@ -30,6 +33,13 @@ class SeqMapping(NamedTuple):
     layer_key: str
     node_defs: list[tuple[int, ...]]
     map_to_ifcs: list[tuple[int, int, float, float]]
+
+
+class ZTWPwr(NamedTuple):
+    Z: list[Vec2d]
+    T: list[float]
+    W: list[Vec2d]
+    Pwr: list[float]
 
 
 def bbox_from_poly(poly):
@@ -60,7 +70,7 @@ class ParaxialModel():
         self.sys = []
         self.ax = []
         self.pr = []
-        self.ztwp = []
+        self.ztwp: ZTWPwr = ZTWPwr([], [], [], [])
         self.opt_inv = opt_inv
         self.y_star = None
         self.ybar_star = None
@@ -160,12 +170,12 @@ class ParaxialModel():
                              else pr[i-1][mc.slp])
 
             if i < max_nodes-1:
-                tau = np.cross(Z[i+1], Z[i])/opt_inv
+                tau = cross2d(Z[i+1], Z[i])/opt_inv
             else:
                 tau = 0
 
             if i > 0 and i <= max_nodes-delta_nodes-1:
-                pwr = np.cross(nu_nubar[i], nu_nubar[i-1])/opt_inv
+                pwr = cross2d(nu_nubar[i], nu_nubar[i-1])/opt_inv
             else:
                 pwr = 0
             sys[i] = [pwr, tau, *ni]
@@ -229,11 +239,13 @@ class ParaxialModel():
         if type_sel == mc.ht:
             for i, node in enumerate(nodes):
                 self.apply_ht_dgm_data(i, node)
+                update_from_Z(i, None, *self.ztwp)
         elif type_sel == mc.slp:
             self.pr[0][mc.ht] = self.opt_model['parax_model'].ybar_star
             self.ax[0][mc.ht] = 0.    
             for i, node in enumerate(nodes):
                 self.apply_slope_dgm_data(i, node)
+                update_from_W(i, None, *self.ztwp)
         return self
 
     def get_pt(self, idx, type_sel=mc.ht):
@@ -284,16 +296,28 @@ class ParaxialModel():
         pr_node[type_sel] = new_vertex[0]
         self.pr.insert(new_node, pr_node)
 
+        Z, T, W, Pwr = self.ztwp
+        if type_sel == mc.ht:
+            Z.insert(new_node, new_vertex)
+            W.insert(new_node, np.array([0., 0.]))
+        elif type_sel == mc.slp:
+            W.insert(new_node, new_vertex/self.opt_inv)
+            Z.insert(new_node, np.array([0., 0.]))
+        T.insert(new_node, 0.)
+        Pwr.insert(new_node, 0.)
+
         if type_sel == mc.ht:
             self.apply_ht_dgm_data(new_node, new_vertex=new_vertex)
+            update_from_Z(new_node, new_vertex, *self.ztwp)
             if self.seq_mapping is not None:
                 ht_nodes = self.parax_to_nodes(mc.ht)
-                self.process_seq_mapping(ht_nodes)
+                # self.process_seq_mapping(ht_nodes)
         elif type_sel == mc.slp:
             self.apply_slope_dgm_data(new_node, new_vertex=new_vertex)
+            update_from_W(new_node, new_vertex/self.opt_inv, *self.ztwp)
             if self.seq_mapping is not None:
                 ht_nodes = self.parax_to_nodes(mc.ht)
-                self.process_seq_mapping(ht_nodes)
+                # self.process_seq_mapping(ht_nodes)
 
         if sys_data[1] == 'reflect':
             for i in range(new_node, len(self.sys)):
@@ -318,25 +342,32 @@ class ParaxialModel():
         descriptor = factory(power=power, sd=sd, 
                              prx=(self, new_node, type_sel))
         seq, elm, e_nodez, dgm = descriptor
-        # drop dgm hint for now
-        descriptor = seq, elm, e_nodez, None
 
-        # find the element to replace
-        #  first identify the ifc range
-        if self.seq_mapping is not None:
-            node_defs = self.seq_mapping.node_defs
-            idx_1, idx_k = get_node_range(node_defs[node])
-        else:
-            idx_1 = idx_k = node
-        # find the least common ancestor of the ifc range
-        rm_node = self.opt_model['pt'].find_lca(
-            self.opt_model['sm'], idx_1, idx_k)
+        do_insert = inputs['insert']
+        if do_insert is True:
+            descriptor = seq, elm, e_nodez, None
+            kwargs = {'idx': node, 't': thi, **inputs, 'src_model': self,
+                      }
+        else:  # do_insert is False => replace the node content
+            # find the element to replace
+            #  first identify the ifc range
+            if self.seq_mapping is not None:
+                node_defs = self.seq_mapping.node_defs
+                idx_1, idx_k = get_node_range(node_defs[node])
+            else:
+                idx_1 = idx_k = node
+            # find the least common ancestor of the ifc range
+            rm_node = self.opt_model['pt'].find_lca(
+                self.opt_model['sm'], idx_1, idx_k)
 
+            # drop dgm hint for now
+            descriptor = seq, elm, e_nodez, None
+            kwargs = {'idx': node, 't': thi, **inputs, 'src_model': self,
+                      'replaced_node': (rm_node, layer_key, idx_1, idx_k),
+                      }
+    
         # insert the path sequence and elements into the
         #  sequential and element models
-        kwargs = {'idx': node, 't': thi, **inputs, 'src_model': self,
-                  'replaced_node': (rm_node, layer_key, idx_1, idx_k),
-                  }
         self.opt_model.insert_ifc_gp_ele(*descriptor, **kwargs)
 
         pm_ifcs = self.opt_model['parax_model']
@@ -549,10 +580,11 @@ class ParaxialModel():
         self.opt_model['parax_model'].nodes_to_parax(nodes_ifcs, mc.ht)
 
     def update_composite_node_fct(self, type_sel):
-        """ returns the appropriate 'apply' fct for the `type_sel`. """            
+        """ returns the appropriate 'apply' fct for the `type_sel`."""            
         if type_sel == mc.ht:
             def apply_ht_data(node, new_vertex):
                 self.apply_ht_dgm_data(node, new_vertex)
+                update_from_Z(node, new_vertex, *self.ztwp)
                 if self.seq_mapping is not None:
                     ht_nodes = self.parax_to_nodes(mc.ht)
                     self.process_seq_mapping(ht_nodes)
@@ -562,6 +594,7 @@ class ParaxialModel():
             def apply_slp_data(node, new_vertex):
                 # editing only allowed for interface layer currently
                 self.apply_slope_dgm_data(node, new_vertex)
+                update_from_W(node, new_vertex/self.opt_inv, *self.ztwp)
                 if self.seq_mapping is not None:
                     ht_nodes = self.parax_to_nodes(mc.ht)
                     self.process_seq_mapping(ht_nodes)
@@ -572,6 +605,12 @@ class ParaxialModel():
         gap = self.seq_model.gaps[surf]
         wvl = self.seq_model.central_wavelength()
         self.sys[surf][mc.indx] = gap.medium.rindex(wvl)
+
+    def change_glass_const_power(self, idx: int, mat: om.OpticalMedium):
+        """Change the gap at idx to mat holding first order props constant."""
+        self.seq_model.gaps[idx].medium = mat
+        self.update_rindex(idx)
+        self.paraxial_lens_to_seq_model()
 
     # ParaxTrace() - This routine performs a paraxial raytrace from object
     #                (surface 0) to image.  The last operation is a
@@ -746,12 +785,12 @@ class ParaxialModel():
         z1 = np.array(self.get_pt(idx, type_sel=mc.ht))
         z2 = np.array(self.get_pt(idx+1, type_sel=mc.ht))
     
-        To = np.cross(z1, z0)
+        To = cross2d(z1, z0)
         Wo = (z1 - z0)/To
 
-        Ti = np.cross(z2, z1)
+        Ti = cross2d(z2, z1)
         Wi = (z2 - z1)/Ti
-        Pwr = np.cross(Wi, Wo)
+        Pwr = cross2d(Wi, Wo)
         # print(f"To={To:8.4f}, Ti={Ti:8.4f}, opt_inv={opt_inv:8.4f}")
         # print(f"Pwr={Pwr:8.6f}, efl={1/(Pwr*opt_inv):8.4f}")
 
@@ -783,8 +822,8 @@ class ParaxialModel():
         z11 = FZi*zf + zfp
         P10 = FWo*Pwr
         P11 = FWi*Pwr
-        # To10 = np.cross(z10, z0)
-        # T11i = np.cross(z2, z11)
+        # To10 = cross2d(z10, z0)
+        # T11i = cross2d(z2, z11)
         
         # pp1 = (To - To10)/opt_inv
         # ppk = (Ti - T11i)/opt_inv
@@ -795,7 +834,7 @@ class ParaxialModel():
         cv1 = P10*opt_inv/(rndx-1)
         cv2 = P11*opt_inv/(1-rndx)
         thi = rndx*T_lens/opt_inv
-        lens = cv1, cv2, thi, rndx, sd
+        lens = cv1, cv2, thi, rndx, sd, med
         # print(f"cv1={cv1:8.6f}, cv2={cv2:8.6f}, thi={thi:8.4f}, "
         #       f"rndx={rndx:6.4f}, sd={sd:8.4f}")
         
@@ -950,9 +989,9 @@ class ParaxialModel():
         z0 = np.array(pm_layer.get_pt(node-1, type_sel=mc.ht))
         z1 = np.array(pm_layer.get_pt(node, type_sel=mc.ht))
         z2 = np.array(pm_layer.get_pt(node+1, type_sel=mc.ht))
-        To = np.cross(z1, z0)
+        To = cross2d(z1, z0)
         Wo = (z1 - z0)/To
-        Ti = np.cross(z2, z1)
+        Ti = cross2d(z2, z1)
         Wi = (z2 - z1)/Ti
 
         pp_info = self.compute_principle_points_from_dgm()
@@ -1024,7 +1063,7 @@ class ParaxialModel():
 
         # generate normalized diagram from Z
         Z, T, W, Pwr = update_from_dgm(Z, opt_inv, osp)
-        self.ztwp = Z, T, W, Pwr
+        self.ztwp = ZTWPwr(Z, T, W, Pwr)
 
         # generate the parax_model from the normalized diagram
         aps = dgms_to_parax(Z, T, W, Pwr, opt_inv)
@@ -1073,6 +1112,7 @@ def populate_model_from_parax(opt_model, factory, type_sel):
         # create an element with the node's properties
         descriptor = factory(power=power, sd=sd, prx=(pm_ifcs, i, type_sel))
         seq, ele, e_node, dgm = descriptor
+        descriptor_no_dgm = seq, ele, e_node, None
 
         b4_idx = i-1 if i > 0 else 0
         n_before = pm_ifcs.sys[b4_idx][mc.indx]
@@ -1082,7 +1122,7 @@ def populate_model_from_parax(opt_model, factory, type_sel):
         #  sequential and element models
         kwargs = {'idx': b4_idx, 't': infinity_guard(thi), 
                   'insert': True, 'src_model': pm_ifcs, 'do_update': False}
-        opt_model.insert_ifc_gp_ele(*descriptor, **kwargs)
+        opt_model.insert_ifc_gp_ele(*descriptor_no_dgm, **kwargs)
 
         opt_model['seq_model'].gaps[b4_idx].thi = thi_before
 
@@ -1269,8 +1309,8 @@ def scan_nodes(parax_model, node_defs, nodes):
             l1_pt1 = parax_model.get_pt(prev)
             # l1_pt2 = parax_model.get_pt(prev_gap_idx+1)
             l2_pt1 = parax_model.get_pt(after_gap_idx)
-            xprod1 = np.cross(l1_pt1, l2_pt1)
-            # xprodt = np.cross(l1_pt2, l2_pt1)
+            xprod1 = cross2d(l1_pt1, l2_pt1)
+            # xprodt = cross2d(l1_pt2, l2_pt1)
             # print(f'{i}: {prev}-{after_gap_idx}: ifc: {xprod1}, t: {xprodt}, thin: {xprods[i-1]}')
             if xprods[i-1] > 0 or (prev_gap_idx != 0 and
                                    2*xprod1 > xprods[i-1]):
@@ -1349,7 +1389,7 @@ def gen_ifcs_node_mapping(parax_model, node_defs, nodes) -> \
             prev_gap_idx, after_gap_idx = kernel
             for k in range(prev_gap_idx+1, after_gap_idx+1):
                 pt_k = np.array(parax_model.get_pt(k, type_sel=mc.ht))
-                xprod = np.cross(nodes[i], pt_k)
+                xprod = cross2d(nodes[i], pt_k)
                 if xprod >= 0.0:
                     t1, t2 = calc_scale_factors(l1_pt1, l1_pt2, pt_k)
                     map_to_ifcs.append((k, i-1, t1, t2))
@@ -1503,12 +1543,12 @@ def compute_principle_points_from_dgm(Z, sys, opt_inv, idx_os=0, idx_is=-2):
 
     z1 = np.array(get_intersect(z0, z1o, z1i, z2))
 
-    To = np.cross(z1, z1o)
+    To = cross2d(z1, z1o)
     Wo = (z1 - z1o)/To
 
-    Ti = np.cross(z1, z1i)
+    Ti = cross2d(z1, z1i)
     Wi = (z1 - z1i)/Ti
-    Pwr = np.cross(Wi, Wo)
+    Pwr = cross2d(Wi, Wo)
     
     zfo = -Wi/Pwr
     zfi = Wo/Pwr
@@ -1537,7 +1577,7 @@ def specsheet_from_dgm(parax_model, optical_spec, specsheet):
     y1_star, ybar0_star = calc_object_and_pupil_from_dgm(Z, 0)
     yk_star, ybark_star = calc_object_and_pupil_from_dgm(Z, -2)
     m = ybar0_star/ybark_star
-    Pwr_tot = np.cross(W[-2], W[0])
+    Pwr_tot = cross2d(W[-2], W[0])
     efl = 1/(Pwr_tot*opt_inv)
 
     conj_type = 'finite'
@@ -1589,12 +1629,65 @@ def specsheet_from_dgm(parax_model, optical_spec, specsheet):
     return specsheet
 
 
-def update_from_dgm(Z, opt_inv, osp):
+def update_from_Z(idx: int, Z_new: Optional[Vec2d], Z, T, W, Pwr) -> ZTWPwr:
+    y, ybar = 1, 0
+    def calc_TWPwr(i: int):
+        delZ = Z[i+1] - Z[i]
+        T[i] = cross2d(Z[i+1], Z[i])
+        if is_kinda_big(delZ[ybar]):
+            Pwr[i] = W[i-1][y]/Z[i][y]
+            W[i] = W[i-1] - Pwr[i]*Z[i]
+        elif is_kinda_big(delZ[y]):
+            Pwr[i] = W[i-1][ybar]/Z[i][ybar]
+            W[i] = W[i-1] - Pwr[i]*Z[i]
+        else:
+            W[i] = delZ/T[i]
+            Pwr[i] = cross2d( W[i],  W[i-1])
+
+    if Z_new is not None:
+        Z[idx] = Z_new
+    
+    len_Z = len(Z)
+    if idx > 1 and idx < len_Z:
+        calc_TWPwr(idx-1)
+    if idx > 0 and idx < len_Z-1:
+        calc_TWPwr(idx)
+    if idx > 0 and idx < len_Z-2:
+        Pwr[idx+1] = cross2d(W[idx+1], W[idx])
+    
+    return ZTWPwr(Z, T, W, Pwr)
+
+
+def update_from_W(idx: int, W_new: Optional[Vec2d], Z, T, W, Pwr) -> ZTWPwr:
+    y, ybar = 1, 0
+    def calc_ZTPwr(i: int):
+        delW = W[i+1] - W[i]
+        Pwr[i] = cross2d(W[i+1], W[i])
+        if is_kinda_big(delW[ybar]):
+            Pwr[i] = W[i-1][y]/Z[i][y]
+            W[i] = W[i-1] - Pwr[i]*Z[i]
+        elif is_kinda_big(delW[y]):
+            Pwr[i] = W[i-1][ybar]/Z[i][ybar]
+            W[i] = W[i-1] - Pwr[i]*Z[i]
+        else:
+            Z[i] = -delW/Pwr[i]
+            T[i] = cross2d( Z[i],  Z[i-1])
+
+    if W_new is not None:
+        W[idx] = W_new
+    calc_ZTPwr(idx-1)
+    calc_ZTPwr(idx)
+    T[idx+1] = cross2d(Z[idx+1], Z[idx])
+
+    return ZTWPwr(Z, T, W, Pwr)
+
+
+def update_from_dgm(Z, opt_inv, osp) -> ZTWPwr:
     """ Given a |ybar| diagram `Z`, generate the dual and params. """
     y, ybar = 1, 0
 
     delZo = Z[1] - Z[0]
-    To = np.cross(Z[1], Z[0])
+    To = cross2d(Z[1], Z[0])
     if is_kinda_big(delZo[ybar]):
         field_spec = osp['fov'].derive_parax_params()
         fov_oi_key, field_key, field_value = field_spec
@@ -1607,11 +1700,11 @@ def update_from_dgm(Z, opt_inv, osp):
         Wo = delZo/To
     T = [To]
     W = [Wo]
-    Pwr = [np.array(0.)]
+    Pwr = [0.]
 
     for i in range(1, len(Z)-1):
         delZ = Z[i+1] - Z[i]
-        Ti = np.cross(Z[i+1], Z[i])
+        Ti = cross2d(Z[i+1], Z[i])
         if is_kinda_big(delZ[ybar]):
             Pwr1 = Wo[y]/Z[i][y]
             Wi = Wo - Pwr1*Z[i]
@@ -1620,7 +1713,7 @@ def update_from_dgm(Z, opt_inv, osp):
             Wi = Wo - Pwr1*Z[i]
         else:
             Wi = delZ/Ti
-            Pwr1 = np.cross(Wi, Wo)
+            Pwr1 = cross2d(Wi, Wo)
         
         T.append(Ti)
         W.append(Wi)
@@ -1628,14 +1721,14 @@ def update_from_dgm(Z, opt_inv, osp):
         
         Wo = Wi
 
-    T.append(np.array(0.))
+    T.append(0.)
     W.append(Wi)
-    Pwr.append(np.array(0.))
+    Pwr.append(0.)
  
-    return Z, np.array(T), np.array(W), np.array(Pwr)
+    return ZTWPwr(Z, T, W, Pwr)
 
 
-def parax_to_dgms(ax, pr, sys, opt_inv):
+def parax_to_dgms(ax, pr, sys, opt_inv) -> ZTWPwr:
     """ convert paraxial rays to normalized diagram. """
     Z = []
     T = []
@@ -1649,7 +1742,7 @@ def parax_to_dgms(ax, pr, sys, opt_inv):
         Pwr.append(sys_i[mc.pwr]/opt_inv)
     del T[-1:]
     del W[-1:]
-    return Z, T, W, Pwr
+    return ZTWPwr(Z, T, W, Pwr)
 
 
 def dgms_to_parax(Z, T, W, Pwr, opt_inv, rndx_and_imode=None):
