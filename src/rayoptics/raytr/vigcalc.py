@@ -251,12 +251,10 @@ def calc_vignetted_ray_by_bisection(opm, xy, start_dir, fld, wvl,
  
     """
     rel_p1 = np.array(start_dir)
-    sm = opm['sm']
-    still_iterating = True
     last_indx = None
     iter_count = 0  # safe guard against runaway iteration
     step_size = 1.0
-    while still_iterating and iter_count<max_iter_count:
+    while iter_count<max_iter_count:
         iter_count += 1
         try:
             step_size /= 2
