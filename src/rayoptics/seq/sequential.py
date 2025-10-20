@@ -1064,24 +1064,35 @@ class SequentialModel:
             sd = abs(ax_ray[i][0]) + abs(pr_ray[i][0])
             ifc.set_max_aperture(sd)
 
-    def set_clear_apertures(self):
-        rayset = trace.trace_boundary_rays(self.opt_model,
+    def set_clear_apertures(self, avoid_list: Optional[list[int]]=None):
+        """ set each surface aperture using edge rays at each field
+
+        Args:
+        avoid_list: list of surfaces to skip when setting apertures.
+
+        The avoid_list idea and implementation was contributed by Quentin Bécar
+        """
+        if avoid_list is None:
+            avoid_list = []
+
+        rayset = trace.trace_boundary_rays(self.opt_model, 
                                            use_named_tuples=True)
 
         for i, s in enumerate(self.ifcs):
-            max_ap = -1.0e+10
-            update = True
-            for f in rayset:
-                for p in f:
-                    ray = p.ray
-                    if len(ray) > i:
-                        ap = sqrt(ray[i].p[0]**2 + ray[i].p[1]**2)
-                        if ap > max_ap:
-                            max_ap = ap
-                    else:  # ray failed before this interface, don't update
-                        update = False
-            if update:
-                s.set_max_aperture(max_ap)
+            if i not in avoid_list:
+                max_ap = -1.0e+10
+                update = True
+                for f in rayset:
+                    for p in f:
+                        ray = p.ray
+                        if len(ray) > i:
+                            ap = sqrt(ray[i].p[0]**2 + ray[i].p[1]**2)
+                            if ap > max_ap:
+                                max_ap = ap
+                        else:  # ray failed before this interface, don't update
+                            update = False
+                if update:
+                    s.set_max_aperture(max_ap)
 
     def trace(self, pt0, dir0, wvl, **kwargs):
         return rt.trace(self, pt0, dir0, wvl, **kwargs)
