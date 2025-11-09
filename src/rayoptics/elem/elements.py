@@ -413,8 +413,25 @@ def create_space(t=0., med=om.Air(), rndx=1., **kwargs):
     return g, sp, tree, None
 
 
+def copy_opm_internal(opm_to_copy: 'OpticalModel', **kwargs):
+    """ Copy an OpticalModel, returning a descriptor.
+    
+    Args:
+        opm_to_copy: the OpticalModel for import
+
+    Returns: 
+        model descriptor: seq, parts, nodes, dgm    
+    
+    this function is intended to be a factory_fct to be use to copy elements of an optical model into another one (so not obj, img or wvl etc, just surfaces)
+
+    if not deepcopy, the "copied" opm sequence is still linked to the opm to copied, so when one is changed the other is affected !
+    """
+    opm_copy = deepcopy(opm_to_copy)
+    return import_optical_model(opm_copy, **kwargs)
+
+
 def create_from_file(filename, create_asm: bool=True, **kwargs):
-    """ Import an optical model into the current optical model.
+    """ Import an optical model, returning a descriptor..
     
     Args:
         filename: filename or url
@@ -426,36 +443,52 @@ def create_from_file(filename, create_asm: bool=True, **kwargs):
     """
     import rayoptics.gui.appcmds as cmds
     opm_file = cmds.open_model(filename, post_process_imports=False)
-    sm_file = opm_file['seq_model']
-    osp_file = opm_file['optical_spec']
-    pm_file = opm_file['parax_model']
-    em_file = opm_file['ele_model']
-    pt_file = opm_file['part_tree']
-    ar_file = opm_file['analysis_results']
-    if len(pt_file.nodes_with_tag(tag='#element')) == 0:
-        parttree.sequence_to_elements(sm_file, em_file, pt_file)
+    return import_optical_model(opm_file, **kwargs)
+
+
+def import_optical_model(opm_import: 'OpticalModel', create_asm: bool=True, 
+                         **kwargs):
+    """ Import an optical model into the current optical model.
+    
+    Args:
+        opm_import: the OpticalModel for import
+        power: Optional[float], scale opm_import to this optical power
+        create_asm: if True, create an assembly for opm_import
+        label: used for assembly, if created
+
+    Returns: 
+        model descriptor: seq, parts, nodes, dgm
+    """
+    sm_import = opm_import['seq_model']
+    osp_import = opm_import['optical_spec']
+    pm_import = opm_import['parax_model']
+    em_import = opm_import['ele_model']
+    pt_import = opm_import['part_tree']
+    ar_import = opm_import['analysis_results']
+    if len(pt_import.nodes_with_tag(tag='#element')) == 0:
+        parttree.sequence_to_elements(sm_import, em_import, pt_import)
 
     if 'power' in kwargs:
         desired_power = kwargs['power']
-        cur_power = ar_file['parax_data'].fod.power
+        cur_power = ar_import['parax_data'].fod.power
         # scale_factor is linear, power is 1/linear
         #  so use reciprocal of power to compute scale_factor
         scale_factor = cur_power/desired_power
-        opm_file.apply_scale_factor(scale_factor)
+        opm_import.apply_scale_factor(scale_factor)
 
     # extract the system definition, minus object and image
-    seq = [list(node) for node in sm_file.path(start=1, stop=-1)]
+    seq = [list(node) for node in sm_import.path(start=1, stop=-1)]
     seq[-1][1] = None
     
     if 'prx' in kwargs:
-        dgm = pm_file.match_pupil_and_conj(kwargs['prx'])
+        dgm = pm_import.match_pupil_and_conj(kwargs['prx'])
     else:
         dgm = None
 
     # get the top level nodes of the input system, minus object and image
-    part_nodes = pt_file.nodes_with_tag(tag='#element#airgap#assembly',
+    part_nodes = pt_import.nodes_with_tag(tag='#element#airgap#assembly',
                                         not_tag='#object#image',
-                                        node_list=pt_file.root_node.children)
+                                        node_list=pt_import.root_node.children)
     parts = [part_node.id for part_node in part_nodes]
 
     if create_asm:
@@ -465,9 +498,9 @@ def create_from_file(filename, create_asm: bool=True, **kwargs):
         else:
             # create an Assembly from the top level part list
             label = kwargs.get('label', None)
-            tfrm = kwargs.get('tfrm', opm_file['seq_model'].gbl_tfrms[1])
+            tfrm = kwargs.get('tfrm', opm_import['seq_model'].gbl_tfrms[1])
             asm = Assembly(parts, idx=1, label=label, tfrm=tfrm)
-            asm_node = asm.tree(part_tree=opm_file['part_tree'], tag='#file')
+            asm_node = asm.tree(part_tree=opm_import['part_tree'], tag='#file')
             parts.append(asm)
 
         asm_node.parent = None
