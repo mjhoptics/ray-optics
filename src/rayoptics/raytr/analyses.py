@@ -251,8 +251,7 @@ def eval_fan(opt_model, fld, wvl, foc, xy,
                         output_filter=output_filter,
                         rayerr_filter=rayerr_filter, **kwargs)
 
-    central_wvl = opt_model.optical_spec.spectral_region.central_wvl
-    convert_to_opd = 1/opt_model.nm_to_sys_units(central_wvl)
+    convert_to_opd = 1/opt_model.nm_to_sys_units(wvl)
 
     def rfc(fi):
         pupil_x, pupil_y, ray_pkg = fi
@@ -319,8 +318,7 @@ def focus_fan(opt_model, fan_pkg, fld, wvl, foc,
     ref_sphere, cr_pkg = trace.setup_pupil_coords(opt_model, fld, wvl, foc, 
                                                   image_pt=image_pt_2d,
                                                   image_delta=image_delta)
-    central_wvl = opt_model.optical_spec.spectral_region.central_wvl
-    convert_to_opd = 1/opt_model.nm_to_sys_units(central_wvl)
+    convert_to_opd = 1/opt_model.nm_to_sys_units(wvl)
 
     def rfc(fi, fiu):
         pupil_x, pupil_y, ray_pkg = fi
@@ -718,8 +716,7 @@ def eval_wavefront(opt_model, fld, wvl, foc, image_pt_2d=None,
     grid = trace_ray_grid(opt_model, vig_grid_def, 
                           fld, wvl, foc, **kwargs)
 
-    central_wvl = opt_model.optical_spec.spectral_region.central_wvl
-    convert_to_opd = 1/opt_model.nm_to_sys_units(central_wvl)
+    convert_to_opd = 1 / opt_model.nm_to_sys_units(wvl)
 
     def rfc(gij):
         pupil_x, pupil_y, ray_pkg = gij
@@ -777,8 +774,7 @@ def focus_wavefront(opt_model, grid_pkg, fld, wvl, foc, image_pt_2d=None,
     ref_sphere, cr_pkg = trace.setup_pupil_coords(opt_model, fld, wvl, foc, 
                                                   image_pt=image_pt_2d,
                                                   image_delta=image_delta)
-    central_wvl = opt_model.optical_spec.spectral_region.central_wvl
-    convert_to_opd = 1/opt_model.nm_to_sys_units(central_wvl)
+    convert_to_opd = 1 / opt_model.nm_to_sys_units(wvl)
 
     def rfc(gij, uij):
         pupil_x, pupil_y, ray_pkg = gij
