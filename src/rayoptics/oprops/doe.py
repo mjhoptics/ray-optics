@@ -16,11 +16,11 @@
 .. codeauthor: Michael J. Hayford
 """
 
-
+from typing import Optional
 from math import sqrt
 import numpy as np
 import importlib
-
+from rayoptics.coord_geometry_types import Vec3d, Dir3d
 import rayoptics.raytr.raytrace as rt
 from rayoptics.util.misc_math import normalize
 
@@ -116,10 +116,12 @@ class DiffractionGrating:
                  f"grating_normal: {self.grating_normal}\n")
         return o_str
 
-    def phase(self, pt, in_dir, srf_nrml, ifc_cntxt):
+    def phase(self, pt: Vec3d, in_dir: Dir3d, srf_nrml: Dir3d, 
+              ifc_cntxt) -> tuple[Dir3d, float]:
         return self.phase_ludwig(pt, in_dir, srf_nrml, ifc_cntxt)
 
-    def phase_ludwig(self, pt, in_dir, srf_nrml, ifc_cntxt):
+    def phase_ludwig(self, pt: Vec3d, in_dir: Dir3d, srf_nrml: Dir3d, 
+                     ifc_cntxt) -> tuple[Dir3d, float]:
         z_dir, wvl, n_in, n_out, interact_mode = ifc_cntxt
         refl = -1 if interact_mode == 'reflect' else 1
         normal = z_dir * normalize(srf_nrml)          # = R
@@ -170,7 +172,8 @@ class DiffractionGrating:
 
         return out_dir, dW
 
-    def phase_welford(self, pt, in_dir, srf_nrml, ifc_cntxt):
+    def phase_welford(self, pt: Vec3d, in_dir: Dir3d, srf_nrml: Dir3d, 
+                      ifc_cntxt) -> tuple[Dir3d, float]:
         z_dir, wvl, n_in, n_out, interact_mode = ifc_cntxt
         refl = -1 if interact_mode == 'reflect' else 1
 
@@ -266,17 +269,20 @@ class DiffractiveElement:
         o_str += f"ref wl: {self.ref_wl}nm  order: {self.order}\n"
         return o_str
 
-    def phase(self, pt, in_dir, srf_nrml, ifc_cntxt):
+    def phase(self, pt: Vec3d, in_dir: Dir3d, srf_nrml: Dir3d, 
+              ifc_cntxt) -> tuple[Dir3d, float]:
         """Returns a diffracted ray and phase increment.
 
         Args:
             pt: point of incidence in :class:`~.Interface` coordinates
             in_dir: incoming direction cosine of incident ray
             srf_nrml: :class:`~.Interface` surface normal at pt
-            z_dir: -1 if after an odd # of reflections, +1 otherwise
-            wl: wavelength in nm for ray, defaults to ref_wl
-            n_in: refractive index preceding the interface
-            n_out: refractive index following the interface
+            ifc_cntxt: tuple containing
+                z_dir: -1 if after an odd # of reflections, +1 otherwise
+                wl: wavelength in nm for ray, defaults to ref_wl
+                n_in: refractive index preceding the interface
+                n_out: refractive index following the interface
+                interact_mode: 'transmit' or 'reflect'
 
         Returns:
             (**out_dir, dW**)
@@ -318,14 +324,38 @@ class DiffractiveElement:
 
 
 class HolographicElement:
-    """Two point hologram element. """
-    def __init__(self, label=''):
+    """Two point hologram element. 
+    
+    A two point hologram is formed by the interference of two wavefronts, an 
+    object wavefront and a reference wavefront. The locations of the point 
+    sources producing the wavefronts define the focal length of the element. 
+    For the case of volume holograms, the fringe orientation in the volume 
+    determines whether the primary diffracted wave is transmitted or reflected. 
+    The virtual flags for each wavefront can be used produced the desired 
+    outcome.
+
+    Attributes:
+        label: str  optional label for HOE
+        ref_pt: location of the reference wave source
+        ref_virtual: if False, diverges from the source
+        obj_pt: location of the object wave source
+        obj_virtual: if False, diverges from the source
+        ref_wl: the construction/exposure wavelength (nm) for the HOE
+
+    The virtual flags are used to indicate whether a wavefront 
+    is diverging from the source (False) or, if True, converging 
+    towards the [virtual] source.
+    """
+    def __init__(self, label: str='', 
+                 ref_pt: Optional[Vec3d]=None, ref_virtual: bool=False,
+                 obj_pt: Optional[Vec3d]=None, obj_virtual: bool=False,
+                 ref_wl: float=550.):
         self.label = label
-        self.ref_pt = np.array([0., 0., -1e10])
-        self.ref_virtual = False
-        self.obj_pt = np.array([0., 0., -1e10])
-        self.obj_virtual = False
-        self.ref_wl = 550.0
+        self.ref_pt = np.array([0., 0., -1e10]) if ref_pt is None else ref_pt
+        self.ref_virtual = ref_virtual
+        self.obj_pt = np.array([0., 0., -1e10]) if obj_pt is None else obj_pt
+        self.obj_virtual = obj_virtual
+        self.ref_wl = ref_wl
 
     def listobj_str(self):
         if len(self.label) == 0:
@@ -339,7 +369,8 @@ class HolographicElement:
                   f"{self.obj_pt[2]:12.5g}   virtual: {self.obj_virtual}\n")
         return o_str
 
-    def phase(self, pt, in_dir, srf_nrml, ifc_cntxt):
+    def phase(self, pt: Vec3d, in_dir: Dir3d, srf_nrml: Dir3d, 
+              ifc_cntxt) -> tuple[Dir3d, float]:
         z_dir, wvl, n_in, n_out, interact_mode = ifc_cntxt
         normal = normalize(srf_nrml)
         ref_dir = normalize(pt - self.ref_pt)

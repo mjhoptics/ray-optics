@@ -593,6 +593,12 @@ class SequentialModel:
             z_dir_after = int(copysign(1, z_dir_before))
             if ifc.interact_mode == 'reflect':
                 z_dir_after = -z_dir_after
+            
+            # force all wl-based phase elements to update
+            #  - maybe too strong sometimes?
+            if hasattr(ifc, 'phase_element') and ifc.phase_element is not None:
+                if hasattr(ifc.phase_element, 'ref_wl'):
+                    ifc.phase_element.ref_wl = self.central_wavelength()
 
             # leave rndx data unsigned, track change of sign using z_dir
             if g is not None:

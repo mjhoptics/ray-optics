@@ -15,9 +15,10 @@ from rayoptics.oprops.doe import HolographicElement
 
 
 class ThinLens(Interface):
-    def __init__(self, lbl='', power=0.0, ref_index=1.5, **kwargs):
+    def __init__(self, lbl='', power=0.0, ref_index=1.5, center_wvl=550., 
+                 **kwargs):
         super().__init__(interact_mode='transmit',
-                         phase_element=HolographicElement(),
+                         phase_element=HolographicElement(ref_wl=center_wvl),
                          **kwargs)
         self.label = lbl
         self.optical_power = power
