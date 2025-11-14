@@ -8,13 +8,13 @@
 
 import itertools
 import logging
-
+from functools import lru_cache
 from typing import Optional
 
 from anytree import Node
 
 import rayoptics.optical.model_constants as mc
-from rayoptics.typing import SeqPath, Z_DIR
+from rayoptics.typing import SeqPath, Path, Z_DIR
 from rayoptics.coord_geometry_types import Tfm3d
 
 from rayoptics.elem import surface
@@ -75,6 +75,7 @@ class SequentialModel:
         gbl_tfrms: global coordinates of each interface wrt the 1st interface
         stop_surface (int): index of stop interface
         cur_surface (int): insertion index for next interface
+        _use_cache (bool): if True, use lru_cache for path() and reverse_path()
     """
 
     def __init__(self, opt_model, do_init=True, **kwargs):
@@ -98,6 +99,8 @@ class SequentialModel:
         # data for a wavelength vs index vs gap data arrays
         self.wvlns: list[float] = []  # sampling wavelengths in nm
         self.rndx: list[list[float]] = []  # refractive index vs wv and gap
+
+        self._use_cache: bool = True
 
         if do_init:
             self._initialize_arrays()
@@ -142,7 +145,7 @@ class SequentialModel:
     def get_num_surfaces(self) -> int:
         return len(self.ifcs)
 
-    def path(self, wl=None, start=None, stop=None, step=1):
+    def path(self, wl=None, start=None, stop=None, step=1) -> Path:
         """ returns an iterable path tuple for a range in the sequential model
 
         Args:
@@ -154,6 +157,26 @@ class SequentialModel:
         Returns:
             (**ifcs, gaps, lcl_tfrms, rndx, z_dir**)
         """
+        if self._use_cache:
+            return iter(self.path_sequence(wl, start, stop, step))
+        else:
+            path_seq_fct = self.path_sequence.__wrapped__
+            return iter(path_seq_fct(self, wl, start, stop, step))
+
+    @lru_cache(maxsize=None)
+    def path_sequence(self, wl=None, start=None, stop=None, step=1) -> SeqPath:
+        """ returns a path sequence for a range in the sequential model
+
+        Args:
+            wl: wavelength in nm for path, defaults to central wavelength
+            start: start of range
+            stop: first value beyond the end of the range
+            step: increment or stride of range
+
+        Returns:
+            (**ifcs, gaps, lcl_tfrms, rndx, z_dir**)
+        """
+
         if wl is None:
             wl = self.central_wavelength()
 
@@ -175,10 +198,29 @@ class SequentialModel:
                                      self.lcl_tfrms[start:stop:step],
                                      rndx,
                                      self.z_dir[start:stop:step])
-        return path
+        return list(path)
 
-    def reverse_path(self, start: int, stop=None, step=-1, wl=None):
+    def reverse_path(self, start: int, stop=None, step=-1, wl=None) -> Path:
         """ returns an iterable path tuple for a range in the sequential model
+    
+        Args:
+            wl: wavelength in nm for path, defaults to central wavelength
+            start: start of range
+            stop: first value beyond the end of the range
+            step: increment or stride of range
+    
+        Returns:
+            (**ifcs, gaps, lcl_tfrms, rndx, z_dir**)
+        """
+        if self._use_cache:
+            return iter(self.reverse_path_sequence(wl, start, stop, step))
+        else:
+            rev_path_seq_fct = self.reverse_path_sequence.__wrapped__
+            return iter(rev_path_seq_fct(self, wl, start, stop, step))
+        
+    @lru_cache(maxsize=None)
+    def reverse_path_sequence(self, start: int, stop=None, step=-1, wl=None) -> SeqPath:
+        """ returns a path sequence for a range in the sequential model
     
         Args:
             wl: wavelength in nm for path, defaults to central wavelength
@@ -201,13 +243,13 @@ class SequentialModel:
         tfrms = self.compute_local_transforms(step=-1)
         wl_idx = self.index_for_wavelength(wl)
         rndx = [n[wl_idx] for n in self.rndx[rndx_start:stop:step]]
-        z_dir = [-z_dir for z_dir in self.z_dir[start:stop:step]]
+        z_dirs: list[Z_DIR] = [-z_dir for z_dir in self.z_dir[start:stop:step]]
         path = itertools.zip_longest(self.ifcs[start:stop:step],
                                      self.gaps[gap_start:stop:step],
                                      tfrms[-(start+1)::+1],
                                      rndx,
-                                     z_dir)
-        return path
+                                     z_dirs)
+        return list(path)
 
     def seq_str(self):
         """ return a character encoding of `ifcs` and `gaps` """
@@ -563,6 +605,9 @@ class SequentialModel:
         if not hasattr(self, 'do_apertures'):
             self.do_apertures = True
 
+        if not hasattr(self, '_use_cache'):
+            self._use_cache = True
+
     def update_model(self, **kwargs):
         # delta n across each surface interface must be set to some
         #  reasonable default value. use the index at the central wavelength
@@ -617,6 +662,9 @@ class SequentialModel:
         self.gbl_tfrms = self.compute_global_coords()
         self.lcl_tfrms = self.compute_local_transforms()
 
+        if self._use_cache:
+            self.path_sequence.cache_clear()
+            self.reverse_path_sequence.cache_clear()
         self.seq_def.update()
 
     def update_optical_properties(self, **kwargs):
