@@ -1060,7 +1060,7 @@ class SequentialModel:
         osp = self.opt_model.optical_spec
         wvls = osp.spectral_region
         wvl = self.central_wavelength()
-        wv_list = wvls.wavelengths if wl is None else [wvl]
+        wv_list = wvls.wavelengths if wl is None else [wl]
         fld = osp.field_of_view.fields[fi]
         foc = osp.defocus.get_focus()
 
