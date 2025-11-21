@@ -628,8 +628,7 @@ def full_profile(profile, is_flipped, edge_extent,
     """
     from rayoptics.raytr.traceerror import TraceError
     def flip_profile(prf):
-        return [[pt[0], pt[1]] for pt in prf]
-        # return [[-pt[0], pt[1]] for pt in prf]
+        return [[-pt[0], pt[1]] for pt in prf]
 
     if len(edge_extent) == 1:
         sd_upr = edge_extent[0]
