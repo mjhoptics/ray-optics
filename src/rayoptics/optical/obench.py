@@ -21,17 +21,35 @@ from rayoptics.elem.profiles import (EvenPolynomial, RadialPolynomial)
 from rayoptics.oprops import doe
 from rayoptics.oprops.doe import DiffractiveElement
 from rayoptics.raytr.opticalspec import WvlSpec
-from rayoptics.util.misc_math import isanumber, is_kinda_big
+from rayoptics.util.misc_math import isanumber, is_kinda_big, is_fuzzy_zero
 
 from opticalglass import util
+import opticalglass.modelglass as mg
 
-_track_contents: dict|None = None
-
+_track_contents = None
 
 def read_obench_url(url, **kwargs) -> tuple["OpticalModel", tuple[dict, dict]]:
     ''' given a url to a OpticalBench file, return an OpticalModel and info. '''
     global _track_contents
+    _track_contents = util.Counter()
 
+    obench_input, obench_dict = read_url(url, **kwargs)
+
+    opt_model = read_lens(obench_dict, **kwargs)
+
+    opt_model.update_model()
+
+    _track_contents['obench input'] = obench_input   # type: ignore
+    return opt_model, (_track_contents, {})   # type: ignore
+
+
+def read_url(url, **kwargs) -> tuple[list, dict]:
+    ''' given a url to a OpticalBench file, return an OpticalModel and info. '''
+    global _track_contents
+
+    _track_contents = (util.Counter() if _track_contents is None 
+                       else _track_contents)
+    
     url1 = url.replace('OpticalBench.htm#', '')
     url2 = url1.partition(',')[0]
     r = requests.get(url2, allow_redirects=True)
@@ -52,11 +70,10 @@ def read_obench_url(url, **kwargs) -> tuple["OpticalModel", tuple[dict, dict]]:
             # add input to the currect section's list of inputs
             obench_dict[key].append(line)
 
-    opt_model = read_lens(obench_dict, **kwargs)
-    _track_contents['obench db'] = obench_dict   # type: ignore
     _track_contents['encoding'] = apparent_encoding   # type: ignore
+    _track_contents['obench db'] = obench_dict   # type: ignore
 
-    return opt_model, (_track_contents, {})   # type: ignore
+    return lines, obench_dict
 
 
 def read_lens(inpts, opt_model=None) -> OpticalModel:
@@ -79,11 +96,13 @@ def read_lens(inpts, opt_model=None) -> OpticalModel:
                 except:
                     return 0.
 
-    _track_contents = util.Counter()
+    _track_contents = (util.Counter() if _track_contents is None 
+                       else _track_contents)
     constants_inpt = inpts['constants']
     constants = {c_item[0]: c_item[1:] for c_item in constants_inpt}
     var_dists_inpt = inpts['variable distances']
     var_dists = {var_dist[0]: var_dist[1:] for var_dist in var_dists_inpt}
+
 
     thi_obj = 0.
     if 'd0' in var_dists:
@@ -100,18 +119,35 @@ def read_lens(inpts, opt_model=None) -> OpticalModel:
         opt_model = OpticalModel(do_init=True)
     opt_model.radius_mode = True
 
-    sm = opt_model['sm']
+    sm = opt_model['seq_model']
     sm.do_apertures = False
     sm.gaps[0].thi = thi_obj
 
-    osp = opt_model['osp']
-    osp['pupil'].key = ('image', 'f/#')
-    osp['pupil'].value = read_float(var_dists['F-Number'][0])
+    if 'ObjectGlass' in constants:
+        nd_obj = read_float(constants['ObjectGlass'][0])
+        vd_obj = read_float(constants['ObjectGlass'][1])
+        sm.gaps[0].medium = mg.ModelGlass(nd_obj, vd_obj, 'ObjectGlass')
 
-    angle_of_view = read_float(var_dists['Angle of View'][0])
-    osp['fov'].is_wide_angle = True if angle_of_view/2 > 45. else False
-    osp['fov'].key = ('image', 'real height')
-    osp['fov'].value = read_float(var_dists['Image Height'][0])/2
+    osp = opt_model['optical_spec']
+    if 'F-Number' in var_dists:
+        osp['pupil'].key = ('image', 'f/#')
+        osp['pupil'].value = read_float(var_dists['F-Number'][0])
+    elif 'NA' in var_dists:
+        osp['pupil'].key = ('object', 'NA')
+        osp['pupil'].value = read_float(var_dists['NA'][0])
+
+    if 'Image Height' in var_dists:
+        img_ht = read_float(var_dists['Image Height'][0])/2
+    if 'Angle of View' in var_dists:
+        angle_of_view = read_float(var_dists['Angle of View'][0])
+        osp['fov'].is_wide_angle = True if angle_of_view/2 > 45. else False
+        osp['fov'].key = ('image', 'real height')
+        osp['fov'].value = img_ht
+    if 'Magnification' in var_dists:
+        mag = read_float(var_dists['Magnification'][0])
+        if not is_fuzzy_zero(mag):
+            osp['fov'].key = ('object', 'height')
+            osp['fov'].value = img_ht/mag
     osp['fov'].is_relative = True
     osp['fov'].set_from_list([0., .707, 1.])
 
@@ -122,17 +158,20 @@ def read_lens(inpts, opt_model=None) -> OpticalModel:
         _track_contents['# surfs'] = len(input_lines)
         for line in input_lines:
             inpt = []
-            inpt.append(read_float(line[1]))  # radius
-            inpt.append(read_float(line[2]))  # thi
-            if line[3] == '':
-                inpt.append('')
-                inpt.append('')
-            else:
-                inpt.append(read_float(line[3]))  # nd
-                if line[5] != '':
-                    inpt.append(read_float(line[5]))  # vd
-            diam = read_float(line[4])
-            sm.add_surface(inpt, sd=diam/2)
+            surf_num = read_float(line[0])
+            if surf_num > 0:
+                inpt.append(read_float(line[1]))  # radius
+                inpt.append(read_float(line[2]))  # thi
+                if line[3] == '':
+                    inpt.append('')
+                    inpt.append('')
+                else:
+                    inpt.append(read_float(line[3]))  # nd
+                    if line[5] != '':
+                        inpt.append(read_float(line[5]))  # vd
+                diam = read_float(line[4])
+                sm.add_surface(inpt, sd=diam/2)
+            
             if line[1] == 'AS':
                 sm.set_stop()
     if 'aspherical data' in inpts:
@@ -184,5 +223,4 @@ def read_lens(inpts, opt_model=None) -> OpticalModel:
         if 'title' in descripts:
             opt_model['sys'].title = descripts['title'][0]
 
-    opt_model.update_model()
     return opt_model
