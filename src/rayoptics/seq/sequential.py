@@ -213,10 +213,10 @@ class SequentialModel:
             (**ifcs, gaps, lcl_tfrms, rndx, z_dir**)
         """
         if self._use_cache:
-            return iter(self.reverse_path_sequence(wl, start, stop, step))
+            return iter(self.reverse_path_sequence(start, stop, step, wl))
         else:
             rev_path_seq_fct = self.reverse_path_sequence.__wrapped__
-            return iter(rev_path_seq_fct(self, wl, start, stop, step))
+            return iter(rev_path_seq_fct(self, start, stop, step, wl))
         
     @lru_cache(maxsize=None)
     def reverse_path_sequence(self, start: int, stop=None, step=-1, wl=None) -> SeqPath:
