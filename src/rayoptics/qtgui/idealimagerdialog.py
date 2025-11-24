@@ -152,6 +152,7 @@ class IdealImagerDialog(QWidget):
         """ callback routine for any dialog value change """
         conj_type = self.conjugate_type
         specsheet = self.specsheet_dict[conj_type]
+        oi_rndx = specsheet.obj_img_rndx
 
         imager_groupbox = self.imager_stack[conj_type]
         etendue_groupbox = self.etendue_stack[conj_type]
@@ -159,7 +160,8 @@ class IdealImagerDialog(QWidget):
         imager_inputs = imager_groupbox.specsheet.imager_inputs
         etendue_inputs = etendue_groupbox.specsheet.etendue_inputs
         imager, etendue_values = specsheet.generate_from_inputs(imager_inputs,
-                                                                etendue_inputs)
+                                                                etendue_inputs,
+                                                                oi_rndx)
 
         specsheet.imager_inputs = imager_inputs
         specsheet.etendue_inputs = etendue_inputs

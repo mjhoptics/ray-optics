@@ -166,6 +166,13 @@ class OpticalSpecs:
         fod = self.opt_model['analysis_results']['parax_data'].fod
         return obj_space == 'infinite' and abs(fod.efl) < 1e-8
 
+    def obj_img_rindex(self) -> tuple[float, float]:
+        """ return the refractive indices in object and image space. """
+        seq_model = self.opt_model['seq_model']
+        n_obj = seq_model.z_dir[0]*seq_model.central_rndx(0)
+        n_img = seq_model.z_dir[-1]*seq_model.central_rndx(-1)
+        return n_obj, n_img
+
     def setup_specs_using_dgms(self, pm):
         """ Use the parax_model database to update the pupil specs. """
 
@@ -347,8 +354,10 @@ class OpticalSpecs:
                 pt0 = p0
             else:
                 if 'NA' in pupil_value_key:
+                    n_obj, n_img = self.obj_img_rindex()
+                    n = n_obj if pupil_oi_key == 'object' else n_img
                     na = pupil_value
-                    slope = etendue.na2slp(na)
+                    slope = etendue.na2slp(na, n=n)
                 elif 'f/#' in pupil_value_key:
                     fno = pupil_value
                     slope = -1/(2*fno)
@@ -594,10 +603,11 @@ class PupilSpec:
 
         pupil_oi_key, pupil_value_key = self.key
         pupil_value = self.value
-
+        n_obj, n_img = self.optical_spec.obj_img_rindex()
         if 'NA' in pupil_value_key:
             na = pupil_value
-            slope = etendue.na2slp(na)
+            n = n_obj if pupil_oi_key == 'object' else n_img
+            slope = etendue.na2slp(na, n=n)
             pupil_key = 'slope'
             pupil_value = slope
 
@@ -644,6 +654,7 @@ class PupilSpec:
             self.value *= scale_factor
 
     def mutate_pupil_type(self, ape_key):
+        n_obj, n_img = self.optical_spec.obj_img_rindex()
         obj_img_key, value_key = ape_key
         if self.optical_spec is not None:
             opm = self.optical_spec.opt_model
@@ -653,12 +664,14 @@ class PupilSpec:
                     if value_key == 'epd':
                         self.value = 2*fod.enp_radius
                     elif value_key == 'NA':
-                        self.value = fod.obj_na
+                        slp = opm['ar']['parax_data'].ax_ray[0][mc.slp]
+                        self.value = etendue.slp2na(slp, n_obj)
                 elif obj_img_key == 'image':
                     if value_key == 'f/#':
                         self.value = fod.fno
                     elif value_key == 'NA':
-                        self.value = fod.img_na
+                        slp = opm['ar']['parax_data'].ax_ray[-1][mc.slp]
+                        self.value = etendue.slp2na(slp, n_img)
 
         self.key = ape_key
 

@@ -91,12 +91,13 @@ class SpecSheet():
         frozen_imager_inputs: list of booleans, if True the parameter is frozen
         etendue_inputs: field and aperture inputs used to define the etendue
         etendue_values: dict2D of aperture/field vs object/image
+        obj_img_rndx: tuple with object and image space refractive indices
         partitions: 'imager', 'field', and 'aperture'; number of items in each
     """
 
     def __init__(self, conjugate_type,
                  imager=None, imager_inputs=None, frozen_imager_inputs=None,
-                 etendue_inputs=None, etendue_values=None):
+                 etendue_inputs=None, etendue_values=None, oi_rndx=(1., 1.)):
         self.conjugate_type = conjugate_type
 
         if imager is None:
@@ -113,6 +114,8 @@ class SpecSheet():
                                else create_etendue_dict())
         self.etendue_values = (etendue_values if etendue_values
                                else create_etendue_dict())
+
+        self.obj_img_rndx = oi_rndx
 
         self.partition_defined()
 
@@ -193,13 +196,13 @@ class SpecSheet():
         max_num_inputs = partitions[max_partition]
         return max_partition if max_num_inputs == 2 else None, max_num_inputs
 
-    def generate_from_inputs(self, imgr_inputs, etendue_inputs):
+    def generate_from_inputs(self, imgr_inputs, etendue_inputs, oi_rndx):
         """ compute imager and etendue values given input dicts """
         max_partition, max_num_inputs = self.partition_defined()
         num_imager_inputs = self.partitions['imager']
         num_field_inputs = self.partitions['field']
         num_aperture_inputs = self.partitions['aperture']
-
+        self.obj_img_rndx = n_obj, n_img = oi_rndx
         conj_type = self.conjugate_type
 
         imager_inputs = {}
@@ -238,47 +241,55 @@ class SpecSheet():
                     conj = 'infinite'
                 elif conj_type == 'infinite':
                     conj = 'finite' if oi_key == 'image' else conj_type
+                rndx = n_img if oi_key == 'image' else n_obj
                 etendue.fill_in_etendue_data(conj, imager, fa_key,
                                              etendue_inputs[fa_key][oi_key],
-                                             etendue_values[fa_key][oi_key])
+                                             etendue_values[fa_key][oi_key],
+                                             n=rndx)
 
         if imager_defined:
             if num_field_inputs >= 1 and num_aperture_inputs >= 1:
                 # we have enough data to calculate all of the etendue grid
                 ii = etendue.do_etendue_via_imager(conj_type, imager,
                                                    etendue_inputs,
-                                                   etendue_values)
+                                                   etendue_values,
+                                                   n_0=n_obj, n_k=n_img)
 
                 if ii:
                     imager_inputs[ii[0]] = ii[1]
                     imager = ideal_imager_setup(**imager_inputs)
                     etendue.do_etendue_via_imager(conj_type, imager,
                                                   etendue_inputs,
-                                                  etendue_values)
+                                                  etendue_values,
+                                                  n_0=n_obj, n_k=n_img)
             elif num_field_inputs == 1:
                 # we have enough data to calculate all of the etendue grid
                 row = dict2d.row(etendue_inputs, 'field')
                 obj_img_key = 'object' if len(row['object']) else 'image'
                 etendue.do_field_via_imager(conj_type, imager, etendue_inputs,
-                                            obj_img_key, etendue_values)
+                                            obj_img_key, etendue_values,
+                                            n_0=n_obj, n_k=n_img)
             elif num_aperture_inputs == 1:
                 # we have enough data to calculate all of the etendue grid
                 row = dict2d.row(etendue_inputs, 'aperture')
                 obj_img_key = 'object' if len(row['object']) else 'image'
                 etendue.do_aperture_via_imager(conj_type, imager,
                                                etendue_inputs, obj_img_key,
-                                               etendue_values)
+                                               etendue_values,
+                                               n_0=n_obj, n_k=n_img)
         else:  # imager not specified
             if num_field_inputs == 2 or num_aperture_inputs == 2:
                 fld_ape_key = 'field' if num_field_inputs == 2 else 'aperture'
                 # solve for imager
                 ii = etendue.do_etendue_to_imager(fld_ape_key, etendue_inputs,
-                                                  etendue_values)
+                                                  etendue_values,
+                                                  n_0=n_obj, n_k=n_img)
                 imager_inputs[ii[0]] = ii[1]
                 imager = ideal_imager_setup(**imager_inputs)
                 # update etendue grid
                 etendue.do_etendue_via_imager(conj_type, imager,
-                                              etendue_inputs, etendue_values)
+                                              etendue_inputs, etendue_values,
+                                              n_0=n_obj, n_k=n_img)
 
         self.imager = imager
         self.etendue_values = etendue_values

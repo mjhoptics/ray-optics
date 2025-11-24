@@ -24,13 +24,23 @@ def create_etendue_dict():
     return dict2D(fld_ape_set, obj_img_set)
 
 
-def na2slp(na: float, n=1.0) -> float:
+def na2slp(na: float, n: float=1.0) -> float:
     """ convert numerical aperture to slope """
+    return n*math.tan(math.asin(na/n))
+
+
+def slp2na(slp: float, n: float=1.0) -> float:
+    """ convert a ray slope to numerical aperture """
+    return n*math.sin(math.atan(slp/n))
+
+
+def na2slp_parax(na: float, n: float=1.0) -> float:
+    """ convert paraxial numerical aperture to slope """
     return na/n
 
 
-def slp2na(slp: float, n=1.0) -> float:
-    """ convert a ray slope to numerical aperture """
+def slp2na_parax(slp: float, n: float=1.0) -> float:
+    """ convert a ray slope to paraxial numerical aperture """
     return n*slp
 
 
@@ -48,7 +58,7 @@ def get_aperture_from_slope(imager, slope, n=1):
     if slope == 0:
         return 0, 0, 0
     fno = -1/(2*slope)
-    na = slp2na(slope, n=n)
+    na = slp2na_parax(slope, n=n)
     epd = imager.f/fno if imager.f is not None else None
     return na, fno, epd
 
@@ -96,7 +106,7 @@ def do_etendue_via_imager(conj_type, imager, etendue_inputs, etendue_grid,
         row = dict2d.row(etendue_inputs, 'aperture')
         obj_img_key = 'object' if len(row['object']) else 'image'
         do_aperture_via_imager(conj_type, imager, etendue_inputs, obj_img_key,
-                               etendue_grid)
+                               etendue_grid, n_0=n_0, n_k=n_k)
 
     if li['field'] == 2 or li['aperture'] == 2:
         fld_ape_key = 'field' if li['field'] == 2 else 'aperture'

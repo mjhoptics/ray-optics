@@ -1624,7 +1624,8 @@ def specsheet_from_dgm(parax_model, optical_spec, specsheet):
     etendue_inputs = specsheet.etendue_inputs
     etendue_inputs['aperture'][ape_key[0]][ape_key[1]] = ape_value
     etendue_inputs['field'][fld_key[0]][fld_key[1]] = fld_value
-    specsheet.generate_from_inputs(imager_inputs, etendue_inputs)
+    oi_rndx = optical_spec.obj_img_rindex()
+    specsheet.generate_from_inputs(imager_inputs, etendue_inputs, oi_rndx)
 
     return specsheet
 

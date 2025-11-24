@@ -311,10 +311,17 @@ def compute_first_order(opt_model, stop, wvl, src_model=None):
                 pr = opt_model['analysis_results']['parax_data'].pr_ray
                 enp_dist = -pr[1][mc.ht]/(n_0*pr[0][mc.slp])
         else:  # nothing pre-computed, assume 1st surface
-            stop = 1
+            enp_dist = 0.0
+            if misc_math.is_fuzzy_zero(sm.gaps[0].thi):
+                for i, g in enumerate(sm.gaps):
+                    if not misc_math.is_fuzzy_zero(g.thi):
+                        stop = i+1
+                        enp_dist += g.thi
+                        break
+            else:
+                stop = 1
             ybar1 = 0.0
             ubar1 = 1.0
-            enp_dist = 0.0
 
     if stop is not None:
         n_s = sm.z_dir[stop]*sm.central_rndx(stop)
@@ -687,6 +694,7 @@ def specsheet_from_parax_data(opt_model, specsheet):
     etendue_inputs = specsheet.etendue_inputs
     etendue_inputs['aperture'][ape_key[0]][ape_key[1]] = ape_value
     etendue_inputs['field'][fld_key[0]][fld_key[1]] = fld_value
-    specsheet.generate_from_inputs(imager_inputs, etendue_inputs)
+    oi_rndx = optical_spec.obj_img_rindex()
+    specsheet.generate_from_inputs(imager_inputs, etendue_inputs, oi_rndx)
 
     return specsheet
