@@ -32,7 +32,7 @@ def glass_decode(gc: float) -> tuple[float, float]:
     return round(1.0 + (int(gc)/1000), 3), round(100.0*(gc - int(gc)), 3)
 
 
-def decode_medium(*inputs, **kwargs) -> om.OpticalMedium:
+def decode_medium(*inputs, print_errors=True, **kwargs) -> om.OpticalMedium:
     """ Input utility for parsing various forms of glass input. 
 
     The **inputs** can have several forms:
@@ -93,10 +93,13 @@ def decode_medium(*inputs, **kwargs) -> om.OpticalMedium:
             try:
                 mat = gfact.create_glass(name, cat)
             except glasserror.GlassNotFoundError as gerr:
-                logger.info('%s glass data type %s not found',
-                             gerr.catalog,
-                             gerr.name)
-                logger.info('Replacing material with air.')
+                msg1 = f"{gerr.catalog} glass type {gerr.name} was not found."
+                msg2 = "Replacing material with air."
+                logger.info(msg1)
+                logger.info(msg2)
+                if print_errors:
+                    print(msg1)
+                    print(msg2)
                 mat = om.Air()
     # glass instance args. if they respond to `rindex`, they're in
     elif hasattr(inputs[0], 'rindex'):
