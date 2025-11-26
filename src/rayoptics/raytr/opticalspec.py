@@ -289,6 +289,7 @@ class OpticalSpecs:
         pupil_oi_key, pupil_value_key = self['pupil'].key
         pupil_value = self['pupil'].value
         fov_oi_key, fov_value_key = self['fov'].key
+        n_obj, n_img = self.obj_img_rindex()
         p0, d0 = self.obj_coords(fld)
 
         opt_model = self.opt_model
@@ -305,7 +306,8 @@ class OpticalSpecs:
             else:  # finite conjugate
                 if abs(fod.enp_dist) > 1e10:  # telecentric entrance pupil
                     pupil_value_key = 'NA'
-                    pupil_value = fod.obj_na
+                    slp0 = etendue.na2slp_parax(fod.obj_na, n=n_obj)
+                    pupil_value = etendue.slp2na(slp0, n=n_obj)
                 else:
                     pupil_value_key = 'epd'
                     pupil_value = 2*fod.enp_radius
@@ -354,17 +356,18 @@ class OpticalSpecs:
                 pt0 = p0
             else:
                 if 'NA' in pupil_value_key:
-                    n_obj, n_img = self.obj_img_rindex()
                     n = n_obj if pupil_oi_key == 'object' else n_img
                     na = pupil_value
-                    slope = etendue.na2slp(na, n=n)
+                    sin_ang = na / n
+                    pupil_dir = sin_ang * np.array([pupil[0], pupil[1]])
                 elif 'f/#' in pupil_value_key:
                     fno = pupil_value
                     slope = -1/(2*fno)
-                
-                hypt = np.sqrt(1 + (pupil[0]*slope)**2 + (pupil[1]*slope)**2)
-                pupil_dir = np.array([slope*pupil[0]/hypt, 
-                                      slope*pupil[1]/hypt])
+                    hypt = np.sqrt(
+                        1 + (pupil[0]*slope)**2 + (pupil[1]*slope)**2
+                        )
+                    pupil_dir = np.array([slope*pupil[0]/hypt, 
+                                        slope*pupil[1]/hypt])
 
                 pt0 = p0
                 if d0 is not None:
