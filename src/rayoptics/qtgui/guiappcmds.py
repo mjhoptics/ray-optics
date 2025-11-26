@@ -223,7 +223,13 @@ def create_glass_map_view(opt_model, gui_parent=None):
             if m.name() not in glass_names:
                 glass_names.add(m.name())
                 glasses.append(m)
-    glass_db = gm.GlassMapDB(glasses, gfact._catalog_list)
+
+    args = []
+    if len(glasses)>0:
+        args.append(glasses)
+    args.append(gfact._catalog_list)
+    glass_db = gm.GlassMapDB(*args)
+
     plotview.create_glass_map_view(gui_parent, glass_db)
 
 
