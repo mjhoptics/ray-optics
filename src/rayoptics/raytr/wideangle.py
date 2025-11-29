@@ -29,8 +29,9 @@ with this definition.
 import warnings
 import logging
 
+import math
 import numpy as np
-from scipy.optimize import newton, fsolve, bisect
+from scipy.optimize import newton
 
 import rayoptics.raytr.raytrace as rt
 from rayoptics.raytr import trace
@@ -145,19 +146,22 @@ def find_real_enp(opm, stop_idx, fld, wvl):
     """ Locate the z center of the real pupil for `fld`, wrt 1st ifc
     
     This function implements a 2 step process to finding the chief ray 
-    for `fld` and `wvl` for wide angle systems. `fld` should be of type ('object', 'angle'), even for finite object distances.
+    for `fld` and `wvl` for wide angle systems. `fld` should be of type 
+    ('object', 'angle'), even for finite object distances.
 
     The first phase searches for the window of pupil locations by sampling the 
     z coordinate from the paraxial pupil location towards the first interface 
     vertex. Failed rays are discarded until a range of z coordinates is found 
-    where rays trace successfully. If only a single successful trace is in 
-    hand, a second, more finely subdivided search is conducted about the 
-    successful point.
+    where rays trace successfully. If the search forward is unsuccessful (i.e. 
+    winds up missing the 1st surface), the search is restarted moving away from 
+    the first interface. If only a single successful trace is in hand, a 
+    second, more finely subdivided search is conducted about the successful 
+    point.
 
     The outcome is a range, start_z -> end_z, that is divided in 3 and a ray 
-    iteration (using :func:`~.raytr.wideangle.find_z_enp`) to find the center of the stop surface is done. Sometimes the 
-    start point doesn't produce a solution; use of the mid-point as a start is 
-    a reliable second try.
+    iteration (using :func:`~.raytr.wideangle.find_z_enp`) to find the center 
+    of the stop surface is done. Sometimes the start point doesn't produce a 
+    solution; use of the mid-point as a start is a reliable second try.
     """
     sm = opm['seq_model']
     osp = opm['osp']
@@ -191,11 +195,13 @@ def find_real_enp(opm, stop_idx, fld, wvl):
     del_z = -z_enp_0/16
     z_enp = z_enp_0
     keep_going = True
+    direction = 'first'
+    first_surf_misses = 0
     # protect against infinite loops
     trial = 0
     # if the trace succeeds 5 times in a row, go on to the next phase
     successes = 0
-    while keep_going and successes < 4 and trial < 64:
+    while keep_going and successes < 4 and trial < 64 and first_surf_misses < 2:
         args = sm, stop_idx, dir0, fod.obj_dist, wvl
         final_coord, rr = enp_z_coordinate(z_enp, *args)
         if rr.err is None:
@@ -206,12 +212,20 @@ def find_real_enp(opm, stop_idx, fld, wvl):
  
         elif isinstance(rr.err, TraceMissedSurfaceError):
             # if the first surface was missed, then exit
+            msg1 = f"trial {trial}   {z_enp=:8.4f}"
+            if rr.err.surf == 1:
+                logger.debug(f"Num 1st surf misses {first_surf_misses}: "+msg1)
+                #print(f"Num 1st surf misses {first_surf_misses}: "+msg1)
+                del_z = -del_z
+                z_enp = z_enp_0
+                first_surf_misses += 1
             if start_z is not None:
                 keep_going = False
         z_enp += del_z
         trial += 1
 
     # print(f"trials: {trial}")
+    logger.debug(f"trials: {trial}")
 
     # If start and end are equal, then only one ray was successful.
     # Sample z_enp evenly 1 del_z to either side.
@@ -292,3 +306,39 @@ def eval_real_image_ht(opt_model, fld, wvl):
     enp_pt = np.array([0., 0., obj2enp_dist])
     p_o = enp_pt + obj2enp_dist * d_k
     return (p_o, d_o), z_enp
+
+def eval_z_enp_curve(opm):
+    """ Evaluate the z_enp distance across the FOV and print results. """
+    sm = opm['sm']
+    osp = opm['osp']
+    fov = osp['fov']
+    save_is_relative = fov.is_relative
+    fov.is_relative = True
+    num_fields = 21
+    flds = []
+    z_enps = []
+    obj_angs = []
+    img_hts = []
+    cwl = osp['wvls'].central_wvl
+    print("frac fld     obj angle      img ht    z_enp")
+    for i, fld_ht in enumerate(np.linspace(-1, 1, num_fields)):
+        fld = fov.new_field(y=fld_ht)
+        if fov.key == ('image', 'real height'):
+            (p0, d0), z_enp = eval_real_image_ht(opm, fld, cwl)
+            img_ht = [fld.xv, fld.yv, 0.]
+        elif fov.key == ('object', 'angle'):
+            z_enp, cr_rr = find_real_enp(opm, sm.stop_surface, fld, cwl)
+            cr_ray = cr_rr.pkg.ray
+            d0 = cr_ray[0][mc.d]
+            img_ht = cr_ray[-1][mc.p]
+        ang_x = np.rad2deg(math.atan2(d0[0], d0[2]))
+        ang_y = np.rad2deg(math.atan2(d0[1], d0[2]))
+        print(f"{fld.yf:7.2f}     {ang_y:7.3f}     "
+              f"{img_ht[1]:7.2f}    {z_enp:8.4f}")
+        flds.append(fld)
+        obj_angs.append(ang_y)
+        img_hts.append(img_ht[1])
+        z_enps.append(z_enp)
+
+    fov.is_relative = save_is_relative
+    return flds, obj_angs, img_hts, z_enps

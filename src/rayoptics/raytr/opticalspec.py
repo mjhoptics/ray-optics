@@ -930,6 +930,9 @@ class FieldSpec:
                         self.value = fod.img_ht
         self.key = fld_key
 
+    def new_field(self, x: float=0., y: float=0., wt: float=1.) -> 'Field':
+        return Field(x, y, wt, fov=self)
+
     def obj_coords(self, fld):
         """ Return a pt, direction pair characterizing `fld`. 
         
