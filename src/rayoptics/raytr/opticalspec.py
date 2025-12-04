@@ -661,19 +661,24 @@ class PupilSpec:
         obj_img_key, value_key = ape_key
         if self.optical_spec is not None:
             opm = self.optical_spec.opt_model
-            if opm['ar']['parax_data'] is not None:
-                fod = opm['ar']['parax_data'].fod
+            if (parax_data:=opm['ar']['parax_data']) is not None:
+                ax_ray = parax_data.ax_ray
+                fod = parax_data.fod
                 if obj_img_key == 'object':
                     if value_key == 'epd':
                         self.value = 2*fod.enp_radius
-                    elif value_key == 'NA':
-                        slp = opm['ar']['parax_data'].ax_ray[0][mc.slp]
-                        self.value = etendue.slp2na(slp, n_obj)
-                elif obj_img_key == 'image':
-                    if value_key == 'f/#':
+                    elif value_key == 'f/#':
                         self.value = fod.fno
                     elif value_key == 'NA':
-                        slp = opm['ar']['parax_data'].ax_ray[-1][mc.slp]
+                        slp = ax_ray[0][mc.slp]
+                        self.value = etendue.slp2na(slp, n_obj)
+                elif obj_img_key == 'image':
+                    if value_key == 'epd':
+                        self.value = 2*fod.exp_radius
+                    elif value_key == 'f/#':
+                        self.value = -1/(2*ax_ray[-1][mc.slp])
+                    elif value_key == 'NA':
+                        slp = ax_ray[-1][mc.slp]
                         self.value = etendue.slp2na(slp, n_img)
 
         self.key = ape_key
