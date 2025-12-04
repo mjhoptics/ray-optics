@@ -9,7 +9,7 @@
 import itertools
 import logging
 from functools import lru_cache
-from typing import Optional
+from typing import Optional, Sequence
 
 from anytree import Node
 
@@ -23,6 +23,7 @@ from rayoptics.seq.interface import Interface
 from . import medium
 from rayoptics.raytr import raytrace as rt
 from rayoptics.raytr import trace as trace
+from rayoptics.raytr import vigcalc
 from rayoptics.raytr import waveabr
 from rayoptics.elem import transform as trns
 from opticalglass import glassfactory as gfact
@@ -1118,7 +1119,9 @@ class SequentialModel:
             sd = abs(ax_ray[i][0]) + abs(pr_ray[i][0])
             ifc.set_max_aperture(sd)
 
-    def set_clear_apertures(self, avoid_list: Optional[list[int]]=None):
+    def set_clear_apertures(self, 
+                            avoid_list: Optional[Sequence[int]]=None, 
+                            include_list: Optional[Sequence[int]]=None):
         """ set each surface aperture using edge rays at each field
 
         Args:
@@ -1126,27 +1129,7 @@ class SequentialModel:
 
         The avoid_list idea and implementation was contributed by Quentin Bécar
         """
-        if avoid_list is None:
-            avoid_list = []
-
-        rayset = trace.trace_boundary_rays(self.opt_model, 
-                                           use_named_tuples=True)
-
-        for i, s in enumerate(self.ifcs):
-            if i not in avoid_list:
-                max_ap = -1.0e+10
-                update = True
-                for f in rayset:
-                    for p in f:
-                        ray = p.ray
-                        if len(ray) > i:
-                            ap = sqrt(ray[i].p[0]**2 + ray[i].p[1]**2)
-                            if ap > max_ap:
-                                max_ap = ap
-                        else:  # ray failed before this interface, don't update
-                            update = False
-                if update:
-                    s.set_max_aperture(max_ap)
+        vigcalc.set_clear_apertures(self.opt_model, avoid_list, include_list)
 
     def trace(self, pt0, dir0, wvl, **kwargs):
         return rt.trace(self, pt0, dir0, wvl, **kwargs)

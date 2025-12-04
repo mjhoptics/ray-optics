@@ -9,6 +9,9 @@
 """
 import logging
 
+from typing import Optional, Sequence
+
+from math import sqrt
 import numpy as np
 from numpy import sqrt
 from scipy.optimize import newton
@@ -25,7 +28,59 @@ logger = logging.getLogger(__name__)
 xy_str = 'xy'
 
 
-def set_ape(opm):
+def max_aperture_at_surf(rayset, i):   
+    max_ap = -1.0e+10
+    for f in rayset:
+        for p in f:
+            ray = p.ray
+            if len(ray) > i:
+                ap = sqrt(ray[i].p[0]**2 + ray[i].p[1]**2)
+                if ap > max_ap:
+                    max_ap = ap
+            else:  # ray failed before this interface, don't update
+                return None
+    return max_ap
+
+
+def set_clear_apertures(opt_model: 'OpticalModel', 
+                        avoid_list: Optional[Sequence[int]]=None, 
+                        include_list: Optional[Sequence[int]]=None):
+    """ From existing fields and vignetting, calculate clear apertures. 
+
+    Args:
+        avoid_list: list of surfaces to skip when setting apertures.
+        include_list: list of surfaces to include when setting apertures.
+
+    If specified, only one of either `avoid_list` or `include_list` should be specified. If neither is specified, all surfaces are set. If both are specified, the `avoid_list` is used.
+
+    If a surface is specified as the aperture stop, that surface's aperture is determined from the boundary rays of the first field.
+    
+    The avoid_list idea and implementation was contributed by Quentin Bécar
+    """
+    sm = opt_model['seq_model']
+    num_surfs = sm.get_num_surfaces()
+    if avoid_list is None:
+        if include_list is None:
+            include_list = range(num_surfs)
+    else:
+        include_list = [i for i in range(num_surfs) if i not in avoid_list]
+    
+    rayset = trace.trace_boundary_rays(opt_model, use_named_tuples=True)
+
+    stop_surf = sm.stop_surface
+    if stop_surf is not None and stop_surf in include_list:
+            max_ap = max_aperture_at_surf([rayset[0]], stop_surf)
+            if max_ap is not None:
+                sm.ifcs[stop_surf].set_max_aperture(max_ap)
+
+    for i in include_list:
+        if i != stop_surf:
+            max_ap = max_aperture_at_surf(rayset, i)
+            if max_ap is not None:
+                sm.ifcs[i].set_max_aperture(max_ap)
+
+
+def set_ape(opt_model, avoid_list=None, include_list=None):
     """ From existing fields and vignetting, calculate clear apertures. 
     
     This function modifies the max_aperture maintained by the list of
@@ -38,25 +93,10 @@ def set_ape(opm):
     :class:`~.elements.ElementModel` via 
     :meth:`~.elements.ElementModel.sync_to_seq`.
     """
-    rayset = trace.trace_boundary_rays(opm, use_named_tuples=True)
-
-    for i, ifc in enumerate(opm['sm'].ifcs):
-        max_ap = -1.0e+10
-        update = True
-        for f in rayset:
-            for p in f:
-                ray = p.ray
-                if len(ray) > i:
-                    ap = sqrt(ray[i].p[0]**2 + ray[i].p[1]**2)
-                    if ap > max_ap:
-                        max_ap = ap
-                else:  # ray failed before this interface, don't update
-                    update = False
-        if update:
-            ifc.set_max_aperture(max_ap)
+    set_clear_apertures(opt_model, avoid_list, include_list)
 
     # sync the element model with the new clear apertures
-    opm['em'].sync_to_seq(opm['sm'])
+    opt_model['em'].sync_to_seq(opt_model['sm'])
 
 
 def set_vig(opm, **kwargs):
@@ -68,7 +108,7 @@ def set_vig(opm, **kwargs):
         calc_vignetting_for_field(opm, fld, wvl, **kwargs)
 
 
-def set_pupil(opm):
+def set_pupil(opm, use_parax=False):
     """ From existing stop size, calculate pupil spec and vignetting. 
     
     Use the upper Y marginal ray on-axis (field #0) and iterate until it
@@ -81,11 +121,12 @@ def set_pupil(opm):
         # Nope, the whole purpose here is to go from aperture stop to pupil
         print('floating stop surface')
         return
+    idx_stop = sm.stop_surface
     osp = opm['osp']
 
     # iterate the on-axis marginal ray thru the edge of the stop.
     fld, wvl, foc = osp.lookup_fld_wvl_focus(0)
-    stop_radius = sm.ifcs[sm.stop_surface].surface_od()
+    stop_radius = sm.ifcs[idx_stop].surface_od()
     start_coords = iterate_pupil_ray(opm, sm.stop_surface, 1, 1.0, 
                                      stop_radius, fld, wvl)
 
@@ -102,33 +143,61 @@ def set_pupil(opm):
     pupil_spec = osp['pupil'].key[1]
     pupil_value_orig = osp['pupil'].value
 
-    if obj_img_key == 'object':
-        if pupil_spec == 'epd':
-            rs1 = RaySeg(*ray_pkg[0][1])
-            ht = rs1.p[1]
-            osp['pupil'].value = 2*ht
-        else:
-            rs0 = RaySeg(*ray_pkg[0][0])
-            slp0 = rs0.d[1]/rs0.d[2]
-            if pupil_spec == 'NA':
-                n0 = sm.central_rndx[0]
-                osp['pupil'].value = n0*rs0.d[1]
-                # osp['pupil'].value = etendue.slp2na(slp0)
-            elif pupil_spec == 'f/#':
-                osp['pupil'].value = 1/(2*slp0)
-    elif obj_img_key == 'image':
-        rsm2 = RaySeg(*ray_pkg[0][-2])
-        if pupil_spec == 'epd':
-            ht = rsm2.p[1]
-            osp['pupil'].value = 2*ht
-        else:
-            slpk = rsm2.d[1]/rsm2.d[2]
-            if pupil_spec == 'NA':
-                nk = sm.central_rndx[-1]
-                osp['pupil'].value = -nk*rsm2.d[1]
-                # osp['pupil'].value = etendue.slp2na(slpk)
-            elif pupil_spec == 'f/#':
-                osp['pupil'].value = -1/(2*slpk)
+    if use_parax:
+        ax_ray, pr_ray, fod = opm['ar']['parax_data']
+        scale_ratio = stop_radius/ax_ray[idx_stop][mc.ht]
+        if obj_img_key == 'object':
+            if pupil_spec == 'epd':
+                osp['pupil'].value = scale_ratio*(2*fod.enp_radius)
+            else:
+                slp0 = scale_ratio*ax_ray[0][mc.slp]
+                if pupil_spec == 'NA':
+                    n0 = sm.central_rndx[0]
+                    rs0 = RaySeg(*ray_pkg[0][0])
+                    osp['pupil'].value = n0*rs0.d[1]
+                    # osp['pupil'].value = etendue.slp2na(slp0)
+                elif pupil_spec == 'f/#':
+                    osp['pupil'].value = 1/(2*slp0)
+        elif obj_img_key == 'image':
+            if pupil_spec == 'epd':
+                osp['pupil'].value = scale_ratio*(2*fod.exp_radius)
+            else:
+                slpk = scale_ratio*ax_ray[-1][mc.slp]
+                if pupil_spec == 'NA':
+                    nk = sm.central_rndx[-1]
+                    rsm2 = RaySeg(*ray_pkg[0][-2])
+                    osp['pupil'].value = -nk*rsm2.d[1]
+                    # osp['pupil'].value = etendue.slp2na(slpk)
+                elif pupil_spec == 'f/#':
+                    osp['pupil'].value = -1/(2*slpk)
+    else:  # use real marginal ray
+        if obj_img_key == 'object':
+            if pupil_spec == 'epd':
+                rs1 = RaySeg(*ray_pkg[0][1])
+                ht = rs1.p[1]
+                osp['pupil'].value = 2*ht
+            else:
+                rs0 = RaySeg(*ray_pkg[0][0])
+                slp0 = rs0.d[1]/rs0.d[2]
+                if pupil_spec == 'NA':
+                    n0 = sm.central_rndx[0]
+                    osp['pupil'].value = n0*rs0.d[1]
+                    # osp['pupil'].value = etendue.slp2na(slp0)
+                elif pupil_spec == 'f/#':
+                    osp['pupil'].value = 1/(2*slp0)
+        elif obj_img_key == 'image':
+            rsm2 = RaySeg(*ray_pkg[0][-2])
+            if pupil_spec == 'epd':
+                ht = rsm2.p[1]
+                osp['pupil'].value = 2*ht
+            else:
+                slpk = rsm2.d[1]/rsm2.d[2]
+                if pupil_spec == 'NA':
+                    nk = sm.central_rndx[-1]
+                    osp['pupil'].value = -nk*rsm2.d[1]
+                    # osp['pupil'].value = etendue.slp2na(slpk)
+                elif pupil_spec == 'f/#':
+                    osp['pupil'].value = -1/(2*slpk)
 
     if pupil_value_orig != osp['pupil'].value:
         opm.update_model()

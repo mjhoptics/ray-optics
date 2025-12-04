@@ -11,7 +11,7 @@
 import logging
 import math
 import pathlib
-from typing import Optional
+from typing import Optional, Sequence
 
 from rayoptics.gui.roafile import open_roa
 from rayoptics.codev import cmdproc
@@ -264,18 +264,31 @@ def set_vignetting(opt_model, gui_parent=None, **kwargs):
         gui_parent.refresh_gui(src_model=opt_model['seq_model'])
 
 
-def set_apertures(opt_model, gui_parent=None):
-    """ From existing fields and vignetting, calculate clear apertures. """
-    vigcalc.set_ape(opt_model)
+def set_apertures(opt_model, gui_parent=None,
+                  avoid_list: Optional[Sequence[int]]=None, 
+                  include_list: Optional[Sequence[int]]=None):
+    """ From existing fields and vignetting, calculate clear apertures. 
+
+    Args:
+        avoid_list: list of surfaces to skip when setting apertures.
+        include_list: list of surfaces to include when setting apertures.
+
+    If specified, only one of either `avoid_list` or `include_list` should be specified. If neither is specified, all surfaces are set. If both are specified, the `avoid_list` is used.
+
+    If a surface is specified as the aperture stop, that surface's aperture is determined from the boundary rays of the first field.
+    
+    The avoid_list idea and implementation was contributed by Quentin Bécar
+    """
+    vigcalc.set_ape(opt_model, avoid_list, include_list)
     if gui_parent is None:
         opt_model.update_model(src_model=opt_model['seq_model'])
     else:
         gui_parent.refresh_gui(src_model=opt_model['seq_model'])
 
 
-def set_pupil(opt_model, gui_parent=None):
+def set_pupil(opt_model, gui_parent=None, use_parax: bool=False):
     """ From existing stop size, calculate pupil spec and vignetting. """
-    vigcalc.set_pupil(opt_model)
+    vigcalc.set_pupil(opt_model, use_parax)
     if gui_parent is None:
         opt_model.update_model(src_model=opt_model['seq_model'])
     else:
