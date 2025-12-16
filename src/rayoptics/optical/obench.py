@@ -86,7 +86,11 @@ def read_lens(inpts, opt_model=None) -> OpticalModel:
         else:
             if s == 'undefined':
                 return float('nan')
-            elif s == 'AS':
+            elif s == 'AS': # aperture stop
+                return 0.
+            elif s == 'FS': # field stop
+                return 0.
+            elif s == 'CG': # cover glass
                 return 0.
             elif s == '':
                 return 0.
@@ -98,13 +102,18 @@ def read_lens(inpts, opt_model=None) -> OpticalModel:
 
     _track_contents = (util.Counter() if _track_contents is None 
                        else _track_contents)
-    constants_inpt = inpts['constants']
-    constants = {c_item[0]: c_item[1:] for c_item in constants_inpt}
-    var_dists_inpt = inpts['variable distances']
-    var_dists = {var_dist[0]: var_dist[1:] for var_dist in var_dists_inpt}
+    if "constants" in inpts:
+        constants_inpt = inpts['constants']
+        constants = {c_item[0]: c_item[1:] for c_item in constants_inpt}
+    else:
+        constants = {}
+    if "variable distances" in inpts:
+        var_dists_inpt = inpts['variable distances']
+        var_dists = {var_dist[0]: var_dist[1:] for var_dist in var_dists_inpt}
+    else:
+        var_dists = {}
 
-
-    thi_obj = 0.
+    thi_obj = 1.0e10
     if 'd0' in var_dists:
         thi_obj = read_float(var_dists['d0'][0])
         if thi_obj == float('inf'):
@@ -153,27 +162,36 @@ def read_lens(inpts, opt_model=None) -> OpticalModel:
 
     osp['wvls'] = WvlSpec(wlwts=[('F', .5), ('d', 1.), ('C', .5)], ref_wl=1)
 
+    surfaces = {}   # map surface ID to surface num, surface ID is not always a sequence number
     if 'lens data' in inpts:
         input_lines = inpts['lens data']
         _track_contents['# surfs'] = len(input_lines)
         for line in input_lines:
-            inpt = []
-            surf_num = read_float(line[0])
-            if surf_num > 0:
-                inpt.append(read_float(line[1]))  # radius
-                inpt.append(read_float(line[2]))  # thi
-                if line[3] == '':
-                    inpt.append('')
-                    inpt.append('')
-                else:
-                    inpt.append(read_float(line[3]))  # nd
-                    if line[5] != '':
-                        inpt.append(read_float(line[5]))  # vd
-                diam = read_float(line[4])
-                sm.add_surface(inpt, sd=diam/2)
-            
+            surf_id    = line[0]
+            radius     = read_float(line[1])
+            thickness  = read_float(line[2])
+            nd         = line[3]
+            vd         = line[5] if len(line) > 5 else ''
+            diam       = read_float(line[4])
+            glass_name = line[6] if len(line) > 6 else ''
+            glass_make = line[7] if len(line) > 7 else ''
+            inpt = [radius, thickness]
+            # --- Determine optical material fields ---
+            if nd == '':
+                # Case 1: missing nd → push two blanks
+                inpt.extend(['', ''])
+            elif glass_name and glass_make:
+                # Case 2: we have explicit glass name/make
+                inpt.extend([glass_name,glass_make])
+            else:
+                # Case 3: numeric nd / vd
+                inpt.append(read_float(nd))  # nd
+                if vd != '':
+                    inpt.append(read_float(vd))  # vd
+            sm.add_surface(inpt, sd=diam/2)
             if line[1] == 'AS':
                 sm.set_stop()
+            surfaces[surf_id] = sm.cur_surface  # note surface num
     if 'aspherical data' in inpts:
         if 'AsphericalOddCount' in constants:
             typ = 'AsphericalOddCount'
@@ -181,10 +199,11 @@ def read_lens(inpts, opt_model=None) -> OpticalModel:
             typ = 'AsphericalA2'
         else:
             typ = 'Aspherical'
-         
+
         input_lines = inpts['aspherical data']
         _track_contents[typ] = len(input_lines)
         for line in input_lines:
+            surf_id = line[0]
             if typ == 'AsphericalOddCount':
                 asp_coefs = [read_float(item) for item in line[3:]]
                 asp_coefs = [0., 0.] + asp_coefs
@@ -201,19 +220,20 @@ def read_lens(inpts, opt_model=None) -> OpticalModel:
                 asp = EvenPolynomial(r=read_float(line[1]),
                                      cc=read_float(line[2]),
                                      coefs=asp_coefs)
-            idx = int(line[0])
+            idx = surfaces[surf_id] # lookup surface number using surface ID
             sm.ifcs[idx].profile = asp
 
     if 'diffractive data' in inpts:
         input_lines = inpts['diffractive data']
         _track_contents['# doe'] = len(input_lines)
         for line in input_lines:
+            surf_id = line[0]
             coefs = [read_float(item) for item in line[3:]]
             dif_elem = DiffractiveElement(coefficients=coefs,
                                           ref_wl=read_float(line[1]),
                                           order=read_float(line[2]),
                                           phase_fct=doe.radial_phase_fct)
-            idx = int(line[0])
+            idx = surfaces[surf_id] # lookup surface number using surface ID
             sm.ifcs[idx].phase_element = dif_elem
     if 'descriptive data' in inpts:
         input_lines = inpts['descriptive data']
