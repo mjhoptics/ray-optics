@@ -162,9 +162,19 @@ class Surface(interface.Interface):
     def flip(self):
         self.profile.flip()
 
+    def get_ca_list(self):
+        """ Filter obscurations out of the clear_aperture list. """
+        return [ca for ca in self.clear_apertures if not ca.is_obscuration]
+
+    def get_ca_idx_list(self):
+        """ Filter obscurations out of the clear_aperture list. """
+        return [i for i, ca in enumerate(self.clear_apertures) 
+                if not ca.is_obscuration]
+    
     def set_max_aperture(self, max_ap: float):
         super().set_max_aperture(max_ap)
-        for ap in self.clear_apertures:
+        ca_list = self.get_ca_list()
+        for ap in ca_list:
             # print(f"max ap: {max_ap}")
             ap.set_dimension(max_ap, max_ap)
 
@@ -175,8 +185,8 @@ class Surface(interface.Interface):
                 edg = e.max_dimension()
                 if edg > od:
                     od = edg
-        elif len(self.clear_apertures) > 0:
-            for ca in self.clear_apertures:
+        elif len(ca_list:=self.get_ca_list()) > 0:
+            for ca in ca_list:
                 ap = ca.max_dimension()
                 if ap > od:
                     od = ap
@@ -201,9 +211,9 @@ class Surface(interface.Interface):
         """ Get a target for ray aiming to aperture boundaries.
         
         """
-        if len(self.clear_apertures) > 0:
+        if len(ca_list:=self.get_ca_list()) > 0:
             # hardwire to 1 aperture until the need for more arises
-            return self.clear_apertures[0].edge_pt_target(rel_dir)
+            return ca_list[0].edge_pt_target(rel_dir)
         else:
             return super().edge_pt_target(rel_dir)
 
@@ -217,8 +227,8 @@ class Surface(interface.Interface):
                     od[0] = edg[0][1]
                 if edg[1][1] > od[1]:
                     od[1] = edg[1][1]
-        elif len(self.clear_apertures) > 0:
-            for ca in self.clear_apertures:
+        elif len(ca_list:=self.get_ca_list()) > 0:
+            for ca in ca_list:
                 ap = ca.bounding_box()
                 if ap[0][1] < od[0]:
                     od[0] = ap[0][1]
@@ -328,10 +338,12 @@ class DecenterData():
 
 
 class Aperture():
-    def __init__(self, x_offset=0.0, y_offset=0.0, rotation=0.0):
+    def __init__(self, x_offset=0.0, y_offset=0.0, rotation=0.0, 
+                 is_obscuration: bool=False):
         self.x_offset = x_offset
         self.y_offset = y_offset
         self.rotation = rotation
+        self.is_obscuration = is_obscuration
 
     def sync_to_restore(self, opt_model):
         if not hasattr(self, 'x_offset'):
@@ -340,12 +352,18 @@ class Aperture():
             self.y_offset = 0.0
         if not hasattr(self, 'rotation'):
             self.rotation = 0.0
+        if not hasattr(self, 'is_obscuration'):
+            self.is_obscuration = False
 
     def listobj_str(self):
         o_str = ""
+
+        if self.is_obscuration:
+            o_str += "is_obscuration: True\n"
+
         if self.x_offset != 0. or self.x_offset != 0. or self.rotation != 0.:
-            o_str = (f"x_offset={self.x_offset}   y_offset={self.y_offset}"
-                     f"   rotation={self.rotation}\n")
+            o_str += (f"x_offset={self.x_offset}   y_offset={self.y_offset}"
+                      f"   rotation={self.rotation}\n")
         return o_str
 
     def dimension(self) -> tuple[float, float]:
@@ -397,7 +415,9 @@ class Circular(Aperture):
 
     def point_inside(self, x: float, y: float, fuzz: float = 1e-5) -> bool:
         x, y = self.tform(x, y)
-        return sqrt(x*x + y*y) <= self.radius + fuzz
+        ans = sqrt(x*x + y*y) <= self.radius + fuzz
+        return ans if (not self.is_obscuration) else (not ans)
+
 
     def edge_pt_target(self, rel_dir):
         """ Get a target for ray aiming to aperture boundaries.
@@ -433,8 +453,9 @@ class Rectangular(Aperture):
 
     def point_inside(self, x: float, y: float, fuzz: float = 1e-5) -> bool:
         x, y = self.tform(x, y)
-        return (abs(x) <= self.x_half_width + fuzz 
-                and abs(y) <= self.y_half_width + fuzz)
+        ans = (abs(x) <= self.x_half_width + fuzz 
+               and abs(y) <= self.y_half_width + fuzz)
+        return ans if (not self.is_obscuration) else (not ans)
 
     def edge_pt_target(self, rel_dir):
         """ Get a target for ray aiming to aperture boundaries. """

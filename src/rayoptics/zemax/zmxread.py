@@ -406,23 +406,34 @@ def handle_aperture_data(optm, cur, cmd, inputs):
             ca_list = ifc.clear_apertures
             if len(ca_list) == 0:
                 ca = None
-                if ca_type == 0:
-                    ca = Circular()
-                elif ca_type == 1:
-                    ca = Circular()
-                elif ca_type == 4:
-                    ca = Rectangular()
+                match ca_type:
+                    case 0:
+                        ca = Circular()
+                    case 1:
+                        ca = Circular()
+                    case 2:
+                        ca = Circular(is_obscuration=True)
+                    case 4:
+                        ca = Rectangular()
+                    case 5:
+                        ca = Rectangular(is_obscuration=True)
+                    case 6:
+                        ca = Elliptical()
+                    case 7:
+                        ca = Elliptical(is_obscuration=True)
+                    case _:
+                        _track_contents['ca_type_not_recognized'] += 1
+                        # print('ca_type', cur, ca_type, items[1])
+                        return True
+
+                if ca_type in [1, 4, 6]:
+                    _track_contents['# clear ap'] += 1
+                if ca_type in [2, 5, 7]:
+                    _track_contents['# obscurations'] += 1
+                if ca_type in [5, 7]:
                     _track_contents['non_circular_ca_type'] += 1
-                elif ca_type == 6:
-                    ca = Elliptical()
-                    _track_contents['non_circular_ca_type'] += 1
-                else:
-                    _track_contents['ca_type_not_recognized'] += 1
-                    # print('ca_type', cur, ca_type, items[1])
-                    return True
     
                 if ca:
-                    _track_contents['# clear ap'] += 1
                     ca_list.append(ca)
             else:
                 ca = ca_list[-1]

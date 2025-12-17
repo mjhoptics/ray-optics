@@ -85,6 +85,14 @@ def read_lens(filename, **kwargs) -> tuple["OpticalModel", tuple[dict, dict]]:
 
     opt_model.update_model()
 
+    if 'input ca list' in _track_contents:
+        # There are some surfaces with CA from the file but others with no 
+        # data. Set clear apertures but avoid resetting the user specified 
+        # imported apertures.
+        input_ca_list = _track_contents['input ca list']
+        opt_model['sm'].set_clear_apertures(avoid_list=input_ca_list)
+        opt_model.update_model()
+
     info = _track_contents, _glass_handler.glasses_not_found
     return opt_model, info
 
@@ -185,6 +193,10 @@ def post_process_input(opt_model, filename, **kwargs):
     _track_contents['# surfs'] = len(sm.ifcs)
 
     if _track_contents.get('# clear ap', 0) > 0:
+        for ifc in sm.ifcs:
+            ca_list = [i for i, ifc in enumerate(sm.ifcs) 
+                       if len(ifc.get_ca_list()) > 0]
+        _track_contents['input ca list'] = ca_list
         sm.do_apertures = False
 
     _track_contents['# wvls'] = len(osp['wvls'].wavelengths)
@@ -455,9 +467,6 @@ def aperture_data(opm, tla, qlist, dlist):
             log_cmd("aperture_data", tla, qlist, dlist)
 #            ca_list = ifc.holes
             return
-        elif q[0] == 'OBS':
-            log_cmd("aperture_data", tla, qlist, dlist)
-            return
 
     if len(ca_list) == 0 or ca_type != type(ca_list[-1]).__name__[0]:
         if ca_type == 'C':
@@ -470,6 +479,9 @@ def aperture_data(opm, tla, qlist, dlist):
     else:
         ca = ca_list[-1]
 
+    if ('OBS',) in qlist:
+        ca.is_obscuration = True
+
     if data_type == 'R':
         ca.radius = dlist[0]
     elif data_type == 'X':
@@ -478,7 +490,8 @@ def aperture_data(opm, tla, qlist, dlist):
         ca.y_half_width = dlist[0]
 
     if ca:
-        _track_contents['# clear ap'] += 1
+        obs = '# obscurations' if ca.is_obscuration else '# clear ap'
+        _track_contents[obs] += 1
 
     log_cmd("aperture_data", tla, qlist, dlist)
 
