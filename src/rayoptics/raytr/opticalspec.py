@@ -844,6 +844,14 @@ class FieldSpec:
 
     def __str__(self):
         return "key={}, max field={}".format(self.key, self.max_field()[0])
+    
+    def __getitem__(self, f: int|str):
+        """ Provide direct access to `fields` by index or label. """
+        if isinstance(f, str):
+            idx = self.index_labels.index(f)
+        elif isinstance(f, int):
+            idx = f
+        return self.fields[idx]
 
     def set_from_list(self, flds):
         self.fields = [Field(fov=self) for f in range(len(flds))]
