@@ -11,6 +11,9 @@
 
 class TraceError(Exception):
     """ Exception raised when ray tracing a model """
+    def __init__(self, surf=None, ray_pkg=None):
+        self.surf = surf
+        self.ray_pkg = ray_pkg
 
 
 class TraceMissedSurfaceError(TraceError):
