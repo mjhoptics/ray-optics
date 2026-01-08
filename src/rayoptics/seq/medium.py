@@ -53,7 +53,7 @@ def decode_medium(*inputs, print_errors=True, **kwargs) -> om.OpticalMedium:
     mat = None
 
     logger.debug(f"num inputs = {len(inputs)}, inputs[0] = {inputs[0]}, "
-                  f"{type(inputs[0])}")
+                  f"{type(inputs[0]).__name__}")
     if isanumber(inputs[0]):  # assume all args are numeric
         if len(inputs) == 1:
             if inputs[0] == 1.0:
@@ -106,7 +106,8 @@ def decode_medium(*inputs, print_errors=True, **kwargs) -> om.OpticalMedium:
         mat = inputs[0]
 
     if mat:
-        logger.info(f"mat = {mat.name()}, {mat.catalog_name()}, {type(mat)}")
+        logger.info(f"mat = {mat.name()}, {mat.catalog_name()}, "
+                    f"{type(mat).__name__}")
     return mat
 
 
