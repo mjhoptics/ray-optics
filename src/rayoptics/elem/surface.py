@@ -423,8 +423,7 @@ class Circular(Aperture):
         """ Get a target for ray aiming to aperture boundaries.
         
         """
-        edge_pt = np.array([self.radius*rel_dir[0], 
-                            self.radius*rel_dir[1]])
+        edge_pt = self.radius*misc_math.normalize(np.array(rel_dir))
         return edge_pt
 
     def apply_scale_factor(self, scale_factor):
@@ -459,6 +458,7 @@ class Rectangular(Aperture):
 
     def edge_pt_target(self, rel_dir):
         """ Get a target for ray aiming to aperture boundaries. """
+        rel_dir = misc_math.normalize(np.array(rel_dir))
         edge_pt = np.array([self.x_half_width*rel_dir[0], 
                             self.y_half_width*rel_dir[1]])
         return edge_pt

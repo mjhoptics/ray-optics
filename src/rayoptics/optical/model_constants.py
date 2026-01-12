@@ -35,3 +35,6 @@ p, d, dst, nrml, phase = range(5)
 # op:  optical path wrt equally inclined chords to the optical axis
 # wvl: wavelength (in nm) that the ray was traced in
 ray, op, wvl = range(3)
+
+# spatial coordinates
+x, y, z = range(3)

@@ -9,6 +9,7 @@
 """
 import numpy as np
 from numpy import sqrt
+from rayoptics.util import misc_math
 
 from typing import Optional
 from rayoptics.typing import Z_DIR
@@ -106,7 +107,7 @@ class Interface:
         Returns:
             edge_pt: intersection point of rel_dir with the aperture boundary
         """
-        edge_pt = self.max_aperture*np.array(rel_dir)
+        edge_pt = self.max_aperture*misc_math.normalize(np.array(rel_dir))
         return edge_pt
 
     def point_inside(self, x: float, y: float, fuzz: float = 1e-5) -> bool:
