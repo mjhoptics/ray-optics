@@ -62,13 +62,14 @@ def read_url(url, **kwargs) -> tuple[list, dict]:
     inpt = [l.split('\t') for l in lines]
     obench_dict = {}
     for line in inpt:
-        if line[0][0] == '[':
-            # process new section header, initialize input list
-            key = line[0][1:-1]
-            obench_dict[key] = []
-        else:
-            # add input to the currect section's list of inputs
-            obench_dict[key].append(line)
+        if len(line[0]) > 0:
+            if line[0][0] == '[':
+                # process new section header, initialize input list
+                key = line[0][1:-1]
+                obench_dict[key] = []
+            else:
+                # add input to the currect section's list of inputs
+                obench_dict[key].append(line)
 
     _track_contents['encoding'] = apparent_encoding   # type: ignore
     _track_contents['obench db'] = obench_dict   # type: ignore
