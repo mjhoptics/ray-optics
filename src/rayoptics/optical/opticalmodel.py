@@ -51,6 +51,13 @@ class SystemSpec:
             del attrs['opt_model']
         return attrs
 
+    def __json_decode__(self, **attrs):
+        for a_key, a_val in attrs.items():
+            if a_key == '_dimensions':
+                # ensure dimensions are lowercase
+                a_val = a_val.lower()
+            setattr(self, a_key, a_val)
+
     def listobj_str(self):
         vs = vars(self)
         o_str = f"{type(self).__name__}:\n"
