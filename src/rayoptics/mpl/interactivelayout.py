@@ -11,6 +11,7 @@
 import numpy as np
 
 import rayoptics
+import rayoptics.optical.model_constants as mc
 from rayoptics.mpl.interactivefigure import InteractiveFigure
 from rayoptics.gui.util import bbox_from_poly, scale_bounds
 
@@ -47,6 +48,7 @@ class InteractiveLayout(InteractiveFigure):
                  clip_rays=False,
                  do_paraxial_layout=False,
                  entity_factory_list=None,
+                 xy: int|str='y',
                  **kwargs):
         self.refresh_gui = refresh_gui
         is_dark = kwargs['is_dark'] if 'is_dark' in kwargs else False
@@ -68,13 +70,28 @@ class InteractiveLayout(InteractiveFigure):
         self.do_paraxial_layout = do_paraxial_layout
         self.clip_rays = clip_rays
         self.offset_factor = offset_factor
-        
+
+        if xy == 'x':
+            self.xy = 0
+        elif xy == 'y':
+            self.xy = 1
+        else:
+            self.xy = int(xy)
+
         if entity_factory_list is None:
             self.entity_factory_list = []
         else:
             self.entity_factory_list = entity_factory_list
 
         super().__init__(**kwargs)
+
+    @property
+    def draw_xz_rays(self) -> bool:
+        return self.xy == mc.x
+    
+    @draw_xz_rays.setter
+    def draw_xz_rays(self, do_xz_rays: bool):
+        self.xy = mc.x if do_xz_rays else mc.y
 
     def sync_light_or_dark(self, is_dark, **kwargs):
         self.layout.sync_light_or_dark(is_dark)
@@ -113,14 +130,14 @@ class InteractiveLayout(InteractiveFigure):
         if self.do_draw_beams or self.do_draw_edge_rays:
             if build == 'rebuild':
                 self.ray_shapes = layout.create_ray_entities(
-                    self, start_offset, clip_rays=self.clip_rays)
+                    self, start_offset, clip_rays=self.clip_rays, xy=self.xy)
             self.ray_bbox = self.update_patches(self.ray_shapes)
 
         if self.do_draw_ray_fans:
             if build == 'rebuild':
                 self.rayfan_shapes = layout.create_ray_fan_entities(
                     self, start_offset, num_rays=self.num_rays_in_fan, 
-                    clip_rays=self.clip_rays)
+                    clip_rays=self.clip_rays, xy=self.xy)
             self.rayfan_bbox = self.update_patches(self.rayfan_shapes)
 
         if self.do_paraxial_layout:

@@ -25,10 +25,10 @@ GUIHandle.bbox.__doc__ = "bounding box for poly"
 """
 
 
-def transform_ray_seg(poly, r, tfrm):
+def transform_ray_seg(poly, r, tfrm, xy):
     rot, trns = tfrm
     p = rot.dot(r.p) + trns
-    poly.append([p[2], p[1]])
+    poly.append([p[2], p[xy]])
 
 
 def bbox_from_poly(poly):

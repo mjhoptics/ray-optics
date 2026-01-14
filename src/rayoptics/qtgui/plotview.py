@@ -424,12 +424,17 @@ def create_draw_rays_groupbox(app, pc):
     clip_rays_checkBox.setChecked(fig.clip_rays)
     clip_rays_checkBox.stateChanged.connect(
         lambda checked: attr_check(fig, 'clip_rays', checked))
+    xz_rays_checkBox = QCheckBox("&xz rays")
+    xz_rays_checkBox.setChecked(fig.draw_xz_rays)
+    xz_rays_checkBox.stateChanged.connect(
+        lambda checked: attr_check(fig, 'draw_xz_rays', checked))
     
     tb.addWidget(parax_checkBox)
     tb.addWidget(beam_checkBox)
     tb.addWidget(edge_checkBox)
     tb.addWidget(fan_checkBox)
     tb.addWidget(clip_rays_checkBox)
+    tb.addWidget(xz_rays_checkBox)
 
     return tb
 

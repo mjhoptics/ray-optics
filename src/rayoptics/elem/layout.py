@@ -58,6 +58,9 @@ lo_lw = {
     }
 
 
+# label for coordinate chooser
+xy_str = 'XY'
+
 def create_optical_element(opt_model, e):
     # if isinstance(e, ele.CementedElement):
     #     e_list = []
@@ -225,7 +228,7 @@ class RayBundle():
     """ class for ray bundle from a single field point """
 
     def __init__(self, opt_model, fld, fld_label, wvl, start_offset,
-                 ray_table_callback=None, **kwargs):
+                 ray_table_callback=None, xy=mc.y, **kwargs):
         self.opt_model = opt_model
         self.fld = fld
         self.fld_label = fld_label
@@ -235,6 +238,7 @@ class RayBundle():
         self.actions = self.edit_ray_bundle_actions()
         self.handle_actions = {}
         self.ray_table_callback = ray_table_callback
+        self.xy = xy
 
     def listobj_str(self):
         o_str = f"RayBundle: {self.fld_label}\n"
@@ -247,17 +251,17 @@ class RayBundle():
     def render_ray(self, ray, tfrms):
         poly = []
         for i, r in enumerate(ray):
-            transform_ray_seg(poly, r, tfrms[i])
+            transform_ray_seg(poly, r, tfrms[i], self.xy)
         return np.array(poly)
 
     def render_shape(self, rayset, tfrms):
         poly1 = []
-        for i, r in enumerate(rayset['+Y'].ray):
-            transform_ray_seg(poly1, r, tfrms[i])
+        for i, r in enumerate(rayset['+'+xy_str[self.xy]].ray):
+            transform_ray_seg(poly1, r, tfrms[i], self.xy)
 
         poly2 = []
-        for i, r in enumerate(rayset['-Y'].ray):
-            transform_ray_seg(poly2, r, tfrms[i])
+        for i, r in enumerate(rayset['-'+xy_str[self.xy]].ray):
+            transform_ray_seg(poly2, r, tfrms[i], self.xy)
 
         poly2.reverse()
         poly1.extend(poly2)
@@ -287,8 +291,8 @@ class RayBundle():
 
         if view.do_draw_edge_rays:
             cr = self.render_ray(self.rayset['00'].ray, tfrms)
-            upr = self.render_ray(self.rayset['+Y'].ray, tfrms)
-            lwr = self.render_ray(self.rayset['-Y'].ray, tfrms)
+            upr = self.render_ray(self.rayset['+'+xy_str[self.xy]].ray, tfrms)
+            lwr = self.render_ray(self.rayset['-'+xy_str[self.xy]].ray, tfrms)
             kwargs = {
                 'linewidth': lo_lw['line'],
                 'color': lo_rgb['ray'],
@@ -299,10 +303,12 @@ class RayBundle():
             self.handles['00'] = GUIHandle(cr_poly, bbox_from_poly(cr))
     
             upr_poly = view.create_polyline(upr, **kwargs)
-            self.handles['+Y'] = GUIHandle(upr_poly, bbox_from_poly(upr))
+            self.handles['+'+xy_str[self.xy]] = GUIHandle(upr_poly, 
+                                                          bbox_from_poly(upr))
     
             lwr_poly = view.create_polyline(lwr, **kwargs)
-            self.handles['-Y'] = GUIHandle(lwr_poly, bbox_from_poly(lwr))
+            self.handles['-'+xy_str[self.xy]] = GUIHandle(lwr_poly, 
+                                                          bbox_from_poly(lwr))
 
         return self.handles
 
@@ -321,7 +327,8 @@ class RayBundle():
 class RayFanBundle():
     """ class for a RayFan from a single field point """
 
-    def __init__(self, opt_model, ray_fan, start_offset, label='ray fan'):
+    def __init__(self, opt_model, ray_fan, start_offset, 
+                 label='ray fan', xy=mc.y):
         self.opt_model = opt_model
 
         rayerr_filter = ray_fan.rt_kwargs['rayerr_filter']
@@ -330,6 +337,7 @@ class RayFanBundle():
         self.ray_fan = ray_fan
         self.start_offset = start_offset
         self.label = label
+        self.xy = xy
         self.handles = {}
         self.actions = {}
         self.handle_actions = {}
@@ -345,7 +353,7 @@ class RayFanBundle():
         poly = []
         ray, op_delta, wvl = ray_pkg
         for i, r in enumerate(ray):
-            transform_ray_seg(poly, r, tfrms[i])
+            transform_ray_seg(poly, r, tfrms[i], self.xy)
         return np.array(poly)
 
     def update_shape(self, view):
@@ -380,7 +388,7 @@ class RayFanBundle():
 class SingleRay():
     """ class for a Ray from a single field point """
 
-    def __init__(self, opt_model, ray, start_offset, label='single ray'):
+    def __init__(self, opt_model, ray, start_offset, label='single ray', xy=1):
         self.opt_model = opt_model
 
         rayerr_filter = ray.rt_kwargs['rayerr_filter']
@@ -389,6 +397,7 @@ class SingleRay():
         self.ray = ray
         self.start_offset = start_offset
         self.label = label
+        self.xy = xy
         self.handles = {}
         self.actions = {}
         self.handle_actions = {}
@@ -404,7 +413,7 @@ class SingleRay():
         poly = []
         ray, op_delta, wvl = ray_pkg
         for i, r in enumerate(ray):
-            transform_ray_seg(poly, r, tfrms[i])
+            transform_ray_seg(poly, r, tfrms[i], self.xy)
         return np.array(poly)
 
     def update_shape(self, view):
@@ -605,11 +614,12 @@ class LensLayout():
         ray_fan_bundles = []
         opt_model = self.opt_model
         fov = opt_model['optical_spec']['fov']
+        xy = kwargs.pop('xy', mc.y)
         for i, fld in enumerate(fov.fields):
             fld_label = fov.index_labels[i]
             rayfan = RayFan(opt_model, f=fld, xyfan='y', num_rays=num_rays,
                             label=fld_label, filter_out_phantoms=True, **kwargs)
-            rb = RayFanBundle(opt_model, rayfan, start_offset)
+            rb = RayFanBundle(opt_model, rayfan, start_offset, xy=xy)
             ray_fan_bundles.append(rb)
         return ray_fan_bundles
 
