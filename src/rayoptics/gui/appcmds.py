@@ -285,6 +285,15 @@ def set_apertures(opt_model, gui_parent=None,
     else:
         gui_parent.refresh_gui(src_model=opt_model['seq_model'])
 
+    
+def set_stop_aperture(opt_model, gui_parent=None, **kwargs):
+    """ Set the aperture on the stop surface to satisfy the pupil spec and reset the vignetting. """
+    vigcalc.set_stop_aperture(opt_model, **kwargs)
+    if gui_parent is None:
+        opt_model.update_model(src_model=opt_model['seq_model'])
+    else:
+        gui_parent.refresh_gui(src_model=opt_model['seq_model'])
+
 
 def set_pupil(opt_model, gui_parent=None, use_parax: bool=False):
     """ From existing stop size, calculate pupil spec and vignetting. """

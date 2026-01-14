@@ -106,6 +106,7 @@ class MainWindow(QMainWindow):
         tools_menu.addAction("Refocus")
         tools_menu.addAction("Set Vignetting")
         tools_menu.addAction("Set Apertures")
+        tools_menu.addAction("Set Stop Aperture")
         tools_menu.addAction("Set Pupil")
         tools_menu.triggered[QtGui.QAction].connect(self.do_view_action)
 
@@ -445,6 +446,9 @@ class MainWindow(QMainWindow):
 
         if action == "Set Apertures":
             appcmds.set_apertures(opt_model, gui_parent=self)
+
+        if action == "Set Stop Aperture":
+            appcmds.set_stop_aperture(opt_model, gui_parent=self)
 
         if action == "Set Pupil":
             appcmds.set_pupil(opt_model, gui_parent=self)

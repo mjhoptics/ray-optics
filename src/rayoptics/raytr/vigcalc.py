@@ -108,6 +108,20 @@ def set_vig(opm, **kwargs):
         calc_vignetting_for_field(opm, fld, wvl, **kwargs)
 
 
+def set_stop_aperture(opm, **kwargs):
+    """ Set the aperture on the stop surface to satisfy the pupil spec.
+
+    The vignetting is recalculated after the stop aperture change.
+    """
+    sm = opm['seq_model']
+    # clear the axial vignetting so the pupil_spec defines the axial marginal rays
+    opm['osp']['fov']['axis'].clear_vignetting()
+    # now set the aperture at the stop surface to the pupil spec defined size
+    set_clear_apertures(opm, include_list=[sm.stop_surface])
+    # set vignetting to account for the stop aperture change
+    set_vig(opm)
+
+
 def set_pupil(opm, use_parax=False):
     """ From existing stop size, calculate pupil spec and vignetting. 
     
