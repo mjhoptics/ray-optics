@@ -374,7 +374,7 @@ class MainWindow(QMainWindow):
 
     def save_file(self, file_name):
         cur_model = self.app_manager.model
-        cur_model.save_model(file_name, version="0.9.0a1")
+        cur_model.save_model(file_name)
         self.app_manager.model_filenames[cur_model] = file_name
 
     def close_model(self):
