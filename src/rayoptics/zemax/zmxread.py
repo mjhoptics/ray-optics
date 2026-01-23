@@ -112,7 +112,8 @@ def read_lens(filename, inpt, **kwargs) -> tuple["OpticalModel",
     _glass_handler.save_replacements()
     _track_contents.update(_glass_handler.track_contents)
 
-    opt_model.update_model()
+    if kwargs.get('do_update', True):
+        opt_model.update_model()
 
     info = _track_contents, _glass_handler.glasses_not_found
     return opt_model, info

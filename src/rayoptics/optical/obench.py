@@ -37,7 +37,8 @@ def read_obench_url(url, **kwargs) -> tuple["OpticalModel", tuple[dict, dict]]:
 
     opt_model = read_lens(obench_dict, **kwargs)
 
-    opt_model.update_model()
+    if kwargs.get('do_update', True):
+        opt_model.update_model()
 
     _track_contents['obench input'] = obench_input   # type: ignore
     return opt_model, (_track_contents, {})   # type: ignore

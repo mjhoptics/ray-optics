@@ -83,7 +83,8 @@ def read_lens(filename, **kwargs) -> tuple["OpticalModel", tuple[dict, dict]]:
     _glass_handler.save_replacements()
     _track_contents.update(_glass_handler.track_contents)
 
-    opt_model.update_model()
+    if kwargs.get('do_update', True):
+        opt_model.update_model()
 
     if 'input ca list' in _track_contents:
         # There are some surfaces with CA from the file but others with no 
