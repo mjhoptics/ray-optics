@@ -37,7 +37,7 @@ import rayoptics.raytr.raytrace as rt
 from rayoptics.raytr import trace
 from rayoptics.raytr import RayResult, RayPkg
 from rayoptics.raytr.traceerror import TraceError, TraceMissedSurfaceError
-from rayoptics.util.misc_math import normalize, rot_v1_into_v2
+from rayoptics.util.misc_math import normalize, rot_v1_into_v2, is_fuzzy_zero
 import rayoptics.optical.model_constants as mc
 
 logger = logging.getLogger(__name__)
@@ -286,8 +286,11 @@ def find_real_enp_rev1(opm, stop_idx, fld, wvl, check_direction=True):
                 return z_enp_b, rr
 
     # compute the straightline crossing pt given the interval
-    z_estimate = start_z[0] - ((end_z[0] - start_z[0])/
-                               (end_z[1] - start_z[1]))*start_z[1]
+    if is_fuzzy_zero(end_z[1] - start_z[1]):
+        z_estimate = start_z[0]
+    else:
+        z_estimate = start_z[0] - ((end_z[0] - start_z[0])/
+                                   (end_z[1] - start_z[1]))*start_z[1]
 
     logger.debug(f"  trials: {trial},   {successes=}")
     logger.debug(f"  z_enp: start_z={a:10.5f} z_estimate={z_estimate:10.5f}  "

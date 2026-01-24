@@ -10,7 +10,7 @@
 
 import math
 import numpy as np
-
+import logging
 
 from rayoptics.parax.firstorder import (compute_first_order,
                                         list_parax_trace_fotr)
@@ -22,11 +22,12 @@ import rayoptics.optical.model_constants as mc
 from opticalglass.spectral_lines import get_wavelength
 import rayoptics.util.colour_system as cs
 from rayoptics.util.misc_math import (transpose, normalize, is_kinda_big, 
-                                      isanumber, rot_v1_into_v2)
+                                      is_fuzzy_zero, isanumber, rot_v1_into_v2)
 import rayoptics.gui.util as gui_util
 from rayoptics.util import colors
 srgb = cs.cs_srgb
 
+logger = logging.getLogger(__name__)
 
 class OpticalSpecs:
     """ Container class for optical usage information
@@ -266,7 +267,13 @@ class OpticalSpecs:
 
             if self.do_aiming:
                 for i, fld in enumerate(self.field_of_view.fields):
-                    fld.aim_info = aim_chief_ray(opm, fld, wvl)
+                    try:
+                        fld.aim_info = aim_chief_ray(opm, fld, wvl)
+                    except Exception as terr:
+                        msg = f"OpticalSpecs aim_chief_ray failure at field {i}"
+                        logger.info(msg)
+                        print(msg)
+                        pass
 
     def apply_scale_factor(self, scale_factor):
         self['wvls'].apply_scale_factor(scale_factor)
@@ -980,7 +987,16 @@ class FieldSpec:
                      wvl = self.optical_spec['wvls'].central_wvl
                      pkg = eval_real_image_ht(opt_model, fld, wvl)
                      (obj_pt, obj_dir), z_enp = pkg
-                     fld.aim_info = z_enp
+                     if self.is_wide_angle:
+                        fld.aim_info = z_enp
+                     else: # compute offset at paraxial entrance pupil
+                        del_z = fod.enp_dist - z_enp
+                        if is_fuzzy_zero(obj_dir[2]):
+                            aim_pt = np.array([0., 0.])
+                        else:
+                            aim_pt = del_z * np.array([obj_dir[0]/obj_dir[2], 
+                                                       obj_dir[1]/obj_dir[2]])
+                        fld.aim_info = aim_pt                         
                      return obj_pt, obj_dir
                 else:
                     max_field_ang = math.atan(pr[0][mc.slp])
