@@ -1867,10 +1867,21 @@ class CementedElement(Part):
             else:
                 R = abs(1/c)
                 try:
-                    zone = sqrt(2*sag*R - sag**2)
+                    y = sqrt(2*sag*R - sag**2)
                 except ValueError:
-                    zone = R
-            return zone
+                    y = R
+            return y
+
+        def sphere_sphere_zone(cv_a, cv_b, t):
+            """ find intersection point of 2 circles. """
+            ra = 1.0e12 if cv_a == 0 else 1/cv_a
+            rb = 1.0e12 if cv_b == 0 else 1/cv_b
+            try:
+                x = (2*rb*t + t**2)/(2*(rb + t - ra))
+                y = np.sqrt(ra**2 - (x - ra)**2)
+            except ValueError:
+                y = ra if ra < rb else rb
+            return y
 
         p = self.profiles[idx]
         R = 1.0e12 if p.cv == 0 else abs(1/p.cv)
@@ -1889,21 +1900,30 @@ class CementedElement(Part):
             thi_aftr += self.gaps[i].thi
 
         flat_i = None
-        if is_concave(p.cv, self.idxs[idx], self.idxs[0], self.z_dir):
-            # if there's a first flat, check for intersection
-            if self.flats[0] is not None:
-                flat_i = sphere_sag_to_zone(sag0 + thi_b4, p.cv)
-            # check if radius is smaller than semi-diameter, add flat if needed
-            elif R < sd:
-                flat_i = ca if ca < R else R
-        elif is_concave(p.cv, self.idxs[idx], self.idxs[k], self.z_dir):
-            # if there's a last flat, check for intersection
-            if self.flats[k] is not None:
-                flat_i = sphere_sag_to_zone(sagk + thi_aftr, p.cv)
-
         # check if radius is smaller than semi-diameter, add flat if needed
         if R < sd:
             flat_i = ca if ca < R else R
+
+        # check for intersection with outer flats
+        # if convex, the inner surface could intersect with 
+        # the front surface flat
+        elif not is_concave(p.cv, self.idxs[idx], self.idxs[0], self.z_dir):
+            # if there's a first flat, check for intersection
+            if self.flats[0] is not None:
+                flat_i = sphere_sag_to_zone(thi_b4 - sag0, p.cv)
+            else:
+                y = sphere_sphere_zone(self.profiles[0].cv, p.cv, thi_b4)
+                if y < sd:
+                    flat_i = y
+
+        elif not is_concave(p.cv, self.idxs[idx], self.idxs[k], self.z_dir):
+            # if there's a last flat, check for intersection
+            if self.flats[k] is not None:
+                flat_i = sphere_sag_to_zone(thi_aftr + sagk, p.cv)
+            else:
+                y = sphere_sphere_zone(p.cv, self.profiles[k].cv, thi_aftr)
+                if y < sd:
+                    flat_i = y
 
         if flat_i is not None and flat_i > sd:
             flat_i = sd
@@ -1960,7 +1980,7 @@ class CementedElement(Part):
         else:
             self.flats[k] = None
 
-        flat1_pkg = 'always', self.flats[0], is_cc_0
+        flat1_pkg = self.do_flat_0, self.flats[0], is_cc_0
         for i, gap in enumerate(gaps):
             # compute flats for inner profiles that intersect outer flats
             if i+1<len(gaps) and i+1 != k:
