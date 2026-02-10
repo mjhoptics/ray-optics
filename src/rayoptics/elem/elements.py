@@ -1847,16 +1847,17 @@ class CementedElement(Part):
         self.sd = max([ifc.surface_od() for ifc in self.ifcs])
         return self.sd
 
-    def compute_inner_flat(self, idx, sd, k):
+    def compute_inner_flat(self, idx, sd):
         ''' compute flats, if needed, for the inner cemented surfaces. 
 
         Args:
             idx: index of inner surface in profile list
             sd: the semi-diameter of the cemented element
-            k: final, k-th, profile index
         
         This function is needed to handle the cases where one of the outer
         surfaces has a flat and the inner surface would intersect this flat.
+        It also handles the cases where the inner surfaces intersect the 
+        adjacent surfaces inside the semi-diameter.
         All inner cemented surfaces are assumed to be spherical.
         See model US007277232_Example04P.roa
         See also cv_fisheye.roa
@@ -1887,17 +1888,11 @@ class CementedElement(Part):
         R = 1.0e12 if p.cv == 0 else abs(1/p.cv)
         ifc = self.ifcs[idx]
         ca = ifc.surface_od()
-
-        flat_0 = self.flats[0]
-        sag0 = self.profiles[0].sag(0., flat_0) if flat_0 else 0.0
-        flat_k = self.flats[k]
-        sagk = self.profiles[k].sag(0., flat_k) if flat_k else 0.0
         
         thi_b4 = thi_aftr = 0.
-        for i in range(idx):
-            thi_b4 += self.gaps[i].thi
-        for i in range(idx, len(self.gaps)):
-            thi_aftr += self.gaps[i].thi
+
+        thi_b4 += self.gaps[idx-1].thi
+        thi_aftr += self.gaps[idx].thi
 
         flat_i = None
         # check if radius is smaller than semi-diameter, add flat if needed
@@ -1907,21 +1902,25 @@ class CementedElement(Part):
         # check for intersection with outer flats
         # if convex, the inner surface could intersect with 
         # the front surface flat
-        elif not is_concave(p.cv, self.idxs[idx], self.idxs[0], self.z_dir):
-            # if there's a first flat, check for intersection
-            if self.flats[0] is not None:
+        elif not is_concave(p.cv, self.idxs[idx], self.idxs[idx-1], self.z_dir):
+            # if there's a flat on the preceding surface, check for intersection
+            if self.flats[idx-1] is not None:
+                flat_0 = self.flats[idx-1]
+                sag0 = self.profiles[idx-1].sag(0., flat_0) if flat_0 else 0.0
                 flat_i = sphere_sag_to_zone(thi_b4 - sag0, p.cv)
-            else:
-                y = sphere_sphere_zone(self.profiles[0].cv, p.cv, thi_b4)
+            else:  # check for intersection with previous surface
+                y = sphere_sphere_zone(self.profiles[idx-1].cv, p.cv, thi_b4)
                 if y < sd:
                     flat_i = y
 
-        elif not is_concave(p.cv, self.idxs[idx], self.idxs[k], self.z_dir):
-            # if there's a last flat, check for intersection
-            if self.flats[k] is not None:
-                flat_i = sphere_sag_to_zone(thi_aftr + sagk, p.cv)
-            else:
-                y = sphere_sphere_zone(p.cv, self.profiles[k].cv, thi_aftr)
+        elif not is_concave(p.cv, self.idxs[idx], self.idxs[idx+1], self.z_dir):
+            # if there's a flat on the following surface, check for intersection
+            if self.flats[idx+1] is not None:
+                flat_2 = self.flats[idx+1]
+                sag2 = self.profiles[idx+1].sag(0., flat_2) if flat_2 else 0.0
+                flat_i = sphere_sag_to_zone(thi_aftr + sag2, p.cv)
+            else:  # check for intersection with the following surface
+                y = sphere_sphere_zone(p.cv, self.profiles[idx+1].cv, thi_aftr)
                 if y < sd:
                     flat_i = y
 
@@ -1984,7 +1983,7 @@ class CementedElement(Part):
         for i, gap in enumerate(gaps):
             # compute flats for inner profiles that intersect outer flats
             if i+1<len(gaps) and i+1 != k:
-                self.flats[i+1] = self.compute_inner_flat(i+1, self.sd, k)
+                self.flats[i+1] = self.compute_inner_flat(i+1, self.sd)
 
             is_cc_1 = is_concave(profiles[i].cv, idxs[i], idxs[i+1], z_dir)
             is_cc_2 = is_concave(profiles[i+1].cv, idxs[i+1], idxs[i], z_dir)
@@ -2054,7 +2053,7 @@ class CementedElement(Part):
 
         for i, ifc in enumerate(ifcs):
             # compute flats for inner profiles that intersect outer flats
-            self.flats[i] = self.compute_inner_flat(i, self.sd, k)
+            self.flats[i] = self.compute_inner_flat(i, self.sd)
             is_concave_i = is_concave(profiles[i].cv, idxs[i], idxs[i], z_dir)
 
             if self.flats[i] is not None:
