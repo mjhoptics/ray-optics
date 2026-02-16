@@ -340,11 +340,14 @@ class OpticalSpecs:
                     if aim_info is not None:
                         z_enp = aim_info
                     obj2enp_dist = -(fod.obj_dist + z_enp)
-                    # rotate the on-axis object pt into the incident direction 
-                    # and then position wrt z_enp
-                    enp_pt = np.array([0., 0., obj2enp_dist])
-                    rot_mat_s2d = rot_v1_into_v2(np.array([0., 0., 1.]), d0)
-                    pt0 = np.matmul(rot_mat_s2d, enp_pt) - enp_pt
+                    if self.conjugate_type('object') == 'infinite':
+                        # rotate the on-axis object pt into the incident direction 
+                        # and then position wrt z_enp
+                        enp_pt = np.array([0., 0., obj2enp_dist])
+                        rot_mat_s2d = rot_v1_into_v2(np.array([0., 0., 1.]), d0)
+                        pt0 = np.matmul(rot_mat_s2d, enp_pt) - enp_pt
+                    else:
+                        pt0 = p0
                     pt1[2] -= obj2enp_dist
 
                 else:
@@ -1020,8 +1023,24 @@ class FieldSpec:
 
         elif obj_conj == 'finite':
             if obj_img_key == 'image':
-                max_field_ht = pr[0][mc.ht]
-                obj_pt = max_field_ht*rel_fld_coord
+                if value_key == 'real height':
+                     wvl = self.optical_spec['wvls'].central_wvl
+                     pkg = eval_real_image_ht(opt_model, fld, wvl)
+                     (obj_pt, obj_dir), z_enp = pkg
+                     if self.is_wide_angle:
+                        fld.aim_info = z_enp
+                     else: # compute offset at paraxial entrance pupil
+                        del_z = fod.enp_dist - z_enp
+                        if is_fuzzy_zero(obj_dir[2]):
+                            aim_pt = np.array([0., 0.])
+                        else:
+                            aim_pt = del_z * np.array([obj_dir[0]/obj_dir[2], 
+                                                       obj_dir[1]/obj_dir[2]])
+                        fld.aim_info = aim_pt                         
+                     return obj_pt, obj_dir
+                else:
+                    max_field_ht = pr[0][mc.ht]
+                    obj_pt = max_field_ht*rel_fld_coord
             else:  # obj_img_key == 'object'
                 if value_key == 'angle':
                     fld_angle = np.deg2rad(fld_coord)

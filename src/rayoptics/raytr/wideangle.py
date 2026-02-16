@@ -651,9 +651,12 @@ def eval_real_image_ht(opt_model, fld, wvl):
     else:
         z_enp = p_k[2] + p_k01*d_o[2]/d_k01
 
-    obj2enp_dist = fod.obj_dist + z_enp
-    enp_pt = np.array([0., 0., obj2enp_dist])
-    p_o = enp_pt + obj2enp_dist * d_k
+    p_o = rrev_cr.pkg.ray[-1][mc.p]
+    if osp.conjugate_type('object') == 'infinite':
+        obj2enp_dist = fod.obj_dist + z_enp
+        enp_pt = np.array([0., 0., obj2enp_dist])
+        p_o = enp_pt + obj2enp_dist * d_k
+
     return (p_o, d_o), z_enp
 
 def eval_z_enp_curve(opm, printout=True):
