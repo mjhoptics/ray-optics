@@ -16,7 +16,7 @@ from rayoptics.parax.firstorder import (compute_first_order,
                                         list_parax_trace_fotr)
 from rayoptics.parax import etendue
 from rayoptics.parax import idealimager
-from rayoptics.raytr.trace import aim_chief_ray
+from rayoptics.raytr.trace import aim_chief_ray, get_chief_ray_pkg
 from rayoptics.raytr.wideangle import eval_real_image_ht
 import rayoptics.optical.model_constants as mc
 from opticalglass.spectral_lines import get_wavelength
@@ -698,7 +698,7 @@ class FieldSpec:
     """ Field of view specification
 
     Attributes:
-        key: 'object'|'image', 'height'|'angle'
+        key: 'object'|'image', 'height'|'real height'|'angle'
         value: maximum field, per the key
         fields: list of Field instances
         is_relative: if True, `fields` are relative to max field
@@ -770,7 +770,7 @@ class FieldSpec:
 
     @property
     def key(self):
-        """ ('object'|'image', 'height'|'angle') """
+        """ ('object'|'image', 'height'|'real height'|'angle') """
         return self._key[1], self._key[2]
 
     @key.setter
@@ -937,20 +937,46 @@ class FieldSpec:
             self.value *= scale_factor
 
     def mutate_field_type(self, fld_key):
+        """Convert the current key/value pair to the new fld_key
+         
+        The 'real height' type uses chief ray data when converting between 
+        types. Otherwise, paraxial ray data is used.
+        """
+        if fld_key == self.key:
+            return 
         obj_img_key, value_key = fld_key
-        if self.optical_spec is not None:
-            opm = self.optical_spec.opt_model
-            if opm['ar']['parax_data'] is not None:
-                parax_data = opm['ar']['parax_data']
+        if (osp:=self.optical_spec) is not None:
+            opm = osp.opt_model
+            if (parax_data:=opm['ar']['parax_data']) is not None:
                 fod = parax_data.fod
                 if obj_img_key == 'object':
-                    if value_key == 'height':
-                        self.value = parax_data.pr_ray[0][mc.ht]
-                    elif value_key == 'angle':
-                        self.value = fod.obj_ang
+                    if self.key == ('image', 'real height'):
+                        _, max_fld = self.max_field()
+                        cr, _ = get_chief_ray_pkg(
+                            opm, self[max_fld], osp['wvls'].central_wvl, 
+                            osp['focus'].focus_shift)
+                        self.value = cr.ray[0][mc.p][mc.y]
+                        if value_key == 'height':
+                            self.value = cr.ray[0][mc.p][mc.y]
+                        elif value_key == 'angle':
+                            ang_rad = math.atan2(cr.ray[0][mc.d][mc.y], 
+                                                 cr.ray[0][mc.d][mc.z])
+                            self.value = math.degrees(ang_rad)
+                    else:
+                        if value_key == 'height':
+                            self.value = parax_data.pr_ray[0][mc.ht]
+                        elif value_key == 'angle':
+                            self.value = fod.obj_ang
                 elif obj_img_key == 'image':
                     if value_key == 'height':
                         self.value = fod.img_ht
+                    elif value_key == 'real height':
+                        _, max_fld = self.max_field()
+                        cr, _ = get_chief_ray_pkg(
+                            opm, self[max_fld], osp['wvls'].central_wvl, 
+                            osp['focus'].focus_shift)
+                        self.value = cr.ray[-1][mc.p][mc.y]
+
         self.key = fld_key
 
     def new_field(self, x: float=0., y: float=0., wt: float=1.) -> 'Field':
@@ -980,7 +1006,7 @@ class FieldSpec:
         obj_pt = None
         obj_dir = None
 
-        obj2enp_dist = -(fod.obj_dist + fod.enp_dist)
+        obj2enp_dist = fod.obj_dist + fod.enp_dist
         pt1 = np.array([0., 0., obj2enp_dist])
         obj_conj = self.optical_spec.conjugate_type('object')
         if obj_conj == 'infinite':
@@ -1011,11 +1037,14 @@ class FieldSpec:
                     obj_pt = fld_coord
                     obj_dir = normalize(pt1 - obj_pt)
                     return obj_pt, obj_dir
-            dir_cos = np.sin(fld_angle)
-            dir_cos[2] = np.sqrt(1 - dir_cos[0]**2 - dir_cos[1]**2)
+
+            ang_x, ang_y = fld_angle[0], fld_angle[1]
+            dir_cos = np.array([math.sin(ang_x) * math.cos(ang_y),
+                                math.sin(ang_y), 
+                                math.cos(ang_x) * math.cos(ang_y)])
             if self.is_wide_angle:
                 rot_mat = rot_v1_into_v2(np.array([0., 0., 1.]), dir_cos)
-                obj_pt = np.matmul(rot_mat, pt1) - pt1
+                obj_pt = np.matmul(rot_mat, -pt1) + pt1
             else:
                 obj_pt = obj2enp_dist * np.array([dir_cos[0]/dir_cos[2], 
                                                   dir_cos[1]/dir_cos[2], 0.0])
@@ -1062,7 +1091,7 @@ class FieldSpec:
         Returns:
             magnitude of maximum field, maximum Field instance
         """
-        max_fld = None
+        max_fld = 0
         max_fld_sqrd = -1.0
         for i, f in enumerate(self.fields):
             fld_sqrd = f.x*f.x + f.y*f.y

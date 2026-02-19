@@ -58,10 +58,10 @@ def enp_z_coordinate(z_enp, *args):
 
     """
     seq_model, stop_idx, dir0, obj_dist, wvl = args
-    obj2enp_dist = -(obj_dist + z_enp)
+    obj2enp_dist = (obj_dist + z_enp)
     pt1 = np.array([0., 0., obj2enp_dist])
     rot_mat = rot_v1_into_v2(np.array([0., 0., 1.]), dir0)
-    pt0 = np.matmul(rot_mat, pt1) - pt1
+    pt0 = np.matmul(rot_mat, -pt1) + pt1
 
     try:
         ray_pkg = RayPkg(*rt.trace(seq_model, pt0, dir0, wvl, 
@@ -208,6 +208,11 @@ def find_real_enp_rev1(opm, stop_idx, fld, wvl, check_direction=True):
                 else:
                     keep_going = False
         z_enp += del_z
+        if is_fuzzy_zero(z_enp):
+            # if we sample directly at z_enp=0, i.e. the vertex of the first 
+            # surface, the surface intersection method won't find the right 
+            # root. Perturb the sample point slightly away from zero to avoid this problem
+            z_enp = del_z/10
         trial += 1
 
     z_enp_a, ht_at_stop_a = start_z
