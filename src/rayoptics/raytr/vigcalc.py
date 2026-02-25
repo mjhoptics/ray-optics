@@ -291,12 +291,18 @@ def calc_vignetted_ray(opm, xy, start_dir, fld, wvl, max_iter_count=50):
             indx = ray_error.surf
             if indx == clip_indx:
                 r_target = sm.ifcs[clip_indx].edge_pt_target(start_dir)
-                p = ray_pkg[mc.ray][clip_indx][mc.p]
-                r_ray = copysign(sqrt(p[0]**2 + p[1]**2), r_target[xy])
-                r_error = r_ray - r_target[xy]
-                logger.debug(f" A {xy_str[xy]} = {rel_p1[xy]:10.6f}:   "
-                             f"blocked at {clip_indx}, del={r_error:8.1e}, "
-                             "exiting")
+                try:
+                    p = ray_pkg[mc.ray][clip_indx][mc.p]
+                except IndexError:
+                    logger.debug(f" A' {xy_str[xy]} = {rel_p1[xy]:10.6f}:   "
+                                f"blocked at {clip_indx}, "
+                                "exiting")
+                else:
+                    r_ray = copysign(sqrt(p[0]**2 + p[1]**2), r_target[xy])
+                    r_error = r_ray - r_target[xy]
+                    logger.debug(f" A {xy_str[xy]} = {rel_p1[xy]:10.6f}:   "
+                                f"blocked at {clip_indx}, del={r_error:8.1e}, "
+                                "exiting")
                 still_iterating = False
             else:
                 r_target = sm.ifcs[indx].edge_pt_target(start_dir)
