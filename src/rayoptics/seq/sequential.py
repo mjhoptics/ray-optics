@@ -1274,18 +1274,17 @@ def create_surface_and_gap(surf_data, radius_mode=False, prev_medium=None,
                 # different types, assume 1 medium input and sd
                 last_k = 3
                 sd_indx = 3
-        try:
+
+        if isinstance(surf_data[2], str) and surf_data[2].casefold() == 'refl':
+            s.interact_mode = 'reflect'
+            mat = prev_medium
+            z_dir = -1
+        else:
             # Feed the right number of inputs into decode_medium
             if last_k == 3:
                 mat = medium.decode_medium(surf_data[2])
             else:
                 mat = medium.decode_medium(surf_data[2], surf_data[3])
-        except ValueError:
-            if isinstance(surf_data[2], str):  # string args
-                if surf_data[2].upper() == 'REFL':
-                    s.interact_mode = 'reflect'
-                    mat = prev_medium
-                    z_dir = -1
 
         if sd_indx:
             s.set_max_aperture(surf_data[sd_indx])

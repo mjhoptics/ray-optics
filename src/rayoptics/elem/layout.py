@@ -391,7 +391,7 @@ class SingleRay():
     def __init__(self, opt_model, ray, start_offset, label='single ray', xy=1):
         self.opt_model = opt_model
 
-        rayerr_filter = ray.rt_kwargs['rayerr_filter']
+        rayerr_filter = ray.rayerr_filter
         ray.rayerr_filter = ('full' if rayerr_filter is None
                                  else rayerr_filter)
         self.ray = ray

@@ -14,8 +14,9 @@ from itertools import zip_longest
 from packaging import version
 
 from abc import abstractmethod
-from typing import Protocol, ClassVar, Any, runtime_checkable
+from typing import Optional, Protocol, ClassVar, Any, runtime_checkable
 from rayoptics.typing import SeqPath
+from rayoptics.coord_geometry_types import Tfm3d
 
 from math import sqrt
 import numpy as np
@@ -522,7 +523,8 @@ def create_assembly_from_seq(opt_model, idx1, idx2, **kwargs):
 
 
 def render_lens_shape(s1, profile1, s2, profile2, thi, z_dir, extent, sd, 
-                      is_flipped: bool, hole_sd=None, apply_tfrm=True,
+                      is_flipped: bool, hole_sd=None, 
+                      apply_tfrm=True, custom_tfrm: Tfm3d|None=None, 
                       flat1_pkg=None, flat2_pkg=None):
 
     profile_polys = []
@@ -554,7 +556,8 @@ def render_lens_shape(s1, profile1, s2, profile2, thi, z_dir, extent, sd,
 
     if apply_tfrm:
         # get the full transform between lens surfaces
-        r_new, t_new = trns.forward_transform(s1, thi, s2)
+        r_new, t_new = (trns.forward_transform(s1, thi, s2) 
+                        if custom_tfrm is None else custom_tfrm)
     else:
         r_new, t_new = np.identity(3), np.array([0., 0., thi])
 
@@ -2592,13 +2595,36 @@ class Space(Part):
             thi += g.thi
         return thi
 
+    def gap_polyline(self):
+        poly_ct = []
+        poly_ct.append([0., 0.])
+        idx_0 = self.idxs[0]
+        idx_k = self.idxs[-1]
+        seq_model = self.parent.opt_model['seq_model']
+        gbl_tfrms = seq_model.compute_global_coords(glo=idx_0)
+
+        for g in self.gaps:
+            if abs(g.thi)>0:
+                last_vertex = gbl_tfrms[idx_k+1][1]
+                poly_ct.append([last_vertex[2], last_vertex[1]])
+        return poly_ct
+
     def render_shape(self):
         s1 = self.s1
         s2 = self.s2
         thi = self.cumulative_thi()
+
+        custom_tfrm = None
+        idx_0 = self.idxs[0]
+        idx_k = self.idxs[-1]
+        if idx_k > idx_0:
+            seq_model = self.parent.opt_model['seq_model']
+            gbl_tfrms = seq_model.compute_global_coords(glo=idx_0)
+            custom_tfrm = gbl_tfrms[idx_k+1]
+
         poly_pkg, profile_polys = render_lens_shape(
             s1, s1.profile, s2, s2.profile, thi, self.z_dir, 
-            self.extent(), self.sd, self.is_flipped
+            self.extent(), self.sd, self.is_flipped, custom_tfrm=custom_tfrm
             )
         poly, = poly_pkg
         return poly
@@ -2611,15 +2637,8 @@ class Space(Part):
         self.handles['shape'] = GraphicsHandle(shape, self.tfrm, 'polygon',
                                                color)
 
-        poly_ct = []
-        poly_ct.append([0., 0.])
-        poly_ct.append([self.cumulative_thi(), 0.])
-
-        # Modify the tfrm to account for any decenters following
-        #  the reference ifc.
-        decenter = opt_model.seq_model.ifcs[self.idxs[0]].decenter
-        tfrm = self.apply_decenter_to_tfrm(decenter)
-        self.handles['ct'] = GraphicsHandle(poly_ct, tfrm, 'polyline')
+        poly_ct = self.gap_polyline()
+        self.handles['ct'] = GraphicsHandle(poly_ct, self.tfrm, 'polyline')
 
         return self.handles
 
@@ -2678,15 +2697,8 @@ class AirGap(Space):
     def render_handles(self, opt_model):
         self.handles = {}
 
-        poly_ct = []
-        poly_ct.append([0., 0.])
-        poly_ct.append([self.cumulative_thi(), 0.])
-
-        # Modify the tfrm to account for any decenters following
-        #  the reference ifc.
-        decenter = opt_model.seq_model.ifcs[self.idxs[0]].decenter
-        tfrm = self.apply_decenter_to_tfrm(decenter)
-        self.handles['ct'] = GraphicsHandle(poly_ct, tfrm, 'polyline')
+        poly_ct = self.gap_polyline()
+        self.handles['ct'] = GraphicsHandle(poly_ct, self.tfrm, 'polyline')
 
         return self.handles
 

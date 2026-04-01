@@ -68,6 +68,11 @@ class OpticalSpecs:
     def __setitem__(self, key, value):
         """ Provide mapping interface to submodels. """
         self._submodels[key] = value
+        if key == 'wvls':
+            try:
+                self.opt_model['seq_model'].update_model()
+            except AttributeError:
+                pass
 
     def __json_encode__(self):
         attrs = dict(vars(self))

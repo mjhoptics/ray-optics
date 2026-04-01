@@ -294,9 +294,8 @@ def calc_vignetted_ray(opm, xy, start_dir, fld, wvl, max_iter_count=50):
                 try:
                     p = ray_pkg[mc.ray][clip_indx][mc.p]
                 except IndexError:
-                    logger.debug(f" A' {xy_str[xy]} = {rel_p1[xy]:10.6f}:   "
-                                f"blocked at {clip_indx}, "
-                                "exiting")
+                    logger.debug(f" A {xy_str[xy]} = {rel_p1[xy]:10.6f}:   "
+                                 f"index error at {clip_indx=}, exiting")
                 else:
                     r_ray = copysign(sqrt(p[0]**2 + p[1]**2), r_target[xy])
                     r_error = r_ray - r_target[xy]
