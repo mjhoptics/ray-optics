@@ -51,7 +51,7 @@ sgz2ele_spec =  \
     mangin       = ~r"it(?:r|(?R))*ti"
     thin_lens    = "l"
     dummy        = "d"
-    phantom      = "apa"
+    phantom      = "apa" / "tpt"
     object       = ~r"^d"
     image        = ~r"d$"
     """
@@ -168,7 +168,12 @@ class SMVisitor(NodeVisitor):
         idxk = node.end >> 1
         idx_list = ()
         gap_list = tuple(idx for idx in range(idx1, idxk))
-        part_name = 'air', 'rayoptics.elem.elements', 'AirGap'
+        if node.text == 'apa':
+            part_name = 'air', 'rayoptics.elem.elements', 'AirGap'
+        elif node.text == 'tpt':
+            part_name = 'space', 'rayoptics.elem.elements', 'Space'
+        else:
+            raise ValueError(f"unexpected phantom token: {node.text}")
         part_def = part_name, idx_list, gap_list
         self.print_visit(node, part_name, idx_list, gap_list)
         return part_def
