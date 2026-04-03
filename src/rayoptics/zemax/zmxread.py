@@ -10,6 +10,7 @@
 import logging
 import math
 import requests
+from pathlib import Path
 
 from rayoptics.elem.surface import (DecenterData, Circular, Rectangular,
                                     Elliptical)
@@ -21,11 +22,13 @@ import rayoptics.zemax.zmx2ro as zmx2ro
 from rayoptics.oprops import doe
 import rayoptics.oprops.thinlens as thinlens
 
-import opticalglass as og
 from opticalglass import glassfactory as gfact
+from opticalglass.glassfactory import og_glass_libs
 from opticalglass import modelglass as mg
 from opticalglass import opticalmedium as om
+from opticalglass import agf_glass
 from opticalglass import glasserror
+from opticalglass import util as og_util
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -34,8 +37,8 @@ _fh.setLevel(logging.INFO)
 logger.addHandler(_fh)
 
 _glass_handler = None
-_cmd_not_handled = None
-_track_contents = None
+_cmd_not_handled = og_util.Counter()
+_track_contents = og_util.Counter()
 
 
 def read_lens_file(filename, **kwargs):
@@ -95,11 +98,15 @@ def read_lens(filename, inpt, **kwargs) -> tuple["OpticalModel",
     ''' given inpt str of a Zemax .zmx file, return an OpticalModel  '''
     from rayoptics.optical.opticalmodel import OpticalModel
     global _glass_handler, _cmd_not_handled, _track_contents
-    _cmd_not_handled = og.util.Counter()
-    _track_contents = og.util.Counter()
+    _cmd_not_handled.clear()
+    _track_contents.clear()
 
     # create an empty optical model; all surfaces will come from .zmx file
-    opt_model = OpticalModel(do_init=False)
+    if 'opt_model' in kwargs:
+        opt_model = kwargs['opt_model']
+        opt_model.reset(do_init=False)
+    else:
+        opt_model = OpticalModel(do_init=False)
 
     input_lines = inpt.splitlines()
 
@@ -536,7 +543,7 @@ def field_spec_data(optm, cmd, inputs):
     return True
 
 
-class ZmxGlassHandler(GlassHandlerBase):
+class ZmxGlassHandler_old(GlassHandlerBase):
     """Handle glass restoration during Zemax zmx import.
 
     This class relies on GlassHandlerBase to provide most of the functionality
@@ -590,6 +597,60 @@ class ZmxGlassHandler(GlassHandlerBase):
                     return True
             else:  # must be a glass type
                 medium = self.find_glass(name, self.glass_catalogs)
+                g.medium = medium
+                return True
+
+        else:
+            return False
+
+
+class ZmxGlassHandler(GlassHandlerBase):
+    """Handle glass restoration during Zemax zmx import.
+
+    This class relies on GlassHandlerBase to provide most of the functionality
+    needed to find the requested glass or a substitute.
+    """
+    def __call__(self, sm, cur, cmd, inputs):
+        """ process GLAS command for fictitious, catalog glass or mirror"""
+
+        if cmd == "GCAT":
+            inputs = inputs.lower()
+            agf_priority_order = inputs.split()
+            og_glass_libs['agf'].search_order = agf_priority_order
+            og_util.move_to(og_glass_libs.search_order, 1, 'agf')
+            self.track_contents["GCAT"] = inputs
+            return True
+
+        elif cmd == "GLAS":
+            g = sm.gaps[cur]
+            inputs = inputs.split()
+            name = inputs[0]
+            medium = None
+            if name == 'MIRROR':
+                sm.ifcs[cur].interact_mode = 'reflect'
+                g.medium = sm.gaps[cur-1].medium
+                self.track_contents[name] += 1
+                return True
+            elif name == '___BLANK':
+                nd = float(inputs[3])
+                vd = float(inputs[4])
+                if vd == 0:
+                    # Zemax treats Vd=0 as constant index
+                    g.medium = om.ConstantIndex(nd, f"n:{nd:.3f}")
+                else:
+                    g.medium = mg.ModelGlass(nd, vd, om.glass_encode(nd, vd))
+                self.track_contents[name] += 1
+                return True
+            elif isanumber(name):
+                # process as a 6 digit code, no decimal point
+                m = self.find_6_digit_code(name)
+                if m is not None:
+                    g.medium = m
+                    self.track_contents['6 digit code'] += 1
+                    return True
+            else:  # must be a glass type
+                # medium = self.find_glass(name, self.glass_catalogs)
+                medium = self.find_glass(name, None)
                 g.medium = medium
                 return True
 
