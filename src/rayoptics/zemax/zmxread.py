@@ -30,6 +30,10 @@ from opticalglass import agf_glass
 from opticalglass import glasserror
 from opticalglass import util as og_util
 
+from zmxtools import zar
+
+import ZemaxGlass as zg
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 _fh = logging.FileHandler('zmx_read_lens.log', mode='w', delay=True)
@@ -39,6 +43,64 @@ logger.addHandler(_fh)
 _glass_handler = None
 _cmd_not_handled = og_util.Counter()
 _track_contents = og_util.Counter()
+
+def read_zar_file(filename, **kwargs):
+    """ given a Zemax .zar filename, return an OpticalModel
+
+    It appears that Zemax .zmx files are written in UTF-16 encoding. Test
+    against what seem to be common encodings. If other encodings are used in
+    'files in the wild', please add them to the list.
+    
+    Args:
+        filename (pathlib.Path): a Zemax .zmx file path
+        kwargs (dict): keyword args passed to the reader functions
+
+    Returns:
+        an OpticalModel instance and a info tuple
+    """
+    global _track_contents
+    def decode_bytes(file_bytes: bytes, encodings: list[str]) -> str:
+        nonlocal character_encoding
+        for character_encoding in encodings:
+            try:
+                inpt = file_bytes.decode(encoding=character_encoding)
+            except UnicodeError:
+                pass
+            else:
+                break
+        return inpt
+        
+    if 'encoding' in kwargs:
+        encodings = kwargs['encoding']
+        if isinstance(encodings, str):
+            encodings = [encodings,]
+    else:  # default list of encodings to try
+        encodings = ['utf-16', 'utf-8', 'utf-8-sig', 'iso-8859-1']
+
+    zar_contents = zar.read(filename)
+    for zc in zar_contents:
+        if '.ZMX' in zc.file_name.upper():
+            zmx_pkg = zc
+        elif '.AGF' in zc.file_name.upper():
+            agf_pkg = zc
+
+    character_encoding = ''
+    zmx_bytes = zmx_pkg.unpacked_contents
+    zmx_inpt = decode_bytes(zmx_bytes, encodings)
+    agf_bytes = agf_pkg.unpacked_contents
+    agf_inpt = decode_bytes(agf_bytes, encodings)
+
+    agf_cat_name = agf_pkg.file_name[:-4].lower()
+    agf_catalog = agf_glass.AGFCatalog(agf_cat_name, 
+                                       zg.parse_glass_input(agf_inpt))
+    og_glass_libs['agf'][agf_cat_name] = agf_catalog
+
+    opt_model, info = read_lens(filename, zmx_inpt, 
+                                agf_lib=og_glass_libs['agf'], **kwargs)
+    
+    _track_contents['encoding'] = character_encoding
+
+    return opt_model, info
 
 
 def read_lens_file(filename, **kwargs):

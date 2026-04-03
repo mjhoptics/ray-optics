@@ -64,6 +64,8 @@ def open_model(file_url, info=False, **kwargs) -> Optional[OpticalModel] | tuple
             opm, import_info = obench.read_obench_url(file_url, **kwargs)
         elif file_extension == '.seq':
             opm, import_info = cmdproc.read_lens(file_url_pth, **kwargs)
+        elif file_extension == '.zar':
+            opm, import_info = zmxread.read_zar_file(file_url_pth, **kwargs) 
         elif file_extension == '.zmx':
             opm, import_info = zmxread.read_lens_file(file_url_pth, **kwargs)
         
