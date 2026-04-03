@@ -10,15 +10,15 @@
 from pathlib import Path
 
 from PySide6 import QtCore
-from PySide6.QtCore import Qt
-from PySide6 import QtGui
+from PySide6.QtCore import Qt, QSize
+from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (QHBoxLayout, QVBoxLayout, QWidget, QLineEdit,
                              QRadioButton, QGroupBox, QSizePolicy, QCheckBox,
                              QListWidget, QListWidgetItem, QToolBar, QMenu)
 
-from matplotlib.backends.backend_qt5agg \
+from matplotlib.backends.backend_qt \
      import (NavigationToolbar2QT as NavigationToolbar)
-from matplotlib.backends.backend_qt5agg \
+from matplotlib.backends.backend_qtagg \
      import FigureCanvasQTAgg as FigureCanvas
 
 from rayoptics.gui.appmanager import ModelInfo
@@ -195,7 +195,7 @@ def create_plot_view(app, figure, title, view_width, view_ht, commands=None,
     sub_window.show()
 
 
-def create_glass_map_view(app, glass_db):
+def create_glass_map_view(app, glass_libs):
 
     def create_light_or_dark_callback(fig):
         def l_or_d(is_dark):
@@ -204,16 +204,19 @@ def create_glass_map_view(app, glass_db):
 
     title = 'Glass Map Viewer'
 
-    width = 1100
-    height = 650
+    width = 1650
+    height = 1100
 
-    # glass_db = gm.GlassMapDB(['Schott', 'Hoya', 'Ohara'])
+    db_display = {}
+    for lib in glass_libs:
+        for cat_name in lib.keys():
+            db_display[(lib.name, cat_name)] = True
+
     pdt = "Refractive Index"
     # hotwire GlassMapFigure to inherit from StyledFigure
     gm.GlassMapFigure.__bases__ = (StyledFigure,)
-    figure = gm.GlassMapFigure(glass_db, plot_display_type=pdt,
-                            # width=5, height=4,
-                            )
+    figure = gm.GlassMapFigure(glass_libs, db_display=db_display, 
+                               plot_display_type=pdt)
 
     widget, pick_model = gmv.init_UI(app, figure)
     widget.figure = figure
@@ -313,13 +316,13 @@ def create_multi_plot_scale_panel(app, pc):
 
 
 def get_icon(fig, icon_filepath, icon_size=48):
-    pm = QtGui.QPixmap(str(icon_filepath)).scaled(icon_size, icon_size)
+    pm = QPixmap(str(icon_filepath)).scaled(icon_size, icon_size)
     if hasattr(pm, 'setDevicePixelRatio'):
         try:  # older mpl < 3.5.0
             pm.setDevicePixelRatio(fig.canvas._dpi_ratio)
         except AttributeError:
             pm.setDevicePixelRatio(fig.canvas.device_pixel_ratio)
-    return QtGui.QIcon(pm)
+    return QIcon(pm)
 
 
 def create_2d_figure_toolbar(app, pc):
@@ -332,7 +335,7 @@ def create_2d_figure_toolbar(app, pc):
     """
     icon_size = 24
     tb = QToolBar()
-    tb.setIconSize(QtCore.QSize(icon_size, icon_size))
+    tb.setIconSize(QSize(icon_size, icon_size))
     tb.setStyleSheet("QToolBar{spacing:0px;}")
 
     toolitems = (

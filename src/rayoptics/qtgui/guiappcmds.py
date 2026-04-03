@@ -10,10 +10,10 @@
 
 import logging
 
-from opticalglass import glassmap as gm
-from opticalglass import glassfactory as gfact
+from opticalglass.glassfactory import og_glass_libs, create_glass
+from opticalglass.glasslibs import GlassCatalog
 from opticalglass import opticalmedium as om
-
+from rayoptics.seq import medium as ro_medium
 from rayoptics.elem import layout
 from rayoptics.parax import diagram
 
@@ -215,22 +215,16 @@ def create_3rd_order_bar_chart(opt_model, gui_parent=None):
 
 def create_glass_map_view(opt_model, gui_parent=None):
     refresh_gui, is_dark = get_defaults_from_gui_parent(gui_parent)
-    glass_names = set()
-    glasses = list()
+    glasses = dict()
     for g in opt_model.seq_model.gaps:
         m = g.medium
         if not isinstance(m, om.Air):
-            if m.name() not in glass_names:
-                glass_names.add(m.name())
-                glasses.append(m)
+            glasses[m.name()] = m
 
-    args = []
-    if len(glasses)>0:
-        args.append(glasses)
-    args.append(gfact._catalog_list)
-    glass_db = gm.GlassMapDB(*args)
-
-    plotview.create_glass_map_view(gui_parent, glass_db)
+    system_cat = GlassCatalog('system', glasses)
+    og_glass_libs['user']['system'] = system_cat
+    ro_medium.init_glass_libs(og_glass_libs)
+    plotview.create_glass_map_view(gui_parent, og_glass_libs)
 
 
 def update_table_view(table_view, **kwargs):
@@ -241,9 +235,8 @@ def update_table_view(table_view, **kwargs):
 def create_lens_table_model(seq_model):
     def replace_glass(event, index):
         mime = event.mimeData()
-        # comma separated list
-        glass_name, catalog_name = mime.text().split(',')
-        mat = gfact.create_glass(glass_name, catalog_name)
+        glass_cat_lib = mime.text()
+        mat = create_glass(*glass_cat_lib)
         seq_model.gaps[index].medium = mat
 
     colEvalStr = ['.ifcs[{}].interface_type()',

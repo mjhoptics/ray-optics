@@ -25,6 +25,60 @@ from opticalglass import util as og_util
 
 logger = logging.getLogger(__name__)
 
+def init_glass_libs(og_glass_libs):
+    og_priority_order = [
+        'user',
+        'xls',
+        'agf',
+        'rii-specs',
+        'rii-organic',
+        'rii-other',
+        'rii-3d',
+        ]
+    og_glass_libs.search_order = og_priority_order
+    og_glass_libs.active_cltns = og_priority_order
+
+    xls_priority_order = ['Hoya', 'Ohara', 'Schott', 'CDGM', 'Hikari', 'Sumita']
+    og_glass_libs['xls'].search_order = xls_priority_order
+
+    agf_priority_order = [
+    'hoya',
+    'ohara',
+    # 'schott glasses preferred and special June-2025-B',
+    'schott',
+    'misc',
+    'cdgm',
+    'hikari',
+    'nikon',
+    'sumita',
+    'lzos',
+    'lightpath',
+    'corning',
+    ]
+    og_glass_libs['agf'].search_order = agf_priority_order
+    og_glass_libs['agf'].active_cltns = agf_priority_order
+
+    rii_specs_priority_order = [
+    'SCHOTT-optical',
+    'OHARA-optical',
+    'HIKARI-optical',
+    'CDGM-optical',
+    'HOYA-optical',
+    'SUMITA-optical',
+    'LZOS-optical',
+    ]
+    og_glass_libs['rii-specs'].search_order = rii_specs_priority_order
+    og_glass_libs['rii-specs'].active_cltns = rii_specs_priority_order
+
+    og_glass_libs['rii-other'].active_cltns = (rii1:=['Commercial polymers', 
+                                                      'Index matching liquids', 
+                                                      'Immersion oils', 
+                                                      'Optical adhesives', 
+                                                      ])
+    og_glass_libs['rii-other'].search_order = rii1 
+
+    og_glass_libs['rii-organic'].active_cltns = ['Polymers',]
+    og_glass_libs['rii-3d'].active_cltns = ['plastics',]
 
 def glass_encode(n: float, v: float) -> str:
     return f'{int(1000*round((n - 1), 3)):3d}.{int(round(10*v, 3)):3d}'
