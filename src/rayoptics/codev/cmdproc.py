@@ -21,8 +21,9 @@ from rayoptics.seq.medium import GlassHandlerBase
 from rayoptics.raytr.opticalspec import Field
 from rayoptics.util.misc_math import isanumber
 
-import opticalglass as og
-from opticalglass import glassfactory as gfact
+import opticalglass.util as og_util
+from opticalglass.glasslibs import GlassCatalog
+from opticalglass.glassfactory import og_glass_libs
 from opticalglass import opticalmedium as om
 from opticalglass import modelglass as mg
 
@@ -38,7 +39,6 @@ _tla = tla.MapTLA()
 # Should this be in OpticalModel?
 _reading_private_catalog = False
 _private_catalog_wvls = None
-_private_catalog_glasses = {}
 
 _glass_handler = None
 _track_contents = None
@@ -67,7 +67,7 @@ def read_lens(filename, **kwargs) -> tuple["OpticalModel", tuple[dict, dict]]:
     global _glass_handler, _track_contents
     global _reading_private_catalog
     _reading_private_catalog = False
-    _track_contents = og.util.Counter()
+    _track_contents = og_util.Counter()
     opt_model = OpticalModel(do_init=False)
     _glass_handler = CVGlassHandler(filename)
     cmds = cvr.read_seq_file(filename)
@@ -144,16 +144,17 @@ def process_command(cmd):
         if cmd_len > 4:
             dlist.append(cmd[4])  # rmd
     elif _reading_private_catalog and isinstance(cmd[0], str):
-        global _private_catalog_wvls, _private_catalog_glasses
+        global _private_catalog_wvls
         label = cmd[0]
         if isanumber(cmd[1]):
             for t in cmd[1:]:
                 dlist.append(float(t))
             prv_glass = om.InterpolatedMedium(label, 
-                                            wvls=_private_catalog_wvls, 
-                                            rndx=dlist, cat='CV private catalog')
-            _private_catalog_glasses[label] = prv_glass
-            gfact.register_glass(prv_glass)
+                                              wvls=_private_catalog_wvls, 
+                                              rndx=dlist, 
+                                              cat='CODE V Private Catalog')
+            prv_catalog = og_glass_libs['user']['CODE V Private Catalog']
+            prv_catalog.catalog[label] = prv_glass
         else:
             logger.debug(f"Unsupported PRV glass def: {cmd[0]} {cmd[1]}")
 
@@ -291,6 +292,11 @@ def spec_data(opm, tla, qlist, dlist):
         opm['system_spec'].temperature = dlist[0]
     elif tla == "PRE":
         opm['system_spec'].pressure = dlist[0]
+    elif tla == "CSO":  # Catalog Search Order
+        xls_priority_order = [cat for cat in dlist 
+                              if len(og_glass_libs['xls'].find_catalog(cat)) > 0]
+        og_glass_libs['xls'].search_order = xls_priority_order
+        og_util.move_to(og_glass_libs.search_order, 1, 'xls')
     log_cmd("spec_data", tla, qlist, dlist)
 
 
@@ -359,6 +365,9 @@ def private_catalog(optm, tla, qlist, dlist):
     global _reading_private_catalog, _private_catalog_wvls
     if tla == "PRV":
         _reading_private_catalog = True
+        private_cat = GlassCatalog('CODE V Private Catalog', {})
+        og_glass_libs['user']['CODE V Private Catalog'] = private_cat
+
     elif tla == "PWL":
         _private_catalog_wvls = dlist
     elif tla == "END":
@@ -656,9 +665,5 @@ class CVGlassHandler(GlassHandlerBase):
             if medium:
                 return medium
             else:  # name with no data. default to crown glass
-                global _private_catalog_glasses
-                if name in _private_catalog_glasses:
-                    medium = _private_catalog_glasses[name]
-                else:
-                    medium = om.ConstantIndex(1.5, 'not '+name)
+                medium = om.ConstantIndex(1.5, 'not '+name)
                 return medium
