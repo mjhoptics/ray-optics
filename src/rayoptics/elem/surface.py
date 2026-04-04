@@ -361,7 +361,7 @@ class Aperture():
         if self.is_obscuration:
             o_str += "is_obscuration: True\n"
 
-        if self.x_offset != 0. or self.x_offset != 0. or self.rotation != 0.:
+        if self.x_offset != 0. or self.y_offset != 0. or self.rotation != 0.:
             o_str += (f"x_offset={self.x_offset}   y_offset={self.y_offset}"
                       f"   rotation={self.rotation}\n")
         return o_str
