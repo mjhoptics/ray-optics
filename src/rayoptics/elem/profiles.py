@@ -318,11 +318,19 @@ class Spherical(SurfaceProfile):
         ax2 = self.cv
         cx2 = self.cv * p.dot(p) - 2*p[2]
         b = self.cv * d.dot(p) - d[2]
-        try:
-            # Use z_dir to pick correct root
-            s = cx2/(z_dir*sqrt(b*b - ax2*cx2) - b)
-        except ValueError:
-            raise TraceMissedSurfaceError
+        # this form of the `if` test was found much faster than np.any or np.all
+        if (not (b == 0) or not (cx2 == 0) or not (ax2 == 0)):
+            try:
+                # will raise FloatingPointError
+                with np.errstate(divide='raise'):  
+                    # Use z_dir to pick correct root
+                    s = cx2/(z_dir*sqrt(b*b - ax2*cx2) - b)
+            except ValueError:
+                raise TraceMissedSurfaceError
+            except FloatingPointError:
+                s = 0.
+        else:  # ax2 = cx2 = b = 0, i.e. ray is tangent to the sphere at p
+            s = 0.
 
         p1 = p + s*d
         return s, p1
@@ -567,11 +575,19 @@ class Conic(SurfaceProfile):
         ax2 = self.cv*(1. + self.cc*d[2]*d[2])
         cx2 = self.cv*(p[0]*p[0] + p[1]*p[1] + self.ec*p[2]*p[2]) - 2.0*p[2]
         b = self.cv*(d[0]*p[0] + d[1]*p[1] + self.ec*d[2]*p[2]) - d[2]
-        try:
-            # Use z_dir to pick correct root
-            s = cx2/(z_dir*sqrt(b*b - ax2*cx2) - b)
-        except ValueError:
-            raise TraceMissedSurfaceError
+        # this form of the `if` test was found much faster than np.any or np.all
+        if (not (b == 0) or not (cx2 == 0) or not (ax2 == 0)):
+            try:
+                # will raise FloatingPointError
+                with np.errstate(divide='raise'):  
+                    # Use z_dir to pick correct root
+                    s = cx2/(z_dir*sqrt(b*b - ax2*cx2) - b)
+            except ValueError:
+                raise TraceMissedSurfaceError
+            except FloatingPointError:
+                s = 0.
+        else:  # ax2 = cx2 = b = 0, i.e. ray is tangent to the sphere at p
+            s = 0.
 
         p1 = p + s*d
         return s, p1
