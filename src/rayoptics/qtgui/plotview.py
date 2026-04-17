@@ -9,7 +9,6 @@
 """
 from pathlib import Path
 
-from PySide6 import QtCore
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (QHBoxLayout, QVBoxLayout, QWidget, QLineEdit,
@@ -207,16 +206,10 @@ def create_glass_map_view(app, glass_libs):
     width = 1650
     height = 1100
 
-    db_display = {}
-    for lib in glass_libs:
-        for cat_name in lib.keys():
-            db_display[(lib.name, cat_name)] = True
-
     pdt = "Refractive Index"
     # hotwire GlassMapFigure to inherit from StyledFigure
     gm.GlassMapFigure.__bases__ = (StyledFigure,)
-    figure = gm.GlassMapFigure(glass_libs, db_display=db_display, 
-                               plot_display_type=pdt)
+    figure = gm.GlassMapFigure(glass_libs, plot_display_type=pdt)
 
     widget, pick_model = gmv.init_UI(app, figure)
     widget.figure = figure
