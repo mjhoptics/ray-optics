@@ -32,7 +32,7 @@ from opticalglass import util as og_util
 
 from zmxtools import zar
 
-import ZemaxGlass as zg
+import ZemaxGlass.ZemaxGlass as zg
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

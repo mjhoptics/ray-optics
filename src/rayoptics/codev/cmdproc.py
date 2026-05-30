@@ -294,7 +294,8 @@ def spec_data(opm, tla, qlist, dlist):
         opm['system_spec'].pressure = dlist[0]
     elif tla == "CSO":  # Catalog Search Order
         xls_priority_order = [cat for cat in dlist 
-                              if len(og_glass_libs['xls'].find_catalog(cat)) > 0]
+                              if len(og_glass_libs['xls'].find_catalog(cat)) 
+                              > 0]
         og_glass_libs['xls'].search_order = xls_priority_order
         og_util.move_to(og_glass_libs.search_order, 1, 'xls')
     log_cmd("spec_data", tla, qlist, dlist)
