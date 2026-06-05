@@ -13,13 +13,10 @@ import logging
 
 from rayoptics.util.misc_math import isanumber
 
-import opticalglass as og
-from opticalglass import glass as cat_glass
-from opticalglass import glassfactory as gfact
 from opticalglass.glassfactory import og_glass_libs
+from opticalglass import glassfactory as gfact
 from opticalglass import opticalmedium as om
 from opticalglass import modelglass as mg
-from opticalglass import rindexinfo as rii
 from opticalglass import glasserror
 from opticalglass import util as og_util
 
@@ -190,7 +187,6 @@ class GlassHandlerBase():
     """
 
     def __init__(self, filename):
-        self.glass_catalogs = []
         self.glasses_not_found = og_util.Counter()
         self.track_contents = og_util.Counter()
         self.filename = None
@@ -235,17 +231,42 @@ class GlassHandlerBase():
             medium = gfact.create_glass(name, catalog)
         except glasserror.GlassNotFoundError:
             pass
+        except glasserror.GlassCatalogNotFoundError:
+            pass
         else:
             self.track_contents['glass found'] += 1
             return medium
 
         if self.no_replacements:
-            medium = self.find_substitute_glass(name)
+            # decode the input name
+            inpt_gn_decode = og_util.decode_glass_name(name)
+            # build an uppercase version for comparisons
+            inpt_group_num = inpt_gn_decode.group_num
+            glist = set()
+            for glib in og_glass_libs:
+                for gc in og_glass_libs[glib]:
+                    for gn in gc.keys():
+                        gn_decode = og_util.decode_glass_name(gn)
+                        group_num = gn_decode.group_num
+                        if inpt_group_num == group_num:
+                            glist.add((gn_decode, gn, gc, glib))
+            medium = self.find_substitute_glass(name, glist)
             if medium is not None:
                 self.track_contents['glass substituted'] += 1
                 return medium
 
-        medium = self.handle_glass_not_found(name)
+        else:  # create a new instance of the replacement glass
+            if name in self.glasses_not_found:
+                val = self.glasses_not_found[name]
+                if len(val) == 2:  # call create_glass with name and catalog
+                    gn, gc = val
+                    medium = gfact.create_glass(gn, gc)
+                else:  # eval code to create a new glass instance
+                    medium = eval(self.glasses_not_found[name])
+                gfact.register_glass(medium)
+            else:
+                medium = None
+
         if medium is None and always is True:
             self.track_contents['glass not found'] += 1
             medium = om.ConstantIndex(1.5, 'not '+name)
@@ -265,50 +286,24 @@ class GlassHandlerBase():
         else:
             return None
 
-    def find_substitute_glass(self, name) -> om.OpticalMedium|None:
-        """Try to find a similar glass to ``name``."""
-
-        # decode the input name
-        gn_decode = cat_glass.decode_glass_name(name)
-        # build an uppercase version for comparisons
-        gn_decode_uc = gn_decode[0][0].upper() + gn_decode[0][1]
-
-        subs_glasses = []
-        for g in glist:
-            gn_decode, gn, gc = g
-            if gn_decode_uc == gn_decode[0][0].upper() + gn_decode[0][1]:
-                subs_glasses.append(g)
+    def find_substitute_glass(self, name, subs_glasses) -> om.OpticalMedium|None:
+        """Try to find a similar glass to ``name``.
+        
+        Args:
+            name: the input glass name to be matched
+            subs_glasses: a list of tuples of the form (gn_decode, gn, gc, glib) for glasses in the catalogs that have the same group_num as the input glass name. The gn_decode is the decoded glass name, gn is the glass name, gc is the glass catalog, and glib is the glass library.
+            """
 
         if len(subs_glasses):
-            possibilities = [gn for gn_decode, gn, gc in subs_glasses]
+            possibilities = [gn for gn_decode, gn, gc, glib in subs_glasses]
             matches = difflib.get_close_matches(name, possibilities)
             if len(matches) > 0:
                 gn = matches[0]
                 gc = next((g[2] for g in subs_glasses if g[1] == gn), None)
             else:
-                gn_decode, gn, gc = subs_glasses[0]
+                gn_decode, gn, gc, glib = subs_glasses[0]
             medium = gfact.create_glass(gn, gc)
             self.glasses_not_found[name] = gn, gc
             return medium
         else:
             return None
-
-    def handle_glass_not_found(self, name) -> om.OpticalMedium|None:
-        """Record missing glasses or create new replacement glass instances."""
-
-        if self.no_replacements:                # track the number of times
-            self.glasses_not_found[name] += 1   # each missing glass is used
-            return None
-
-        else:  # create a new instance of the replacement glass
-            if name in self.glasses_not_found:
-                val = self.glasses_not_found[name]
-                if len(val) == 2:  # call create_glass with name and catalog
-                    gn, gc = val
-                    mat = gfact.create_glass(gn, gc)
-                else:  # eval code to create a new glass instance
-                    mat = eval(self.glasses_not_found[name])
-                gfact.register_glass(mat)
-                return mat
-            else:
-                return None

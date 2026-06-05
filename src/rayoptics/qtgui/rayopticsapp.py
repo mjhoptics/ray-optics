@@ -294,8 +294,8 @@ class MainWindow(QMainWindow):
                           "All files (*.seq *.zmx *.zar *.roa);;"
                           "CODE V files (*.seq);;"
                           "Ray-Optics files (*.roa);;"
-                          "Zemax files (*.zmx)",
-                          "Zemax archives (*.zar)",
+                          "Zemax files (*.zmx);;",
+                          "Zemax archives (*.zar);;",
                           options=options)
             if fileName:
                 logger.debug("open file: %s", fileName)

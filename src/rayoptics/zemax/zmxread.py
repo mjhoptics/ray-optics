@@ -24,6 +24,7 @@ import rayoptics.oprops.thinlens as thinlens
 
 from opticalglass import glassfactory as gfact
 from opticalglass.glassfactory import og_glass_libs
+from opticalglass.glasslibs import GlassLibrary
 from opticalglass import modelglass as mg
 from opticalglass import opticalmedium as om
 from opticalglass import agf_glass
@@ -75,28 +76,38 @@ def read_zar_file(filename, **kwargs):
         if isinstance(encodings, str):
             encodings = [encodings,]
     else:  # default list of encodings to try
-        encodings = ['utf-16', 'utf-8', 'utf-8-sig', 'iso-8859-1']
+        encodings = ['utf-8', 'utf-16', 'utf-8-sig', 'iso-8859-1']
 
+    agf_pkgs = []
     zar_contents = zar.read(filename)
     for zc in zar_contents:
         if '.ZMX' in zc.file_name.upper():
             zmx_pkg = zc
         elif '.AGF' in zc.file_name.upper():
-            agf_pkg = zc
+            agf_pkgs.append(zc)
 
     character_encoding = ''
     zmx_bytes = zmx_pkg.unpacked_contents
     zmx_inpt = decode_bytes(zmx_bytes, encodings)
-    agf_bytes = agf_pkg.unpacked_contents
-    agf_inpt = decode_bytes(agf_bytes, encodings)
 
-    agf_cat_name = agf_pkg.file_name[:-4].lower()
-    agf_catalog = agf_glass.AGFCatalog(agf_cat_name, 
-                                       zg.parse_glass_input(agf_inpt))
-    og_glass_libs['agf'][agf_cat_name] = agf_catalog
+    agf_cats = {}
+    for agf_pkg in agf_pkgs:
+        agf_bytes = agf_pkg.unpacked_contents
+        agf_inpt = decode_bytes(agf_bytes, encodings)
+
+        agf_cat_name = agf_pkg.file_name[:-4].lower()
+        agf_catalog = agf_glass.AGFCatalog(agf_cat_name, 
+                                           zg.parse_glass_input(agf_inpt))
+        agf_cats[agf_cat_name] = agf_catalog
+    agf_srch = [cat_name for cat_name in agf_cats.keys()]
+    agf_lib = GlassLibrary('agf-zar', agf_cats, agf_srch)
+
+    og_glass_libs.update({'agf-zar': agf_lib})
+ 
+    og_util.move_to(og_glass_libs.search_order, 1, 'agf-zar')
 
     opt_model, info = read_lens(filename, zmx_inpt, 
-                                agf_lib=og_glass_libs['agf'], **kwargs)
+                                agf_lib=og_glass_libs['agf-zar'], **kwargs)
     
     _track_contents['encoding'] = character_encoding
 
@@ -123,7 +134,7 @@ def read_lens_file(filename, **kwargs):
         if isinstance(encodings, str):
             encodings = encodings,
     else:  # default list of encodings to try
-        encodings = ['utf-16', 'utf-8', 'utf-8-sig', 'iso-8859-1']
+        encodings = ['utf-8', 'utf-16', 'utf-8-sig', 'iso-8859-1']
 
     for decode in encodings:
         try:
@@ -172,7 +183,8 @@ def read_lens(filename, inpt, **kwargs) -> tuple["OpticalModel",
 
     input_lines = inpt.splitlines()
 
-    _glass_handler = ZmxGlassHandler(filename)
+    agf_lib = kwargs.get('agf_lib', None)
+    _glass_handler = ZmxGlassHandler(filename, agf_lib=agf_lib)
 
     for i, line in enumerate(input_lines):
         process_line(opt_model, line, i+1)
@@ -223,7 +235,7 @@ def process_line(opt_model, line, line_no):
         g = sm.gaps[cur]
         g.thi = float(inputs)
 
-    elif _glass_handler(sm, cur, cmd, inputs):
+    elif _glass_handler is not None and _glass_handler(sm, cur, cmd, inputs):
         pass
 
     elif cmd == "STOP":
@@ -605,81 +617,23 @@ def field_spec_data(optm, cmd, inputs):
     return True
 
 
-class ZmxGlassHandler_old(GlassHandlerBase):
-    """Handle glass restoration during Zemax zmx import.
-
-    This class relies on GlassHandlerBase to provide most of the functionality
-    needed to find the requested glass or a substitute.
-    """
-
-    def __call__(self, sm, cur, cmd, inputs):
-        """ process GLAS command for fictitious, catalog glass or mirror"""
-
-        if cmd == "GCAT":
-            inputs = inputs.split()
-            # Check catalog names, only add those we recognize
-            for gc in inputs:
-                try:
-                    gfact.get_glass_catalog(gc)
-                except glasserror.GlassCatalogNotFoundError:
-                    continue
-                else:
-                    self.glass_catalogs.append(gc)
-            # If no catalogs were recognized, use the default set
-            if len(self.glass_catalogs) == 0:
-                self.glass_catalogs = gfact._cat_names
-            self.track_contents["GCAT"] = inputs
-            return True
-        elif cmd == "GLAS":
-            g = sm.gaps[cur]
-            inputs = inputs.split()
-            name = inputs[0]
-            medium = None
-            if name == 'MIRROR':
-                sm.ifcs[cur].interact_mode = 'reflect'
-                g.medium = sm.gaps[cur-1].medium
-                self.track_contents[name] += 1
-                return True
-            elif name == '___BLANK':
-                nd = float(inputs[3])
-                vd = float(inputs[4])
-                if vd == 0:
-                    # Zemax treats Vd=0 as constant index
-                    g.medium = om.ConstantIndex(nd, f"n:{nd:.3f}")
-                else:
-                    g.medium = mg.ModelGlass(nd, vd, om.glass_encode(nd, vd))
-                self.track_contents[name] += 1
-                return True
-            elif isanumber(name):
-                # process as a 6 digit code, no decimal point
-                m = self.find_6_digit_code(name)
-                if m is not None:
-                    g.medium = m
-                    self.track_contents['6 digit code'] += 1
-                    return True
-            else:  # must be a glass type
-                medium = self.find_glass(name, self.glass_catalogs)
-                g.medium = medium
-                return True
-
-        else:
-            return False
-
-
 class ZmxGlassHandler(GlassHandlerBase):
     """Handle glass restoration during Zemax zmx import.
 
     This class relies on GlassHandlerBase to provide most of the functionality
     needed to find the requested glass or a substitute.
     """
-    def __call__(self, sm, cur, cmd, inputs):
+    def __init__(self, filename: str, agf_lib=None):
+        super().__init__(filename)
+        self.agf_lib = og_glass_libs['agf'] if agf_lib==None else agf_lib
+
+    def __call__(self, sm, cur, cmd, inputs) -> bool:
         """ process GLAS command for fictitious, catalog glass or mirror"""
 
         if cmd == "GCAT":
             inputs = inputs.lower()
             agf_priority_order = inputs.split()
-            og_glass_libs['agf'].search_order = agf_priority_order
-            og_util.move_to(og_glass_libs.search_order, 1, 'agf')
+            self.agf_lib.search_order = agf_priority_order
             self.track_contents["GCAT"] = inputs
             return True
 
@@ -710,6 +664,7 @@ class ZmxGlassHandler(GlassHandlerBase):
                     g.medium = m
                     self.track_contents['6 digit code'] += 1
                     return True
+                return False
             else:  # must be a glass type
                 # medium = self.find_glass(name, self.glass_catalogs)
                 medium = self.find_glass(name, None)
