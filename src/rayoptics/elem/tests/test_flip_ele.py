@@ -19,11 +19,12 @@ em = mainOpm['ele_model']
 pt = mainOpm['part_tree']
 ar = mainOpm['analysis_results']
 
-osp.pupil = PupilSpec(osp, key=['object', 'pupil'], value=8.0)
+osp.pupil = PupilSpec(osp, key=['object', 'epd'], value=8.0)
 osp.field_of_view = FieldSpec(osp, key=['object', 'height'],flds=[0,0.0,])
 
 sm.gaps[0].thi=19.0
-mainOpm.add_from_file(Path().resolve()/"ACL3026U-Zemax(ZMX).zmx", t=50.)
+test_path = Path(__file__).parent.resolve()
+mainOpm.add_from_file(test_path / "ACL3026U-Zemax(ZMX).zmx", t=50.)
 
 # display the data in various ways
 sm.list_model()     
