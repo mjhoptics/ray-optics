@@ -1300,7 +1300,7 @@ def scan_nodes(parax_model, node_defs, nodes):
     Return the updated node_def list.
     """
     new_node_defs = node_defs.copy()
-    xprods = np.cross(nodes[:-1], nodes[1:])
+    xprods = [cross2d(x, y) for x, y in zip(nodes[:-1], nodes[1:])]
     for i, kn in enumerate(zip(node_defs, nodes)):
         kernel, node = kn
         if len(kernel) == 2:
