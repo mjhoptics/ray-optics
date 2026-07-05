@@ -215,6 +215,8 @@ def find_real_enp_rev1(opm, stop_idx, fld, wvl, check_direction=True):
             z_enp = del_z/10
         trial += 1
 
+    if start_z is None or end_z is None:
+        return None, rr
     z_enp_a, ht_at_stop_a = start_z
     z_enp_b, ht_at_stop_b = end_z
     logger.debug(f"  start_z={z_enp_a:10.5f}  end_z={z_enp_b:10.5f}")
@@ -236,6 +238,8 @@ def find_real_enp_rev1(opm, stop_idx, fld, wvl, check_direction=True):
                 end_z = z_enp, ht_at_stop
             logger.debug(f"  sample point {z_enp=:8.4f}  ray passed: "
                          f"{rr.err is None}")
+        if start_z is None or end_z is None:
+            return None, rr
         a, b = start_z[0], end_z[0]
 
     # test for crossing between the end points
@@ -303,8 +307,11 @@ def find_real_enp_rev1(opm, stop_idx, fld, wvl, check_direction=True):
     logger.debug(f"  ht_at_stop: start_z={start_z[1]:10.5f} "
                  f"end_z={end_z[1]:10.5f}")
 
-    start_coords, rr, results = find_z_enp_on_interval(opm, stop_idx, a, b, 
+    try:
+        start_coords, rr, results = find_z_enp_on_interval(opm, stop_idx, a, b, 
                                                        z_estimate, fld, wvl)
+    except (IndexError, ValueError):
+        return None, rr
     z_enp = start_coords[2]
 
     final_coord = rr.pkg.ray[stop_idx][mc.p]
