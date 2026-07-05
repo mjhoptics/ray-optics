@@ -13,7 +13,7 @@ import numpy as np
 from math import sqrt, copysign, sin, acos
 from scipy import optimize
 
-from rayoptics.util.misc_math import normalize, is_fuzzy_zero
+from rayoptics.util.misc_math import normalize, is_fuzzy_zero, cross2d
 from rayoptics.raytr.traceerror import TraceError, TraceMissedSurfaceError
 
 
@@ -408,9 +408,9 @@ class Spherical(SurfaceProfile):
             # calculate the angle between direction vectors.
             # the cross product gives the correct sign for the total angle
             if dir > 0:
-                total_sin = np.cross(dir1, dir2)
+                total_sin = cross2d(dir1, dir2)
             else:
-                total_sin = np.cross(dir2, dir1)
+                total_sin = cross2d(dir2, dir1)
 
             # using the dot prod gives the correct magnitude between 0 and pi
             total_cos = np.dot(dir1, dir2)

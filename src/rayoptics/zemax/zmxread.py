@@ -10,7 +10,6 @@
 import logging
 import math
 import requests
-from pathlib import Path
 
 from rayoptics.elem.surface import (DecenterData, Circular, Rectangular,
                                     Elliptical)
@@ -22,13 +21,11 @@ import rayoptics.zemax.zmx2ro as zmx2ro
 from rayoptics.oprops import doe
 import rayoptics.oprops.thinlens as thinlens
 
-from opticalglass import glassfactory as gfact
 from opticalglass.glassfactory import og_glass_libs
 from opticalglass.glasslibs import GlassLibrary
 from opticalglass import modelglass as mg
 from opticalglass import opticalmedium as om
 from opticalglass import agf_glass
-from opticalglass import glasserror
 from opticalglass import util as og_util
 
 from zmxtools import zar
@@ -391,7 +388,7 @@ def handle_types_and_params(optm, cur, cmd, inputs):
             new_profile = profiles.mutate_profile(cur_profile,
                                                   'YToroid')
             ifc.profile = new_profile
-        elif typ == 'XOSPHERE':
+        elif typ == 'XOSPHERE' or typ == 'XASPHERE':
             cur_profile = ifc.profile
             new_profile = profiles.mutate_profile(cur_profile,
                                                   'RadialPolynomial')
@@ -441,6 +438,10 @@ def handle_types_and_params(optm, cur, cmd, inputs):
                 ifc.phase_element.order = param_val
         elif ifc.z_type == 'EVENASPH':
             ifc.profile.coefs[i-1] = param_val
+        elif ifc.z_type == 'XASPHERE':
+            if i * 2 > len(ifc.profile.coefs):
+                ifc.profile.coefs.extend([0.0] * (i * 2 - len(ifc.profile.coefs)))
+            ifc.profile.coefs[i * 2 - 1] = param_val
         elif ifc.z_type == 'PARAXIAL':
             if i == 1:
                 ifc.optical_power = 1/param_val
@@ -454,7 +455,7 @@ def handle_types_and_params(optm, cur, cmd, inputs):
         inputs = inputs.split()
         i = int(inputs[0])
         param_val = float(inputs[1])
-        if ifc.z_type == 'XOSPHERE':
+        if ifc.z_type == 'XOSPHERE' or ifc.z_type == 'XASPHERE':
             if i == 1:
                 num_terms = param_val
                 ifc.profile.coefs = []
@@ -660,15 +661,27 @@ class ZmxGlassHandler(GlassHandlerBase):
             elif isanumber(name):
                 # process as a 6 digit code, no decimal point
                 m = self.find_6_digit_code(name)
-                if m is not None:
+                if m is not None: 
                     g.medium = m
                     self.track_contents['6 digit code'] += 1
                     return True
                 return False
             else:  # must be a glass type
-                # medium = self.find_glass(name, self.glass_catalogs)
-                medium = self.find_glass(name, None)
-                g.medium = medium
+                medium = self.find_glass(name, None, always=False)
+                if medium is None:
+                    nd = float(inputs[3])
+                    vd = float(inputs[4])
+                    if vd == 0:
+                        if nd == 0:
+                            g.medium = om.ConstantIndex(1.5, 'not '+name)
+                        else:
+                            # Zemax treats Vd=0 as constant index
+                            g.medium = om.ConstantIndex(nd, f"n:{nd:.3f}")
+                    else:
+                        g.medium = mg.ModelGlass(nd, vd, 
+                                                 om.glass_encode(nd, vd))
+                else:
+                    g.medium = medium
                 return True
 
         else:
