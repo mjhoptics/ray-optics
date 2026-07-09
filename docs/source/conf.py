@@ -26,9 +26,9 @@ sys.path.insert(0, os.path.join(__location__, '../../src'))
 
 # -- Project information -----------------------------------------------------
 
-project = u'ray-optics'
-copyright = u'2017-2025, Michael J. Hayford'
-author = u'Michael J. Hayford'
+project = 'ray-optics'
+copyright = '2017-%Y, Michael J. Hayford'
+author = 'Michael J. Hayford'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -88,8 +88,8 @@ pygments_style = 'friendly'
 rst_prolog = """
 .. |ybar| replace:: :math:`y-\overline{y}`
 .. |nubar| replace:: :math:`\omega-\overline{\omega}`
-.. |minimum_python_version| replace:: 3.11
-.. |minimum_numpy_version| replace:: 2.2.6
+.. |minimum_python_version| replace:: 3.12
+.. |minimum_numpy_version| replace:: 2.4.6
 .. |Series| replace:: :class:`pandas.Series`
 .. |DataFrame| replace:: :class:`pandas.DataFrame`
 """

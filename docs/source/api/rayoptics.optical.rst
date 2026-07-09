@@ -13,6 +13,5 @@ Submodules
    :maxdepth: 4
 
    rayoptics.optical.model_constants
-   rayoptics.optical.model_enums
    rayoptics.optical.obench
    rayoptics.optical.opticalmodel

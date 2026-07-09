@@ -5,6 +5,17 @@ Changelog
 =========
 
 
+Version 0.9.9
+=============
+Integrate OpticalGlass v2.0. This adds the ability to read Zemax .agf files; ray-optics has been updated to read Zemax .zar files directly. The RefractiveIndex.INFO database has been fully integrated as well.
+
+Continued fixes and refinements were made to field and aperture optical specifications, including vignetting and pupil aiming calculations. 
+
+The |ybar| diagram was updated to allow for replacement of a |ybar| node with an optical element or assembly from any |ybar| layer.
+
+Much more stuff...
+
+
 Version 0.9.8
 =============
 Integrate changes in the **opticalglass** package to use it's custom glass 
