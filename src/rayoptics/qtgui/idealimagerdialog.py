@@ -89,7 +89,7 @@ class IdealImagerDialog(QWidget):
                 except Exception as e:
                     print(str(e))
                     QMessageBox.warning(self,
-                                        self.tr("Ray-Optics"), 
+                                        self.tr("RayOptics"), 
                                         self.tr("Please provide correct inputs."))
             else:
                 print(button.text(), 'button pressed')

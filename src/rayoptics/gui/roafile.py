@@ -104,7 +104,7 @@ def save_updated_roa(file_path: Path, opt_model: OpticalModel):
 
 
 def open_roa(file_name, mapping=None, **kwargs) -> OpticalModel | None:
-    """ open a ray-optics file and populate an optical model with the data
+    """ open a RayOptics file and populate an optical model with the data
 
     Args:
         file_name (str): a filename with a .roa extension

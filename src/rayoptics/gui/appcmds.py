@@ -45,6 +45,7 @@ def open_model(file_url, info=False, **kwargs) -> Optional[OpticalModel] | tuple
             - .roa - a rayoptics JSON encoded file
             - .seq - a CODE V (TM) sequence file
             - .zmx - a Zemax (TM) lens file
+            - .zar - a Zemax (TM) archive file
             - a URL from the www.photonstophotos.net OpticalBench database
         info (bool): if true, return an info tuple with import statistics
         kwargs (dict): keyword args passed to the reader functions

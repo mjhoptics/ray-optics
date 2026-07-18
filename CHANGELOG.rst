@@ -18,12 +18,12 @@ Much more stuff...
 
 Version 0.9.8
 =============
-Integrate changes in the **opticalglass** package to use it's custom glass 
+Integrate changes in the OpticalGlass package to use it's custom glass 
 registry to support model import. In addition to the manufacturers' glass 
 catalogs that are searched during import, the custom glass registry will be 
 searched first. If there is a .smx file for a model, those material 
 definitions will be added to the custom glass registry. Thanks to @fujiisoup 
-for the suggestion and help with the **opticalglass** implementation.
+for the suggestion and help with the OpticalGlass implementation.
 
 Thanks to @quentGit for finding and fixing an issue with the wave aberration 
 calculation (issue #178) and for an improvement to Zemax file import (issue 
@@ -120,7 +120,7 @@ Version 0.8.6
 =============
 Implement a :class:`~.oprops.doe.DiffractionGrating` with ray trace and opd calculations. Add ability to draw single rays and control their color. Fix issues 102 (defocus application), 107 (Zemax import), 110 (defocus and image shift), 114 (Zemax import), 115 (ray aiming), 124 (immersed image), 125 (Zemax constant index), 127 (model modifications), 138 (local loggers).
 There were a variety of small fixes and improvements, e.g. to :func:`~listobj`.
-Thanks to @mpetroff and @dominikonysz for their contributions to **ray-optics**.
+Thanks to @mpetroff and @dominikonysz for their contributions to RayOptics.
 
 
 Version 0.8.5
@@ -140,7 +140,7 @@ Revise doc to use RTD yaml file; other doc updates.
 
 Version 0.8.3
 =============
-Add :func:`~.gui.appcmds.set_pupil` function to set the pupil specification based on the aperture stop size. Add a hole feature to :class:`~.elem.elements.Element` and :class:`~.elem.elements.Mirror`. InteractiveLayout will draw holes but they haven't yet been included in the sequential model or the ray trace. The :meth:`~.seq.sequential.SequentialModel.add_surface` method was fixed and enhanced to take additional inputs for materials and allow use of a `sd` keyword argument to specify the semi-diameter of the surface. A variety of bug fixes were made to import and saving of models as well as other fixes; see the update log for specifics. All of the .roa files on the distro were restored and saved with the current version. At the same time, the long deprecated Pupil and Field enums were removed from the code. Finally, the build and packaging of **ray-optics** was updated to use current python technologies.
+Add :func:`~.gui.appcmds.set_pupil` function to set the pupil specification based on the aperture stop size. Add a hole feature to :class:`~.elem.elements.Element` and :class:`~.elem.elements.Mirror`. InteractiveLayout will draw holes but they haven't yet been included in the sequential model or the ray trace. The :meth:`~.seq.sequential.SequentialModel.add_surface` method was fixed and enhanced to take additional inputs for materials and allow use of a `sd` keyword argument to specify the semi-diameter of the surface. A variety of bug fixes were made to import and saving of models as well as other fixes; see the update log for specifics. All of the .roa files on the distro were restored and saved with the current version. At the same time, the long deprecated Pupil and Field enums were removed from the code. Finally, the build and packaging of RayOptics was updated to use current python technologies.
 
 Version 0.8.2
 =============
@@ -179,7 +179,7 @@ Implemented a formatted object output protocol, the listobj_str() method, that r
 
 Version 0.7.4
 =============
-Pass 2 on the |ybar| diagram layer capability. Handle thick elements and include a top level 'sys' layer. Fix insertion of system from file. Add support for models from the `OpticalBenchHub <https://www.photonstophotos.net/GeneralTopics/Lenses/OpticalBench/OpticalBenchHub.htm>`_ portion of Bill Claff's `PhotonsToPhotos <https://www.photonstophotos.net/>`_ website. Support odd polynomial surfaces in Zemax import. Added additional control over the use of flats when drawing lens elements, see ray-optics notebook `Cell Phone lens <https://github.com/mjhoptics/ray-optics-notebooks/blob/master/Cell%20Phone%20lens.ipynb>`_ for an example. Thanks also to @wuffi for contributing 2 fixes to make the interactive ray-optics app more robust.
+Pass 2 on the |ybar| diagram layer capability. Handle thick elements and include a top level 'sys' layer. Fix insertion of system from file. Add support for models from the `OpticalBenchHub <https://www.photonstophotos.net/GeneralTopics/Lenses/OpticalBench/OpticalBenchHub.htm>`_ portion of Bill Claff's `PhotonsToPhotos <https://www.photonstophotos.net/>`_ website. Support odd polynomial surfaces in Zemax import. Added additional control over the use of flats when drawing lens elements, see RayOptics notebook `Cell Phone lens <https://github.com/mjhoptics/ray-optics-notebooks/blob/master/Cell%20Phone%20lens.ipynb>`_ for an example. Thanks also to @wuffi for contributing 2 fixes to make the interactive RayOptics app more robust.
 
 Version 0.7.3
 =============

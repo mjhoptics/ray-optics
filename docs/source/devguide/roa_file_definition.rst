@@ -33,10 +33,10 @@ An exception is how IEEE inf and nan are encoded.
 
     json_inputs = json.loads(file_contents)
 
-**ray-optics** python object encoding
+RayOptics python object encoding
 -------------------------------------
 
-**ray-optics** uses the **json_tricks** package for serializing python
+RayOptics uses the **json_tricks** package for serializing python
 objects. The json_tricks package provides dump() and load() functions
 that augment the default python object encoding in json by including
 object metadata.

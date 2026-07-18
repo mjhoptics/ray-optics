@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Copyright © 2017 Michael J. Hayford
-""" Module building on :mod:`opticalglass` for ray-optics material support
+""" Module building on :mod:`opticalglass` for RayOptics material support
 
 .. Created on Fri Sep 15 17:06:17 2017
 

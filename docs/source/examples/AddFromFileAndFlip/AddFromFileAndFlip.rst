@@ -4,7 +4,7 @@
 Multiple lens import example
 ############################
 
-This notebook shows the steps to follow to open multiple vendor component files using ray-optics.
+This notebook shows the steps to follow to open multiple vendor component files using RayOptics.
 
 .. code:: ipython3
 

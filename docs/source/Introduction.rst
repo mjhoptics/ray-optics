@@ -6,7 +6,7 @@ Introduction
 Tools for image forming optical design and analysis
 --------------------------------------------------- 
 
-The **ray-optics** project has several goals, both in the optical domain and in the software development domain  
+The RayOptics project has several goals, both in the optical domain and in the software development domain  
 
 * Rethink how image forming optical calculations are done absent historical constraints on computer speed and memory
 * Investigate interactive graphics for optical design
@@ -18,7 +18,7 @@ Image forming optical design and analysis was one of the first domain areas to b
 
 Computers are vastly more powerful now than they were when the venerable CODE V program was initially developed. Zemax and Oslo date from the early IBM PC days, when both speed and memory were limiting factors. The programs were developed to be comprehensive tools. The software tools available then were limited as well. In order to gain acceptable performance, compiled languages such as C and FORTRAN were required. Graphical user interfaces were also expensive to develop and were often considered secondary in importance to developing a comprehensive feature set.
 
-The **ray-optics** project doesn't aspire to be comprehensive. Instead, it tries to do several dominant use cases very well:
+The RayOptics project doesn't aspire to be comprehensive. Instead, it tries to do several dominant use cases very well:
 
 * Rotationally symmetric optical systems
 * Bilaterally symmetric optical systems

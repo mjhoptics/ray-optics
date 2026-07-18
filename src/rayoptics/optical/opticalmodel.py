@@ -236,7 +236,7 @@ class OpticalModel:
         self.parax_model.set_from_specsheet(specsheet)
 
     def save_model(self, file_name, version=None):
-        """Save the optical_model in a ray-optics JSON file.
+        """Save the optical_model in a RayOptics JSON file.
         
         Args:
             file_name: str or Path

@@ -20,7 +20,7 @@ import pandas as pd
 # from ipywidgets import interact, interactive, fixed, interact_manual
 # from IPython.display import display
 
-# ray-optics
+# RayOptics
 import rayoptics
 from rayoptics import listobj
 
@@ -44,7 +44,7 @@ from rayoptics.elem.profiles import (Spherical, Conic, EvenPolynomial,
 from rayoptics.raytr.opticalspec import (WvlSpec, FieldSpec, Field,
                                          PupilSpec, FocusRange)
 
-# ray-optics first and third order
+# RayOptics first and third order
 import rayoptics.parax.firstorder as fo
 from rayoptics.parax.firstorder import compute_first_order
 import rayoptics.parax.thirdorder as to

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-""" The **ray-optics** geometrical ray tracing and optical modeling and
+""" The RayOptics geometrical ray tracing and optical modeling and
     analysis package
 
     The optical model is contained in the :mod:`~.optical` subpackage. It is
@@ -14,7 +14,7 @@
         - :mod:`~.raytr`: support for ray tracing and analysis
 
         - :mod:`~.codev`: handles import of CODE V .seq files
-        - :mod:`~.zemax`: handles import of Zemax .zmx files
+        - :mod:`~.zemax`: handles import of Zemax .zmx and .zar files
 
         - :mod:`opticalglass`: this package interfaces with glass manufacturer
           optical data and the RefractiveIndex.Info website

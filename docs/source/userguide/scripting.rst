@@ -2,7 +2,7 @@
 Scripting Usage
 ***************
 
-The ``environment.py`` module imports many useful classes and functions. All the symbols defined in the module are intended to be imported into a rayoptics interactive session.
+The ``environment.py`` module imports many useful classes and functions. All the symbols defined in the module are intended to be imported into a RayOptics interactive session.
 
 .. code::
 
@@ -26,7 +26,7 @@ CODE V sequence files can be imported
 
    > opm = open_model('ag_dblgauss.seq')
 
-Zemax .zmx files can be imported
+Zemax .zmx and .zar files can be imported
 
 .. code::
 
