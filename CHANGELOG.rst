@@ -7,13 +7,27 @@ Changelog
 
 Version 0.9.9
 =============
-Integrate OpticalGlass v2.0. This adds the ability to read Zemax .agf files; ray-optics has been updated to read Zemax .zar files directly. The RefractiveIndex.INFO database has been fully integrated as well.
+Integrate OpticalGlass v2.0. This adds the ability to read Zemax .agf files; RayOptics has been updated to read Zemax .zar files directly. The RefractiveIndex.INFO database has been fully integrated as well.
 
-Continued fixes and refinements were made to field and aperture optical specifications, including vignetting and pupil aiming calculations. 
+Continued fixes and refinements were made to field and aperture optical specifications, including vignetting and pupil aiming calculations. Added direct index/field name access from FieldSpec instance.
 
-The |ybar| diagram was updated to allow for replacement of a |ybar| node with an optical element or assembly from any |ybar| layer.
+The |ybar| diagram was updated to allow for replacement of a |ybar| node with an optical element or assembly from any |ybar| layer, i.e. the replacement is no longer restricted to the interface layer, it can be done at the element or assembly layer.
 
-Much more stuff...
+Add the :func:`~.raytr.vigcalc.set_stop_aperture` function, the reverse of the set_pupil function. Added "avoid" and "include" lists to :meth:`~.seq.sequential.SequentialModel.set_clear_apertures` to exclude or include specified interfaces in the clear aperture setting process. Move implementation to the :mod:`~.raytr.vigcalc` module.
+
+Switch opd to use traced wavelength vs the central wavelength, to match CV and Zemax.
+
+Updates to the lens layout capability include drawing xz plane for rotationally symmteric systems, better support for cemented elemented and flats and rendering of prisms. 
+
+The ability to include obscurations in the aperture definition was added.
+
+Added primary chromatic aberration calculation, :func:`~.parax.thirdorder.compute_third_order_and_color`.
+
+Many miscellaneous fixes and improvements, as well as addition of type information. Minimum python version 3.12.
+
+Thanks to:
+    - @dibyendumajumdar for improvements to the OpticalBench import capability.
+    - @cyberstudio10 for fixes to exception handling in vigcalc and wideangle as well as fixes for Zemax import.
 
 
 Version 0.9.8
