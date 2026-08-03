@@ -24,6 +24,7 @@ import numpy as np
 import rayoptics.optical.model_constants as mc
 
 import rayoptics.util.rgbtable as rgbt
+from rayoptics.util.misc_math import is_fuzzy_zero
 from rayoptics.oprops import thinlens
 from rayoptics.elem import parttree
 from rayoptics.elem import RONode
@@ -1866,7 +1867,7 @@ class CementedElement(Part):
         See also cv_fisheye.roa
         '''
         def sphere_sag_to_zone(sag, c):
-            if c == 0.:
+            if is_fuzzy_zero(c):
                 return sd
             else:
                 R = abs(1/c)
@@ -1878,17 +1879,24 @@ class CementedElement(Part):
 
         def sphere_sphere_zone(cv_a, cv_b, t):
             """ find intersection point of 2 circles. """
-            ra = 1.0e12 if cv_a == 0 else 1/cv_a
-            rb = 1.0e12 if cv_b == 0 else 1/cv_b
-            try:
-                x = (2*rb*t + t**2)/(2*(rb + t - ra))
-                y = np.sqrt(ra**2 - (x - ra)**2)
-            except ValueError:
-                y = ra if ra < rb else rb
-            return y
+            if is_fuzzy_zero(cv_a):
+                return sphere_sag_to_zone(t, cv_b)
+            elif is_fuzzy_zero(cv_b):
+                return sphere_sag_to_zone(t, cv_a)
+            elif is_fuzzy_zero(cv_a) and is_fuzzy_zero(cv_b):
+                return sd
+            else:
+                ra = 1/cv_a
+                rb = 1/cv_b
+                try:
+                    x = (2*rb*t + t**2)/(2*(rb + t - ra))
+                    y = np.sqrt(ra**2 - (x - ra)**2)
+                except ValueError:
+                    y = ra if ra < rb else rb
+                return y
 
         p = self.profiles[idx]
-        R = 1.0e12 if p.cv == 0 else abs(1/p.cv)
+        R = 1.0e12 if is_fuzzy_zero(p.cv) else abs(1/p.cv)
         ifc = self.ifcs[idx]
         ca = ifc.surface_od()
         
