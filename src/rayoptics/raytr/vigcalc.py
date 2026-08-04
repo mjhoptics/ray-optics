@@ -20,6 +20,7 @@ import rayoptics.optical.model_constants as mc
 
 from rayoptics.raytr import trace, RayPkg, RaySeg
 from rayoptics.raytr import traceerror as terr
+from rayoptics.raytr import wideangle
 from rayoptics.parax import etendue
 
 logger = logging.getLogger(__name__)
@@ -271,6 +272,35 @@ def calc_vignetted_ray(opm, xy, start_dir, fld, wvl, max_iter_count=50):
         - **ray_pkg** - the vignetting-limited ray
  
     """
+    def r_pupil_coordinate(xy_coord, *args):
+        opt_model, indx, xy, fld, wvl, r_target = args
+
+        rel_p1 = np.array([0., 0.])
+        rel_p1[xy] = xy_coord
+        try:
+            ray_pkg = trace.trace_base(opt_model, rel_p1, fld, wvl, 
+                                        apply_vignetting=False, 
+                                        check_apertures=False)
+        except terr.TraceError as ray_error:
+            ray_pkg = ray_error.ray_pkg
+            # Check if the ray error occured at or before the indx surface.
+            # if the error is at or following indx, drop thru
+            if isinstance(ray_error, terr.TraceMissedSurfaceError):
+                # no surface intersection, so no ray data at indx
+                if ray_error.surf <= indx:
+                    return None
+            else:  # other ray trace error exceptions
+                if ray_error.surf < indx:
+                    return None
+
+        # compute the radial distance to the intersection point
+        p = ray_pkg[mc.ray][indx][mc.p]
+        r_ray = copysign(sqrt(p[0]**2 + p[1]**2), r_target)
+        delta = r_ray - r_target
+        logger.debug(f"  {xy_coord=:8.5f}   {r_ray=:8.5f}    "
+                     f"delta={delta:9.2g}")
+        return delta
+    
     logger.debug(f"fld={fld.yf:5.2f}, [{start_dir[0]:5.2f}, "
                  f"{start_dir[1]:5.2f}]")
     rel_p1 = np.array(start_dir)
@@ -305,6 +335,18 @@ def calc_vignetted_ray(opm, xy, start_dir, fld, wvl, max_iter_count=50):
                 still_iterating = False
             else:
                 r_target = sm.ifcs[indx].edge_pt_target(start_dir)
+                # If we missed the first surface, use bisection to bracket 
+                # the edge. Use the result to start the newton iteration to 
+                # quickly find the edge.
+                if (isinstance(ray_error, terr.TraceMissedSurfaceError) and 
+                    indx == 1):
+                    logger.debug(f"  missed surface 1, use bisection to find edge")
+                    args = opm, indx, xy, fld, wvl, r_target[xy]
+                    rel_ht, real_ht = wideangle.find_edge(r_pupil_coordinate, 
+                                                          0., rel_p1[xy], 
+                                                          *args)
+                    rel_p1[xy] = rel_ht
+
                 logger.debug(f" B {xy_str[xy]} = {rel_p1[xy]:10.6f}:   "
                              f"blocked at {indx}. target={r_target[xy]:9.6f}")
                 rel_p1 = iterate_pupil_ray(opm, indx, xy, rel_p1[xy], 
