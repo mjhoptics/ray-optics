@@ -34,6 +34,7 @@ opticalglass==2.0.0
     # via rayoptics (setup.py)
 zemaxglass==2.0.0
     # via rayoptics (setup.py)
+zmxtools>=0.1.5
 packaging==26.2
     # via
     #   deprecation
