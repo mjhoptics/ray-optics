@@ -260,7 +260,7 @@ def wave_abr_full_calc_HHH(opm, fod, fld, wvl, foc, path,
     J = p_coord.dot(p_coord)/ref_sphere_radius - 2.0*ref_dir.dot(p_coord)
 
     sign_soln = -1 if ref_dir[2]*cr.ray[-1][mc.d][2] < 0 else 1
-    denom = F + sign_soln*sqrt(F**2 + J/ref_sphere_radius)
+    denom = F + sign_soln*sqrt(F**2 - J/ref_sphere_radius)
     ep = 0 if denom == 0 else J/denom
 
     n_obj = abs(fod.n_obj)
