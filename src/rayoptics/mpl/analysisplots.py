@@ -66,7 +66,7 @@ class FieldCurveFigure(StyledFigure):
 
         self.ax.legend()
 
-        self.canvas.draw()
+        self.canvas.draw_idle()
 
         return self
 
@@ -108,7 +108,7 @@ class ThirdOrderBarChart(StyledFigure):
 
         self.tight_layout()
 
-        self.canvas.draw()
+        self.canvas.draw_idle()
 
         return self
 
@@ -172,4 +172,4 @@ class AstigmatismCurvePlot(AnalysisPlot):
 
         self.ax.legend()
 
-#        fig.canvas.draw()
+#        fig.canvas.draw_idle()

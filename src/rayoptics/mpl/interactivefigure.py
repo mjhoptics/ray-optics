@@ -628,13 +628,13 @@ def update_artist_hiliting(hilited_artists, new_artists):
     for a in to_unhilite:
         try:
             a.unhighlight(a)
-            a.figure.canvas.draw()
+            a.figure.canvas.draw_idle()
         except Exception as e:
             pass
     to_hilite = list(new_artists_set - hilited_artist_set)
     for a in to_hilite:
         a.highlight(a)
-        a.figure.canvas.draw()
+        a.figure.canvas.draw_idle()
     return new_artists
 
 
@@ -827,7 +827,7 @@ def enter_polyline(point_filter=None, constrain_to_wedge=True, **inputs):
         elif event_key == 'control':
             # perhaps some sort of snap mode?
             pass
-        canvas.draw()
+        canvas.draw_idle()
 
     def on_finished_clb():
         """Callback for mouse movements."""

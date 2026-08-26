@@ -214,7 +214,7 @@ class RayFanFigure(AxisArrayFigure):
 #            print("User_Scale", us)
             [[ax.set_ylim(-us, us) for ax in r] for r in self.ax_arr]
 
-        self.canvas.draw()
+        self.canvas.draw_idle()
 
         return self
 
@@ -302,7 +302,7 @@ class SpotDiagramFigure(AxisArrayFigure):
 
         self.tight_layout()
 
-        self.canvas.draw()
+        self.canvas.draw_idle()
 
         return self
 
@@ -397,6 +397,6 @@ class WavefrontFigure(AxisArrayFigure):
 
         self.tight_layout()
 
-        self.canvas.draw()
+        self.canvas.draw_idle()
 
         return self
