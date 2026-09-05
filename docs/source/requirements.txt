@@ -18,7 +18,7 @@ ipywidgets==8.1.8
     # via rayoptics (setup.py)
 json-tricks==3.17.3
     # via rayoptics (setup.py)
-matplotlib==3.11.0
+matplotlib==3.11.1
     # via
     #   opticalglass
     #   rayoptics (setup.py)
