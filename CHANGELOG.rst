@@ -5,6 +5,15 @@ Changelog
 =========
 
 
+Version 0.9.10
+==============
+Update dependencies to use OpticalGlass 2.0.2 and ZemaxGlass 2.0.1.
+
+Thanks to @dibyendumajumdar for submitting issue #218, resulting in more robust vignetting calculations and issue #221, correcting a sign error in the OPD calculation. Testing indicates the error was typically less than 0.001 waves; a f/0.5 parabola 1 mrad offaxis showed an error of 1/20 waves.
+
+Fixed a crashing problem in the jupyter lab environment for several aberration plotting classes. An underlying matplotlib call was updated to fix the problem.
+
+
 Version 0.9.9
 =============
 Integrate OpticalGlass v2.0. This adds the ability to read Zemax .agf files; RayOptics has been updated to read Zemax .zar files directly. The RefractiveIndex.INFO database has been fully integrated as well.

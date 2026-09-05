@@ -30,9 +30,9 @@ numpy==2.5.1
     #   pandas
     #   rayoptics (setup.py)
     #   scipy
-opticalglass==2.0.0
+opticalglass==2.0.2
     # via rayoptics (setup.py)
-zemaxglass==2.0.0
+zemaxglass==2.0.1
     # via rayoptics (setup.py)
 zmxtools>=0.1.5
 packaging==26.2

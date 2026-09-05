@@ -89,7 +89,7 @@ rst_prolog = """
 .. |ybar| replace:: :math:`y-\overline{y}`
 .. |nubar| replace:: :math:`\omega-\overline{\omega}`
 .. |minimum_python_version| replace:: 3.12
-.. |minimum_numpy_version| replace:: 2.4.6
+.. |minimum_numpy_version| replace:: 2.5.1
 .. |Series| replace:: :class:`pandas.Series`
 .. |DataFrame| replace:: :class:`pandas.DataFrame`
 """
