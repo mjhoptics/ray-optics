@@ -634,7 +634,15 @@ class ZmxGlassHandler(GlassHandlerBase):
         if cmd == "GCAT":
             inputs = inputs.lower()
             agf_priority_order = inputs.split()
-            self.agf_lib.search_order = agf_priority_order
+            agf_search_order = []
+            for cat in agf_priority_order:
+                if cat not in self.agf_lib:
+                    logger.warning(f"GCAT: catalog {cat} not found")
+                    print(f"GCAT: catalog {cat} not found")
+                else:
+                    agf_search_order.append(cat)
+
+            self.agf_lib.search_order = agf_search_order
             self.track_contents["GCAT"] = inputs
             return True
 
