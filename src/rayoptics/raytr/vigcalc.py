@@ -335,12 +335,11 @@ def calc_vignetted_ray(opm, xy, start_dir, fld, wvl, max_iter_count=50):
                 still_iterating = False
             else:
                 r_target = sm.ifcs[indx].edge_pt_target(start_dir)
-                # If we missed the first surface, use bisection to bracket 
-                # the edge. Use the result to start the newton iteration to 
-                # quickly find the edge.
-                if (isinstance(ray_error, terr.TraceMissedSurfaceError) and 
-                    indx == 1):
-                    logger.debug(f"  missed surface 1, use bisection to find edge")
+                # If we miss a surface, use bisection to bracket the edge. 
+                # Use the result to start the newton iteration to quickly 
+                # find the edge.
+                if (isinstance(ray_error, terr.TraceMissedSurfaceError)):
+                    logger.debug(f" Missed surface {indx}, use bisection to find edge")
                     args = opm, indx, xy, fld, wvl, r_target[xy]
                     rel_ht, real_ht = wideangle.find_edge(r_pupil_coordinate, 
                                                           0., rel_p1[xy], 
