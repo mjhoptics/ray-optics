@@ -492,10 +492,14 @@ def iterate_pupil_ray(opt_model, indx, xy, start_r0, r_target,
     if indx is not None:
         logging.captureWarnings(True)
         try:
-            start_r, results = newton(r_pupil_coordinate, start_r0,
+            # set `x1` so that search goes inward from the edge.
+            # see case #2 of issue #225
+            eps = 1e-4
+            p1 = start_r0 * (1 - eps)
+            start_r, results = newton(r_pupil_coordinate, start_r0, x1=p1,
                                       args=(opt_model, indx, xy,
-                                            fld, wvl, r_target), tol=1e-6,
-                                      disp=False, full_output=True)
+                                            fld, wvl, r_target), 
+                                      tol=1e-6, disp=False, full_output=True)
         except RuntimeError as rte:
             # if we come here, set start_r to a RuntimeResults object
             start_r = results.root
