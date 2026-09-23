@@ -10,6 +10,7 @@
 import numpy as np
 from numpy import sqrt
 from rayoptics.util import misc_math
+from abc import abstractmethod
 
 from typing import Optional
 from rayoptics.typing import Z_DIR
@@ -88,6 +89,7 @@ class Interface:
     def set_optical_power(self, pwr: float, n_before: float, n_after: float):
         pass
 
+    @abstractmethod
     def surface_od(self) -> float:
         pass
 
@@ -130,6 +132,7 @@ class Interface:
         od = [-self.max_aperture, self.max_aperture]
         return od
 
+    @abstractmethod
     def intersect(self, p0: Vec3d, d: Dir3d, z_dir: Z_DIR=1, 
                   eps: float=1.0e-12) -> tuple[float, Vec3d]:
         ''' Intersect an :class:`~.Interface`, starting from an arbitrary point.
@@ -148,6 +151,7 @@ class Interface:
         '''
         pass
 
+    @abstractmethod
     def normal(self, p: Vec3d) -> Dir3d:
         """Returns the unit normal of the interface at point *p*. """
         pass
