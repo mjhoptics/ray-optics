@@ -357,11 +357,11 @@ class OpticalSpecs:
 
                 else:
                     aim_pt = [0., 0.] if aim_info is None else aim_info
-                    obj2enp_dist = -(fod.obj_dist + z_enp)
+                    obj2enp_dist = fod.obj_dist + z_enp
                     pt1 = np.array([eprad*pupil[0]+aim_pt[0], 
                                     eprad*pupil[1]+aim_pt[1],
-                                    fod.obj_dist+z_enp])
-                    pt0 = obj2enp_dist*np.array([d0[0]/d0[2], d0[1]/d0[2], 0.])
+                                    obj2enp_dist])
+                    pt0 = -obj2enp_dist*np.array([d0[0]/d0[2], d0[1]/d0[2], 0.])
 
             dir0 = normalize(pt1 - pt0)
 
@@ -1051,8 +1051,8 @@ class FieldSpec:
                 rot_mat = rot_v1_into_v2(np.array([0., 0., 1.]), dir_cos)
                 obj_pt = np.matmul(rot_mat, -pt1) + pt1
             else:
-                obj_pt = obj2enp_dist * np.array([dir_cos[0]/dir_cos[2], 
-                                                  dir_cos[1]/dir_cos[2], 0.0])
+                obj_pt = -obj2enp_dist * np.array([dir_cos[0]/dir_cos[2], 
+                                                   dir_cos[1]/dir_cos[2], 0.0])
             obj_dir = dir_cos
 
         elif obj_conj == 'finite':
@@ -1080,9 +1080,9 @@ class FieldSpec:
                     fld_angle = np.deg2rad(fld_coord)
                     obj_dir = np.sin(fld_angle)
                     obj_dir[2] = np.sqrt(1 - obj_dir[0]**2 - obj_dir[1]**2)
-                    obj_pt = obj2enp_dist * np.array([obj_dir[0]/obj_dir[2], 
-                                                      obj_dir[1]/obj_dir[2], 
-                                                      0.0])
+                    obj_pt = -obj2enp_dist * np.array([obj_dir[0]/obj_dir[2], 
+                                                       obj_dir[1]/obj_dir[2], 
+                                                       0.0])
                     return obj_pt, obj_dir
                 else:
                     obj_pt = fld_coord
