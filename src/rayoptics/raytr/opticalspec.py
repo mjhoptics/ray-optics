@@ -1366,6 +1366,15 @@ class FocusRange:
         self.focus_shift = focus_shift
         self.defocus_range = defocus_range
 
+    def __json_decode__(self, **attrs):
+        for a_key, a_val in attrs.items():
+            # fix old files (v0.2!)
+            if a_key == 'infocus':
+                a_key = 'focus_shift'
+            elif a_key == 'defocus':
+                a_key = 'defocus_range'
+            setattr(self, a_key, a_val)
+
     def __repr__(self):
         return ("FocusRange(focus_shift={}, defocus_range={})"
                 .format(self.focus_shift, self.defocus_range))
