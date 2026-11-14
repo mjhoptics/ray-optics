@@ -16,7 +16,7 @@ from rayoptics.elem.surface import (DecenterData, Circular, Rectangular,
 from rayoptics.elem import profiles
 from rayoptics.seq.medium import GlassHandlerBase
 from rayoptics.raytr.opticalspec import Field
-from rayoptics.util.misc_math import isanumber
+from rayoptics.util.misc_math import isanumber, is_fuzzy_zero, infinity_guard
 import rayoptics.zemax.zmx2ro as zmx2ro
 from rayoptics.oprops import doe
 import rayoptics.oprops.thinlens as thinlens
@@ -192,6 +192,22 @@ def read_lens(filename, inpt, **kwargs) -> tuple["OpticalModel",
 
     if kwargs.get('do_update', True):
         opt_model.update_model()
+        if 'inf object' in _track_contents:
+            fod = opt_model['analysis_results']['parax_data'].fod
+            if is_fuzzy_zero(fod.power, fuzz=1e-12):
+                # afocal system, use an absolute object slope and entrance 
+                # pupil size to calculate an object distance.
+                slp0_tol = 1e-12
+                thi0 = min(max(fod.enp_radius/slp0_tol, 1e10), 1e20)
+            else:
+                # finite focal length, uses Newton's law to calculate an 
+                # object distance for 1nm of image shift.
+                efl = fod.efl
+                foc_tol = opt_model.nm_to_sys_units(1)
+                thi0 = min(max(efl**2 / foc_tol, 1e10), 1e20)
+            opt_model['seq_model'].gaps[0].thi = thi0
+            _track_contents['inf object'] = thi0
+            opt_model.update_model()
 
     info = _track_contents, _glass_handler.glasses_not_found
     return opt_model, info
@@ -311,8 +327,9 @@ def post_process_input(opt_model, filename, **kwargs):
         opt_model['system_spec'].title = title
 
     conj_type = 'finite'
-    if math.isinf(sm.gaps[0].thi):
-        sm.gaps[0].thi = 1e10
+    if math.isinf(thi0:=sm.gaps[0].thi):
+        thi0 = infinity_guard(thi0, big=1e10)
+        _track_contents['inf object'] = sm.gaps[0].thi = thi0
         conj_type = 'infinite'
     _track_contents['conj type'] = conj_type
 
