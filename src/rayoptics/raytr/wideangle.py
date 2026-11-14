@@ -653,6 +653,12 @@ def eval_real_image_ht(opt_model, fld, wvl):
     start_coords, rrev_cr = trace.iterate_ray_raw(rpath_list, ifcx, xy_target, 
                                                   p_i, d_i, obj2pup_dist, 
                                                   eprad, wvl, not_wa)
+    if rrev_cr is not None and rrev_cr.err is not None:
+        # The reverse chief ray has an error: maybe the lens' image circle is not enough to cover the sensor.
+        # Its partial ray is the REVERSE trace, which callers would take for a forward ray: report no ray data.
+        err = rrev_cr.err
+        err.ray_pkg = ([], 0.0, wvl)
+        raise err
     p_k = rrev_cr.pkg.ray[-2][mc.p]
     p_k01 = np.sqrt(p_k[0]**2 + p_k[1]**2)
     d_k = rrev_cr.pkg.ray[-2][mc.d]
