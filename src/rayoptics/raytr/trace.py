@@ -536,7 +536,7 @@ def trace_chief_ray(opt_model, fld, wvl, foc):
     cr = RayPkg(*ray_result.pkg)
 
     # Guard against clipped fields that failed early
-    if len(cr.ray) < 2 or len(opt_model.seq_model.ifcs) < 2:
+    if ray_result.err is not None or len(opt_model.seq_model.ifcs) < 2:
         # The ray was blocked near the front. Return the partial ray package,
         # but mark the exit pupil data as uncomputable. Downstream drawing
         # routines can still draw this clipped ray up to its termination point!
