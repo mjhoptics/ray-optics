@@ -45,6 +45,13 @@ def calculate_reference_sphere(opt_model, fld, wvl, foc,
         ref_sphere: tuple of image_pt, ref_dir, ref_sphere_radius, lcl_tfrm_last
     """
     cr, cr_exp_seg = chief_ray_pkg
+
+    if cr_exp_seg is None:
+        # The chief ray is blocked, so an exit pupil reference sphere cannot exist.
+        # We return None instead of an exception to allow the UI to preserve 
+        # the truncated chief ray package data structure.
+        return None
+
     # cr_exp_pt: E upper bar prime: pupil center for pencils from Q
     # cr_exp_pt, cr_b4_dir, cr_dst
     # cr_exp_pt = cr_exp_seg[mc.p]

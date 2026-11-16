@@ -328,7 +328,13 @@ class Spherical(SurfaceProfile):
             except ValueError:
                 raise TraceMissedSurfaceError
             except FloatingPointError:
-                s = 0.
+                # If the exception was triggered by a flat 
+                # surface (cv==0), calculate the true linear projection distance 
+                # instead of freezing the ray position at s = 0.
+                if self.cv == 0.0:
+                    s = -p[2] / d[2] if d[2] != 0.0 else 0.0
+                else:
+                    s = 0.
         else:  # ax2 = cx2 = b = 0, i.e. ray is tangent to the sphere at p
             s = 0.
 
