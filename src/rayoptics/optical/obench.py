@@ -129,6 +129,7 @@ def read_lens(inpts, opt_model=None) -> OpticalModel:
     if opt_model is None:
         opt_model = OpticalModel(do_init=True)
     opt_model.radius_mode = True
+    opt_model['system_spec'].dimensions = 'mm'
 
     sm = opt_model['seq_model']
     sm.do_apertures = False

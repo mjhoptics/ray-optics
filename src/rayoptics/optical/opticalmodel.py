@@ -71,8 +71,13 @@ class SystemSpec:
         return self._dimensions
 
     @dimensions.setter
-    def dimensions(self, value: str):
-        self._dimensions = value
+    def dimensions(self, dim: str):
+        dim_cf = dim.casefold()
+        match dim_cf:
+            case 'm' | 'cm' | 'mm' | 'in' | 'ft':
+                self._dimensions = dim_cf
+            case _:
+                raise ValueError(f"invalid dimensions: {dim}")
 
     def nm_to_sys_units(self, nm):
         """ convert nm to system units

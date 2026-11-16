@@ -229,7 +229,7 @@ def process_line(opt_model, line, line_no):
         if dim == 'MM':
             dim = 'mm'
         elif dim == 'IN' or dim == 'INCH':
-            dim = 'inches'
+            dim = 'in'
         opt_model['system_spec'].dimensions = dim
     elif cmd == "NAME":
         opt_model['system_spec'].title = inputs.strip("\"")
