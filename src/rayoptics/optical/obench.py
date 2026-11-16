@@ -15,6 +15,7 @@
 .. codeauthor: Michael J. Hayford
 """
 import requests
+from collections import defaultdict
 
 from rayoptics.optical.opticalmodel import OpticalModel
 from rayoptics.elem.profiles import (EvenPolynomial, RadialPolynomial)
@@ -23,7 +24,6 @@ from rayoptics.oprops.doe import DiffractiveElement
 from rayoptics.raytr.opticalspec import WvlSpec
 from rayoptics.util.misc_math import isanumber, is_kinda_big, is_fuzzy_zero
 
-from opticalglass import util
 import opticalglass.modelglass as mg
 
 _track_contents = None
@@ -31,7 +31,7 @@ _track_contents = None
 def read_obench_url(url, **kwargs) -> tuple["OpticalModel", tuple[dict, dict]]:
     ''' given a url to a OpticalBench file, return an OpticalModel and info. '''
     global _track_contents
-    _track_contents = util.Counter()
+    _track_contents = defaultdict(int)
 
     obench_input, obench_dict = read_url(url, **kwargs)
 
@@ -48,7 +48,7 @@ def read_url(url, **kwargs) -> tuple[list, dict]:
     ''' given a url to a OpticalBench file, return an OpticalModel and info. '''
     global _track_contents
 
-    _track_contents = (util.Counter() if _track_contents is None 
+    _track_contents = (defaultdict(int) if _track_contents is None 
                        else _track_contents)
     
     url1 = url.replace('OpticalBench.htm#', '')
@@ -102,7 +102,7 @@ def read_lens(inpts, opt_model=None) -> OpticalModel:
                 except:
                     return 0.
 
-    _track_contents = (util.Counter() if _track_contents is None 
+    _track_contents = (defaultdict(int) if _track_contents is None 
                        else _track_contents)
     if "constants" in inpts:
         constants_inpt = inpts['constants']
@@ -129,6 +129,7 @@ def read_lens(inpts, opt_model=None) -> OpticalModel:
     if opt_model is None:
         opt_model = OpticalModel(do_init=True)
     opt_model.radius_mode = True
+    opt_model['system_spec'].dimensions = 'mm'
 
     sm = opt_model['seq_model']
     sm.do_apertures = False

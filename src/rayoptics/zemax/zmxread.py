@@ -10,6 +10,7 @@
 import logging
 import math
 import requests
+from collections import defaultdict
 
 from rayoptics.elem.surface import (DecenterData, Circular, Rectangular,
                                     Elliptical)
@@ -39,8 +40,8 @@ _fh.setLevel(logging.INFO)
 logger.addHandler(_fh)
 
 _glass_handler = None
-_cmd_not_handled = og_util.Counter()
-_track_contents = og_util.Counter()
+_cmd_not_handled = defaultdict(int)
+_track_contents = defaultdict(int)
 
 def read_zar_file(filename, **kwargs):
     """ given a Zemax .zar filename, return an OpticalModel
@@ -228,7 +229,7 @@ def process_line(opt_model, line, line_no):
         if dim == 'MM':
             dim = 'mm'
         elif dim == 'IN' or dim == 'INCH':
-            dim = 'inches'
+            dim = 'in'
         opt_model['system_spec'].dimensions = dim
     elif cmd == "NAME":
         opt_model['system_spec'].title = inputs.strip("\"")

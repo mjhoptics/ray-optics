@@ -10,6 +10,7 @@
 import json
 import difflib
 import logging
+from collections import defaultdict
 
 from rayoptics.util.misc_math import isanumber
 
@@ -187,8 +188,8 @@ class GlassHandlerBase():
     """
 
     def __init__(self, filename):
-        self.glasses_not_found = og_util.Counter()
-        self.track_contents = og_util.Counter()
+        self.glasses_not_found = defaultdict(int)
+        self.track_contents = defaultdict(int)
         self.filename = None
         if filename:
             self.filename = filename.with_suffix('.smx')
@@ -198,7 +199,7 @@ class GlassHandlerBase():
                                       for key, value in gfact._custom_glass_registry.items()}
 
     def load_replacements(self, filename):
-        glasses_not_found = og_util.Counter()
+        glasses_not_found = defaultdict(int)
         if filename.exists():
             with filename.open('r') as file:
                 glasses_not_found = json.load(file)

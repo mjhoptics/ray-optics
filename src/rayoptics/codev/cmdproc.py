@@ -9,6 +9,7 @@
 """
 import logging
 import math
+from collections import defaultdict
 
 from . import tla
 from . import reader as cvr
@@ -67,7 +68,7 @@ def read_lens(filename, **kwargs) -> tuple["OpticalModel", tuple[dict, dict]]:
     global _glass_handler, _track_contents
     global _reading_private_catalog
     _reading_private_catalog = False
-    _track_contents = og_util.Counter()
+    _track_contents = defaultdict(int)
     opt_model = OpticalModel(do_init=False)
     _glass_handler = CVGlassHandler(filename)
     cmds = cvr.read_seq_file(filename)
@@ -286,7 +287,7 @@ def spec_data(opm, tla, qlist, dlist):
         elif dim == 'C' or dim == 'CM':
             dim = 'cm'
         elif dim == 'I' or dim == 'IN':
-            dim = 'inches'
+            dim = 'in'
         opm['system_spec'].dimensions = dim
     elif tla == "TEM":
         opm['system_spec'].temperature = dlist[0]
