@@ -117,7 +117,7 @@ class SurfaceProfile:
         eqs 4.34 thru 4.41.
 
         Args:
-            p0:  start point of the ray in the profile's coordinate system
+            p:  start point of the ray in the profile's coordinate system
             d:  direction cosine of the ray in the profile's coordinate system
             z_dir: +1 if propagation positive direction, -1 if otherwise
             eps: numeric tolerance for convergence of any iterative procedure
@@ -130,7 +130,7 @@ class SurfaceProfile:
         '''
         from numpy.linalg import norm
 
-        p0 = np.array([p[0]+(d[0]/d[2])*p[2], p[1]+(d[1]/d[2])*p[2], 0])
+        p0 = np.array([p[0]-(d[0]/d[2])*p[2], p[1]-(d[1]/d[2])*p[2], 0])
 
         z1 = self.sag(p0[0], p0[1])
         p1 = np.array([p0[0], p0[1], z1])
