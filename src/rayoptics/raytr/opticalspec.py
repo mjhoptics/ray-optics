@@ -364,6 +364,11 @@ class OpticalSpecs:
                     pt0 = -obj2enp_dist*np.array([d0[0]/d0[2], d0[1]/d0[2], 0.])
 
             dir0 = normalize(pt1 - pt0)
+            # The entrance pupil can on the left of the object. The ray still has
+			# to travel into the lens, instead of away from it; it is the line
+            # through it, extended backwards, that passes through the pupil.
+            if dir0[2]*opt_model['seq_model'].z_dir[0] < 0:
+                dir0 = -dir0
 
         else:  # an angular based measure
             if pupil_type == 'aim dir':
