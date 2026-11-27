@@ -336,9 +336,15 @@ def iterate_ray(opt_model, ifcx, xy_target, fld, wvl, **kwargs):
                         f'{ray_error.surf=}')
             ray_pkg = RayPkg(*ray_error.ray_pkg)
             rr = RayResult(ray_pkg, ray_error)
-            final_coord = np.array([0., 0., 0.])
-            if ray_error.surf < ifcx:
+			# TraceMissedSurfaceError raises ray_error at exactly the error surface as well.
+			# (This is the same logic as vigcalc.py, iterate_pupil_ray and r_pupil_coordinate.)
+            if isinstance(ray_error, TraceMissedSurfaceError):
+                if ray_error.surf <= ifcx:
+                    raise ray_error
+			# For other kinds of errors, the error surface does exist.
+            elif ray_error.surf < ifcx:
                 raise ray_error
+            final_coord = ray_pkg.ray[ifcx][mc.p]
  
         else:
             rr = RayResult(ray_pkg, None)
@@ -361,9 +367,12 @@ def iterate_ray(opt_model, ifcx, xy_target, fld, wvl, **kwargs):
         except TraceError as ray_error:
             ray_pkg = RayPkg(*ray_error.ray_pkg)
             rr = RayResult(ray_pkg, ray_error)
-            final_coord = np.array([0., 0., 0.])
-            if ray_error.surf < ifcx:
+            if isinstance(ray_error, TraceMissedSurfaceError):
+                if ray_error.surf <= ifcx:
+                    raise ray_error
+            elif ray_error.surf < ifcx:
                 raise ray_error
+            final_coord = ray_pkg.ray[ifcx][mc.p]
         else:
             rr = RayResult(ray_pkg, None)
             final_coord = ray_pkg.ray[ifcx][mc.p]
@@ -525,6 +534,13 @@ def trace_chief_ray(opt_model, fld, wvl, foc):
                             output_filter=None, rayerr_filter='full')
 
     cr = RayPkg(*ray_result.pkg)
+
+    # Guard against clipped fields that failed early
+    if ray_result.err is not None or len(opt_model.seq_model.ifcs) < 2:
+        # The ray was blocked near the front. Return the partial ray package,
+        # but mark the exit pupil data as uncomputable. Downstream drawing
+        # routines can still draw this clipped ray up to its termination point!
+        return cr, None
 
     # cr_exp_pt: E upper bar prime: pupil center for pencils from Q
     # cr_exp_pt, cr_b4_dir, cr_exp_dist
@@ -890,9 +906,12 @@ def iterate_ray_raw(pthlist, ifcx, xy_target, pt0, d0,
                         f'{ray_error.surf=}')
             ray_pkg = RayPkg(*ray_error.ray_pkg)
             rr = RayResult(ray_pkg, ray_error)
-            final_coord = np.array([0., 0., 0.])
-            if ray_error.surf < ifcx:
+            if isinstance(ray_error, TraceMissedSurfaceError):
+                if ray_error.surf <= ifcx:
+                    raise ray_error
+            elif ray_error.surf < ifcx:
                 raise ray_error
+            final_coord = ray_pkg.ray[ifcx][mc.p]
  
         else:
             rr = RayResult(ray_pkg, None)
@@ -915,9 +934,12 @@ def iterate_ray_raw(pthlist, ifcx, xy_target, pt0, d0,
         except TraceError as ray_error:
             ray_pkg = RayPkg(*ray_error.ray_pkg)
             rr = RayResult(ray_pkg, ray_error)
-            final_coord = np.array([0., 0., 0.])
-            if ray_error.surf < ifcx:
+            if isinstance(ray_error, TraceMissedSurfaceError):
+                if ray_error.surf <= ifcx:
+                    raise ray_error
+            elif ray_error.surf < ifcx:
                 raise ray_error
+            final_coord = ray_pkg.ray[ifcx][mc.p]
         else:
             rr = RayResult(ray_pkg, None)
             final_coord = ray_pkg.ray[ifcx][mc.p]

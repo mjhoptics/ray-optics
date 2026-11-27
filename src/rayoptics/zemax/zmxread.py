@@ -476,7 +476,11 @@ def handle_types_and_params(optm, cur, cmd, inputs):
         if ifc.z_type == 'XOSPHERE' or ifc.z_type == 'XASPHERE':
             if i == 1:
                 num_terms = param_val
-                ifc.profile.coefs = []
+                # Using Bill Claff's prescription for the Sigma 12-24mm F4 DG HSM Art,
+                # I discovered that the XDAT style of XASPHERE is not the same as
+                # XOSPHERE: XDAT 3 is r^2 and r respectively, with consecutive powers
+                # after that. XASPHERE is now read that way.
+                ifc.profile.coefs = [0.0] if ifc.z_type == 'XASPHERE' else []
             elif i == 2:
                 normalizing_radius = param_val
                 if normalizing_radius != 1.0:
